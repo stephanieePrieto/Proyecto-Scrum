@@ -1,0 +1,86 @@
+<!-- Responsable: Camila - HU-17 a HU-25, HU-58, HU-59: pantalla del tablero del sprint. Usa componentes globales y tablero.css -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Tablero</title>
+
+    <!-- Enlaces a los CSS base del equipo -->
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/pages/tablero.css">
+
+    <!-- CDN de Tailwind para asegurar que las clases flex, bg-slate, etc., funcionen en tu previsualización local -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <div id="pantalla-tablero" class="h-full flex flex-col p-6 bg-slate-50">
+
+        <!-- Encabezado del Sprint -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-semibold text-slate-800" id="sprint-nombre">Cargando sprint...</h1>
+                <span
+                    class="insignia-estado rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-xs font-medium"
+                    id="sprint-estado">Activo</span>
+                <span class="text-sm text-slate-500" id="sprint-dias-restantes">Quedan X días</span>
+            </div>
+
+            <div class="flex gap-2">
+                <button
+                    class="btn-primario bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                    id="btn-nueva-tarea">+ Tarea</button>
+                <button
+                    class="btn-secundario border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                    id="btn-configurar-columnas">Configurar</button>
+            </div>
+        </div>
+
+        <!-- Barra de Filtros -->
+        <div
+            class="barra-filtros flex items-center gap-3 mb-6 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+            <span class="text-sm text-slate-500 font-medium">Filtros:</span>
+            <select class="input-select rounded border border-slate-200 text-sm py-1 px-2">
+                <option>Persona: Todos</option>
+            </select>
+            <select class="input-select rounded border border-slate-200 text-sm py-1 px-2">
+                <option>Épica: Todas</option>
+            </select>
+        </div>
+
+        <!-- Contenedor de las Columnas -->
+        <div id="tablero-contenedor" class="flex-1 flex gap-4 overflow-x-auto pb-4">
+            <!-- Aquí aparecerán las columnas y las tarjetas inyectadas desde JavaScript -->
+        </div>
+
+    </div>
+
+    <!-- Modal de Configuración de Columnas -->
+    <dialog id="modal-configurar-columnas"
+        class="modal-dialog rounded-xl shadow-xl border border-slate-200 p-0 w-full max-w-md backdrop:bg-slate-900/50">
+        <form method="dialog" class="p-6">
+            <h2 class="text-xl font-semibold text-slate-800 mb-4">Configurar Columnas</h2>
+            <div id="lista-config-columnas" class="space-y-3 mb-6">
+                <!-- Inputs inyectados desde JS -->
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button"
+                    class="btn-cancelar px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
+                    id="btn-cerrar-config-modal">Cancelar</button>
+                <button type="button"
+                    class="btn-primario px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                    id="btn-guardar-config-columnas">Guardar Cambios</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Enlaza tu script para poder ver los datos de prueba -->
+    <script type="module" src="../js/pages/tablero/columnas.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,12 @@
+/*
+ * Reutilizar el contenedor "tarjeta" en todas las páginas.
+ */
+
+/* Aplicar el estilo acordado: rounded-xl, borde slate-200, sombra suave y padding 24px */
+.tarjeta {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-sm);
+  padding: var(--espacio-6);
+}

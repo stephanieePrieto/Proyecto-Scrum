@@ -1,0 +1,276 @@
+/* Responsable: Alfonso - HU-24: panel de notificaciones */
+/**
+ * @file notificaciones.css
+ * @description Estilos del componente de notificaciones de ScrumFlow (HU-24):
+ *              campana, badge de no leídas y panel desplegable.
+ *              Paleta alineada al sistema de diseño (indigo / slate / rose).
+ *
+ * Estructura BEM esperada (generada por notificaciones.js):
+ *   .notif
+ *     .notif__boton > svg + .notif__badge
+ *     .notif__panel
+ *       .notif__encabezado
+ *       .notif__estado
+ *       .notif__lista > li > .notif__item[--no-leida]
+ */
+
+.notif {
+  --notif-primario: #4f46e5;
+  --notif-primario-suave: #eef2ff;
+  --notif-peligro: #f43f5e;
+  --notif-borde: #e2e8f0;
+  --notif-texto: #1e293b;
+  --notif-texto-suave: #64748b;
+  --notif-fondo: #ffffff;
+  --notif-fondo-hover: #f8fafc;
+
+  position: relative;
+  display: inline-block;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+  color: var(--notif-texto);
+}
+
+/* ---------- Campana ---------- */
+.notif__boton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--notif-texto-suave);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.notif__boton:hover,
+.notif__boton[aria-expanded="true"] {
+  background: var(--notif-primario-suave);
+  color: var(--notif-primario);
+}
+
+.notif__boton:focus-visible,
+.notif__item:focus-visible {
+  outline: 2px solid var(--notif-primario);
+  outline-offset: 2px;
+}
+
+.notif__icono {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* ---------- Badge flotante rojo ---------- */
+.notif__badge {
+  position: absolute;
+  top: -0.125rem;
+  right: -0.125rem;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--notif-peligro);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.125rem;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--notif-fondo);
+  pointer-events: none;
+}
+
+.notif__badge[hidden] {
+  display: none;
+}
+
+.notif__badge--pulso {
+  animation: notif-pulso 0.45s ease;
+}
+
+@keyframes notif-pulso {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Panel desplegable ---------- */
+.notif__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 50;
+  width: 22rem;
+  max-width: calc(100vw - 1rem);
+  overflow: hidden;
+  border: 1px solid var(--notif-borde);
+  border-radius: 0.875rem;
+  background: var(--notif-fondo);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  animation: notif-entrada 0.15s ease-out;
+}
+
+.notif__panel[hidden] {
+  display: none;
+}
+
+@keyframes notif-entrada {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notif__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--notif-borde);
+  font-weight: 600;
+}
+
+.notif__resumen {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--notif-texto-suave);
+}
+
+.notif__estado {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--notif-texto-suave);
+}
+
+.notif__estado:empty {
+  display: none;
+}
+
+.notif__estado--error {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+/* ---------- Lista ---------- */
+.notif__lista {
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.notif__vacio {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--notif-texto-suave);
+}
+
+.notif__item {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--notif-borde);
+  border-left: 3px solid transparent;
+  background: var(--notif-fondo);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.notif__item:hover {
+  background: var(--notif-fondo-hover);
+}
+
+/* No leída: fondo suave, borde izquierdo de acento y título en negrita */
+.notif__item--no-leida {
+  border-left-color: var(--notif-primario);
+  background: var(--notif-primario-suave);
+}
+
+.notif__item--no-leida:hover {
+  background: #e0e7ff;
+}
+
+.notif__item--no-leida .notif__titulo {
+  font-weight: 700;
+}
+
+/* Leída: apariencia atenuada */
+.notif__item:not(.notif__item--no-leida) {
+  color: var(--notif-texto-suave);
+}
+
+.notif__tipo {
+  display: inline-block;
+  margin-bottom: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.notif__item--asignacion .notif__tipo {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.notif__item--mencion .notif__tipo {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.notif__titulo {
+  display: block;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.notif__mensaje {
+  display: block;
+  margin-top: 0.125rem;
+  overflow-wrap: anywhere;
+}
+
+.notif__fecha {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--notif-texto-suave);
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 480px) {
+  .notif__panel {
+    position: fixed;
+    top: 4rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+  }
+
+  .notif__lista {
+    max-height: calc(100vh - 9rem);
+  }
+}
+
+/* ---------- Accesibilidad: movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .notif__panel,
+  .notif__badge--pulso {
+    animation: none;
+  }
+
+  .notif__boton,
+  .notif__item {
+    transition: none;
+  }
+}

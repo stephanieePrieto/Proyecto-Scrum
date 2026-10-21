@@ -1,0 +1,97 @@
+<!doctype html>
+<!-- Responsable: Diego - HU-44: pantalla de capacidad individual (horas por dia y ausencias). Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Capacidad · AgileDesk</title>
+
+  <!-- Cargar la fuente Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Estilos globales y componentes reutilizables -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+
+  <!-- Estilos propios de la pantalla -->
+  <link rel="stylesheet" href="/css/pages/capacidad.css" />
+
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Capacidad individual</h1>
+        <p class="subtitulo-pagina">Define cuántas horas trabajas por día y cuándo no estarás disponible.</p>
+      </div>
+    </div>
+
+    <div class="capacidad">
+      <!-- Formulario de la persona: horas por día, ausencias y notas -->
+      <form id="form-capacidad" class="tarjeta capacidad__formulario" novalidate aria-labelledby="titulo-persona">
+        <header class="capacidad__persona">
+          <span id="avatar" class="capacidad__avatar" aria-hidden="true"></span>
+          <div>
+            <h2 id="titulo-persona" class="capacidad__nombre">Mi capacidad</h2>
+            <p id="rol-persona" class="capacidad__rol"></p>
+          </div>
+        </header>
+
+        <div class="campo">
+          <label class="campo__etiqueta" for="horas">Horas disponibles por día</label>
+          <input class="campo__control" id="horas" name="horas" type="number" inputmode="decimal" min="0" max="24" step="0.5" />
+          <p class="campo__error" id="error-horas" hidden></p>
+        </div>
+
+        <fieldset class="ausencias">
+          <legend class="campo__etiqueta">Ausencias y vacaciones</legend>
+          <p id="ausencias-vacio" class="ausencias__vacio" hidden>Sin ausencias registradas. Agrega una si no estarás disponible.</p>
+          <div id="lista-ausencias" class="ausencias__lista"></div>
+          <button class="boton boton--secundario boton--pequeno" id="btn-agregar" type="button">+ Agregar ausencia</button>
+        </fieldset>
+
+        <div class="campo campo--notas">
+          <label class="campo__etiqueta" for="notas">Notas</label>
+          <textarea class="campo__control" id="notas" name="notas" rows="3" maxlength="500" placeholder="Ej. Disponible para apoyo en QA"></textarea>
+          <p class="campo__error" id="error-notas" hidden></p>
+        </div>
+
+        <p id="estado" class="capacidad__estado" role="status" aria-live="polite"></p>
+        <button class="boton boton--primario" id="btn-guardar" type="submit">Guardar capacidad</button>
+      </form>
+
+      <!-- Resumen del equipo: se recalcula solo al guardar -->
+      <section class="tarjeta capacidad__resumen" aria-labelledby="titulo-resumen">
+        <h2 id="titulo-resumen" class="capacidad__subtitulo">Capacidad del equipo</h2>
+        <p class="capacidad__ayuda">Horas disponibles del equipo entre dos fechas (lunes a viernes).</p>
+
+        <div class="rango">
+          <div class="campo">
+            <label class="campo__etiqueta" for="desde">Desde</label>
+            <input class="campo__control" id="desde" type="date" />
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="hasta">Hasta</label>
+            <input class="campo__control" id="hasta" type="date" />
+          </div>
+        </div>
+
+        <div id="resumen" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/js/pages/capacidad.js"></script>
+</body>
+</html>

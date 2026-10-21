@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  HU-35: Dashboard de KPIs.
+  Describir la página del dashboard: barra superior, encabezado, aviso de
+  estado vacío y la grilla donde se pintan los 4 indicadores.
+  Usar rutas absolutas (/css, /js) para que funcionen desde cualquier carpeta.
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Adaptar el ancho de la página a cualquier pantalla -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard · AgileDesk</title>
+
+  <!-- Cargar la fuente Inter desde Google Fonts (pesos 400, 500 y 600) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Importar los estilos globales: variables, reseteo y estructura -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+
+  <!-- Importar los componentes reutilizables que usa esta página -->
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/notificaciones.css">
+
+  <!-- Importar los estilos propios del dashboard -->
+  <link rel="stylesheet" href="/css/pages/dashboard.css" />
+
+  <!-- Importar al final los ajustes responsive y de accesibilidad para que prevalezcan -->
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+<body>
+  <!-- Reservar el contenedor donde layout.js insertará la barra superior -->
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <!-- Mostrar el título de la página y el botón para recalcular los KPIs -->
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Dashboard del proyecto</h1>
+        <p class="subtitulo-pagina">Estado general de un vistazo</p>
+      </div>
+      <button class="boton boton--secundario" id="btn-actualizar" type="button">Actualizar</button>
+    </div>
+
+    <!-- Mostrar el aviso de estado vacío cuando el proyecto es nuevo y no tiene datos.
+         Permanecer oculto (atributo hidden) hasta que dashboard.js lo active. -->
+    <section id="aviso-vacio" class="aviso aviso--vacio" hidden>
+      <div class="aviso__icono" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+      </div>
+      <h2 class="aviso__titulo">Aún no hay datos para mostrar</h2>
+      <p class="aviso__texto">Crea tu primer sprint y agrega historias al backlog. Los indicadores aparecerán aquí.</p>
+      <a class="boton boton--primario" href="/pages/backlog.html">Ir al backlog</a>
+    </section>
+
+    <!-- Contener las tarjetas KPI. aria-live anuncia los cambios a lectores de pantalla -->
+    <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
+  </main>
+
+  <!-- Cargar el script de la página como módulo ES (importa el resto de módulos) -->
+  <script type="module" src="/js/pages/dashboard.js"></script>
+</body>
+</html>

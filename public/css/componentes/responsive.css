@@ -1,0 +1,21 @@
+/*
+ * Adaptar la interfaz a tabletas y móviles.
+ * Cargar este archivo después de los demás para que sus reglas prevalezcan.
+ */
+
+/* Reducir la grilla de KPIs a 2 columnas en tabletas */
+@media (max-width: 1024px) {
+  .kpi-grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Compactar la barra y ocultar textos secundarios en pantallas pequeñas */
+@media (max-width: 760px) {
+  .barra-superior { padding: 0 var(--espacio-4); gap: var(--espacio-4); }
+  .barra-superior__usuario-texto, .barra-superior__marca-texto { display: none; }
+  .principal { padding: var(--espacio-4); }
+}
+
+/* Reducir la grilla de KPIs a 1 columna en móviles */
+@media (max-width: 560px) {
+  .kpi-grilla { grid-template-columns: minmax(0, 1fr); }
+}

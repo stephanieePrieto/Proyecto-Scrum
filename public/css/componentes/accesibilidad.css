@@ -1,0 +1,17 @@
+/*
+ * Mejorar la usabilidad con teclado y respetar las preferencias del sistema.
+ */
+
+/* Resaltar el foco del teclado en cualquier elemento interactivo */
+:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+
+/* Desactivar animaciones cuando el usuario lo pide en su sistema operativo */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Ocultar visualmente un texto pero mantenerlo disponible para lectores de pantalla */
+.solo-lectores {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}

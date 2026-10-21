@@ -1,0 +1,74 @@
+/*
+ * HU-35: Dashboard de KPIs.
+ * Estilizar los elementos exclusivos del dashboard: grilla, tarjeta KPI,
+ * tonos semánticos, barra de progreso, error por indicador y carga.
+ */
+
+/* ---------- Grilla de KPIs ---------- */
+/* Distribuir las tarjetas en 4 columnas iguales en escritorio */
+.kpi-grilla {
+  display: grid; gap: var(--espacio-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* ---------- Tarjeta KPI ---------- */
+/* Apilar verticalmente etiqueta, valor, barra y descripción */
+.kpi { display: flex; flex-direction: column; gap: 12px; min-height: 164px; }
+
+/* Separar la etiqueta (izquierda) del icono (derecha) */
+.kpi__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kpi__etiqueta { color: var(--texto-suave); font-weight: 500; }
+
+/* Encerrar el icono en un círculo de 36px */
+.kpi__icono {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+
+/* Resaltar el valor principal con tamaño grande */
+.kpi__valor { font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.02em; }
+
+/* Atenuar la unidad (%, h, días) junto al valor */
+.kpi__unidad { font-size: 16px; font-weight: 500; color: var(--texto-suave); margin-left: 4px; }
+
+/* Empujar la descripción al fondo de la tarjeta */
+.kpi__pista { color: var(--texto-suave); font-size: 13px; margin-top: auto; }
+
+/* ---------- Tonos semánticos ---------- */
+/* Aplicar esmeralda cuando el valor es favorable */
+.kpi--exito .kpi__icono { background: var(--esmeralda-50); color: var(--esmeralda-500); }
+.kpi--exito .kpi__valor { color: var(--esmeralda-700); }
+/* Aplicar ámbar cuando el valor requiere atención */
+.kpi--advertencia .kpi__icono { background: var(--ambar-50); color: var(--ambar-500); }
+.kpi--advertencia .kpi__valor { color: var(--ambar-700); }
+/* Aplicar rosa cuando el valor es crítico */
+.kpi--peligro .kpi__icono { background: var(--rosa-50); color: var(--rosa-500); }
+.kpi--peligro .kpi__valor { color: var(--rosa-700); }
+/* Aplicar celeste para datos informativos */
+.kpi--info .kpi__icono { background: var(--celeste-50); color: var(--celeste-500); }
+.kpi--info .kpi__valor { color: var(--texto); }
+/* Aplicar gris cuando no hay valor (por ejemplo, "—") */
+.kpi--neutro .kpi__icono { background: var(--slate-50); color: var(--texto-suave); }
+.kpi--neutro .kpi__valor { color: var(--texto-suave); }
+
+/* ---------- Barra de progreso (avance global) ---------- */
+/* Dibujar el riel de la barra */
+.progreso { height: 8px; border-radius: 999px; background: var(--slate-200); overflow: hidden; }
+/* Rellenar el riel según el porcentaje y animar el cambio de ancho */
+.progreso__barra { height: 100%; border-radius: inherit; background: var(--esmeralda-500); transition: width .4s ease; }
+/* Cambiar el color de la barra según el tono de la tarjeta */
+.kpi--advertencia .progreso__barra { background: var(--ambar-500); }
+.kpi--peligro .progreso__barra { background: var(--rosa-500); }
+
+/* ---------- Error aislado por indicador ---------- */
+/* Teñir de rosa solo la tarjeta que falló */
+.kpi--error { border-color: #FECDD3; background: var(--rosa-50); }
+/* Colocar el mensaje y el botón de reintento al fondo de la tarjeta */
+.kpi__error { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: auto; }
+.kpi__error-texto { color: var(--rosa-700); font-weight: 500; }
+.kpi__error-detalle { color: var(--texto-suave); font-size: 13px; }
+
+/* ---------- Estado de carga ---------- */
+/* Dimensionar los bloques que sustituyen al valor y a la descripción */
+.kpi--cargando .esqueleto--valor { width: 55%; height: 40px; }
+.kpi--cargando .esqueleto--linea { width: 80%; height: 12px; margin-top: auto; }

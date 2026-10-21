@@ -1,0 +1,5 @@
+# BASE: lo que Git NO debe subir
+node_modules/
+.env
+*.log
+.DS_Store

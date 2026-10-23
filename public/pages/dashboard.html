@@ -41,10 +41,22 @@
   <header id="barra-superior" class="barra-superior"></header>
 
   <main class="principal">
+  <!-- HU-01: lista de proyectos del usuario con acciones de crear, editar y archivar -->
+  <section id="proyectos" class="proyectos" aria-labelledby="proyectos-titulo">
+    <div class="proyectos__cabecera">
+      <h1 id="proyectos-titulo" class="titulo-pagina">Proyectos</h1>
+      <div class="proyectos__acciones">
+        <label class="proyectos__archivados"><input type="checkbox" id="ver-archivados" /> Ver archivados</label>
+        <a id="btn-nuevo-proyecto" class="boton boton--primario" href="/pages/configuracion-proyecto.html" hidden>Nuevo proyecto</a>
+      </div>
+    </div>
+    <p id="proyectos-error" class="proyectos__error" role="alert" hidden></p>
+    <div id="proyectos-lista" class="proyectos__lista" aria-live="polite"></div>
+  </section>
     <!-- Mostrar el título de la página y el botón para recalcular los KPIs -->
     <div class="encabezado-pagina">
       <div>
-        <h1 class="titulo-pagina">Dashboard del proyecto</h1>
+        <h2 class="titulo-pagina">Dashboard del proyecto</h2>
         <p class="subtitulo-pagina">Estado general de un vistazo</p>
       </div>
       <button class="boton boton--secundario" id="btn-actualizar" type="button">Actualizar</button>
@@ -63,20 +75,6 @@
 
     <!-- Contener las tarjetas KPI. aria-live anuncia los cambios a lectores de pantalla -->
     <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
-
-    <main class="principal">
-    <!-- HU-01: lista de proyectos del usuario con acciones de crear, editar y archivar -->
-    <section id="proyectos" class="proyectos" aria-labelledby="proyectos-titulo">
-      <div class="proyectos__cabecera">
-        <h2 id="proyectos-titulo" class="proyectos__titulo">Proyectos</h2>
-        <div class="proyectos__acciones">
-          <label class="proyectos__archivados"><input type="checkbox" id="ver-archivados" /> Ver archivados</label>
-          <a id="btn-nuevo-proyecto" class="boton boton--primario" href="/pages/configuracion-proyecto.html" hidden>Nuevo proyecto</a>
-        </div>
-      </div>
-      <p id="proyectos-error" class="proyectos__error" role="alert" hidden></p>
-      <div id="proyectos-lista" class="proyectos__lista" aria-live="polite"></div>
-    </section>
     
     <!-- Contenedor para la información del proyecto y el DoD -->
     <section id="info-proyecto" class="tarjeta" hidden style="margin-top: 2rem;">

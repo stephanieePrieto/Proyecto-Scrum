@@ -63,7 +63,37 @@
 
     <!-- Contener las tarjetas KPI. aria-live anuncia los cambios a lectores de pantalla -->
     <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
+
+    <main class="principal">
+    <!-- HU-01: lista de proyectos del usuario con acciones de crear, editar y archivar -->
+    <section id="proyectos" class="proyectos" aria-labelledby="proyectos-titulo">
+      <div class="proyectos__cabecera">
+        <h2 id="proyectos-titulo" class="proyectos__titulo">Proyectos</h2>
+        <div class="proyectos__acciones">
+          <label class="proyectos__archivados"><input type="checkbox" id="ver-archivados" /> Ver archivados</label>
+          <a id="btn-nuevo-proyecto" class="boton boton--primario" href="/pages/configuracion-proyecto.html" hidden>Nuevo proyecto</a>
+        </div>
+      </div>
+      <p id="proyectos-error" class="proyectos__error" role="alert" hidden></p>
+      <div id="proyectos-lista" class="proyectos__lista" aria-live="polite"></div>
+    </section>
+    
+    <!-- Contenedor para la información del proyecto y el DoD -->
+    <section id="info-proyecto" class="tarjeta" hidden style="margin-top: 2rem;">
+      <h2 class="tarjeta__titulo" style="margin-bottom: 0.5rem;">Definition of Done (DoD)</h2>
+      <div id="dod-texto" style="white-space: pre-wrap; color: var(--color-texto-secundario); font-size: 0.95rem;"></div>
+    </section>
   </main>
+
+  <!-- HU-01: confirmación para archivar un proyecto -->
+  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash" aria-labelledby="archivar-proyecto-titulo">
+    <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
+    <p>«<span id="archivar-proyecto-nombre"></span>» saldrá de la lista pero conservará todo su historial.</p>
+    <div class="proy-dialogo-dash__acciones">
+      <button class="boton boton--secundario" type="button" id="archivar-proyecto-cancelar">Cancelar</button>
+      <button class="boton boton--primario" type="button" id="archivar-proyecto-confirmar">Archivar proyecto</button>
+    </div>
+  </dialog>
 
   <!-- Cargar el script de la página como módulo ES (importa el resto de módulos) -->
   <script type="module" src="/js/pages/dashboard.js"></script>

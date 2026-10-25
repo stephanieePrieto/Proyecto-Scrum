@@ -1,26 +1,78 @@
-// Responsable: Camila - HU-17, HU-22: recibe la peticion y responde (columnas configurables y limites WIP); sin logica de negocio
-import asyncHandler from '../../utils/asyncHandler.js';
-import * as tableroService from './tablero.service.js';
+/**
+ * @file tablero.controller.js
+ * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas) [HU-17, HU-18, HU-22].
+ * @author Camila Mariné Crespo Zurita
+ */
 
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { actualizarColumnas, moverTarjeta, obtenerEstructuraTablero } from './tablero.service.js';
+
+/**
+ * Obtiene la estructura completa de columnas y tareas del sprint activo.
+ * 
+ * @async
+ * @function obtenerTablero
+ * @param {import('express').Request} req - Objeto de petición Express.
+ * @param {import('express').Response} res - Objeto de respuesta Express.
+ * @returns {Promise<void>}
+ */
 export const obtenerTablero = asyncHandler(async (req, res) => {
-    const { proyectoId } = req.params;
-    
-    // Llama al servicio que contiene la lógica de SQL
-    const tablero = await tableroService.obtenerDatosTablero(proyectoId);
-    
-    res.json({ exito: true, datos: tablero });
+    const proyectoId = req.params.proyectoId || 1;
+    const datosTablero = await obtenerEstructuraTablero(proyectoId);
+
+    res.status(200).json({
+        status: 'success',
+        mensaje: 'Estructura del tablero obtenida correctamente.',
+        data: datosTablero
+    });
 });
 
+/**
+ * Guarda los cambios de nombres, orden y límites WIP de las columnas (HU-17, HU-22).
+ * 
+ * @async
+ * @function configurarColumnas
+ * @param {import('express').Request} req - Objeto de petición Express.
+ * @param {import('express').Response} res - Objeto de respuesta Express.
+ * @returns {Promise<void>}
+ */
 export const configurarColumnas = asyncHandler(async (req, res) => {
     const { proyectoId } = req.params;
     const { columnas } = req.body;
 
-    // Validación básica
-    if(!columnas || !Array.isArray(columnas)) {
-        return res.status(400).json({ error: "Datos de columnas no válidos" });
-    }
+    await actualizarColumnas(proyectoId, columnas);
 
-    await tableroService.actualizarColumnas(proyectoId, columnas);
-    
-    res.json({ exito: true, mensaje: "Columnas actualizadas correctamente." });
+    res.status(200).json({
+        status: 'success',
+        mensaje: 'Configuración de columnas actualizada correctamente.'
+    });
+});
+
+/**
+ * Procesa el movimiento de una tarjeta entre columnas en tiempo real (HU-18).
+ * 
+ * @async
+ * @function moverTarjetaController
+ * @param {import('express').Request} req - Objeto de petición Express.
+ * @param {import('express').Response} res - Objeto de respuesta Express.
+ * @returns {Promise<void>}
+ */
+export const moverTarjetaController = asyncHandler(async (req, res) => {
+    const { proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version } = req.body;
+    const usuarioNombre = req.usuario?.nombre || 'Un compañero';
+
+    const tareaActualizada = await moverTarjeta(
+        proyectoId,
+        tareaId,
+        nuevaColumnaId,
+        nuevoOrden,
+        version,
+        usuarioNombre
+    );
+
+    res.status(200).json({
+        status: 'success',
+        mensaje: 'Tarjeta movida exitosamente.',
+        data: { tarea: tareaActualizada }
+    });
 });

@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prueba Tablero</title>
+    <title>Tablero Kanban</title>
 
     <!-- Enlaces a los CSS base del equipo -->
     <link rel="stylesheet" href="../css/base.css">
@@ -44,11 +44,11 @@
         <div
             class="barra-filtros flex items-center gap-3 mb-6 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
             <span class="text-sm text-slate-500 font-medium">Filtros:</span>
-            <select class="input-select rounded border border-slate-200 text-sm py-1 px-2">
-                <option>Persona: Todos</option>
+            <select id="filtro-persona" class="input-select rounded border border-slate-200 text-sm py-1 px-2">
+                <option value="">Persona: Todos</option>
             </select>
-            <select class="input-select rounded border border-slate-200 text-sm py-1 px-2">
-                <option>Épica: Todas</option>
+            <select id="filtro-epica" class="input-select rounded border border-slate-200 text-sm py-1 px-2">
+                <option value="">Épica: Todas</option>
             </select>
         </div>
 
@@ -78,8 +78,8 @@
         </form>
     </dialog>
 
-    <!-- Enlaza tu script para poder ver los datos de prueba -->
-    <script type="module" src="../js/pages/tablero/columnas.js"></script>
+    <!-- Punto de entrada JS principal -->
+    <script type="module" src="../js/pages/tablero.js"></script>
 
 </body>
 

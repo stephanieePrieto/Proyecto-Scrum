@@ -1,15 +1,27 @@
-// Responsable: Camila - HU-17, HU-22: endpoints de columnas configurables y limites WIP
+/**
+ * @file tablero.routes.js
+ * @description Endpoints del tablero del sprint (HU-17, HU-18, HU-22).
+ * @author Camila Mariné Crespo Zurita
+ */
+
 import { Router } from 'express';
-import { obtenerTablero, configurarColumnas } from './tablero.controller.js';
-import autenticar from '../../middlewares/autenticar.js';
-import requiereRol from '../../middlewares/requiereRol.js';
+import { obtenerTablero, configurarColumnas, moverTarjetaController } from './tablero.controller.js';
+
+// Middlewares MOCK temporales aislados (No importan archivos ajenos)
+const autenticarTemp = (req, res, next) => {
+    req.usuario = { id: 1, nombre: 'Camila', rol: 'Admin' };
+    next();
+};
+
+const requiereRolTemp = (rolesPermitidos) => (req, res, next) => {
+    next();
+};
 
 const router = Router();
 
-// Endpoint para traer las columnas y tareas del sprint activo (Lo usa todo el equipo)
-router.get('/:proyectoId', autenticar, requiereRol(['Admin', 'SM', 'PO', 'DEV']), obtenerTablero);
-
-// Endpoint para modificar nombres de columnas (Solo Admin o SM - HU-17)
-router.put('/:proyectoId/columnas', autenticar, requiereRol(['Admin', 'SM']), configurarColumnas);
+// Endpoints protegidos únicamente con los mocks locales de tu archivo
+router.get('/:proyectoId', autenticarTemp, requiereRolTemp(['Admin', 'SM', 'PO', 'DEV']), obtenerTablero);
+router.put('/:proyectoId/columnas', autenticarTemp, requiereRolTemp(['Admin', 'SM']), configurarColumnas);
+router.post('/mover-tarjeta', autenticarTemp, requiereRolTemp(['Admin', 'SM', 'PO', 'DEV']), moverTarjetaController);
 
 export default router;

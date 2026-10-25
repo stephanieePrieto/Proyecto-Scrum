@@ -1,61 +1,95 @@
-// Responsable: Camila - HU-19: Información en la tarjeta
-import { calcularColorSemaforo } from '../../core/semaforo.js'; // Base HU-28
+/**
+ * @file tarjeta.js
+ * @description Renderizado y gestión visual de tarjetas de tareas en el tablero del sprint (HU-18, HU-22).
+ * @author Camila Mariné Crespo Zurita
+ */
 
+/**
+ * Función auxiliar local Y para calcular las clases CSS del semáforo de vencimiento.
+ * 
+ * @function calcularColorSemaforo
+ * @param {number} diasRestantes - Días restantes para el vencimiento de la tarea.
+ * @returns {string} Clases CSS de Tailwind para color e indicación visual.
+ */
+const calcularColorSemaforo = (diasRestantes) => {
+    if (!diasRestantes || diasRestantes <= 2) return 'bg-red-100 text-red-700 border-red-200';
+    if (diasRestantes <= 5) return 'bg-amber-100 text-amber-700 border-amber-200';
+    return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+};
+
+/**
+ * Genera el elemento HTML interactivo para una tarjeta individual.
+ * 
+ * @function crearElementoTarjeta
+ * @param {Object} tarea - Objeto con los datos de la tarea.
+ * @param {number|string} tarea.id - Identificador único de la tarea.
+ * @param {string} tarea.titulo - Título principal de la tarea.
+ * @param {string} [tarea.descripcion] - Descripción detallada opcional.
+ * @param {number} [tarea.diasRestantes] - Días restantes para el cálculo del semáforo.
+ * @returns {HTMLDivElement} Elemento DOM de la tarjeta.
+ */
 export function crearElementoTarjeta(tarea) {
-    const div = document.createElement('div');
+    const tarjeta = document.createElement('div');
+    tarjeta.id = `tarjeta-${tarea.id}`;
+    tarjeta.dataset.tareaId = tarea.id;
+    tarjeta.draggable = true;
+    tarjeta.className = 'tarjeta-item bg-white p-3 rounded-lg shadow-sm border border-slate-200 cursor-grab hover:shadow-md transition-all relative group select-none';
 
-    // Conexión con tarjetas.css y los colores base del proyecto
-    div.className = `tarjeta-item bg-white rounded-lg shadow-sm border p-3 flex flex-col gap-2 cursor-pointer hover:border-indigo-300 transition-colors`;
+    const colorSemaforo = calcularColorSemaforo(tarea.diasRestantes || 5);
 
-    // Conexión con avisos.css/insignias.css para el bloqueo (HU-19)
-    if (tarea.bloqueada) {
-        div.classList.add('tarjeta-bloqueada', 'border-l-4', 'border-l-rose-500');
-    }
-
-    div.id = `tarjeta-${tarea.id}`;
-    div.dataset.tareaId = tarea.id;
-
-    // Lógica de datos vacíos
-    const horasRealesTxt = tarea.horas_reales ? `${tarea.horas_reales}h real` : '—';
-    const horasEstimadasTxt = tarea.horas_estimadas ? `${tarea.horas_estimadas}h est.` : '?';
-
-    // Conexión con core/semaforo.js para pintar las clases text-emerald-500, amber-500 o rose-500
-    let colorTextoHoras = 'text-slate-600';
-    if (tarea.horas_reales && tarea.horas_estimadas) {
-        colorTextoHoras = calcularColorSemaforo(tarea.horas_estimadas, tarea.horas_reales) || colorTextoHoras;
-    }
-
-    // Estructura interna usando clases globales
-    div.innerHTML = `
-        <div class="flex justify-between items-start gap-2">
-             <!-- Insignia de historia -->
-             <span class="insignia-historia text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-wider truncate max-w-[120px]" title="${tarea.historia_padre}">
-                ${tarea.historia_padre || 'Sin historia'}
-             </span>
-             ${tarea.bloqueada ? `<svg class="icono-bloqueo w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>` : ''}
+    tarjeta.innerHTML = `
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+            <span class="text-xs px-2 py-0.5 rounded-full border font-medium ${colorSemaforo}">
+                ${tarea.diasRestantes || 5}d restantes
+            </span>
+            <span class="text-[11px] font-medium text-slate-400">#${tarea.id}</span>
         </div>
-        
-        <h4 class="texto-titulo text-sm font-medium text-slate-800 leading-tight break-words line-clamp-2" title="${tarea.titulo}">
-            ${tarea.titulo}
-        </h4>
-
-        <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
-            <!-- Chip de Horas con el color del semáforo -->
-            <div class="chip-horas flex items-center gap-1.5 bg-slate-50 rounded px-2 py-0.5 border border-slate-200 text-xs font-medium ${colorTextoHoras}">
-                <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>${horasEstimadasTxt} / ${horasRealesTxt}</span>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <!-- Puntos de historia -->
-                ${tarea.puntos ? `<span class="insignia-puntos bg-indigo-50 text-indigo-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full border border-indigo-100">${tarea.puntos}</span>` : ''}
-                <!-- Avatar -->
-                <div class="avatar-usuario w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold" title="${tarea.responsable_nombre || 'Sin Asignar'}">
-                    ${tarea.responsable_nombre ? tarea.responsable_nombre.charAt(0) : '?'}
-                </div>
-            </div>
-        </div>
+        <h4 class="text-sm font-semibold text-slate-800 line-clamp-2 mb-1">${tarea.titulo}</h4>
+        ${tarea.descripcion ? `<p class="text-xs text-slate-500 line-clamp-2 mb-2">${tarea.descripcion}</p>` : ''}
     `;
 
-    return div;
+    return tarjeta;
+}
+
+/**
+ * Renderiza el listado de tarjetas y actualiza automáticamente los contadores WIP de cada columna.
+ * 
+ * @function renderizarTarjetasEnTablero
+ * @param {Array<Object>} tareas - Arreglo de tareas a dibujar.
+ * @returns {void}
+ */
+export function renderizarTarjetasEnTablero(tareas = []) {
+    //Limpiar tarjetas anteriores
+    document.querySelectorAll('[id^="lista-tarjetas-"]').forEach(lista => {
+        lista.replaceChildren();
+    });
+
+    const conteoPorColumna = {};
+
+    //Renderizar cada tarjeta y contar cuántas hay por columna
+    if (Array.isArray(tareas) && tareas.length > 0) {
+        tareas.forEach(tarea => {
+            const idColumna = tarea.columna_id || tarea.columnaId;
+            const contenedorColumna = document.getElementById(`lista-tarjetas-${idColumna}`);
+
+            if (contenedorColumna) {
+                contenedorColumna.appendChild(crearElementoTarjeta(tarea));
+                conteoPorColumna[idColumna] = (conteoPorColumna[idColumna] || 0) + 1;
+            }
+        });
+    }
+
+    //Actualizar los badges de WIP en los encabezados de las columnas
+    document.querySelectorAll('[data-columna-id]').forEach(columnaEl => {
+        const idCol = columnaEl.dataset.columnaId;
+        const elWip = document.getElementById(`wip-col-${idCol}`);
+
+        if (elWip) {
+            const cantidadActual = conteoPorColumna[idCol] || 0;
+            const partes = elWip.textContent.split('/');
+            const limite = partes[1] ? partes[1].trim() : '∞';
+
+            elWip.textContent = `${cantidadActual} / ${limite}`;
+        }
+    });
 }

@@ -15,3 +15,4 @@ export const pool = new Pool({
  * @returns {Promise<import('pg').QueryResult>}
  */
 export const consulta = (textoSql, parametros) => pool.query(textoSql, parametros);
+export const query = consulta;

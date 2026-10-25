@@ -14,14 +14,19 @@ export const esCorreoValido = (correo) => {
     const expresion = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return expresion.test(correo);
 };
-
 /**
  * Valida la fortaleza de una contraseña.
- * Requiere mínimo 8 caracteres.
+ * Requiere 8 a 128 caracteres, con minúscula, mayúscula y número.
+ * El máximo evita abusar del costo de cálculo del hash con entradas gigantes.
  *
  * @param {string} password - La contraseña a validar.
  * @returns {boolean} Verdadero si cumple los requisitos.
  */
-export const esPasswordFuerte = (password) => {
-    return typeof password === 'string' && password.length >= 8;
-};
+
+export const esPasswordFuerte = (password) =>
+    typeof password === 'string' &&
+    password.length >= 8 &&
+    password.length <= 128 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password);

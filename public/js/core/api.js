@@ -1,3 +1,4 @@
+import { obtenerTokenCsrf } from './seguridad.js';
 /**
  * Centralizar las peticiones HTTP al backend usando fetch.
  * Reutilizar la función "api" desde todas las páginas.
@@ -19,17 +20,20 @@ const BASE_API = '/api';
  * @returns {Promise<any>} Cuerpo de la respuesta ya convertido a objeto.
  */
 export async function api(ruta, { metodo = 'GET', cuerpo, signal } = {}) {
-  // Simular un token temporal para evitar errores de autenticación
-  const token = localStorage.getItem('token') || 'demo-token-123';
+  // La sesión viaja en cookies httpOnly (no accesibles por JS); ya no se usa token en localStorage
+  const headers = { 'Content-Type': 'application/json' };
+
+  // Los métodos que modifican datos deben enviar el token CSRF
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(metodo.toUpperCase())) {
+    headers['X-CSRF-Token'] = obtenerTokenCsrf();
+  }
 
   // Ejecutar la petición con las cabeceras necesarias
   const respuesta = await fetch(`${BASE_API}${ruta}`, {
     method: metodo,
     signal,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'same-origin',
+    headers,
     body: cuerpo ? JSON.stringify(cuerpo) : undefined,
   });
 

@@ -1,3 +1,4 @@
+import { ErrorApp } from '../../utils/ErrorApp.js';
 import * as authService from './auth.service.js';
 import { env } from '../../config/env.js';
 
@@ -10,7 +11,7 @@ import { env } from '../../config/env.js';
 const configurarCookies = (res, accessToken, refreshToken) => {
     const opciones = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.ES_PRODUCCION || env.HTTPS_ACTIVO,
         sameSite: 'strict',
     };
 
@@ -20,7 +21,12 @@ const configurarCookies = (res, accessToken, refreshToken) => {
 
 export const login = async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress;
-    const { correo, password } = req.body;
+    const { correo, password } = req.body ?? {};
+
+    // Evita errores 500 (y entradas raras) si llegan objetos o arreglos en vez de texto
+    if (typeof correo !== 'string' || typeof password !== 'string') {
+        throw new ErrorApp('Correo y contraseña son obligatorios.', 400);
+    }
 
     const { accessToken, refreshToken, usuario } = await authService.autenticarUsuario(correo, password, ip);
 

@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import { verificarPassword, necesitaRehash, hashearPassword, gastarTiempoDeHash } from '../../utils/hash.js';
 import jwt from 'jsonwebtoken';
 import { consulta } from '../../config/db.js';
 import { env } from '../../config/env.js';
@@ -33,13 +33,15 @@ const registrarIntentoFallido = async (ip, correo) => {
 
     if (reqIp[0].intentos >= env.MAX_INTENTOS_IP) {
         await consulta(
-            `UPDATE intentos_ip SET bloqueado_hasta = NOW() + INTERVAL '${env.BLOQUEO_MINUTOS} minutes' WHERE ip = $1`, [ip]
+            `UPDATE intentos_ip SET bloqueado_hasta = NOW() + ($2::int * INTERVAL '1 minute') WHERE ip = $1`,
+            [ip, env.BLOQUEO_MINUTOS]
         );
     }
 
     if (correo) {
         const { rows: reqUser } = await consulta(
-            'UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1 WHERE correo = $1 RETURNING intentos_fallidos', [correo]
+            `UPDATE usuarios SET bloqueado_hasta = NOW() + ($2::int * INTERVAL '1 minute') WHERE correo = $1`, 
+            [correo, env.BLOQUEO_MINUTOS]
         );
 
         if (reqUser[0] && reqUser[0].intentos_fallidos >= env.MAX_INTENTOS_CORREO) {
@@ -57,6 +59,7 @@ export const autenticarUsuario = async (correo, password, ip) => {
     const usuario = rows[0];
 
     if (!usuario || !usuario.activo) {
+        await gastarTiempoDeHash(password); // iguala tiempos: evita enumeración de usuarios
         await registrarIntentoFallido(ip, null);
         throw new ErrorApp('Credenciales incorrectas.', 401);
     }
@@ -65,10 +68,16 @@ export const autenticarUsuario = async (correo, password, ip) => {
         throw new ErrorApp('Cuenta bloqueada temporalmente.', 429);
     }
 
-    const claveValida = await bcrypt.compare(password, usuario.password_hash);
+    const claveValida = await verificarPassword(password, usuario.password_hash);
     if (!claveValida) {
         await registrarIntentoFallido(ip, usuario.correo);
         throw new ErrorApp('Credenciales incorrectas.', 401);
+    }
+
+    // Migración transparente bcrypt -> Argon2id
+    if (necesitaRehash(usuario.password_hash)) {
+        const nuevoHash = await hashearPassword(password);
+        await consulta('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [nuevoHash, usuario.id]);
     }
 
     await consulta(
@@ -89,9 +98,9 @@ export const autenticarUsuario = async (correo, password, ip) => {
 export const revocarToken = async (token, minutosExpiracion) => {
     await consulta(`
     INSERT INTO tokens_revocados (token, expira_en) 
-    VALUES ($1, NOW() + INTERVAL '${minutosExpiracion} minutes')
+    VALUES ($1, NOW() + ($2::int * INTERVAL '1 minute'))
     ON CONFLICT (token) DO NOTHING
-    `, [token]);
+    `, [token, minutosExpiracion]);
 };
 
 export const renovarSesion = async (refreshToken) => {

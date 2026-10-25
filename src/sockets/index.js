@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 // BASE (no modificar sin avisar al equipo) - HU-47: inicia Socket.io, autentica conexiones y maneja las salas por proyecto
 import { Server } from 'socket.io';
 
@@ -10,8 +11,9 @@ let io = null;
 export function iniciarSockets(servidorServidorHttp) {
   io = new Server(servidorServidorHttp, {
     cors: {
-      origin: '*',
+      origin: new URL(env.APP_URL).origin,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      credentials: true,
     },
   });
 

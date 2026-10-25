@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 // BASE (no modificar sin avisar al equipo) - HU-47: convierte cualquier error en una respuesta JSON uniforme
 /**
  * @file manejoErrores.js
@@ -18,6 +19,7 @@ export const manejoErrores = (err, req, res, next) => {
   console.error('Error no controlado:', err);
   const estado = err.status || err.statusCode || 500;
   res.status(estado).json({
-    mensaje: err.message || 'Error interno del servidor',
+    // En producción no se filtran detalles internos de errores 5xx
+    mensaje: estado >= 500 && env.ES_PRODUCCION ? 'Error interno del servidor' : err.message || 'Error interno del servidor',
   });
 };

@@ -63,7 +63,7 @@ function guardarMovimientoPendiente(movimiento) {
 export function inicializarDragAndDrop(proyectoId) {
     const contenedorTablero = document.getElementById('tablero-contenedor');
     if (!contenedorTablero) return;
-
+    actualizarContadoresYAlertasWip();
     // 1. Validar permisos de usuario (Ejemplo: Restricción para PO o lectura)
     const usuarioSesion = JSON.parse(localStorage.getItem('usuario_sesion') || '{"rol":"DEV"}');
 
@@ -75,7 +75,7 @@ export function inicializarDragAndDrop(proyectoId) {
                 const listaDestino = document.querySelector(`[data-columna-id="${datos.nuevaColumnaId}"] [id^="lista-tarjetas-"]`);
                 if (tarjeta && listaDestino) {
                     listaDestino.appendChild(tarjeta);
-                    actualizarContadoresYAlertasWip();
+                    
                 }
             }
         });

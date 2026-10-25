@@ -1,6 +1,6 @@
 /**
  * @file arrastrar.js
- * @description Manejo interactivo de Drag & Drop para tarjetas del tablero y regresión por errores (HU-18).
+ * @description Manejo interactivo de Drag & Drop, alertas WIP, sockets y resiliencia offline (HU-18, HU-22).
  * @author Camila Mariné Crespo Zurita
  */
 
@@ -9,12 +9,12 @@ let columnaOrigenId = null;
 let posicionOrigen = null;
 
 /**
- * Recalcula y actualiza los badges de contadores WIP en la interfaz.
+ * Evalúa los límites WIP de cada columna y aplica alertas visuales si se superan (HU-22).
  * 
- * @function actualizarContadoresWip
+ * @function actualizarContadoresYAlertasWip
  * @returns {void}
  */
-function actualizarContadoresWip() {
+function actualizarContadoresYAlertasWip() {
     document.querySelectorAll('[data-columna-id]').forEach(columnaEl => {
         const idCol = columnaEl.dataset.columnaId;
         const lista = columnaEl.querySelector('[id^="lista-tarjetas-"]');
@@ -22,14 +22,39 @@ function actualizarContadoresWip() {
 
         if (lista && elWip) {
             const cantidad = lista.children.length;
-            const limite = elWip.textContent.split('/')[1]?.trim() || '∞';
-            elWip.textContent = `${cantidad} / ${limite}`;
+            const limiteTexto = elWip.textContent.split('/')[1]?.trim() || '∞';
+            const limiteNum = limiteTexto === '∞' ? Infinity : Number(limiteTexto);
+
+            elWip.textContent = `${cantidad} / ${limiteTexto}`;
+
+            // Criterio HU-22: Alerta visual si se supera el límite WIP
+            if (cantidad > limiteNum) {
+                elWip.classList.remove('bg-slate-200', 'text-slate-500');
+                elWip.classList.add('bg-rose-100', 'text-rose-700', 'font-bold', 'animate-pulse');
+                columnaEl.classList.add('ring-2', 'ring-rose-400');
+            } else {
+                elWip.classList.remove('bg-rose-100', 'text-rose-700', 'font-bold', 'animate-pulse');
+                elWip.classList.add('bg-slate-200', 'text-slate-500');
+                columnaEl.classList.remove('ring-2', 'ring-rose-400');
+            }
         }
     });
 }
 
 /**
- * Registra los escuchadores de eventos para arrastrar y soltar elementos en el contenedor del tablero.
+ * Guarda el movimiento en la cola local para cuando se pierda la conexión (Modo Offline).
+ * 
+ * @function guardarMovimientoPendiente
+ * @param {Object} movimiento 
+ */
+function guardarMovimientoPendiente(movimiento) {
+    const cola = JSON.parse(localStorage.getItem('movimientos_pendientes') || '[]');
+    cola.push(movimiento);
+    localStorage.setItem('movimientos_pendientes', JSON.stringify(cola));
+}
+
+/**
+ * Registra los escuchadores de eventos para arrastrar y soltar elementos.
  * 
  * @function inicializarDragAndDrop
  * @param {number|string} proyectoId - ID del proyecto activo.
@@ -39,8 +64,32 @@ export function inicializarDragAndDrop(proyectoId) {
     const contenedorTablero = document.getElementById('tablero-contenedor');
     if (!contenedorTablero) return;
 
-    // 1. Inicio del arrastre
+    // 1. Validar permisos de usuario (Ejemplo: Restricción para PO o lectura)
+    const usuarioSesion = JSON.parse(localStorage.getItem('usuario_sesion') || '{"rol":"DEV"}');
+
+    // Escuchar eventos en tiempo real entrantes (WebSockets)
+    if (window.socket) {
+        window.socket.on('tablero:tarjeta-movida', (datos) => {
+            if (Number(datos.proyectoId) === Number(proyectoId)) {
+                const tarjeta = document.querySelector(`[data-tarea-id="${datos.tareaId}"]`);
+                const listaDestino = document.querySelector(`[data-columna-id="${datos.nuevaColumnaId}"] [id^="lista-tarjetas-"]`);
+                if (tarjeta && listaDestino) {
+                    listaDestino.appendChild(tarjeta);
+                    actualizarContadoresYAlertasWip();
+                }
+            }
+        });
+    }
+
+    // DragStart
     contenedorTablero.addEventListener('dragstart', (e) => {
+        // Bloqueo por rol si el usuario no tiene permisos de edición
+        if (usuarioSesion.rol === 'READ_ONLY') {
+            e.preventDefault();
+            alert("Tu rol no tiene permisos para mover tarjetas en este tablero.");
+            return;
+        }
+
         const tarjeta = e.target.closest('.tarjeta-item');
         if (!tarjeta) return;
 
@@ -54,7 +103,7 @@ export function inicializarDragAndDrop(proyectoId) {
         e.dataTransfer.effectAllowed = 'move';
     });
 
-    // 2. Fin del arrastre (limpieza de clases)
+    // DragEnd
     contenedorTablero.addEventListener('dragend', (e) => {
         const tarjeta = e.target.closest('.tarjeta-item');
         if (tarjeta) {
@@ -65,7 +114,7 @@ export function inicializarDragAndDrop(proyectoId) {
         });
     });
 
-    // 3. Permitir la zona de soltado (quita el cursor 🚫)
+    // DragOver
     contenedorTablero.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
@@ -79,7 +128,7 @@ export function inicializarDragAndDrop(proyectoId) {
         }
     });
 
-    // 4. Quitar feedback visual al salir de una columna
+    // DragLeave
     contenedorTablero.addEventListener('dragleave', (e) => {
         const columna = e.target.closest('[data-columna-id]');
         if (columna) {
@@ -90,7 +139,7 @@ export function inicializarDragAndDrop(proyectoId) {
         }
     });
 
-    // 5. Procesar soltado (Drop)
+    // Drop
     contenedorTablero.addEventListener('drop', async (e) => {
         e.preventDefault();
 
@@ -108,12 +157,23 @@ export function inicializarDragAndDrop(proyectoId) {
 
         if (!listaDestino) return;
 
-        // Cambiar de columna en el DOM de forma optimista
+        // Movimiento visual optimista
         listaDestino.appendChild(tarjetaArrastrada);
-        actualizarContadoresWip();
+        actualizarContadoresYAlertasWip();
+
+        // 2. Manejo en caso de pérdida de conexión (Offline Mode)
+        if (!navigator.onLine) {
+            tarjetaArrastrada.classList.add('border-dashed', 'border-amber-400');
+            guardarMovimientoPendiente({
+                proyectoId: Number(proyectoId),
+                tareaId: Number(tareaId),
+                nuevaColumnaId: Number(columnaDestinoId)
+            });
+            alert("Sin conexión. El movimiento se ha marcado como 'pendiente de sincronizar'.");
+            return;
+        }
 
         try {
-            // Petición POST a /api/tablero/mover-tarjeta coincidiendo con tablero.routes.js
             const respuesta = await fetch('/api/tablero/mover-tarjeta', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -128,19 +188,29 @@ export function inicializarDragAndDrop(proyectoId) {
             if (!respuesta.ok) {
                 throw new Error(`Error en el servidor (${respuesta.status})`);
             }
+
+            // Emitir evento por WebSockets para otros usuarios conectados (< 1s)
+            if (window.socket) {
+                window.socket.emit('tablero:mover-tarjeta', {
+                    proyectoId: Number(proyectoId),
+                    tareaId: Number(tareaId),
+                    nuevaColumnaId: Number(columnaDestinoId)
+                });
+            }
+
         } catch (error) {
             console.error("Error al mover tarjeta, revirtiendo posición:", error);
 
-            // Revertir a la posición previa si ocurre un fallo
+            // Reversión automática en caso de rechazo o falla
             if (listaOrigen) {
                 if (posicionOrigen >= listaOrigen.children.length) {
                     listaOrigen.appendChild(tarjetaArrastrada);
                 } else {
                     listaOrigen.insertBefore(tarjetaArrastrada, listaOrigen.children[posicionOrigen]);
                 }
-                actualizarContadoresWip();
+                actualizarContadoresYAlertasWip();
             }
-            alert("No se pudo guardar el movimiento de la tarjeta.");
+            alert("No se pudo guardar el movimiento de la tarjeta. Se ha revertido el cambio.");
         }
     });
 }

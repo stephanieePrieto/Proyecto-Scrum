@@ -389,3 +389,20 @@ CREATE TRIGGER tg_bitacora_inmutable
 
 -- Planning Poker (HU-05) es OPCIONAL: si el equipo lo implementa, agregue aqui sus tablas.
 
+-- ===========================================================================
+-- Seguridad y Autenticación
+-- ===========================================================================
+CREATE TABLE IF NOT EXISTS tokens_revocados (
+  id          SERIAL PRIMARY KEY,
+  token       TEXT NOT NULL UNIQUE,
+  expira_en   TIMESTAMPTZ NOT NULL,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_tokens_revocados_token ON tokens_revocados (token);
+
+CREATE TABLE IF NOT EXISTS intentos_ip (
+  ip              TEXT PRIMARY KEY,
+  intentos        INTEGER NOT NULL DEFAULT 0,
+  bloqueado_hasta TIMESTAMPTZ,
+  ultimo_intento  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -10,7 +10,7 @@ import { api } from '../core/api.js'; // Ruta relativa corregida
 import { montarBarraSuperior } from '../core/layout.js'; // Ruta relativa corregida
 import { tarjetaCarga, tarjetaError, tarjetaValor } from '../core/ui.js'; // Ruta relativa corregida
 import { tonoAvance, tonoImpedimentos, tonoDesviacion } from '../core/semaforo.js'; // Ruta relativa corregida
-import { pluralizar } from '../core/utils.js'; // Ruta relativa corregida
+import { pluralizar, escaparHtml } from '../core/utils.js'; // Ruta relativa corregida
 import { inicializarNotificaciones } from '../componentes/notificaciones.js'; // Ruta relativa corregida
 
 // Insertar la barra superior de navegación. Esto también inyecta <div id="notificaciones-root"></div>
@@ -49,6 +49,11 @@ const params = new URLSearchParams(location.search);
 const proyectoId = params.get('proyecto') || localStorage.getItem('proyectoActivo') || 1;
 const escenario = params.get('escenario');   // Simular en el navegador (sin servidor)
 const demo = params.get('demo');             // Pedir al servidor un escenario de ejemplo
+
+const tituloPagina = document.querySelector('.titulo-pagina');
+const subtituloPagina = document.querySelector('.subtitulo-pagina');
+const infoProyecto = document.getElementById('info-proyecto');
+const dodTexto = document.getElementById('dod-texto');
 
 /**
  * Declarar los 4 KPIs en el orden en que se muestran.
@@ -225,6 +230,20 @@ function pintarDatos(datos) {
   }).join('');
 }
 
+function pintarInfoProyecto(proyecto) {
+  if (!proyecto) return;
+  
+  // Cambiar el título y la visión
+  if (tituloPagina) tituloPagina.textContent = proyecto.nombre;
+  if (subtituloPagina) subtituloPagina.textContent = proyecto.vision;
+  
+  // Mostrar el Definition of Done
+  if (infoProyecto && dodTexto && proyecto.definition_of_done) {
+    dodTexto.textContent = proyecto.definition_of_done;
+    infoProyecto.hidden = false;
+  }
+}
+
 /**
  * Pintar las 4 tarjetas en error cuando la petición completa falla
  * (por ejemplo, servidor caído, sin conexión o sesión expirada).
@@ -281,3 +300,155 @@ if (grilla) {
 
 // Cargar los datos al abrir la página
 cargar();
+
+/* ====================================================================
+ * HU-01: GESTIONAR PROYECTOS DESDE EL DASHBOARD
+ *   - Listar los proyectos del usuario (activos o archivados).
+ *   - Mostrar "Nuevo proyecto" y "Editar" solo si el usuario es administrador.
+ *   - Archivar con confirmación; avisar si hay un sprint activo.
+ *   - Entregar a pintarInfoProyecto los datos del proyecto seleccionado.
+ * ==================================================================== */
+
+const $ = (id) => document.getElementById(id);
+
+/** Dar formato legible a una fecha "AAAA-MM-DD". */
+function formatearFecha(texto) {
+  if (!texto) return '—';
+  return new Date(`${texto}T00:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * Iniciar la sección de proyectos del Dashboard.
+ * @param {Object} opciones
+ * @param {number|string} opciones.proyectoId - Proyecto seleccionado actualmente.
+ * @param {(proyecto: Object) => void} opciones.alCargarProyecto - Recibe el proyecto seleccionado.
+ * @returns {Promise<void>}
+ */
+async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
+  const lista = $('proyectos-lista');
+  const error = $('proyectos-error');
+  const chkArchivados = $('ver-archivados');
+  const btnNuevo = $('btn-nuevo-proyecto');
+  const dialogo = $('dialogo-archivar-proyecto');
+  if (!lista) return;
+
+  const idActivo = Number(proyectoId);
+  const urlTraeProyecto = new URLSearchParams(location.search).has('proyecto');
+  let puedeGestionar = false;
+  let pendienteArchivar = null;
+  let primeraCarga = true;
+
+  const mostrarError = (texto) => { error.textContent = texto; error.hidden = !texto; };
+
+  /** Pintar tarjetas de carga mientras se consulta. */
+  function pintarCarga() {
+    lista.innerHTML = '<div class="tarjeta esqueleto proyecto__carga"></div><div class="tarjeta esqueleto proyecto__carga"></div>';
+  }
+
+  /** Pintar el estado vacío según el filtro. */
+  function pintarVacio(archivados) {
+    const crear = puedeGestionar && !archivados
+      ? '<a class="boton boton--primario" href="/pages/configuracion-proyecto.html">Crear el primer proyecto</a>' : '';
+    lista.innerHTML = `<div class="aviso aviso--vacio proyectos__vacio">
+      <h3 class="aviso__titulo">${archivados ? 'No hay proyectos archivados' : 'Aún no hay proyectos'}</h3>
+      <p class="aviso__texto">${archivados ? 'Los proyectos que archives aparecerán aquí con todo su historial.'
+        : puedeGestionar ? 'Crea un proyecto para empezar a organizar el trabajo del equipo.'
+        : 'Cuando un administrador cree un proyecto de tu equipo, aparecerá aquí.'}</p>${crear}</div>`;
+  }
+
+  /** Construir la tarjeta de un proyecto. */
+  function tarjeta(p) {
+    const id = encodeURIComponent(p.id);
+    const insignias = [
+      p.archivado ? '<span class="insignia insignia--neutro">Archivado</span>' : '',
+      p.sprint_activo ? '<span class="insignia insignia--exito">Sprint activo</span>' : '',
+    ].join('');
+    const acciones = [
+      `<a class="boton boton--secundario boton--pequeno" href="/pages/dashboard.html?proyecto=${id}" data-ver="${id}">Ver</a>`,
+      puedeGestionar ? `<a class="boton boton--secundario boton--pequeno" href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>` : '',
+      puedeGestionar && !p.archivado
+        ? `<button class="boton boton--secundario boton--pequeno" type="button" data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}">Archivar</button>` : '',
+    ].join('');
+    return `<article class="tarjeta proyecto${p.id === idActivo ? ' proyecto--activo' : ''}">
+      <div class="proyecto__cabecera"><h3 class="proyecto__nombre">${escaparHtml(p.nombre)}</h3><div class="proyecto__insignias">${insignias}</div></div>
+      <p class="proyecto__equipo">${escaparHtml(p.equipo_nombre)}</p>
+      <p class="proyecto__vision">${escaparHtml(p.vision)}</p>
+      <p class="proyecto__fechas">${formatearFecha(p.fecha_inicio)} – ${formatearFecha(p.fecha_fin)}</p>
+      <div class="proyecto__acciones">${acciones}</div></article>`;
+  }
+
+  /** Consultar y pintar la lista. */
+  async function cargarLista() {
+    const archivados = chkArchivados.checked;
+    mostrarError('');
+    pintarCarga();
+    try {
+      const datos = await api(`/proyectos${archivados ? '?archivados=true' : ''}`);
+      // puedeGestionar = Boolean(datos.puede_gestionar);
+      puedeGestionar = true; // Forzado para desarrollo de la HU-01
+      btnNuevo.hidden = !puedeGestionar;
+
+      // Si el proyecto guardado ya no existe para el usuario, abrir el primero disponible.
+      if (primeraCarga && !archivados && !urlTraeProyecto && datos.proyectos.length
+          && !datos.proyectos.some((p) => p.id === idActivo)) {
+        localStorage.setItem('proyectoActivo', datos.proyectos[0].id);
+        location.replace(`/pages/dashboard.html?proyecto=${datos.proyectos[0].id}`);
+        return;
+      }
+      primeraCarga = false;
+      if (!datos.proyectos.length) return pintarVacio(archivados);
+      lista.innerHTML = datos.proyectos.map(tarjeta).join('');
+    } catch {
+      lista.innerHTML = '';
+      mostrarError('No se pudieron cargar los proyectos.');
+      lista.innerHTML = '<button class="boton boton--secundario" type="button" data-reintentar-proyectos>Reintentar</button>';
+    }
+  }
+
+  /** Cargar el proyecto seleccionado y entregárselo al dashboard. */
+  async function cargarSeleccionado() {
+    try {
+      const datos = await api(`/proyectos/${encodeURIComponent(idActivo)}`);
+      alCargarProyecto?.(datos.proyecto);
+    } catch (e) {
+      if (e.estado === 404 || e.estado === 403) mostrarError('El proyecto seleccionado no existe o no tienes acceso.');
+    }
+  }
+
+  // ---------- Eventos ----------
+  chkArchivados.addEventListener('change', cargarLista);
+
+  lista.addEventListener('click', (e) => {
+    const ver = e.target.closest('[data-ver]');
+    if (ver) localStorage.setItem('proyectoActivo', decodeURIComponent(ver.dataset.ver));
+    if (e.target.closest('[data-reintentar-proyectos]')) cargarLista();
+    const archivar = e.target.closest('[data-archivar]');
+    if (archivar) {
+      pendienteArchivar = { id: archivar.dataset.archivar, nombre: archivar.dataset.nombre };
+      $('archivar-proyecto-nombre').textContent = pendienteArchivar.nombre;
+      dialogo.showModal();
+    }
+  });
+
+  $('archivar-proyecto-cancelar').addEventListener('click', () => dialogo.close());
+  $('archivar-proyecto-confirmar').addEventListener('click', async () => {
+    dialogo.close();
+    if (!pendienteArchivar) return;
+    const { id, nombre } = pendienteArchivar;
+    try {
+      await api(`/proyectos/${id}/archivar`, { metodo: 'POST' });
+      if (Number(decodeURIComponent(id)) === idActivo) localStorage.removeItem('proyectoActivo');
+      await cargarLista();
+    } catch (e) {
+      mostrarError(e.estado === 409
+        ? `«${nombre}» tiene un sprint activo. Ciérralo desde Sprints y vuelve a intentarlo.`
+        : e.estado === 403 ? 'Solo un administrador puede archivar proyectos.'
+        : 'No se pudo archivar el proyecto. Inténtalo de nuevo.');
+    }
+  });
+
+  await Promise.all([cargarLista(), cargarSeleccionado()]);
+}
+
+// HU-01: pintar la lista de proyectos y la información (visión y DoD) del proyecto seleccionado
+iniciarProyectos({ proyectoId, alCargarProyecto: pintarInfoProyecto });

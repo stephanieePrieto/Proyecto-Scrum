@@ -1,1 +1,120 @@
 <!-- Responsable: Jetz - HU-01: pantalla de editar, archivar y Definition of Done del proyecto. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+
+<!DOCTYPE html>
+<!-- HU-01 · Jetz: crear/editar proyecto, Definition of Done y archivado -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Configuración del proyecto · AgileDesk</title>
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="/css/pages/configuracion-proyecto.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal cfg">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina" id="titulo">Nuevo proyecto</h1>
+        <p class="subtitulo-pagina" id="subtitulo">Define la visión, las fechas y cuándo se considera terminado el trabajo.</p>
+      </div>
+      <a class="boton boton--secundario" href="/pages/dashboard.html">Volver a proyectos</a>
+    </div>
+
+    <!-- Avisos generales (sin permiso, error de carga, guardado correcto) -->
+    <div id="mensaje" role="status" aria-live="polite" hidden></div>
+
+    <form id="formulario" class="tarjeta cfg__formulario" novalidate hidden>
+      <div class="proy-campo">
+        <label for="nombre">Nombre del proyecto</label>
+        <input id="nombre" name="nombre" type="text" maxlength="120" required aria-describedby="error-nombre" />
+        <p class="proy-error" id="error-nombre" role="alert"></p>
+      </div>
+
+      <div class="proy-campo">
+        <label for="equipo_id">Equipo</label>
+        <select id="equipo_id" name="equipo_id" required aria-describedby="error-equipo_id"></select>
+        <p class="proy-error" id="error-equipo_id" role="alert"></p>
+      </div>
+
+      <div class="proy-campo">
+        <label for="vision">Visión</label>
+        <textarea id="vision" name="vision" rows="3" required aria-describedby="error-vision"
+                  placeholder="¿Qué problema resuelve el proyecto y para quién?"></textarea>
+        <p class="proy-error" id="error-vision" role="alert"></p>
+      </div>
+
+      <div class="cfg__fechas">
+        <div class="proy-campo">
+          <label for="fecha_inicio">Fecha de inicio</label>
+          <input id="fecha_inicio" name="fecha_inicio" type="date" required aria-describedby="error-fecha_inicio" />
+          <p class="proy-error" id="error-fecha_inicio" role="alert"></p>
+        </div>
+        <div class="proy-campo">
+          <label for="fecha_fin">Fecha de fin</label>
+          <input id="fecha_fin" name="fecha_fin" type="date" required aria-describedby="error-fecha_fin" />
+          <p class="proy-error" id="error-fecha_fin" role="alert"></p>
+        </div>
+      </div>
+
+      <div class="proy-campo">
+        <label for="definition_of_done">Definition of Done</label>
+        <p class="proy-ayuda" id="ayuda-dod">Una condición por línea. Una historia solo se acepta cuando cumple todas.</p>
+        <textarea id="definition_of_done" name="definition_of_done" rows="6" aria-describedby="ayuda-dod error-definition_of_done"></textarea>
+        <p class="proy-error" id="error-definition_of_done" role="alert"></p>
+      </div>
+
+      <div class="cfg__acciones">
+        <a class="boton boton--secundario" href="/pages/dashboard.html">Cancelar</a>
+        <button class="boton boton--primario" type="submit" id="guardar">Guardar proyecto</button>
+      </div>
+    </form>
+
+    <!-- Zona de archivado: solo aparece al editar -->
+    <section class="tarjeta cfg__peligro" id="zona-archivar" hidden>
+      <div>
+        <h2 class="cfg__peligro-titulo">Archivar proyecto</h2>
+        <p class="subtitulo-pagina">El proyecto sale del dashboard pero conserva todo su historial. No se puede archivar con un sprint activo.</p>
+        <p class="proy-error" id="error-archivar" role="alert"></p>
+      </div>
+      <button class="boton boton--secundario" type="button" id="archivar">Archivar proyecto</button>
+    </section>
+  </main>
+
+  <!-- Aviso de versión más nueva (edición simultánea) -->
+  <dialog id="dialogo-conflicto" class="proy-dialogo" aria-labelledby="conflicto-titulo">
+    <h2 id="conflicto-titulo">Otro administrador guardó cambios antes que tú</h2>
+    <p class="subtitulo-pagina">Compara las diferencias y decide qué versión conservar.</p>
+    <div class="proy-tabla-envoltorio">
+      <table class="proy-tabla">
+        <thead><tr><th scope="col">Campo</th><th scope="col">Tu versión</th><th scope="col">Versión guardada</th></tr></thead>
+        <tbody id="conflicto-filas"></tbody>
+      </table>
+    </div>
+    <div class="cfg__acciones">
+      <button class="boton boton--secundario" type="button" id="conflicto-seguir">Seguir editando</button>
+      <button class="boton boton--secundario" type="button" id="conflicto-aceptar">Usar la versión guardada</button>
+      <button class="boton boton--primario" type="button" id="conflicto-conservar">Guardar la mía</button>
+    </div>
+  </dialog>
+
+  <!-- Confirmación de archivado -->
+  <dialog id="dialogo-archivar" class="proy-dialogo" aria-labelledby="archivar-titulo">
+    <h2 id="archivar-titulo">¿Archivar este proyecto?</h2>
+    <p class="subtitulo-pagina">Dejará de aparecer en el dashboard del equipo. Su historial se conserva.</p>
+    <div class="cfg__acciones">
+      <button class="boton boton--secundario" type="button" id="archivar-cancelar">Cancelar</button>
+      <button class="boton boton--primario" type="button" id="archivar-confirmar">Archivar proyecto</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/js/pages/configuracion-proyecto.js"></script>
+</body>
+</html>

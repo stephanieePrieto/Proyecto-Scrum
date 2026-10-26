@@ -1,1 +1,114 @@
 <!-- Responsable: Citlaly - HU-39, HU-40, HU-41: pantalla de equipos, roles y modal de invitar. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+
+<!doctype html>
+<!--
+  Gestión de equipos de trabajo.
+  Mostrar la lista de equipos con sus integrantes y los diálogos para crear, renombrar,
+  agregar integrantes, quitar integrantes y eliminar equipos. El contenido de los diálogos
+  de quitar y eliminar lo pinta equipos.js según lo que responda el servidor.
+  @author Citlaly Morales Viveros
+-->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Equipos · AgileDesk</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Estilos globales y componentes reutilizables -->
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+    <link rel="stylesheet" href="/css/componentes/botones.css" />
+    <link rel="stylesheet" href="/css/componentes/insignias.css" />
+    <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+    <link rel="stylesheet" href="/css/componentes/avisos.css" />
+    <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
+
+    <!-- Estilos propios de la página -->
+    <link rel="stylesheet" href="/css/pages/equipos.css" />
+
+    <!-- Ajustes responsive y de accesibilidad al final para que prevalezcan -->
+    <link rel="stylesheet" href="/css/componentes/responsive.css" />
+    <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+    <header id="barra-superior" class="barra-superior"></header>
+
+    <main class="principal">
+        <div class="encabezado-pagina">
+            <div>
+                <h1 class="titulo-pagina">Equipos</h1>
+                <p class="subtitulo-pagina">Administra los equipos de trabajo y a sus integrantes</p>
+            </div>
+            <button class="boton boton--primario" id="btn-nuevo-equipo" type="button" hidden>Nuevo equipo</button>
+        </div>
+
+        <!-- Mensaje de resultado de la última acción (éxito, advertencia o error) -->
+        <div id="equipos-mensaje" class="eq-mensaje" role="status" aria-live="polite" hidden></div>
+
+        <section id="equipos-lista" class="equipos__lista" aria-live="polite" aria-label="Lista de equipos"></section>
+    </main>
+
+    <!-- Crear equipo, cambiar su nombre o agregar integrantes (según el modo con que se abra) -->
+    <dialog id="dialogo-equipo" class="eq-dialogo" aria-labelledby="equipo-titulo">
+        <form id="form-equipo" novalidate>
+            <h2 id="equipo-titulo" class="eq-dialogo__titulo"></h2>
+
+            <div id="campo-nombre" class="eq-campo">
+                <label class="eq-etiqueta" for="equipo-nombre">Nombre del equipo</label>
+                <input id="equipo-nombre" class="eq-input" type="text" maxlength="120" autocomplete="off" />
+                <p id="error-nombre" class="eq-error" role="alert" hidden></p>
+            </div>
+
+            <div id="seccion-miembros" class="eq-campo">
+                <label class="eq-etiqueta" for="buscar-usuarios">Integrantes</label>
+                <p id="nota-creador" class="eq-ayuda" hidden>Tú serás integrante del equipo.</p>
+                <input id="buscar-usuarios" class="eq-input" type="search" placeholder="Buscar por nombre o correo"
+                    autocomplete="off" />
+                <ul id="resultados-usuarios" class="eq-resultados" aria-label="Usuarios encontrados"></ul>
+                <ul id="elegidos-usuarios" class="eq-chips" aria-label="Usuarios elegidos"></ul>
+                <p id="error-miembros" class="eq-error" role="alert" hidden></p>
+            </div>
+
+            <p id="error-equipo" class="eq-error" role="alert" hidden></p>
+            <div class="eq-dialogo__acciones">
+                <button class="boton boton--secundario" type="button" id="equipo-cancelar">Cancelar</button>
+                <button class="boton boton--primario" type="submit" id="equipo-guardar">Guardar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Quitar un integrante: muestra las tareas y responsabilidades que hay que resolver antes -->
+    <dialog id="dialogo-quitar" class="eq-dialogo eq-dialogo--ancho" aria-labelledby="quitar-titulo">
+        <h2 id="quitar-titulo" class="eq-dialogo__titulo">Quitar integrante</h2>
+        <div id="quitar-contenido"></div>
+        <p id="quitar-error" class="eq-error" role="alert" hidden></p>
+        <div class="eq-dialogo__acciones">
+            <button class="boton boton--secundario" type="button" id="quitar-cancelar">Cancelar</button>
+            <button class="boton boton--primario" type="button" id="quitar-confirmar" disabled>Quitar del
+                equipo</button>
+        </div>
+    </dialog>
+
+    <!-- Eliminar un equipo -->
+    <dialog id="dialogo-eliminar" class="eq-dialogo" aria-labelledby="eliminar-titulo">
+        <h2 id="eliminar-titulo" class="eq-dialogo__titulo">Eliminar equipo</h2>
+        <div id="eliminar-contenido"></div>
+        <p id="eliminar-error" class="eq-error" role="alert" hidden></p>
+        <div class="eq-dialogo__acciones">
+            <button class="boton boton--secundario" type="button" id="eliminar-cancelar">Cancelar</button>
+            <button class="boton boton--primario eq-peligro" type="button" id="eliminar-confirmar">Eliminar
+                equipo</button>
+        </div>
+    </dialog>
+
+    <script type="module" src="/js/pages/equipos.js"></script>
+</body>
+
+</html>

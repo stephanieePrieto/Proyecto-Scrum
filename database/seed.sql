@@ -1,3 +1,5 @@
+-- BASE (no modificar sin avisar al equipo) - HU-47: datos de prueba: 2 equipos, usuarios por rol y un sprint de ejemplo
+
 -- BASE (no modificar sin avisar al equipo) - HU-47: datos de prueba (2 equipos, usuarios por rol y un sprint de ejemplo)
 -- Ejecutar DESPUES de schema.sql:   psql -U TU_USUARIO -d scrumflow -f database/seed.sql
 -- Es seguro correrlo varias veces: no duplica los datos.

@@ -8,5 +8,4 @@ Plataforma web para gestionar proyectos Scrum/Kanban en equipo.
 3. Crea la base de datos en PostgreSQL y ejecuta `database/schema.sql` y despues `database/seed.sql`.
 4. `npm run dev` y abre http://localhost:3000
 
-## Reglas del equipo
-Lee `docs/convenciones.md`. Una pantalla = un .html, un .css y un .js con el mismo nombre.
+

@@ -1,61 +1,172 @@
-// Responsable: Camila - HU-19: Información en la tarjeta
-import { calcularColorSemaforo } from '../../core/semaforo.js'; // Base HU-28
+/**
+ * @file tarjeta.js
+ * @description Construcción programática pura de tarjetas de tareas mediante DOM API (HU-18, HU-19, HU-22).
+ * @author Camila Mariné Crespo Zurita
+ */
 
+/**
+ * Aplica las clases de Tailwind según los días restantes para el vencimiento.
+ * 
+ * @function aplicarEstiloSemaforo
+ * @param {HTMLElement} elemento 
+ * @param {number} dias 
+ */
+function aplicarEstiloSemaforo(elemento, dias) {
+    if (!dias || dias <= 2) {
+        elemento.classList.add('bg-red-100', 'text-red-700', 'border-red-200');
+    } else if (dias <= 5) {
+        elemento.classList.add('bg-amber-100', 'text-amber-700', 'border-amber-200');
+    } else {
+        elemento.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+    }
+}
+
+/**
+ * Genera el nodo de la tarjeta mediante nodos DOM puros sin cadenas HTML.
+ * 
+ * @function crearElementoTarjeta
+ * @param {Object} tarea 
+ * @returns {HTMLDivElement}
+ */
 export function crearElementoTarjeta(tarea) {
-    const div = document.createElement('div');
+    const contenedor = document.createElement('div');
+    contenedor.id = `tarjeta-${tarea.id}`;
+    contenedor.dataset.tareaId = tarea.id;
+    contenedor.draggable = !tarea.bloqueada;
 
-    // Conexión con tarjetas.css y los colores base del proyecto
-    div.className = `tarjeta-item bg-white rounded-lg shadow-sm border p-3 flex flex-col gap-2 cursor-pointer hover:border-indigo-300 transition-colors`;
+    contenedor.classList.add(
+        'tarjeta-item', 'p-3', 'rounded-lg', 'shadow-sm', 'cursor-grab', 
+        'hover:shadow-md', 'transition-all', 'relative', 'group', 'select-none'
+    );
 
-    // Conexión con avisos.css/insignias.css para el bloqueo (HU-19)
     if (tarea.bloqueada) {
-        div.classList.add('tarjeta-bloqueada', 'border-l-4', 'border-l-rose-500');
+        contenedor.classList.add('border-2', 'border-rose-500', 'bg-rose-50/30');
+    } else {
+        contenedor.classList.add('border', 'border-slate-200', 'bg-white');
     }
 
-    div.id = `tarjeta-${tarea.id}`;
-    div.dataset.tareaId = tarea.id;
+    // --- ENCABEZADO (#ID, Días restantes, Candado) ---
+    const encabezado = document.createElement('div');
+    encabezado.classList.add('flex', 'items-center', 'justify-between', 'gap-2', 'mb-1.5');
 
-    // Lógica de datos vacíos
-    const horasRealesTxt = tarea.horas_reales ? `${tarea.horas_reales}h real` : '—';
-    const horasEstimadasTxt = tarea.horas_estimadas ? `${tarea.horas_estimadas}h est.` : '?';
+    const idPadre = document.createElement('span');
+    idPadre.classList.add('text-[11px]', 'font-medium', 'text-slate-400');
+    idPadre.textContent = `#${tarea.id}${tarea.historia_padre ? ` • ${tarea.historia_padre}` : ''}`;
 
-    // Conexión con core/semaforo.js para pintar las clases text-emerald-500, amber-500 o rose-500
-    let colorTextoHoras = 'text-slate-600';
-    if (tarea.horas_reales && tarea.horas_estimadas) {
-        colorTextoHoras = calcularColorSemaforo(tarea.horas_estimadas, tarea.horas_reales) || colorTextoHoras;
+    const cajaBadges = document.createElement('div');
+    cajaBadges.classList.add('flex', 'items-center', 'gap-1');
+
+    const badgeDias = document.createElement('span');
+    badgeDias.classList.add('text-[10px]', 'px-1.5', 'py-0.5', 'rounded', 'border');
+    const dias = tarea.diasRestantes || 5;
+    badgeDias.textContent = `${dias}d`;
+    aplicarEstiloSemaforo(badgeDias, dias);
+    cajaBadges.appendChild(badgeDias);
+
+    if (tarea.bloqueada) {
+        const candado = document.createElement('span');
+        candado.title = 'Tarea Bloqueada';
+        candado.classList.add('text-rose-600', 'font-bold', 'text-xs');
+        candado.textContent = '🔒';
+        cajaBadges.appendChild(candado);
     }
 
-    // Estructura interna usando clases globales
-    div.innerHTML = `
-        <div class="flex justify-between items-start gap-2">
-             <!-- Insignia de historia -->
-             <span class="insignia-historia text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-wider truncate max-w-[120px]" title="${tarea.historia_padre}">
-                ${tarea.historia_padre || 'Sin historia'}
-             </span>
-             ${tarea.bloqueada ? `<svg class="icono-bloqueo w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>` : ''}
-        </div>
-        
-        <h4 class="texto-titulo text-sm font-medium text-slate-800 leading-tight break-words line-clamp-2" title="${tarea.titulo}">
-            ${tarea.titulo}
-        </h4>
+    encabezado.appendChild(idPadre);
+    encabezado.appendChild(cajaBadges);
 
-        <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
-            <!-- Chip de Horas con el color del semáforo -->
-            <div class="chip-horas flex items-center gap-1.5 bg-slate-50 rounded px-2 py-0.5 border border-slate-200 text-xs font-medium ${colorTextoHoras}">
-                <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>${horasEstimadasTxt} / ${horasRealesTxt}</span>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <!-- Puntos de historia -->
-                ${tarea.puntos ? `<span class="insignia-puntos bg-indigo-50 text-indigo-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full border border-indigo-100">${tarea.puntos}</span>` : ''}
-                <!-- Avatar -->
-                <div class="avatar-usuario w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold" title="${tarea.responsable_nombre || 'Sin Asignar'}">
-                    ${tarea.responsable_nombre ? tarea.responsable_nombre.charAt(0) : '?'}
-                </div>
-            </div>
-        </div>
-    `;
+    // --- TÍTULO ---
+    const titulo = document.createElement('h4');
+    titulo.classList.add('text-sm', 'font-semibold', 'text-slate-800', 'line-clamp-2', 'mb-1');
+    titulo.textContent = tarea.titulo;
+    titulo.title = tarea.titulo;
 
-    return div;
+    contenedor.appendChild(encabezado);
+    contenedor.appendChild(titulo);
+
+    // --- DESCRIPCIÓN ---
+    if (tarea.descripcion) {
+        const descripcion = document.createElement('p');
+        descripcion.classList.add('text-xs', 'text-slate-500', 'line-clamp-2', 'mb-2');
+        descripcion.textContent = tarea.descripcion;
+        contenedor.appendChild(descripcion);
+    }
+
+    // --- PIE DE TARJETA (Responsable y Horas) ---
+    const pie = document.createElement('div');
+    pie.classList.add('flex', 'items-center', 'justify-between', 'mt-2', 'pt-2', 'border-t', 'border-slate-100', 'text-xs', 'text-slate-500');
+
+    // Responsable
+    const cajaResponsable = document.createElement('div');
+    cajaResponsable.classList.add('flex', 'items-center', 'gap-1', 'font-medium');
+
+    const iconoUsuario = document.createElement('span');
+    iconoUsuario.textContent = '👤';
+
+    const nombreResponsable = document.createElement('span');
+    nombreResponsable.classList.add('truncate', 'max-w-[100px]');
+
+    if (tarea.responsable) {
+        nombreResponsable.textContent = tarea.responsable_inactivo ? 'Usuario inactivo' : tarea.responsable;
+        cajaResponsable.classList.add('text-slate-700');
+    } else {
+        nombreResponsable.textContent = 'Sin asignar';
+        cajaResponsable.classList.add('text-slate-400', 'italic');
+    }
+
+    cajaResponsable.appendChild(iconoUsuario);
+    cajaResponsable.appendChild(nombreResponsable);
+
+    // Horas
+    const cajaHoras = document.createElement('div');
+    cajaHoras.classList.add('font-mono', 'text-[11px]', 'bg-slate-100', 'px-1.5', 'py-0.5', 'rounded', 'text-slate-600');
+    cajaHoras.title = 'Horas Reales';
+
+    const horasValor = (tarea.horas_reales && Number(tarea.horas_reales) > 0) ? `${tarea.horas_reales}h` : '—';
+    cajaHoras.textContent = `⏱️ ${horasValor}`;
+
+    pie.appendChild(cajaResponsable);
+    pie.appendChild(cajaHoras);
+
+    contenedor.appendChild(pie);
+
+    return contenedor;
+}
+
+/**
+ * Dibuja las tarjetas y actualiza contadores WIP sin cadenas de texto HTML.
+ * 
+ * @function renderizarTarjetasEnTablero
+ * @param {Array<Object>} tareas 
+ */
+export function renderizarTarjetasEnTablero(tareas = []) {
+    document.querySelectorAll('[id^="lista-tarjetas-"]').forEach(lista => {
+        lista.replaceChildren();
+    });
+
+    const conteoPorColumna = {};
+
+    if (Array.isArray(tareas) && tareas.length > 0) {
+        tareas.forEach(tarea => {
+            const idColumna = tarea.columna_id || tarea.columnaId;
+            const contenedorColumna = document.getElementById(`lista-tarjetas-${idColumna}`);
+
+            if (contenedorColumna) {
+                contenedorColumna.appendChild(crearElementoTarjeta(tarea));
+                conteoPorColumna[idColumna] = (conteoPorColumna[idColumna] || 0) + 1;
+            }
+        });
+    }
+
+    document.querySelectorAll('[data-columna-id]').forEach(columnaEl => {
+        const idCol = columnaEl.dataset.columnaId;
+        const elWip = document.getElementById(`wip-col-${idCol}`);
+
+        if (elWip) {
+            const cantidadActual = conteoPorColumna[idCol] || 0;
+            const partes = elWip.textContent.split('/');
+            const limite = partes[1] ? partes[1].trim() : '∞';
+
+            elWip.textContent = `${cantidadActual} / ${limite}`;
+        }
+    });
 }

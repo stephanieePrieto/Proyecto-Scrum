@@ -19,4 +19,4 @@ export class ErrorApp extends Error {
     }
 }
 
-export default {};
+export default ErrorApp;

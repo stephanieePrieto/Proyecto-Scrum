@@ -15,4 +15,11 @@ export const pool = new Pool({
  * @returns {Promise<import('pg').QueryResult>}
  */
 export const consulta = (textoSql, parametros) => pool.query(textoSql, parametros);
+
+
+/**
+ * Alias de compatibilidad para módulos que importan 'query' en lugar de 'consulta'.
+ */
 export const query = consulta;
+
+export default pool;

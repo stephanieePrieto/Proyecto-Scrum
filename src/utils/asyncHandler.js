@@ -12,9 +12,11 @@
  * siguiente middleware de manejo de errores mediante next().
  *
  * @function asyncHandler
- * @param {function(import('express').Request, import('express').Response, import('express').NextFunction): Promise<void>} fn - Función asíncrona del controlador Express a ejecutar.
+ * @param {function(import('express').Request, import('express').Response, import('express').NextFunction): Promise<void>} fn Función asíncrona del controlador Express a ejecutar.
  * @returns {function(import('express').Request, import('express').Response, import('express').NextFunction): void} Función middleware de Express protegida contra excepciones no capturadas.
  */
 export const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+export default asyncHandler;

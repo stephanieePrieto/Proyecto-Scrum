@@ -5,6 +5,11 @@
  * automáticamente las rutas registradas dentro de /src/modulos/.
  */
 
+import cookieParser from 'cookie-parser';
+import { env } from './config/env.js';
+import { forzarHttps } from './middlewares/forzarHttps.js';
+import { cabecerasSeguridad, sanitizarEntrada } from './middlewares/seguridad.js';
+import { proteccionCsrf } from './middlewares/csrf.js';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -42,16 +47,27 @@ async function importarSiExiste(rutaAbsoluta) {
 export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
-  app.use(cors());
-  app.use(express.json({ limit: '1mb' }));
 
-  // Cabeceras básicas de seguridad (HU-53)
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Referrer-Policy', 'same-origin');
-    next();
-  });
+  // Detrás de un proxy (Nginx, hosting): necesario para que req.secure y req.ip sean correctos
+  if (env.CONFIAR_PROXY) app.set('trust proxy', 1);
+
+  // 1) Redirección HTTP -> HTTPS (si FORZAR_HTTPS=true)
+  app.use(forzarHttps);
+
+  // 2) Cabeceras de seguridad (HU-53): CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy
+  app.use(cabecerasSeguridad);
+
+  // 3) CORS restringido al origen propio (antes estaba abierto a cualquier sitio)
+  app.use(cors({ origin: new URL(env.APP_URL).origin, credentials: true }));
+
+  app.use(express.json({ limit: '1mb' }));
+  app.use(cookieParser());
+
+  // 4) CSRF (antes de static, para emitir la cookie al cargar cualquier página)
+  app.use(proteccionCsrf);
+
+  // 5) Sanitización anti-XSS del cuerpo de las peticiones
+  app.use(sanitizarEntrada);
 
   // Middleware opcional para registro de peticiones (logs)
   const { registrarPeticiones } = await importarSiExiste(path.join(aqui, 'middlewares', 'registrarPeticiones.js'));

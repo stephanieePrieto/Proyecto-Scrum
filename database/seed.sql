@@ -9,6 +9,7 @@
 --   sm.alfa@scrumflow.test / po.alfa@...          Scrum Master y Product Owner del Equipo Alfa
 --   dev1.alfa@... dev2.alfa@... dev3.alfa@...     Desarrolladores del Equipo Alfa
 --   (igual para el Equipo Beta, cambiando "alfa" por "beta")
+SET client_encoding = 'UTF8';
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -96,3 +97,41 @@ CROSS JOIN (VALUES
 ) AS h(titulo, como, quiero, para, criterios, puntos, orden)
 WHERE p.nombre = 'Proyecto Demo Alfa'
   AND NOT EXISTS (SELECT 1 FROM historias x WHERE x.proyecto_id = p.id);
+
+
+
+-- Configurar límites WIP para el Proyecto Demo Alfa (HU-17, HU-22)
+UPDATE columnas_tablero 
+SET limite_wip = 5 
+WHERE nombre = 'Por hacer' 
+  AND proyecto_id = (SELECT id FROM proyectos WHERE nombre = 'Proyecto Demo Alfa' LIMIT 1);
+
+UPDATE columnas_tablero 
+SET limite_wip = 3 
+WHERE nombre = 'En progreso' 
+  AND proyecto_id = (SELECT id FROM proyectos WHERE nombre = 'Proyecto Demo Alfa' LIMIT 1);
+
+-- Insertar tareas de prueba reales (HU-18)
+INSERT INTO tareas (proyecto_id, historia_id, sprint_id, columna_id, titulo, descripcion, orden, version)
+SELECT 
+  p.id AS proyecto_id,
+  h.id AS historia_id,
+  s.id AS sprint_id,
+  c.id AS columna_id,
+  t.titulo,
+  t.descripcion,
+  t.orden,
+  1 AS version
+FROM proyectos p
+JOIN historias h ON h.proyecto_id = p.id AND h.titulo = 'Mover tarjetas'
+JOIN sprints s ON s.proyecto_id = p.id AND s.nombre = 'Sprint 1'
+JOIN columnas_tablero c ON c.proyecto_id = p.id
+CROSS JOIN (VALUES
+  ('Por hacer',   'Configurar maquetado de columnas (HU-17)', 'Validar vista de columnas y modal de configuración', 1),
+  ('En progreso', 'Implementar arrastre de tarjetas (HU-18)', 'Mover tareas entre columnas y actualizar estado', 1),
+  ('En progreso', 'Verificar límites WIP (HU-22)', 'Comprobar alertas visuales al superar el límite permitido', 2),
+  ('Hecho',       'Carga inicial del backend', 'Ruta /api/tablero desplegada correctamente', 1)
+) AS t(columna_nombre, titulo, descripcion, orden)
+WHERE p.nombre = 'Proyecto Demo Alfa'
+  AND c.nombre = t.columna_nombre
+  AND NOT EXISTS (SELECT 1 FROM tareas x WHERE x.proyecto_id = p.id AND x.titulo = t.titulo);

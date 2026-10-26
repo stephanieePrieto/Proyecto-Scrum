@@ -1,14 +1,21 @@
--- BASE (no modificar sin avisar al equipo) - HU-47: crea todas las tablas del sistema; cambios solo avisando al equipo
-
 -- BASE (no modificar sin avisar al equipo) - HU-47: crea todas las tablas del sistema
--- Como ejecutarlo:   psql -U TU_USUARIO -d scrumflow -f database/schema.sql
--- (o pegarlo completo en la herramienta de consultas de pgAdmin)
--- Es seguro correrlo varias veces: no borra nada que ya exista.
--- Para empezar de cero (BORRA TODO):  DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+-- VERSION 2: todos los usuarios son "base" (sin rol global). El rol existe SOLO en miembros_proyecto.rol.
+-- Para empezar de cero: database/reiniciar.sql
+-- Es seguro correrlo varias veces: no borra nada que ya exista (usa IF NOT EXISTS).
 -- Si necesitan cambiar una tabla, avisen al equipo y agreguen el cambio al final de este archivo.
 
 -- ===========================================================================
--- Cuentas, equipos e invitaciones (HU-38, HU-39, HU-40, HU-41, HU-45, HU-57)
+-- Funcion compartida: los correos siempre se guardan en minusculas y sin espacios
+-- ===========================================================================
+CREATE OR REPLACE FUNCTION normalizar_correo() RETURNS TRIGGER AS $$
+BEGIN
+  NEW.correo := LOWER(TRIM(NEW.correo));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ===========================================================================
+-- Cuentas y equipos (HU-38, HU-39, HU-40, HU-45, HU-57)
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS usuarios (
   id                    SERIAL PRIMARY KEY,
@@ -27,6 +34,14 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_usuarios_correo ON usuarios (LOWER(correo));
 
+DROP TRIGGER IF EXISTS tg_usuarios_correo ON usuarios;
+CREATE TRIGGER tg_usuarios_correo
+  BEFORE INSERT OR UPDATE OF correo ON usuarios
+  FOR EACH ROW EXECUTE FUNCTION normalizar_correo();
+
+COMMENT ON TABLE usuarios IS 'Personas de la plataforma. NO tienen rol: el rol se asigna dentro de cada proyecto (miembros_proyecto.rol)';
+COMMENT ON COLUMN usuarios.es_admin IS 'OBSOLETO: ya no concede permisos y siempre es FALSE. Se eliminara cuando ningun archivo del codigo la lea';
+
 CREATE TABLE IF NOT EXISTS tokens_recuperacion (
   id          SERIAL PRIMARY KEY,
   usuario_id  INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
@@ -36,30 +51,22 @@ CREATE TABLE IF NOT EXISTS tokens_recuperacion (
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS ix_tokens_recuperacion_usuario ON tokens_recuperacion (usuario_id);
+CREATE INDEX IF NOT EXISTS ix_tokens_recuperacion_hash ON tokens_recuperacion (token_hash);
 
 CREATE TABLE IF NOT EXISTS equipos (
-  id         SERIAL PRIMARY KEY,
-  nombre     TEXT NOT NULL UNIQUE,
-  creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id          SERIAL PRIMARY KEY,
+  nombre      TEXT NOT NULL UNIQUE,
+  creado_por  INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Pertenecer a un equipo NO implica ningun rol
 CREATE TABLE IF NOT EXISTS miembros_equipo (
   equipo_id   INTEGER NOT NULL REFERENCES equipos (id) ON DELETE CASCADE,
   usuario_id  INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
   PRIMARY KEY (equipo_id, usuario_id)
 );
-
-CREATE TABLE IF NOT EXISTS invitaciones (
-  id            SERIAL PRIMARY KEY,
-  correo        TEXT NOT NULL,
-  equipo_id     INTEGER NOT NULL REFERENCES equipos (id) ON DELETE CASCADE,
-  rol           TEXT NOT NULL CHECK (rol IN ('scrum_master', 'product_owner', 'developer')),
-  token_hash    TEXT NOT NULL,
-  estado        TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aceptada', 'fallida', 'expirada')),
-  expira_en     TIMESTAMPTZ NOT NULL,
-  invitado_por  INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
-  creado_en     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+CREATE INDEX IF NOT EXISTS ix_miembros_equipo_usuario ON miembros_equipo (usuario_id);
 
 -- ===========================================================================
 -- Proyectos y roles por proyecto (HU-01, HU-41, HU-42, HU-43)
@@ -75,35 +82,69 @@ CREATE TABLE IF NOT EXISTS proyectos (
   umbral_desviacion   INTEGER NOT NULL DEFAULT 20 CHECK (umbral_desviacion BETWEEN 0 AND 100),
   archivado           BOOLEAN NOT NULL DEFAULT FALSE,
   version             INTEGER NOT NULL DEFAULT 1,
+  creado_por          INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
   creado_en           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT proyectos_fechas_validas CHECK (fecha_fin >= fecha_inicio),
   CONSTRAINT proyectos_nombre_unico_por_equipo UNIQUE (equipo_id, nombre)
 );
 
+-- UNICO lugar donde existe el rol: una misma persona puede tener roles distintos en proyectos distintos
 CREATE TABLE IF NOT EXISTS miembros_proyecto (
   proyecto_id  INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
   usuario_id   INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
   rol          TEXT NOT NULL CHECK (rol IN ('scrum_master', 'product_owner', 'developer')),
   PRIMARY KEY (proyecto_id, usuario_id)
 );
+CREATE INDEX IF NOT EXISTS ix_miembros_proyecto_usuario ON miembros_proyecto (usuario_id);
 -- Un solo Product Owner por proyecto
 CREATE UNIQUE INDEX IF NOT EXISTS ux_un_product_owner_por_proyecto
   ON miembros_proyecto (proyecto_id) WHERE rol = 'product_owner';
 
--- Capacidad individual (HU-44)
-CREATE TABLE IF NOT EXISTS capacidad_usuario (
-  usuario_id     INTEGER PRIMARY KEY REFERENCES usuarios (id) ON DELETE CASCADE,
-  horas_por_dia  NUMERIC(4, 1) NOT NULL DEFAULT 6 CHECK (horas_por_dia >= 0 AND horas_por_dia <= 24)
+-- Invitacion: se invita a una PERSONA al equipo. El rol y el proyecto son opcionales
+-- (si vienen, al aceptar se agrega a la persona a ese proyecto con ese rol).
+CREATE TABLE IF NOT EXISTS invitaciones (
+  id            SERIAL PRIMARY KEY,
+  correo        TEXT NOT NULL,
+  equipo_id     INTEGER NOT NULL REFERENCES equipos (id) ON DELETE CASCADE,
+  proyecto_id   INTEGER REFERENCES proyectos (id) ON DELETE CASCADE,
+  rol           TEXT CHECK (rol IS NULL OR rol IN ('scrum_master', 'product_owner', 'developer')),
+  token_hash    TEXT NOT NULL,
+  estado        TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aceptada', 'fallida', 'expirada')),
+  expira_en     TIMESTAMPTZ NOT NULL,
+  invitado_por  INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  creado_en     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS ix_invitaciones_token ON invitaciones (token_hash);
+CREATE INDEX IF NOT EXISTS ix_invitaciones_correo ON invitaciones (LOWER(correo));
+
+DROP TRIGGER IF EXISTS tg_invitaciones_correo ON invitaciones;
+CREATE TRIGGER tg_invitaciones_correo
+  BEFORE INSERT OR UPDATE OF correo ON invitaciones
+  FOR EACH ROW EXECUTE FUNCTION normalizar_correo();
+
+-- Capacidad individual (HU-44)
+CREATE TABLE IF NOT EXISTS capacidad_usuarios (
+  usuario_id      INTEGER PRIMARY KEY REFERENCES usuarios (id) ON DELETE CASCADE,
+  horas_por_dia   NUMERIC(4, 2) NOT NULL DEFAULT 6 CHECK (horas_por_dia >= 0 AND horas_por_dia <= 24),
+  notas           VARCHAR(500),
+  actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Compatibilidad: el nombre anterior (singular) sigue funcionando como vista de la tabla anterior.
+-- Se eliminara cuando ningun archivo del codigo mencione "capacidad_usuario".
+CREATE OR REPLACE VIEW capacidad_usuario AS
+  SELECT usuario_id, horas_por_dia FROM capacidad_usuarios;
 
 CREATE TABLE IF NOT EXISTS ausencias (
   id            SERIAL PRIMARY KEY,
   usuario_id    INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+  tipo          TEXT NOT NULL DEFAULT 'ausencia' CHECK (tipo IN ('ausencia', 'vacaciones')),
   fecha_inicio  DATE NOT NULL,
   fecha_fin     DATE NOT NULL,
   motivo        TEXT,
   CONSTRAINT ausencias_fechas_validas CHECK (fecha_fin >= fecha_inicio)
 );
+CREATE INDEX IF NOT EXISTS ix_ausencias_usuario_fechas ON ausencias (usuario_id, fecha_inicio, fecha_fin);
 
 -- ===========================================================================
 -- Backlog y sprints (HU-02 a HU-09)
@@ -130,6 +171,7 @@ CREATE TABLE IF NOT EXISTS sprints (
   creado_en        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT sprints_fechas_validas CHECK (fecha_fin >= fecha_inicio)
 );
+CREATE INDEX IF NOT EXISTS ix_sprints_proyecto ON sprints (proyecto_id);
 -- Un solo sprint activo por proyecto
 CREATE UNIQUE INDEX IF NOT EXISTS ux_un_sprint_activo_por_proyecto ON sprints (proyecto_id) WHERE estado = 'activo';
 
@@ -191,6 +233,7 @@ CREATE TABLE IF NOT EXISTS tareas (
 CREATE INDEX IF NOT EXISTS ix_tareas_tablero ON tareas (sprint_id, columna_id, orden);
 CREATE INDEX IF NOT EXISTS ix_tareas_responsable ON tareas (responsable_id);
 CREATE INDEX IF NOT EXISTS ix_tareas_historia ON tareas (historia_id);
+CREATE INDEX IF NOT EXISTS ix_tareas_proyecto ON tareas (proyecto_id);
 
 CREATE TABLE IF NOT EXISTS checklist_items (
   id        SERIAL PRIMARY KEY,
@@ -219,6 +262,7 @@ CREATE TABLE IF NOT EXISTS adjuntos (
   tamano_bytes     INTEGER NOT NULL CHECK (tamano_bytes <= 10485760),
   creado_en        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS ix_adjuntos_tarea ON adjuntos (tarea_id);
 
 CREATE TABLE IF NOT EXISTS historial_tareas (
   id          SERIAL PRIMARY KEY,
@@ -285,22 +329,22 @@ CREATE TABLE IF NOT EXISTS daily_tareas (
 );
 
 CREATE TABLE IF NOT EXISTS reviews_historias (
-  id           SERIAL PRIMARY KEY,
-  sprint_id    INTEGER NOT NULL REFERENCES sprints (id) ON DELETE CASCADE,
-  historia_id  INTEGER NOT NULL REFERENCES historias (id) ON DELETE CASCADE,
-  decision     TEXT NOT NULL CHECK (decision IN ('aceptada', 'rechazada')),
-  comentario   TEXT,
-  decidido_por INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
-  decidido_en  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id            SERIAL PRIMARY KEY,
+  sprint_id     INTEGER NOT NULL REFERENCES sprints (id) ON DELETE CASCADE,
+  historia_id   INTEGER NOT NULL REFERENCES historias (id) ON DELETE CASCADE,
+  decision      TEXT NOT NULL CHECK (decision IN ('aceptada', 'rechazada')),
+  comentario    TEXT,
+  decidido_por  INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  decidido_en   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (sprint_id, historia_id)
 );
 
 CREATE TABLE IF NOT EXISTS retros (
-  id         SERIAL PRIMARY KEY,
-  sprint_id  INTEGER NOT NULL UNIQUE REFERENCES sprints (id) ON DELETE CASCADE,
-  estado     TEXT NOT NULL DEFAULT 'abierta' CHECK (estado IN ('abierta', 'cerrada')),
-  creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  cerrada_en TIMESTAMPTZ
+  id          SERIAL PRIMARY KEY,
+  sprint_id   INTEGER NOT NULL UNIQUE REFERENCES sprints (id) ON DELETE CASCADE,
+  estado      TEXT NOT NULL DEFAULT 'abierta' CHECK (estado IN ('abierta', 'cerrada')),
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  cerrada_en  TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS retro_items (
@@ -363,17 +407,20 @@ CREATE TABLE IF NOT EXISTS snapshots_burndown (
   UNIQUE (sprint_id, fecha)
 );
 
--- Bitacora de auditoria. usuario_id NO tiene llave foranea a proposito: el registro no debe cambiar nunca.
+-- Bitacora de auditoria. usuario_id y proyecto_id NO tienen llave foranea a proposito: el registro no debe cambiar nunca.
+-- proyecto_id permite que cada Scrum Master consulte solo la bitacora de SU proyecto (ya no hay administrador global).
 CREATE TABLE IF NOT EXISTS bitacora (
-  id          SERIAL PRIMARY KEY,
-  usuario_id  INTEGER,
-  accion      TEXT NOT NULL,
-  objeto      TEXT NOT NULL,
-  objeto_id   INTEGER,
-  detalle     JSONB,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id           SERIAL PRIMARY KEY,
+  usuario_id   INTEGER,
+  proyecto_id  INTEGER,
+  accion       TEXT NOT NULL,
+  objeto       TEXT NOT NULL,
+  objeto_id    INTEGER,
+  detalle      JSONB,
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS ix_bitacora_fecha ON bitacora (creado_en DESC);
+CREATE INDEX IF NOT EXISTS ix_bitacora_proyecto ON bitacora (proyecto_id, creado_en DESC);
 
 -- La bitacora no se puede editar ni borrar (HU-46)
 CREATE OR REPLACE FUNCTION bloquear_cambios_bitacora() RETURNS TRIGGER AS $$
@@ -390,7 +437,7 @@ CREATE TRIGGER tg_bitacora_inmutable
 -- Planning Poker (HU-05) es OPCIONAL: si el equipo lo implementa, agregue aqui sus tablas.
 
 -- ===========================================================================
--- Seguridad y Autenticación
+-- Seguridad y autenticacion
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS tokens_revocados (
   id          SERIAL PRIMARY KEY,
@@ -398,11 +445,31 @@ CREATE TABLE IF NOT EXISTS tokens_revocados (
   expira_en   TIMESTAMPTZ NOT NULL,
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS ix_tokens_revocados_token ON tokens_revocados (token);
+CREATE INDEX IF NOT EXISTS ix_tokens_revocados_expira ON tokens_revocados (expira_en);
 
 CREATE TABLE IF NOT EXISTS intentos_ip (
-  ip              TEXT PRIMARY KEY,
-  intentos        INTEGER NOT NULL DEFAULT 0,
-  bloqueado_hasta TIMESTAMPTZ,
-  ultimo_intento  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  ip               TEXT PRIMARY KEY,
+  intentos         INTEGER NOT NULL DEFAULT 0,
+  bloqueado_hasta  TIMESTAMPTZ,
+  ultimo_intento   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ===========================================================================
+-- OPCIONAL: solo se puede asignar a un proyecto a quien ya pertenece al equipo de ese proyecto.
+-- Descomentar cuando equipos.service.js y proyectos.service.js agreguen al creador a miembros_equipo.
+-- ===========================================================================
+-- CREATE OR REPLACE FUNCTION validar_miembro_proyecto() RETURNS TRIGGER AS $$
+-- BEGIN
+--   IF NOT EXISTS (
+--     SELECT 1 FROM proyectos p
+--     JOIN miembros_equipo me ON me.equipo_id = p.equipo_id
+--     WHERE p.id = NEW.proyecto_id AND me.usuario_id = NEW.usuario_id
+--   ) THEN
+--     RAISE EXCEPTION 'El usuario no pertenece al equipo de este proyecto';
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+-- DROP TRIGGER IF EXISTS tg_validar_miembro_proyecto ON miembros_proyecto;
+-- CREATE TRIGGER tg_validar_miembro_proyecto BEFORE INSERT ON miembros_proyecto
+--   FOR EACH ROW EXECUTE FUNCTION validar_miembro_proyecto();

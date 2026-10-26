@@ -1,3 +1,4 @@
+// BASE (no modificar sin avisar al equipo) - HU-42: revisa membresia y rol por proyecto (lo escribe Citlaly)
 // BASE (no modificar sin avisar al equipo) - HU-42: tabla de que rol puede hacer que accion
 
 /**
@@ -76,7 +77,7 @@ export async function puedeVerEquipo(usuario, equipoId, cliente = pool) {
 }
 
 /**
- * Un usuario gestiona un equipo si es administrador global o administrador de ese equipo.
+ * Un usuario gestiona un equipo si es administrador global.
  *
  * @param {{id: number}} usuario - Usuario autenticado.
  * @param {number} equipoId - Identificador del equipo.
@@ -84,10 +85,6 @@ export async function puedeVerEquipo(usuario, equipoId, cliente = pool) {
  * @returns {Promise<boolean>}
  */
 export async function puedeGestionarEquipo(usuario, equipoId, cliente = pool) {
-    /**
-     * miembros_equipo ya no guarda administradores por equipo: solo gestiona el administrador global.
-     * equipoId se conserva en la firma para no romper a quienes ya llaman a esta función.
-     */
     return esAdminGlobal(usuario, cliente);
 }
 
@@ -106,7 +103,7 @@ export async function exigirGestionEquipo(usuario, equipoId, cliente = pool) {
 }
 
 /**
- * Indica si el usuario activo es administrador del proyecto.
+ * Indica si el usuario activo es administrador del proyecto (Scrum Master).
  *
  * @param {{id: number}} usuario - Usuario autenticado.
  * @param {number} proyectoId - Identificador del proyecto.
@@ -124,8 +121,7 @@ export async function esAdminProyecto(usuario, proyectoId, cliente = pool) {
 }
 
 /**
- * Un usuario gestiona un proyecto si es administrador global, administrador del proyecto
- * o administrador del equipo al que pertenece el proyecto.
+ * Un usuario gestiona un proyecto si es administrador global o administrador del proyecto.
  *
  * @param {{id: number}} usuario - Usuario autenticado.
  * @param {number} proyectoId - Identificador del proyecto.
@@ -135,6 +131,5 @@ export async function esAdminProyecto(usuario, proyectoId, cliente = pool) {
 export async function puedeGestionarProyecto(usuario, proyectoId, cliente = pool) {
     if (await esAdminGlobal(usuario, cliente)) return true;
     if (await esAdminProyecto(usuario, proyectoId, cliente)) return true;
-    /** Ya no existe el administrador de equipo, así que no hay otra vía de gestión del proyecto. */
     return false;
 }

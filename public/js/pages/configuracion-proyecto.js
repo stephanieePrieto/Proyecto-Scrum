@@ -10,6 +10,7 @@
  * función "llamar". Propuesta para el equipo: que api.js guarde el cuerpo en error.cuerpo.
  */
 import { montarBarraSuperior } from '../core/layout.js';
+import { obtenerTokenCsrf } from '../core/seguridad.js';
 
 const $ = (id) => document.getElementById(id);
 const CAMPOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
@@ -25,16 +26,23 @@ let guardando = false;
 
 // ---------- Utilidades ----------
 
-/** Petición que conserva el cuerpo de la respuesta aunque sea un error. */
+/**
+ * Petición que conserva el cuerpo de la respuesta aunque sea un error.
+ * La sesión viaja en la cookie httpOnly; los métodos que modifican datos
+ * deben repetir el token CSRF en la cabecera X-CSRF-Token (HU-53).
+ */
 async function llamar(ruta, { metodo = 'GET', cuerpo } = {}) {
-  const token = localStorage.getItem('token') || 'demo-token-123';
+  const headers = { 'Content-Type': 'application/json' };
+  if (metodo !== 'GET') headers['X-CSRF-Token'] = obtenerTokenCsrf();
   const respuesta = await fetch(`/api${ruta}`, {
     method: metodo,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    credentials: 'same-origin',
+    headers,
     body: cuerpo ? JSON.stringify(cuerpo) : undefined,
   });
   let datos = {};
   try { datos = await respuesta.json(); } catch { /* respuesta sin JSON */ }
+  if (respuesta.status === 401) { location.href = '/pages/login.html'; }   // Sin sesión: ir al login
   return { ok: respuesta.ok, estado: respuesta.status, datos };
 }
 

@@ -23,12 +23,9 @@ function lanzar(estado, mensaje, detalles) {
 }
 
 async function esAdmin(usuario) {
-  // if (!usuario?.id) return false;
-  // const { rows } = await query('SELECT es_admin FROM usuarios WHERE id = $1 AND activo = TRUE', [usuario.id]);
-  // return rows[0]?.es_admin === true;
-
-  /* esto es temporal hasta que este implementado de admin del proyecto*/ 
-  return true;
+  if (!usuario?.id) return false;
+  const { rows } = await query('SELECT es_admin FROM usuarios WHERE id = $1 AND activo = TRUE', [usuario.id]);
+  return rows[0]?.es_admin === true;
 }
 
 async function exigirAdmin(usuario) {

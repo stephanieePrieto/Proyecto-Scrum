@@ -384,8 +384,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     pintarCarga();
     try {
       const datos = await api(`/proyectos${archivados ? '?archivados=true' : ''}`);
-      // puedeGestionar = Boolean(datos.puede_gestionar);
-      puedeGestionar = true; // Forzado para desarrollo de la HU-01
+      puedeGestionar = Boolean(datos.puede_gestionar);
       btnNuevo.hidden = !puedeGestionar;
 
       // Si el proyecto guardado ya no existe para el usuario, abrir el primero disponible.

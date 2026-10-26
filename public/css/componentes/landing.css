@@ -1,0 +1,374 @@
+/**
+ * @file landing.css
+ * @description Estilos específicos para la página de aterrizaje (Landing Page) inspirada en Trello con el tema verde #055651.
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
+:root {
+    --verde-primario: #6910e4;
+    --verde-oscuro: #1813ab;
+    --verde-claro: #e6f2f1;
+    --fondo-trello: #f4f5f7;
+    --tarjeta-bg: #ffffff;
+    --borde-color: #dfe1e6;
+    --texto-oscuro: #172b4d;
+    --texto-suave: #5e6c84;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    color: var(--texto-oscuro);
+    background-color: #ffffff;
+    line-height: 1.5;
+}
+
+.landing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* =========================================
+   Navegación
+   ========================================= */
+.landing-header {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--borde-color);
+    z-index: 100;
+    padding: 1rem 0;
+}
+
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.marca-landing {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-landing {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    background-color: var(--verde-primario);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 8px;
+    font-size: 18px;
+}
+
+.nombre-landing {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--verde-primario);
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--texto-suave);
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--verde-primario);
+}
+
+.boton-ingresar {
+    background-color: var(--verde-primario);
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.boton-ingresar:hover {
+    background-color: var(--verde-oscuro);
+}
+
+/* =========================================
+   Hero Section
+   ========================================= */
+.hero-section {
+    padding: 5rem 0;
+    background: linear-gradient(135deg, #f8fbfb 0%, #e6f2f1 100%);
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+.badge-novedad {
+    display: inline-block;
+    background-color: var(--verde-claro);
+    color: var(--verde-primario);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.hero-text h1 {
+    font-size: 3rem;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    color: var(--texto-oscuro);
+}
+
+.hero-text p {
+    font-size: 1.15rem;
+    color: var(--texto-suave);
+    margin-bottom: 2rem;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.boton-principal {
+    background-color: var(--verde-primario);
+    color: #ffffff;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(5, 86, 81, 0.2);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.boton-principal:hover {
+    background-color: var(--verde-oscuro);
+    transform: translateY(-2px);
+}
+
+.boton-secundario {
+    background-color: #ffffff;
+    color: var(--verde-primario);
+    border: 2px solid var(--verde-primario);
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.boton-secundario:hover {
+    background-color: var(--verde-claro);
+}
+
+/* =========================================
+   Vista previa Tablero Trello-style
+   ========================================= */
+.trello-preview-card {
+    background-color: var(--fondo-trello);
+    border: 1px solid var(--borde-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.board-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--texto-oscuro);
+}
+
+.board-badge {
+    background-color: #ebecf0;
+    color: var(--texto-suave);
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.kanban-board-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.kanban-column {
+    background-color: #ebecf0;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.column-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--texto-suave);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.kanban-task {
+    background-color: var(--tarjeta-bg);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 13px;
+    border-left: 3px solid var(--verde-primario);
+}
+
+.kanban-task p {
+    margin: 6px 0 0 0;
+    color: var(--texto-oscuro);
+    font-weight: 500;
+}
+
+.task-tag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    text-transform: uppercase;
+}
+
+.task-tag.design { background-color: #ffe3e3; color: #c92a2a; }
+.task-tag.backend { background-color: #e3fafc; color: #0b7285; }
+.task-tag.frontend { background-color: #e6fcf5; color: #0ca678; }
+.task-tag.security { background-color: #fff3bf; color: #f08c00; }
+
+.highlight-task {
+    border-left-color: #f59f00;
+}
+
+.completed {
+    opacity: 0.75;
+    border-left-color: #38d9a9;
+}
+
+/* =========================================
+   Sección de Características
+   ========================================= */
+.features-section {
+    padding: 5rem 0;
+}
+
+.section-header {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 3rem auto;
+}
+
+.section-header h2 {
+    font-size: 2.25rem;
+    margin-bottom: 1rem;
+    color: var(--texto-oscuro);
+}
+
+.section-header p {
+    color: var(--texto-suave);
+    font-size: 1.1rem;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.feature-box {
+    background-color: #f8fbfb;
+    border: 1px solid var(--borde-color);
+    padding: 2rem;
+    border-radius: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(5, 86, 81, 0.08);
+}
+
+.feature-icon {
+    font-size: 32px;
+    margin-bottom: 1rem;
+}
+
+.feature-box h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: var(--verde-primario);
+}
+
+.feature-box p {
+    color: var(--texto-suave);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* =========================================
+   Footer
+   ========================================= */
+.landing-footer {
+    background-color: #172b4d;
+    color: #ffffff;
+    padding: 2rem 0;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-link {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer-link:hover {
+    text-decoration: underline;
+}
+
+/* =========================================
+   Responsivo
+   ========================================= */
+@media (max-width: 968px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-text h1 {
+        font-size: 2.5rem;
+    }
+}

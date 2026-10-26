@@ -1,1 +1,127 @@
 <!-- BASE (no modificar sin avisar al equipo) - HU-47: redirige a login o al dashboard segun haya sesion -->
+<!--
+  @file index.html
+  @description Página de aterrizaje (Landing Page) para ScrumFlow con vista previa estilo Trello.
+  @author Stephanie Elizdeth Hernández Prieto
+-->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrumFlow - Gestión de Proyectos Ágiles</title>
+    <link rel="stylesheet" href="./css/base.css">
+    <link rel="stylesheet" href="./css/componentes/landing.css">
+</head>
+
+<body>
+    <!-- Barra de Navegación Superior -->
+    <header class="landing-header">
+        <div class="landing-container nav-content">
+            <div class="marca-landing">
+                <div class="logo-landing">SF</div>
+                <span class="nombre-landing">ScrumFlow</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#caracteristicas" class="nav-link">Características</a>
+                <a href="#tablero-preview" class="nav-link">Tablero</a>
+                <a href="./pages/login.html" class="boton-ingresar">Iniciar Sesión</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Sección Hero -->
+        <section class="hero-section">
+            <div class="landing-container hero-grid">
+                <div class="hero-text">
+                    <span class="badge-novedad">Gestión Ágil Simplificada</span>
+                    <h1>Organiza tus Sprints y proyectos como un profesional</h1>
+                    <p>ScrumFlow te permite colaborar en equipo, arrastrar tareas en tableros Kanban interactivos y llevar el control total de tu metodología Scrum en tiempo real.</p>
+                    <div class="hero-actions">
+                        <a href="./pages/login.html" class="boton-principal">Comenzar Ahora</a>
+                        <a href="#tablero-preview" class="boton-secundario">Ver Demostración</a>
+                    </div>
+                </div>
+
+                <!-- Vista Previa Interactiva Estilo Trello -->
+                <div class="trello-preview-card" id="tablero-preview">
+                    <div class="preview-header">
+                        <span class="board-title">Sprint 1 - Proyecto Principal</span>
+                        <div class="board-badge">Kanban View</div>
+                    </div>
+                    <div class="kanban-board-mini">
+                        <!-- Columna: Por Hacer -->
+                        <div class="kanban-column">
+                            <div class="column-title">Por Hacer (Backlog)</div>
+                            <div class="kanban-task">
+                                <span class="task-tag design">Diseño UX</span>
+                                <p>Crear wireframes de la vista de reportes</p>
+                            </div>
+                            <div class="kanban-task">
+                                <span class="task-tag backend">Base de datos</span>
+                                <p>Configurar triggers en PostgreSQL</p>
+                            </div>
+                        </div>
+
+                        <!-- Columna: En Progreso -->
+                        <div class="kanban-column">
+                            <div class="column-title">En Progreso</div>
+                            <div class="kanban-task highlight-task">
+                                <span class="task-tag frontend">Frontend</span>
+                                <p>Integrar autenticación con JWT y Bcrypt</p>
+                            </div>
+                        </div>
+
+                        <!-- Columna: Hecho -->
+                        <div class="kanban-column">
+                            <div class="column-title">Completado</div>
+                            <div class="kanban-task completed">
+                                <span class="task-tag security">Seguridad</span>
+                                <p>Implementar HTTPS y cabeceras CORS</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Características -->
+        <section id="caracteristicas" class="features-section">
+            <div class="landing-container">
+                <div class="section-header">
+                    <h2>Todo lo que tu equipo necesita</h2>
+                    <p>Diseñado para potenciar la productividad y la transparencia en cada iteración.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-box">
+                        <div class="feature-icon"></div>
+                        <h3>Tableros Dinámicos</h3>
+                        <p>Mueve historias de usuario e ítems de forma fluida entre las fases del Sprint.</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon"></div>
+                        <h3>Seguridad Robusta</h3>
+                        <p>Protección de datos con encriptación avanzada de contraseñas y control de roles.</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon"></div>
+                        <h3>Tiempo Real</h3>
+                        <p>Sincronización instantánea de cambios para que todo el equipo esté alineado.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="landing-container footer-content">
+            <p>&copy; 2026 ScrumFlow. Desarrollado bajo metodologías ágiles.</p>
+            <a href="./pages/login.html" class="footer-link">Acceso al Sistema</a>
+        </div>
+    </footer>
+</body>
+
+</html>

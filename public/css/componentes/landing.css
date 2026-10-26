@@ -1,27 +1,6 @@
-/**
- * @file landing.css
- * @description Estilos específicos para la página de aterrizaje (Landing Page) inspirada en Trello con el tema verde #055651.
- * @author Stephanie Elizdeth Hernández Prieto
- */
-
-:root {
-    --verde-primario: #6910e4;
-    --verde-oscuro: #1813ab;
-    --verde-claro: #e6f2f1;
-    --fondo-trello: #f4f5f7;
-    --tarjeta-bg: #ffffff;
-    --borde-color: #dfe1e6;
-    --texto-oscuro: #172b4d;
-    --texto-suave: #5e6c84;
-}
-
-body {
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    color: var(--texto-oscuro);
-    background-color: #ffffff;
-    line-height: 1.5;
-}
+/* ==========================================================================
+   LANDING.CSS — Estilos específicos para la Landing Page de ScrumFlow
+   ========================================================================== */
 
 .landing-container {
     max-width: 1200px;
@@ -30,14 +9,14 @@ body {
 }
 
 /* =========================================
-   Navegación
+   Navegación de la Landing
    ========================================= */
 .landing-header {
     position: sticky;
     top: 0;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--borde-color);
+    border-bottom: 1px solid var(--borde);
     z-index: 100;
     padding: 1rem 0;
 }
@@ -59,17 +38,17 @@ body {
     height: 40px;
     display: grid;
     place-items: center;
-    background-color: var(--verde-primario);
-    color: #ffffff;
+    background-color: var(--primario);
+    color: var(--blanco);
     font-weight: 700;
-    border-radius: 8px;
+    border-radius: var(--radio-lg);
     font-size: 18px;
 }
 
 .nombre-landing {
     font-size: 20px;
     font-weight: 700;
-    color: var(--verde-primario);
+    color: var(--primario);
 }
 
 .nav-links {
@@ -86,29 +65,15 @@ body {
 }
 
 .nav-link:hover {
-    color: var(--verde-primario);
-}
-
-.boton-ingresar {
-    background-color: var(--verde-primario);
-    color: #ffffff;
-    padding: 10px 20px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: background-color 0.2s;
-}
-
-.boton-ingresar:hover {
-    background-color: var(--verde-oscuro);
+    color: var(--primario);
 }
 
 /* =========================================
-   Hero Section
+   Hero Section & Grilla
    ========================================= */
 .hero-section {
     padding: 5rem 0;
-    background: linear-gradient(135deg, #f8fbfb 0%, #e6f2f1 100%);
+    background: linear-gradient(135deg, var(--slate-50) 0%, var(--primario-claro) 100%);
 }
 
 .hero-grid {
@@ -118,22 +83,11 @@ body {
     align-items: center;
 }
 
-.badge-novedad {
-    display: inline-block;
-    background-color: var(--verde-claro);
-    color: var(--verde-primario);
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
 .hero-text h1 {
     font-size: 3rem;
     line-height: 1.2;
     margin-bottom: 1.5rem;
-    color: var(--texto-oscuro);
+    color: var(--texto);
 }
 
 .hero-text p {
@@ -147,46 +101,15 @@ body {
     gap: 1rem;
 }
 
-.boton-principal {
-    background-color: var(--verde-primario);
-    color: #ffffff;
-    padding: 14px 28px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(5, 86, 81, 0.2);
-    transition: transform 0.2s, background-color 0.2s;
-}
-
-.boton-principal:hover {
-    background-color: var(--verde-oscuro);
-    transform: translateY(-2px);
-}
-
-.boton-secundario {
-    background-color: #ffffff;
-    color: var(--verde-primario);
-    border: 2px solid var(--verde-primario);
-    padding: 14px 28px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: background-color 0.2s;
-}
-
-.boton-secundario:hover {
-    background-color: var(--verde-claro);
-}
-
 /* =========================================
    Vista previa Tablero Trello-style
    ========================================= */
 .trello-preview-card {
-    background-color: var(--fondo-trello);
-    border: 1px solid var(--borde-color);
-    border-radius: 12px;
+    background-color: var(--fondo-app);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-xl);
     padding: 1.5rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--sombra-sm);
 }
 
 .preview-header {
@@ -199,16 +122,7 @@ body {
 .board-title {
     font-weight: 700;
     font-size: 16px;
-    color: var(--texto-oscuro);
-}
-
-.board-badge {
-    background-color: #ebecf0;
-    color: var(--texto-suave);
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-weight: 600;
+    color: var(--texto);
 }
 
 .kanban-board-mini {
@@ -218,8 +132,8 @@ body {
 }
 
 .kanban-column {
-    background-color: #ebecf0;
-    border-radius: 8px;
+    background-color: var(--slate-200);
+    border-radius: var(--radio-lg);
     padding: 10px;
 }
 
@@ -232,42 +146,19 @@ body {
 }
 
 .kanban-task {
-    background-color: var(--tarjeta-bg);
+    background-color: var(--fondo-tarjeta);
     padding: 10px;
     border-radius: 6px;
     margin-bottom: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     font-size: 13px;
-    border-left: 3px solid var(--verde-primario);
+    border-left: 3px solid var(--primario);
 }
 
 .kanban-task p {
     margin: 6px 0 0 0;
-    color: var(--texto-oscuro);
+    color: var(--texto);
     font-weight: 500;
-}
-
-.task-tag {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-    text-transform: uppercase;
-}
-
-.task-tag.design { background-color: #ffe3e3; color: #c92a2a; }
-.task-tag.backend { background-color: #e3fafc; color: #0b7285; }
-.task-tag.frontend { background-color: #e6fcf5; color: #0ca678; }
-.task-tag.security { background-color: #fff3bf; color: #f08c00; }
-
-.highlight-task {
-    border-left-color: #f59f00;
-}
-
-.completed {
-    opacity: 0.75;
-    border-left-color: #38d9a9;
 }
 
 /* =========================================
@@ -286,7 +177,7 @@ body {
 .section-header h2 {
     font-size: 2.25rem;
     margin-bottom: 1rem;
-    color: var(--texto-oscuro);
+    color: var(--texto);
 }
 
 .section-header p {
@@ -301,16 +192,16 @@ body {
 }
 
 .feature-box {
-    background-color: #f8fbfb;
-    border: 1px solid var(--borde-color);
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: var(--radio-xl);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .feature-box:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(5, 86, 81, 0.08);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.08);
 }
 
 .feature-icon {
@@ -321,7 +212,7 @@ body {
 .feature-box h3 {
     font-size: 1.25rem;
     margin-bottom: 0.75rem;
-    color: var(--verde-primario);
+    color: var(--primario);
 }
 
 .feature-box p {
@@ -334,8 +225,8 @@ body {
    Footer
    ========================================= */
 .landing-footer {
-    background-color: #172b4d;
-    color: #ffffff;
+    background-color: var(--slate-900);
+    color: var(--blanco);
     padding: 2rem 0;
 }
 
@@ -346,7 +237,7 @@ body {
 }
 
 .footer-link {
-    color: #ffffff;
+    color: var(--blanco);
     text-decoration: none;
     font-weight: 500;
 }
@@ -356,7 +247,7 @@ body {
 }
 
 /* =========================================
-   Responsivo
+   Responsivo para móviles y tabletas
    ========================================= */
 @media (max-width: 968px) {
     .hero-grid {

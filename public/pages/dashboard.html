@@ -1,99 +1,79 @@
-<!doctype html>
-<!--
-  HU-35: Dashboard de KPIs.
-  Describir la página del dashboard: barra superior, encabezado, aviso de
-  estado vacío y la grilla donde se pintan los 4 indicadores.
-  Usar rutas absolutas (/css, /js) para que funcionen desde cualquier carpeta.
--->
+<!DOCTYPE html>
+<!-- HU-35: Dashboard de KPIs y Proyectos. -->
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <!-- Adaptar el ancho de la página a cualquier pantalla -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard · AgileDesk</title>
+  <title>Dashboard · ScrumFlow</title>
 
-  <!-- Cargar la fuente Inter desde Google Fonts (pesos 400, 500 y 600) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-
-  <!-- Importar los estilos globales: variables, reseteo y estructura -->
+  <!-- Estilos globales unificados -->
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/layout.css" />
-
-  <!-- Importar los componentes reutilizables que usa esta página -->
   <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
   <link rel="stylesheet" href="/css/componentes/botones.css" />
   <link rel="stylesheet" href="/css/componentes/insignias.css" />
   <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
   <link rel="stylesheet" href="/css/componentes/avisos.css" />
   <link rel="stylesheet" href="/css/componentes/notificaciones.css">
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/modales.css" />
 
-  <!-- Importar los estilos propios del dashboard -->
+  <!-- Estilos propios -->
   <link rel="stylesheet" href="/css/pages/dashboard.css" />
 
-  <!-- Importar al final los ajustes responsive y de accesibilidad para que prevalezcan -->
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
 </head>
 <body>
-  <!-- Reservar el contenedor donde layout.js insertará la barra superior -->
   <header id="barra-superior" class="barra-superior"></header>
 
   <main class="principal">
-  <!-- HU-01: lista de proyectos del usuario con acciones de crear, editar y archivar -->
-  <section id="proyectos" class="proyectos" aria-labelledby="proyectos-titulo">
-    <div class="proyectos__cabecera">
-      <h1 id="proyectos-titulo" class="titulo-pagina">Proyectos</h1>
-      <div class="proyectos__acciones">
-        <label class="proyectos__archivados"><input type="checkbox" id="ver-archivados" /> Ver archivados</label>
-        <a id="btn-nuevo-proyecto" class="boton boton--primario" href="/pages/configuracion-proyecto.html" hidden>Nuevo proyecto</a>
+    <section id="proyectos" class="proyectos" aria-labelledby="proyectos-titulo">
+      <div class="proyectos__cabecera">
+        <h1 id="proyectos-titulo" class="titulo-pagina">Proyectos</h1>
+        <div class="proyectos__acciones">
+          <label class="proyectos__archivados"><input type="checkbox" id="ver-archivados" /> Ver archivados</label>
+          <a id="btn-nuevo-proyecto" class="boton boton--primario btn btn--primary" href="/pages/configuracion-proyecto.html" hidden>Nuevo proyecto</a>
+        </div>
       </div>
-    </div>
-    <p id="proyectos-error" class="proyectos__error" role="alert" hidden></p>
-    <div id="proyectos-lista" class="proyectos__lista" aria-live="polite"></div>
-  </section>
-    <!-- Mostrar el título de la página y el botón para recalcular los KPIs -->
+      <p id="proyectos-error" class="proyectos__error" role="alert" hidden></p>
+      <div id="proyectos-lista" class="proyectos__lista" aria-live="polite"></div>
+    </section>
+
     <div class="encabezado-pagina">
       <div>
         <h2 class="titulo-pagina">Dashboard del proyecto</h2>
         <p class="subtitulo-pagina">Estado general de un vistazo</p>
       </div>
-      <button class="boton boton--secundario" id="btn-actualizar" type="button">Actualizar</button>
+      <button class="boton boton--secundario btn btn--secondary" id="btn-actualizar" type="button">Actualizar</button>
     </div>
 
-    <!-- Mostrar el aviso de estado vacío cuando el proyecto es nuevo y no tiene datos.
-         Permanecer oculto (atributo hidden) hasta que dashboard.js lo active. -->
     <section id="aviso-vacio" class="aviso aviso--vacio" hidden>
       <div class="aviso__icono" aria-hidden="true">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
       </div>
       <h2 class="aviso__titulo">Aún no hay datos para mostrar</h2>
       <p class="aviso__texto">Crea tu primer sprint y agrega historias al backlog. Los indicadores aparecerán aquí.</p>
-      <a class="boton boton--primario" href="/pages/backlog.html">Ir al backlog</a>
+      <a class="boton boton--primario btn btn--primary" href="/pages/backlog.html">Ir al backlog</a>
     </section>
 
-    <!-- Contener las tarjetas KPI. aria-live anuncia los cambios a lectores de pantalla -->
     <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
     
-    <!-- Contenedor para la información del proyecto y el DoD -->
     <section id="info-proyecto" class="tarjeta" hidden style="margin-top: 2rem;">
       <h2 class="tarjeta__titulo" style="margin-bottom: 0.5rem;">Definition of Done (DoD)</h2>
-      <div id="dod-texto" style="white-space: pre-wrap; color: var(--color-texto-secundario); font-size: 0.95rem;"></div>
+      <div id="dod-texto" style="white-space: pre-wrap; color: var(--texto-suave); font-size: 0.95rem;"></div>
     </section>
   </main>
 
-  <!-- HU-01: confirmación para archivar un proyecto -->
-  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash" aria-labelledby="archivar-proyecto-titulo">
+  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash modal-card" aria-labelledby="archivar-proyecto-titulo">
     <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
     <p>«<span id="archivar-proyecto-nombre"></span>» saldrá de la lista pero conservará todo su historial.</p>
-    <div class="proy-dialogo-dash__acciones">
-      <button class="boton boton--secundario" type="button" id="archivar-proyecto-cancelar">Cancelar</button>
-      <button class="boton boton--primario" type="button" id="archivar-proyecto-confirmar">Archivar proyecto</button>
+    <div class="proy-dialogo-dash__acciones modal-footer">
+      <button class="boton boton--secundario btn btn--secondary" type="button" id="archivar-proyecto-cancelar">Cancelar</button>
+      <button class="boton boton--primario btn btn--primary" type="button" id="archivar-proyecto-confirmar">Archivar proyecto</button>
     </div>
   </dialog>
 
-  <!-- Cargar el script de la página como módulo ES (importa el resto de módulos) -->
   <script type="module" src="/js/pages/dashboard.js"></script>
 </body>
 </html>

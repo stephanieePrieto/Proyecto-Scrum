@@ -11,7 +11,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScrumFlow - Gestión de Proyectos Ágiles</title>
+    <!-- Enlaces al sistema unificado de estilos en tonos morados -->
     <link rel="stylesheet" href="./css/base.css">
+    <link rel="stylesheet" href="./css/componentes/accesibilidad.css">
+    <link rel="stylesheet" href="./css/componentes/botones.css">
+    <link rel="stylesheet" href="./css/componentes/insignias.css">
+    <link rel="stylesheet" href="./css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="./css/componentes/landing.css">
     <link rel="stylesheet" href="./css/componentes/landing.css">
 </head>
 
@@ -26,7 +32,7 @@
             <nav class="nav-links">
                 <a href="#caracteristicas" class="nav-link">Características</a>
                 <a href="#tablero-preview" class="nav-link">Tablero</a>
-                <a href="./pages/login.html" class="boton-ingresar">Iniciar Sesión</a>
+                <a href="./pages/login.html" class="boton boton--primario boton-ingresar">Iniciar Sesión</a>
             </nav>
         </div>
     </header>
@@ -36,31 +42,31 @@
         <section class="hero-section">
             <div class="landing-container hero-grid">
                 <div class="hero-text">
-                    <span class="badge-novedad">Gestión Ágil Simplificada</span>
+                    <span class="badge-novedad insignia insignia--primario">Gestión Ágil Simplificada</span>
                     <h1>Organiza tus Sprints y proyectos como un profesional</h1>
                     <p>ScrumFlow te permite colaborar en equipo, arrastrar tareas en tableros Kanban interactivos y llevar el control total de tu metodología Scrum en tiempo real.</p>
                     <div class="hero-actions">
-                        <a href="./pages/login.html" class="boton-principal">Comenzar Ahora</a>
-                        <a href="#tablero-preview" class="boton-secundario">Ver Demostración</a>
+                        <a href="./pages/login.html" class="boton boton--primario boton-principal">Comenzar Ahora</a>
+                        <a href="#tablero-preview" class="boton boton--secundario boton-secundario">Ver Demostración</a>
                     </div>
                 </div>
 
                 <!-- Vista Previa Interactiva Estilo Trello -->
-                <div class="trello-preview-card" id="tablero-preview">
+                <div class="trello-preview-card tarjeta" id="tablero-preview">
                     <div class="preview-header">
                         <span class="board-title">Sprint 1 - Proyecto Principal</span>
-                        <div class="board-badge">Kanban View</div>
+                        <div class="board-badge insignia insignia--neutro">Kanban View</div>
                     </div>
                     <div class="kanban-board-mini">
                         <!-- Columna: Por Hacer -->
                         <div class="kanban-column">
                             <div class="column-title">Por Hacer (Backlog)</div>
-                            <div class="kanban-task">
-                                <span class="task-tag design">Diseño UX</span>
+                            <div class="kanban-task tarjeta">
+                                <span class="task-tag design insignia insignia--peligro">Diseño UX</span>
                                 <p>Crear wireframes de la vista de reportes</p>
                             </div>
-                            <div class="kanban-task">
-                                <span class="task-tag backend">Base de datos</span>
+                            <div class="kanban-task tarjeta">
+                                <span class="task-tag backend insignia insignia--info">Base de datos</span>
                                 <p>Configurar triggers en PostgreSQL</p>
                             </div>
                         </div>
@@ -68,8 +74,8 @@
                         <!-- Columna: En Progreso -->
                         <div class="kanban-column">
                             <div class="column-title">En Progreso</div>
-                            <div class="kanban-task highlight-task">
-                                <span class="task-tag frontend">Frontend</span>
+                            <div class="kanban-task highlight-task tarjeta">
+                                <span class="task-tag frontend insignia insignia--exito">Frontend</span>
                                 <p>Integrar autenticación con JWT y Bcrypt</p>
                             </div>
                         </div>
@@ -77,8 +83,8 @@
                         <!-- Columna: Hecho -->
                         <div class="kanban-column">
                             <div class="column-title">Completado</div>
-                            <div class="kanban-task completed">
-                                <span class="task-tag security">Seguridad</span>
+                            <div class="kanban-task completed tarjeta">
+                                <span class="task-tag security insignia insignia--advertencia">Seguridad</span>
                                 <p>Implementar HTTPS y cabeceras CORS</p>
                             </div>
                         </div>
@@ -95,17 +101,17 @@
                     <p>Diseñado para potenciar la productividad y la transparencia en cada iteración.</p>
                 </div>
                 <div class="features-grid">
-                    <div class="feature-box">
+                    <div class="feature-box tarjeta">
                         <div class="feature-icon"></div>
                         <h3>Tableros Dinámicos</h3>
                         <p>Mueve historias de usuario e ítems de forma fluida entre las fases del Sprint.</p>
                     </div>
-                    <div class="feature-box">
+                    <div class="feature-box tarjeta">
                         <div class="feature-icon"></div>
                         <h3>Seguridad Robusta</h3>
                         <p>Protección de datos con encriptación avanzada de contraseñas y control de roles.</p>
                     </div>
-                    <div class="feature-box">
+                    <div class="feature-box tarjeta">
                         <div class="feature-icon"></div>
                         <h3>Tiempo Real</h3>
                         <p>Sincronización instantánea de cambios para que todo el equipo esté alineado.</p>

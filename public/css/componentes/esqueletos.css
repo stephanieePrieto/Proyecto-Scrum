@@ -1,8 +1,3 @@
-/*
- * Simular el contenido mientras carga, con un brillo que se desplaza.
- */
-
-/* Dibujar el bloque gris con degradado animado */
 .esqueleto {
   display: block; border-radius: var(--radio-lg);
   background: linear-gradient(90deg, var(--slate-200) 25%, var(--slate-50) 50%, var(--slate-200) 75%);
@@ -10,5 +5,7 @@
   animation: brillo 1.2s linear infinite;
 }
 
-/* Desplazar el degradado de derecha a izquierda para crear el efecto de brillo */
-@keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes brillo {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}

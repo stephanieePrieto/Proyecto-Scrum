@@ -1,18 +1,10 @@
-/*
- * Reutilizar las etiquetas de estado (insignias) con colores semánticos.
- */
-
-/* Definir la base de la insignia en forma de píldora */
 .insignia {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 2px 10px; border-radius: 999px;
-  font-size: 12px; font-weight: 500;
-  border: 1px solid transparent;
+  font-size: 12px; font-weight: 500; border: 1px solid transparent;
 }
-
-/* Asignar un color por significado: éxito, advertencia, peligro, información y neutro */
-.insignia--exito       { background: var(--esmeralda-50); color: var(--esmeralda-700); border-color: #A7F3D0; }
-.insignia--advertencia { background: var(--ambar-50);     color: var(--ambar-700);     border-color: #FDE68A; }
-.insignia--peligro     { background: var(--rosa-50);      color: var(--rosa-700);      border-color: #FECDD3; }
-.insignia--info        { background: var(--celeste-50);   color: var(--celeste-700);   border-color: #BAE6FD; }
-.insignia--neutro      { background: var(--slate-50);     color: var(--texto-suave);   border-color: var(--borde); }
+.insignia--exito      { background: var(--esmeralda-50); color: var(--esmeralda-700); border-color: #A7F3D0; }
+.insignia--advertencia { background: var(--ambar-50); color: var(--ambar-700); border-color: #FDE68A; }
+.insignia--peligro    { background: var(--rosa-50); color: var(--rosa-700); border-color: #FECDD3; }
+.insignia--info       { background: var(--celeste-50); color: var(--celeste-700); border-color: #BAE6FD; }
+.insignia--primario   { background: var(--primario-claro); color: var(--primario-texto); border-color: #DDD6FE; }

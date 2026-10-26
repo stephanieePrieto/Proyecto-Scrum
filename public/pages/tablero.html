@@ -1,84 +1,73 @@
-<!-- Responsable: Camila - HU-17 a HU-25, HU-58, HU-59: pantalla del tablero del sprint. Usa componentes globales y tablero.css -->
 <!DOCTYPE html>
+<!-- Responsable: Camila - Tablero Kanban -->
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero Kanban</title>
+    <title>Tablero Kanban · ScrumFlow</title>
 
-    <!-- Enlaces a los CSS base del equipo -->
+    <!-- Enlaces unificados del equipo -->
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/componentes/botones.css">
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="../css/componentes/formularios.css">
+    <link rel="stylesheet" href="../css/componentes/insignias.css">
+    <link rel="stylesheet" href="../css/componentes/modales.css">
     <link rel="stylesheet" href="../css/pages/tablero.css">
-
-    <!-- CDN de Tailwind para asegurar que las clases flex, bg-slate, etc., funcionen en tu previsualización local -->
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-slate-50 font-sans text-slate-800">
+<body>
 
-    <div id="pantalla-tablero" class="h-full flex flex-col p-6 bg-slate-50">
+    <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
 
         <!-- Encabezado del Sprint -->
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-semibold text-slate-800" id="sprint-nombre">Cargando sprint...</h1>
-                <span
-                    class="insignia-estado rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-xs font-medium"
-                    id="sprint-estado">Activo</span>
-                <span class="text-sm text-slate-500" id="sprint-dias-restantes">Quedan X días</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-4);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h1 class="titulo-pagina" id="sprint-nombre">Cargando sprint...</h1>
+                <span class="insignia insignia--exito" id="sprint-estado">Activo</span>
+                <span style="font-size: 13px; color: var(--texto-suave);" id="sprint-dias-restantes">Quedan X días</span>
             </div>
 
-            <div class="flex gap-2">
-                <button
-                    class="btn-primario bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                    id="btn-nueva-tarea">+ Tarea</button>
-                <button
-                    class="btn-secundario border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                    id="btn-configurar-columnas">Configurar</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn--primary" id="btn-nueva-tarea">+ Tarea</button>
+                <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
             </div>
         </div>
 
         <!-- Barra de Filtros -->
-        <div
-            class="barra-filtros flex items-center gap-3 mb-6 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-            <span class="text-sm text-slate-500 font-medium">Filtros:</span>
-            <select id="filtro-persona" class="input-select rounded border border-slate-200 text-sm py-1 px-2">
+        <div class="tarjeta" style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
+            <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
+            <select id="filtro-persona" class="form-select" style="width: auto;">
                 <option value="">Persona: Todos</option>
             </select>
-            <select id="filtro-epica" class="input-select rounded border border-slate-200 text-sm py-1 px-2">
+            <select id="filtro-epica" class="form-select" style="width: auto;">
                 <option value="">Épica: Todas</option>
             </select>
         </div>
 
         <!-- Contenedor de las Columnas -->
-        <div id="tablero-contenedor" class="flex-1 flex gap-4 overflow-x-auto pb-4">
-            <!-- Aquí aparecerán las columnas y las tarjetas inyectadas desde JavaScript -->
+        <div id="tablero-contenedor" style="flex: 1; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;">
+            <!-- Columnas inyectadas desde JavaScript -->
         </div>
 
     </div>
 
     <!-- Modal de Configuración de Columnas -->
-    <dialog id="modal-configurar-columnas"
-        class="modal-dialog rounded-xl shadow-xl border border-slate-200 p-0 w-full max-w-md backdrop:bg-slate-900/50">
-        <form method="dialog" class="p-6">
-            <h2 class="text-xl font-semibold text-slate-800 mb-4">Configurar Columnas</h2>
-            <div id="lista-config-columnas" class="space-y-3 mb-6">
+    <dialog id="modal-configurar-columnas" class="modal-card" style="width: 100%; max-width: 440px; padding: var(--espacio-6);">
+        <form method="dialog" style="display: flex; flex-direction: column; gap: var(--espacio-4);">
+            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Configurar Columnas</h2>
+            <div id="lista-config-columnas" style="display: flex; flex-direction: column; gap: 8px;">
                 <!-- Inputs inyectados desde JS -->
             </div>
-            <div class="flex justify-end gap-3">
-                <button type="button"
-                    class="btn-cancelar px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
-                    id="btn-cerrar-config-modal">Cancelar</button>
-                <button type="button"
-                    class="btn-primario px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-                    id="btn-guardar-config-columnas">Guardar Cambios</button>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                <button type="button" class="btn btn--secondary" id="btn-cerrar-config-modal">Cancelar</button>
+                <button type="button" class="btn btn--primary" id="btn-guardar-config-columnas">Guardar Cambios</button>
             </div>
         </form>
     </dialog>
 
-    <!-- Punto de entrada JS principal -->
     <script type="module" src="../js/pages/tablero.js"></script>
 
 </body>

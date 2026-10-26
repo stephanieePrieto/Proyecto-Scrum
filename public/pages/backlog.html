@@ -1,18 +1,16 @@
-<!-- Responsable: Jetz - HU-02, HU-03, HU-04, HU-05: pantalla del Product Backlog (modal de historia, arrastrar, epicas y filtros). Solo el contenido del area de trabajo; el menu lo pone layout.js -->
-
 <!DOCTYPE html>
 <!--
   HU-02 y HU-03 · Product Backlog.
   Distribución: lista priorizada (izquierda) + detalle de la historia (derecha).
-  Pendiente para otros sprints: épicas y filtros (HU-04) y Planning Poker (HU-05).
+  Responsable: Jetz
 -->
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Product Backlog · AgileDesk</title>
+  <title>Product Backlog · ScrumFlow</title>
 
-  <!-- Estilos globales y componentes reutilizables (BASE) -->
+  <!-- Estilos globales unificados -->
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/layout.css" />
   <link rel="stylesheet" href="/css/componentes/botones.css" />
@@ -20,11 +18,13 @@
   <link rel="stylesheet" href="/css/componentes/insignias.css" />
   <link rel="stylesheet" href="/css/componentes/avisos.css" />
   <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/modales.css" />
 
-  <!-- Estilos propios de esta pantalla -->
+  <!-- Estilos propios de la pantalla -->
   <link rel="stylesheet" href="/css/pages/backlog.css" />
 
-  <!-- Al final, para que prevalezcan (igual que en el dashboard) -->
+  <!-- Ajustes finales -->
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
 </head>
@@ -40,31 +40,28 @@
       <div class="bl-acciones-encabezado">
         <span class="insignia insignia--neutro" id="total-historias">0 historias</span>
         <span class="insignia insignia--info" id="total-puntos">0 pts</span>
-        <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
+        <button class="boton boton--primario btn btn--primary" id="btn-nueva" type="button" disabled>+ Historia</button>
       </div>
     </div>
 
-    <!-- Avisos generales (guardado correcto, errores de red, cambios de otras personas) -->
     <div id="mensaje" class="bl-mensaje" role="status" aria-live="polite" hidden></div>
 
-    <!-- Borrador sin guardar (HU-02: se conserva si se cae la conexión) -->
     <div id="aviso-borrador" class="bl-mensaje bl-mensaje--info" role="status" hidden>
       <span id="aviso-borrador-texto"></span>
       <span class="bl-mensaje__acciones">
-        <button class="boton boton--secundario boton--pequeno" id="btn-continuar-borrador" type="button">Continuar</button>
-        <button class="boton boton--secundario boton--pequeno" id="btn-descartar-borrador-pagina" type="button">Descartar</button>
+        <button class="boton boton--secundario btn btn--secondary btn--pequeno" id="btn-continuar-borrador" type="button">Continuar</button>
+        <button class="boton boton--secundario btn btn--secondary btn--pequeno" id="btn-descartar-borrador-pagina" type="button">Descartar</button>
       </span>
     </div>
 
     <div class="bl-barra">
       <label class="bl-buscar">
         <span class="bl-solo-lector">Buscar historias</span>
-        <input id="buscar" type="search" placeholder="Buscar historias por título o etiqueta…" autocomplete="off" />
+        <input id="buscar" type="search" placeholder="Buscar historias por título o etiqueta…" autocomplete="off" class="form-input" />
       </label>
     </div>
 
     <div class="bl-cuerpo">
-      <!-- Lista priorizada: la posición ES la prioridad (arriba = más importante) -->
       <section class="tarjeta bl-lista-caja" aria-labelledby="titulo-lista">
         <h2 id="titulo-lista" class="bl-seccion-titulo">Lista priorizada de historias</h2>
         <p class="bl-ayuda" id="ayuda-orden">
@@ -79,110 +76,104 @@
         </footer>
       </section>
 
-      <!-- Detalle de la historia seleccionada -->
       <aside id="detalle" class="tarjeta bl-detalle" aria-label="Detalle de la historia"></aside>
     </div>
   </main>
 
-  <!-- Anuncios para lectores de pantalla (HU-49) -->
   <p id="anuncio" class="bl-solo-lector" role="status" aria-live="assertive"></p>
 
-  <!-- Modal: crear / editar historia (Como / Quiero / Para + criterios) -->
-  <dialog id="dialogo-historia" class="bl-dialogo" aria-labelledby="dialogo-historia-titulo">
+  <dialog id="dialogo-historia" class="bl-dialogo modal-card" aria-labelledby="dialogo-historia-titulo">
     <form id="formulario-historia" novalidate>
       <h2 id="dialogo-historia-titulo">Nueva historia</h2>
       <p class="bl-ayuda">Describe qué necesita el usuario y cómo sabremos que está terminado.</p>
 
       <p id="aviso-form" class="bl-nota" role="status" hidden></p>
 
-      <div class="bl-campo">
-        <label for="f-titulo">Título</label>
-        <input id="f-titulo" name="titulo" type="text" maxlength="200" required aria-describedby="error-titulo" />
+      <div class="bl-campo form-group">
+        <label for="f-titulo" class="form-label">Título</label>
+        <input id="f-titulo" name="titulo" type="text" maxlength="200" required aria-describedby="error-titulo" class="form-input" />
         <p class="bl-error" id="error-titulo" role="alert"></p>
       </div>
 
       <fieldset class="bl-como-quiero-para">
         <legend>Descripción</legend>
-        <div class="bl-campo">
-          <label for="f-como">Como…</label>
-          <input id="f-como" name="como" type="text" maxlength="300" placeholder="un product owner" aria-describedby="error-como" />
+        <div class="bl-campo form-group">
+          <label for="f-como" class="form-label">Como…</label>
+          <input id="f-como" name="como" type="text" maxlength="300" placeholder="un product owner" aria-describedby="error-como" class="form-input" />
           <p class="bl-error" id="error-como" role="alert"></p>
         </div>
-        <div class="bl-campo">
-          <label for="f-quiero">Quiero…</label>
-          <input id="f-quiero" name="quiero" type="text" maxlength="500" placeholder="reordenar el backlog arrastrando" aria-describedby="error-quiero" />
+        <div class="bl-campo form-group">
+          <label for="f-quiero" class="form-label">Quiero…</label>
+          <input id="f-quiero" name="quiero" type="text" maxlength="500" placeholder="reordenar el backlog arrastrando" aria-describedby="error-quiero" class="form-input" />
           <p class="bl-error" id="error-quiero" role="alert"></p>
         </div>
-        <div class="bl-campo">
-          <label for="f-para">Para…</label>
-          <input id="f-para" name="para" type="text" maxlength="500" placeholder="definir la prioridad del producto" aria-describedby="error-para" />
+        <div class="bl-campo form-group">
+          <label for="f-para" class="form-label">Para…</label>
+          <input id="f-para" name="para" type="text" maxlength="500" placeholder="definir la prioridad del producto" aria-describedby="error-para" class="form-input" />
           <p class="bl-error" id="error-para" role="alert"></p>
         </div>
       </fieldset>
 
-      <div class="bl-campo">
-        <label for="f-criterios">Criterios de aceptación</label>
+      <div class="bl-campo form-group">
+        <label for="f-criterios" class="form-label">Criterios de aceptación</label>
         <textarea id="f-criterios" name="criterios" rows="4" maxlength="4000"
-                  placeholder="Un criterio por línea. Ej.: Dado que… cuando… entonces…" aria-describedby="error-criterios"></textarea>
+                  placeholder="Un criterio por línea. Ej.: Dado que… cuando… entonces…" aria-describedby="error-criterios" class="form-input"></textarea>
         <p class="bl-error" id="error-criterios" role="alert"></p>
       </div>
 
       <div class="bl-fila">
-        <div class="bl-campo">
-          <label for="f-puntos">Puntos de historia</label>
-          <select id="f-puntos" name="puntos" aria-describedby="error-puntos">
+        <div class="bl-campo form-group">
+          <label for="f-puntos" class="form-label">Puntos de historia</label>
+          <select id="f-puntos" name="puntos" aria-describedby="error-puntos" class="form-select">
             <option value="">Sin estimar</option>
             <option>1</option><option>2</option><option>3</option><option>5</option>
             <option>8</option><option>13</option><option>21</option>
           </select>
           <p class="bl-error" id="error-puntos" role="alert"></p>
         </div>
-        <div class="bl-campo">
-          <label for="f-epica">Épica</label>
-          <select id="f-epica" name="epica_id" aria-describedby="error-epica_id"></select>
+        <div class="bl-campo form-group">
+          <label for="f-epica" class="form-label">Épica</label>
+          <select id="f-epica" name="epica_id" aria-describedby="error-epica_id" class="form-select"></select>
           <p class="bl-error" id="error-epica_id" role="alert"></p>
         </div>
       </div>
 
-      <div class="bl-campo">
-        <label for="f-etiquetas">Etiquetas</label>
-        <input id="f-etiquetas" name="etiquetas" type="text" placeholder="api, seguridad, ui" aria-describedby="ayuda-etiquetas error-etiquetas" />
+      <div class="bl-campo form-group">
+        <label for="f-etiquetas" class="form-label">Etiquetas</label>
+        <input id="f-etiquetas" name="etiquetas" type="text" placeholder="api, seguridad, ui" aria-describedby="ayuda-etiquetas error-etiquetas" class="form-input" />
         <p class="bl-ayuda" id="ayuda-etiquetas">Sepáralas con comas (máximo 10).</p>
         <p class="bl-error" id="error-etiquetas" role="alert"></p>
       </div>
 
-      <div class="bl-dialogo__acciones">
-        <button class="boton boton--secundario" type="button" id="btn-descartar-borrador" hidden>Descartar borrador</button>
+      <div class="bl-dialogo__acciones modal-footer">
+        <button class="boton boton--secundario btn btn--secondary" type="button" id="btn-descartar-borrador" hidden>Descartar borrador</button>
         <span class="bl-espacio"></span>
-        <button class="boton boton--secundario" type="button" id="btn-cancelar-historia">Cancelar</button>
-        <button class="boton boton--primario" type="submit" id="btn-guardar-historia">Guardar historia</button>
+        <button class="boton boton--secundario btn btn--secondary" type="button" id="btn-cancelar-historia">Cancelar</button>
+        <button class="boton boton--primario btn btn--primary" type="submit" id="btn-guardar-historia">Guardar historia</button>
       </div>
     </form>
   </dialog>
 
-  <!-- Confirmar eliminación -->
-  <dialog id="dialogo-eliminar" class="bl-dialogo bl-dialogo--chico" aria-labelledby="dialogo-eliminar-titulo">
+  <dialog id="dialogo-eliminar" class="bl-dialogo bl-dialogo--chico modal-card" aria-labelledby="dialogo-eliminar-titulo">
     <h2 id="dialogo-eliminar-titulo">¿Eliminar esta historia?</h2>
     <p>«<span id="eliminar-nombre"></span>» se eliminará junto con sus tareas. Esta acción no se puede deshacer.</p>
-    <div class="bl-dialogo__acciones">
+    <div class="bl-dialogo__acciones modal-footer">
       <span class="bl-espacio"></span>
-      <button class="boton boton--secundario" type="button" id="btn-cancelar-eliminar">Cancelar</button>
-      <button class="boton bl-boton-peligro" type="button" id="btn-confirmar-eliminar">Eliminar historia</button>
+      <button class="boton boton--secundario btn btn--secondary" type="button" id="btn-cancelar-eliminar">Cancelar</button>
+      <button class="boton bl-boton-peligro btn btn--danger" type="button" id="btn-confirmar-eliminar">Eliminar historia</button>
     </div>
   </dialog>
 
-  <!-- La historia está en un sprint activo: no se puede eliminar, se ofrece devolverla -->
-  <dialog id="dialogo-devolver" class="bl-dialogo bl-dialogo--chico" aria-labelledby="dialogo-devolver-titulo">
+  <dialog id="dialogo-devolver" class="bl-dialogo bl-dialogo--chico modal-card" aria-labelledby="dialogo-devolver-titulo">
     <h2 id="dialogo-devolver-titulo">No se puede eliminar</h2>
     <p id="devolver-texto"></p>
-    <div class="bl-dialogo__acciones">
+    <div class="bl-dialogo__acciones modal-footer">
       <span class="bl-espacio"></span>
-      <button class="boton boton--secundario" type="button" id="btn-cancelar-devolver">Cerrar</button>
-      <button class="boton boton--primario" type="button" id="btn-confirmar-devolver">Devolver al backlog</button>
+      <button class="boton boton--secundario btn btn--secondary" type="button" id="btn-cancelar-devolver">Cerrar</button>
+      <button class="boton boton--primario btn btn--primary" type="button" id="btn-confirmar-devolver">Devolver al backlog</button>
     </div>
   </dialog>
 
-  <!-- Cliente de Socket.io (lo sirve el propio servidor). Si no carga, la pantalla se actualiza sola cada 5 s -->
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/js/pages/backlog.js"></script>
 </body>

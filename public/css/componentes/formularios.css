@@ -1,1 +1,20 @@
 /* BASE (no modificar sin avisar al equipo) - HU-47: campos, etiquetas y mensajes de error */
+.form-group, .grupo-formulario {
+  margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 6px;
+}
+
+.form-label, .etiqueta-formulario {
+  font-size: 14px; font-weight: 600; color: var(--texto);
+}
+
+.form-input, .entrada-formulario, .form-select {
+  width: 100%; padding: 10px 14px; font-size: 15px;
+  color: var(--texto); background: var(--blanco);
+  border: 1px solid var(--borde); border-radius: var(--radio-lg);
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus, .entrada-formulario:focus, .form-select:focus {
+  border-color: var(--primario);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}

@@ -1,26 +1,26 @@
-/*
- * Reutilizar los estilos de botón en todas las páginas.
- */
-
-/* Definir la base común: rounded-lg, px-4 py-2, text-sm, font-medium */
-.boton {
+.btn, .boton {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 8px 16px; border-radius: var(--radio-lg);
-  font-size: 14px; font-weight: 500; line-height: 20px;
+  padding: 10px 18px; border-radius: var(--radio-lg);
+  font-size: 14px; font-weight: 600;
   border: 1px solid transparent; cursor: pointer;
-  transition: background .15s, border-color .15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-/* Usar la variante primaria para la acción principal */
-.boton--primario { background: var(--primario); color: var(--blanco); }
-.boton--primario:hover { background: var(--primario-hover); }
+.btn--primary, .boton--primario {
+  background-color: var(--primario);
+  color: var(--blanco);
+}
+.btn--primary:hover:not(:disabled), .boton--primario:hover:not(:disabled) {
+  background-color: var(--primario-hover);
+}
 
-/* Usar la variante secundaria para acciones de apoyo */
-.boton--secundario { background: var(--blanco); color: var(--texto); border-color: var(--borde); }
-.boton--secundario:hover { background: var(--slate-50); }
+.btn--secondary, .boton--secundario {
+  background-color: var(--blanco);
+  color: var(--texto);
+  border-color: var(--borde);
+}
+.btn--secondary:hover:not(:disabled), .boton--secundario:hover:not(:disabled) {
+  background-color: var(--slate-50);
+}
 
-/* Reducir el tamaño del botón en espacios compactos */
-.boton--pequeno { padding: 4px 12px; font-size: 13px; }
-
-/* Atenuar el botón deshabilitado e impedir el clic */
-.boton[disabled] { opacity: .6; cursor: not-allowed; }
+.btn[disabled], .boton[disabled] { opacity: 0.6; cursor: not-allowed; }

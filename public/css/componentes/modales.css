@@ -1,1 +1,18 @@
 /* BASE (no modificar sin avisar al equipo) - HU-47: modales y drawers */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; opacity: 1; transition: opacity 0.2s ease;
+}
+.modal-overlay.modal--hidden { opacity: 0; pointer-events: none; }
+
+.modal-card {
+  background: var(--fondo-tarjeta); width: 100%; max-width: 600px;
+  border-radius: var(--radio-xl); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  display: flex; flex-direction: column; overflow: hidden; max-height: 90vh;
+}
+.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--borde); display: flex; justify-content: space-between; align-items: center; }
+.modal-body { padding: 1.5rem; overflow-y: auto; max-height: 75vh; }
+.modal-footer { padding: 1rem 1.5rem; background-color: var(--slate-50); border-top: 1px solid var(--borde); display: flex; justify-content: flex-end; gap: 0.75rem; }

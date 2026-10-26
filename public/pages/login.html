@@ -1,6 +1,6 @@
 <!--
   @file login.html
-  @description Interfaz para el inicio de sesión de usuarios en la plataforma.
+  @description Interfaz para el inicio de sesión de usuarios en la plataforma (ScrumFlow).
   @author Citlaly Morales Viveros
 -->
 <!DOCTYPE html>
@@ -10,32 +10,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - ScrumFlow</title>
+    <!-- Estilos unificados del sistema -->
     <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/componentes/accesibilidad.css">
+    <link rel="stylesheet" href="../css/componentes/botones.css">
+    <link rel="stylesheet" href="../css/componentes/formularios.css">
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="../css/componentes/avisos.css">
     <link rel="stylesheet" href="../css/pages/auth.css">
 </head>
 
 <body>
     <div class="contenedor-auth">
-        <main class="tarjeta-auth">
+        <main class="tarjeta-auth tarjeta">
             <h1 class="auth-titulo">ScrumFlow</h1>
             <p class="auth-descripcion">Ingresa tus credenciales para continuar</p>
 
             <div id="mensaje-alerta" class="alerta-mensaje" aria-live="polite"></div>
 
             <form id="form-login">
-                <div class="grupo-formulario">
-                    <label for="correo" class="etiqueta-formulario">Correo electrónico</label>
-                    <input type="email" id="correo" name="correo" class="entrada-formulario" required
+                <div class="grupo-formulario form-group">
+                    <label for="correo" class="etiqueta-formulario form-label">Correo electrónico</label>
+                    <input type="email" id="correo" name="correo" class="entrada-formulario form-input" required
                         autocomplete="email">
                 </div>
 
-                <div class="grupo-formulario">
-                    <label for="password" class="etiqueta-formulario">Contraseña</label>
-                    <input type="password" id="password" name="password" class="entrada-formulario" required
+                <div class="grupo-formulario form-group">
+                    <label for="password" class="etiqueta-formulario form-label">Contraseña</label>
+                    <input type="password" id="password" name="password" class="entrada-formulario form-input" required
                         autocomplete="current-password">
                 </div>
 
-                <button type="submit" class="boton-auth">Iniciar Sesión</button>
+                <button type="submit" class="boton-auth btn btn--primary">Iniciar Sesión</button>
             </form>
 
             <div class="enlaces-auth">

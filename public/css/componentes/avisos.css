@@ -1,9 +1,3 @@
-/*
- * Reutilizar los bloques de aviso informativo.
- * Incluir la variante "vacío" para pantallas sin datos.
- */
-
-/* Centrar el mensaje en una caja con borde discontinuo */
 .aviso--vacio {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
   padding: 64px var(--espacio-6);
@@ -12,13 +6,14 @@
   border-radius: var(--radio-xl);
 }
 
-/* Enmarcar el icono en un círculo gris */
 .aviso__icono {
   width: 56px; height: 56px; border-radius: 50%;
   display: grid; place-items: center;
-  background: var(--slate-50); color: var(--texto-suave);
+  background: var(--primario-claro); color: var(--primario);
 }
-.aviso__titulo { font-size: 18px; font-weight: 600; }
 
-/* Limitar el ancho del texto para mantener líneas legibles */
-.aviso__texto { color: var(--texto-suave); max-width: 44ch; margin-bottom: 4px; }
+.alerta {
+  padding: 1rem; border-radius: var(--radio-lg); margin-bottom: 1rem; font-weight: 500; font-size: 0.875rem;
+}
+.alerta--exito { background: var(--esmeralda-50); color: var(--esmeralda-700); border: 1px solid var(--esmeralda-500); }
+.alerta--error { background: var(--rosa-50); color: var(--rosa-700); border: 1px solid var(--rosa-500); }

@@ -1,55 +1,49 @@
-/*
- * Definir las variables de diseño (tokens) y normalizar los estilos globales.
- * Modificar un valor de :root para cambiarlo en toda la aplicación.
- */
-
+/* ==========================================================================
+   01. BASE.CSS — Tokens, variables y reseteo global (Tema Morado)
+   ========================================================================== */
 :root {
-  /* Declarar la escala de grises (slate) */
-  --slate-50:  #F8FAFC;   /* Fondo de la aplicación */
-  --slate-200: #E2E8F0;   /* Bordes */
-  --slate-300: #CBD5E1;   /* Bordes discontinuos */
-  --slate-500: #64748B;   /* Texto secundario */
-  --slate-800: #1E293B;   /* Texto principal */
-  --slate-900: #0F172A;   /* Pizarra oscuro (enlace activo, avatar) */
-  --blanco: #FFFFFF;      /* Tarjetas y barra superior */
+  /* Escala de grises (Slate) */
+  --slate-50:  #F8FAFC;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-500: #64748B;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+  --blanco:    #FFFFFF;
 
-  /* Declarar los colores semánticos: 500 = acento, 50 = fondo, 700 = texto */
-  --esmeralda-500: #10B981;  --esmeralda-50: #ECFDF5;  --esmeralda-700: #047857;  /* Éxito */
-  --ambar-500:     #F59E0B;  --ambar-50:     #FFFBEB;  --ambar-700:     #B45309;  /* Advertencia */
-  --rosa-500:      #F43F5E;  --rosa-50:      #FFF1F2;  --rosa-700:      #BE123C;  /* Peligro */
-  --celeste-500:   #0EA5E9;  --celeste-50:   #F0F9FF;  --celeste-700:   #0369A1;  /* Información */
+  /* Tonos Morados Principales (Acento POS / Sistema) */
+  --primario:        #7C3AED; /* Morado vibrante principal */
+  --primario-hover:  #6D28D9; /* Morado oscuro para hover */
+  --primario-claro:  #EDE9FE; /* Fondo suave morado */
+  --primario-texto:  #5B21B6; /* Texto morado fuerte */
 
-  /* Declarar el color de acción principal (botones primarios) */
-  --primario: #4F46E5;
-  --primario-hover: #4338CA;
+  /* Colores Semánticos */
+  --esmeralda-500: #10B981; --esmeralda-50: #ECFDF5; --esmeralda-700: #047857;
+  --ambar-500:     #F59E0B; --ambar-50:     #FFFBEB; --ambar-700:     #B45309;
+  --rosa-500:      #F43F5E; --rosa-50:      #FFF1F2; --rosa-700:      #BE123C;
+  --celeste-500:   #0EA5E9; --celeste-50:   #F0F9FF; --celeste-700:   #0369A1;
 
-  /* Asignar roles a los colores para no depender del nombre del color */
-  --fondo-app: var(--slate-50);
+  /* Roles de Color */
+  --fondo-app:   var(--slate-50);
   --fondo-tarjeta: var(--blanco);
-  --borde: var(--slate-200);
-  --texto: var(--slate-800);
+  --borde:       var(--slate-200);
+  --texto:       var(--slate-800);
   --texto-suave: var(--slate-500);
 
-  /* Definir tipografía, radios, sombra y espaciados */
-  --fuente: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --radio-lg: 8px;      /* Botones (rounded-lg) */
-  --radio-xl: 12px;     /* Tarjetas (rounded-xl) */
+  /* Tipografía y Medidas */
+  --fuente: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --radio-lg: 8px;
+  --radio-xl: 12px;
   --sombra-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
-  --espacio-4: 16px;    /* p-4 / gap-4 */
-  --espacio-6: 24px;    /* p-6 / gap-6 */
-
-  /* Definir dimensiones de la estructura general */
+  --espacio-4: 16px;
+  --espacio-6: 24px;
   --altura-barra: 64px;
   --ancho-max: 1200px;
 }
 
-/* Incluir padding y borde dentro del ancho de cada elemento */
 *, *::before, *::after { box-sizing: border-box; }
-
-/* Evitar que los móviles reescalen el texto por su cuenta */
 html { -webkit-text-size-adjust: 100%; }
 
-/* Aplicar la tipografía, el tamaño base (text-sm) y los colores de fondo y texto */
 body {
   margin: 0;
   font-family: var(--fuente);
@@ -59,14 +53,13 @@ body {
   background: var(--fondo-app);
 }
 
-/* Eliminar márgenes por defecto de títulos y párrafos */
 h1, h2, h3, p { margin: 0; }
-
-/* Heredar color y quitar subrayado en los enlaces */
 a { color: inherit; text-decoration: none; }
-
-/* Heredar la fuente en los botones */
 button { font-family: inherit; }
-
-/* Garantizar que el atributo hidden oculte el elemento aunque otra regla defina display */
 [hidden] { display: none !important; }
+
+/* Foco de teclado accesible con contorno morado */
+:focus-visible {
+  outline: 2px solid var(--primario);
+  outline-offset: 2px;
+}

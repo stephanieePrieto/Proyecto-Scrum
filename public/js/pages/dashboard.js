@@ -46,7 +46,7 @@ const btnActualizar = document.getElementById('btn-actualizar');
 
 // Leer los parámetros de la URL: ?proyecto=ID y ?escenario=nombre (solo pruebas)
 const params = new URLSearchParams(location.search);
-const proyectoId = params.get('proyecto') || localStorage.getItem('proyectoActivo') || null;
+const proyectoId = params.get('proyecto') || null;
 const escenario = params.get('escenario');   // Simular en el navegador
 
 const tituloPagina = document.getElementById('dashboard-titulo');
@@ -387,12 +387,31 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
       p.archivado ? '<span class="insignia insignia--neutro">Archivado</span>' : '',
       p.sprint_activo ? '<span class="insignia insignia--exito">Sprint activo</span>' : '',
     ].join('');
+    
     const acciones = [
-      `<a class="boton boton--secundario boton--pequeno" href="/pages/dashboard.html?proyecto=${id}" data-ver="${id}">Ver</a>`,
-      p.puede_gestionar ? `<a class="boton boton--secundario boton--pequeno" href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>` : '',
-      p.puede_gestionar && !p.archivado
-        ? `<button class="boton boton--secundario boton--pequeno" type="button" data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}">Archivar</button>` : '',
+      // Ver siempre está disponible para los proyectos de la lista.
+      `<a class="boton boton--secundario boton--pequeno"
+          href="/pages/dashboard.html?proyecto=${id}"
+          data-ver="${id}">Ver</a>`,
+
+      // Editar aparece siempre, pero se deshabilita sin permiso.
+      p.puede_gestionar
+        ? `<a class="boton boton--secundario boton--pequeno"
+              href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>`
+        : `<button class="boton boton--secundario boton--pequeno"
+              type="button" disabled
+              title="No tienes permiso para editar este proyecto">Editar</button>`,
+
+      // Archivar aparece siempre, pero se deshabilita sin permiso
+      // o cuando el proyecto ya está archivado.
+      `<button class="boton boton--secundario boton--pequeno"
+          type="button"
+          ${p.puede_gestionar && !p.archivado
+            ? `data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}"`
+            : 'disabled title="No puedes archivar este proyecto"'}
+          >Archivar</button>`
     ].join('');
+
     return `<article class="tarjeta proyecto${p.id === idActivo ? ' proyecto--activo' : ''}">
       <div class="proyecto__cabecera"><h3 class="proyecto__nombre">${escaparHtml(p.nombre)}</h3><div class="proyecto__insignias">${insignias}</div></div>
       <p class="proyecto__equipo">${escaparHtml(p.equipo_nombre)}</p>

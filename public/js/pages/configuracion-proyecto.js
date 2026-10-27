@@ -120,6 +120,18 @@ async function cargarProyecto() {
 async function iniciar() {
   montarBarraSuperior();
 
+    // No permitir fechas anteriores a hoy al crear un proyecto.
+  if (!editando) {
+    const hoy = new Date();
+    const fechaLocal = [
+      hoy.getFullYear(),
+      String(hoy.getMonth() + 1).padStart(2, '0'),
+      String(hoy.getDate()).padStart(2, '0')
+    ].join('-');
+
+    $('fecha_inicio').min = fechaLocal;
+  }
+
   try {
     if (editando) {
       $('titulo').textContent = 'Editar proyecto';
@@ -181,10 +193,28 @@ async function guardar(datos) {
   }
 }
 
+
 $('formulario').addEventListener('submit', (evento) => {
   evento.preventDefault();
-  guardar(leerFormulario());
+
+  const datos = leerFormulario();
+
+  // Validar la fecha de inicio solamente al crear proyectos.
+  if (!editando) {
+    const fechaMinima = $('fecha_inicio').min;
+
+    if (datos.fecha_inicio && datos.fecha_inicio < fechaMinima) {
+      limpiarErrores();
+      mostrarErroresCampos({
+        fecha_inicio: 'La fecha de inicio no puede ser anterior a hoy.'
+      });
+      return;
+    }
+  }
+
+  guardar(datos);
 });
+
 
 // ---------- Conflicto de versión ----------
 

@@ -359,3 +359,48 @@
     justify-content: stretch;
   }
 }
+
+#formulario-historia .grupo-formulario {
+  margin-bottom: 0;
+}
+
+/* Mantener el encabezado y los botones visibles */
+#dialogo-historia #formulario-historia {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: calc(90vh - 48px);
+  min-height: 0;
+}
+
+#dialogo-historia .modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Botón para cerrar el formulario de historias */
+#dialogo-historia .bl-boton-cerrar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+#dialogo-historia .bl-boton-cerrar:hover {
+  background: var(--borde);
+  color: var(--texto);
+}
+
+#dialogo-historia .bl-boton-cerrar:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

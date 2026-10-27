@@ -2,6 +2,8 @@
  * @file app.js
  * @description Configuración central de Express con ES Modules y middlewares de seguridad integrados (XSS y CSRF).
  */
+
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -30,7 +32,10 @@ export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
   app.use(cors());
-  
+
+  // Leer las cookies antes de validar el token CSRF
+  app.use(cookieParser());
+
   // 1. Lectura de cuerpos de petición
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));

@@ -561,8 +561,21 @@ el.btnDescartarBorrador.addEventListener('click', () => {
   ctx.pendiente = false;
 });
 
-$('btn-cancelar-historia').addEventListener('click', () => el.dlgHistoria.close());
-el.dlgHistoria.addEventListener('close', () => { guardarBorradorAhora(); revisarBorradores(); });
+// Cerrar el formulario con el botón Cancelar.
+$('btn-cancelar-historia').addEventListener('click', () => {
+  el.dlgHistoria.close();
+});
+
+// Cerrar el formulario con la X del encabezado.
+$('btn-cerrar-historia').addEventListener('click', () => {
+  el.dlgHistoria.close();
+});
+
+// Guardar los cambios como borrador al cerrar el formulario.
+el.dlgHistoria.addEventListener('close', () => {
+  guardarBorradorAhora();
+  revisarBorradores();
+});
 
 el.form.addEventListener('submit', (e) => {
   e.preventDefault();

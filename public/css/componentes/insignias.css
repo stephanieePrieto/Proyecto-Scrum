@@ -1,3 +1,12 @@
+/**
+ * @author Citlaly Morales Viveros (Cliente / Programadora XP)
+ *
+ * Insignias (etiquetas de estado) con tonos suaves de la paleta minimalista.
+ */
+
+/**
+ * Base de la insignia: píldora pequeña con borde fino.
+ */
 .insignia {
   display: inline-flex;
   align-items: center;
@@ -9,36 +18,54 @@
   border: 1px solid transparent;
 }
 
+/**
+ * Éxito: salvia suave.
+ */
 .insignia--exito {
   background: var(--esmeralda-50);
   color: var(--esmeralda-700);
-  border-color: #A7F3D0;
+  border-color: #C5D9C8;
 }
 
+/**
+ * Advertencia: dorado suave.
+ */
 .insignia--advertencia {
   background: var(--ambar-50);
   color: var(--ambar-700);
-  border-color: #FDE68A;
+  border-color: #EBD9A8;
 }
 
+/**
+ * Peligro: terracota suave.
+ */
 .insignia--peligro {
   background: var(--rosa-50);
   color: var(--rosa-700);
-  border-color: #FECDD3;
+  border-color: #E8C3BD;
 }
 
+/**
+ * Información: azul grisáceo suave.
+ */
 .insignia--info {
   background: var(--celeste-50);
   color: var(--celeste-700);
-  border-color: #BAE6FD;
+  border-color: #C4D6DF;
 }
 
+/**
+ * Primaria: beige claro con texto café, el tono de acento de la marca.
+ */
 .insignia--primario {
   background: var(--primario-claro);
   color: var(--primario-texto);
-  border-color: #DDD6FE;
+  border-color: #DCCBA9;
 }
 
+/**
+ * Neutra: gris cálido sin color semántico.
+ */
 .insignia--neutro {
   background: var(--slate-50);
   color: var(--slate-500);

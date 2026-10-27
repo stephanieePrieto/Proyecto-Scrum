@@ -1,7 +1,15 @@
+/**
+ * @author Citlaly Morales Viveros (Cliente / Programadora XP)
+ *
+ * Landing page con la paleta minimalista: fondo hueso, detalles beige y textos en carbón.
+ */
 /* ==========================================================================
    LANDING.CSS — Estilos específicos para la Landing Page de ScrumFlow
    ========================================================================== */
 
+/**
+ * Contenedor centrado que limita el ancho del contenido de la landing.
+ */
 .landing-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -14,7 +22,7 @@
 .landing-header {
     position: sticky;
     top: 0;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(251, 250, 247, 0.92);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--borde);
     z-index: 100;
@@ -39,7 +47,7 @@
     display: grid;
     place-items: center;
     background-color: var(--primario);
-    color: var(--blanco);
+    color: var(--acento);
     font-weight: 700;
     border-radius: var(--radio-lg);
     font-size: 18px;
@@ -152,7 +160,7 @@
     margin-bottom: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     font-size: 13px;
-    border-left: 3px solid var(--primario);
+    border-left: 3px solid var(--acento);
 }
 
 .kanban-task p {
@@ -201,7 +209,7 @@
 
 .feature-box:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.08);
+    box-shadow: 0 10px 20px rgba(40, 40, 40, 0.08);
 }
 
 .feature-icon {

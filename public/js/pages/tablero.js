@@ -1,11 +1,33 @@
-// Responsable: Camila - HU-17 a HU-25, HU-58, HU-59: logica de la pantalla del tablero del sprint (se arma con los archivos de js/pages/tablero/) (llama a la API y escucha sockets)
-import { inicializarTablero, cargarTablero } from './tablero/columnas.js';
+/**
+ * @fileoverview Lógica de la pantalla del tablero del sprint (HU-17 a HU-25, HU-58, HU-59).
+ * Se arma con los módulos de tablero y maneja la comunicación inicial y filtros.
+ * @author Camila
+ * @see {@link module:tablero/columnas}
+ */
 
+import { inicializarTablero, cargarTablero } from './tablero/columnas.js';
+import { montarBarraSuperior } from '../core/layout.js';
+
+/**
+ * Listener principal que se ejecuta una vez que el DOM ha sido completamente cargado.
+ * @listens DOMContentLoaded
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Iniciar la carga de columnas y tarjetas del sprint activo
+    /**
+     * 1. Inyecta la barra de navegación superior en la interfaz.
+     */
+    if (typeof montarBarraSuperior === 'function') {
+        montarBarraSuperior();
+    }
+
+    /**
+     * 2. Inicia la carga de las columnas y tarjetas correspondientes al sprint activo.
+     */
     inicializarTablero();
 
-    // 2. Escuchadores para botones de acción del encabezado
+    /**
+     * 3. Configura los escuchadores de eventos para los botones de acción del encabezado.
+     */
     const btnNuevaTarea = document.getElementById('btn-nueva-tarea');
     if (btnNuevaTarea) {
         btnNuevaTarea.addEventListener('click', () => {
@@ -22,7 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Escuchadores de filtros (Persona / Épica)
+    /**
+     * 4. Configura los escuchadores para los filtros dinámicos (Persona / Épica).
+     */
     const filtroPersona = document.getElementById('filtro-persona');
     const filtroEpica = document.getElementById('filtro-epica');
 

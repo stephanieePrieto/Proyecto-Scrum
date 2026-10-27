@@ -11,8 +11,11 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { consulta } from '../config/db.js';
 import { registrarIO } from './emisor.js';
+import { sesionVigente, sesionesVigentes } from '../modulos/auth/auth.service.js';
 
 let io = null;
+
+const INTERVALO_REVISION_MS = 30 * 1000;
 
 /**
  * Obtiene el token de sesión de la conexión: primero la cookie httpOnly accessToken y, si no
@@ -74,7 +77,14 @@ export function iniciarSockets(servidorServidorHttp) {
       if (rows.length) return next(new Error('Sesión finalizada o token inválido.'));
 
       const decodificado = jwt.verify(token, env.JWT_SECRET);
+
+      // Conectarse no es actividad: solo se comprueba que la sesión siga vigente
+      if (!decodificado.sid || !(await sesionVigente(decodificado.sid))) {
+        return next(new Error('Sesión cerrada o inactiva.'));
+      }
+
       socket.data.usuarioId = decodificado.id;
+      socket.data.sesionId = decodificado.sid;
       next();
     } catch (error) {
       next(new Error('Token inválido o expirado.'));
@@ -86,6 +96,9 @@ export function iniciarSockets(servidorServidorHttp) {
 
     // Sala personal: permite avisar a una persona sin importar en qué proyecto esté
     socket.join(`usuario_${socket.data.usuarioId}`);
+
+    // Sala de la sesión: permite desconectar todas las conexiones de una sesión que terminó
+    socket.join(`sesion_${socket.data.sesionId}`);
 
     socket.on('unirse_proyecto', async (proyectoId, respuesta) => {
       const id = Number(proyectoId);
@@ -103,7 +116,28 @@ export function iniciarSockets(servidorServidorHttp) {
     });
   });
 
+  // Desconecta las conexiones cuya sesión se cerró o venció, aunque la persona no haga ninguna petición
+  setInterval(() => {
+    revisarSesiones().catch((error) => console.error(`[Sockets] No se pudieron revisar las sesiones: ${error.message}`));
+  }, INTERVALO_REVISION_MS).unref();
+
   return io;
+}
+
+/**
+ * Revisa las sesiones de todas las conexiones abiertas y desconecta las que ya no están vigentes.
+ * No modifica la actividad de ninguna sesión.
+ * @returns {Promise<void>}
+ */
+async function revisarSesiones() {
+  if (!io) return;
+
+  const conexiones = await io.fetchSockets();
+  const sesiones = [...new Set(conexiones.map((conexion) => conexion.data.sesionId).filter(Boolean))];
+  if (sesiones.length === 0) return;
+
+  const vigentes = await sesionesVigentes(sesiones);
+  sesiones.filter((sid) => !vigentes.has(sid)).forEach((sid) => cerrarSocketsDeSesion(sid));
 }
 
 /**
@@ -112,4 +146,15 @@ export function iniciarSockets(servidorServidorHttp) {
  */
 export function obtenerIO() {
   return io;
+}
+
+/**
+ * Avisa y desconecta todas las conexiones en tiempo real de una sesión.
+ * @param {string} sesionId - Identificador de la sesión (sid).
+ * @returns {void}
+ */
+export function cerrarSocketsDeSesion(sesionId) {
+  if (!io) return;
+  io.to(`sesion_${sesionId}`).emit('sesion:cerrada');
+  io.in(`sesion_${sesionId}`).disconnectSockets(true);
 }

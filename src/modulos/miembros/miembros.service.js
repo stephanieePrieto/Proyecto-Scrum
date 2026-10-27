@@ -12,7 +12,7 @@
  */
 import { pool, consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
-import { puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
+import { permisosDeUsuario, puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
 import emisor from '../../sockets/emisor.js';
 
 /** Roles válidos dentro de un proyecto, en el orden en que se muestran. */
@@ -326,6 +326,22 @@ export async function listar(proyectoId, usuario) {
     const proyecto = await cargarProyecto(id);
     if (!(await puedeVerEquipo(usuario, proyecto.equipo_id))) lanzar(404, 'Proyecto no encontrado.');
     return armarMatriz(proyecto, usuario);
+}
+
+/**
+ * Devuelve el rol vigente de la persona en el proyecto y las claves de la matriz de permisos que tiene
+ * concedidas, para que la interfaz oculte lo que no puede usar. Se consulta siempre la base de datos,
+ * de modo que un cambio de rol se refleja en la siguiente consulta sin cerrar sesión. La ruta exige
+ * antes el permiso de ver el proyecto, que responde 404 a quien no tiene ningún vínculo con él.
+ *
+ * @param {number} proyectoId - Identificador del proyecto.
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @returns {Promise<{proyecto_id: number, usuario_id: number, rol: string|null, etiqueta_rol: string|null, permisos: string[]}>}
+ */
+export async function misPermisos(proyectoId, usuario) {
+    const id = validarProyectoId(proyectoId);
+    const { rol, permisos } = await permisosDeUsuario(usuario, id);
+    return { proyecto_id: id, usuario_id: usuario.id, rol, etiqueta_rol: rol ? ETIQUETA_ROL[rol] : null, permisos };
 }
 
 /* Bitácora, tiempo real y notificaciones */

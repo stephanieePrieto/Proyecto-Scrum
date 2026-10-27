@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { consulta } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import { randomUUID } from 'crypto';
 
 /**
  * @file auth.service.js
@@ -113,7 +114,8 @@ export const autenticarUsuario = async (correo, password, ip) => {
         'DELETE FROM intentos_ip WHERE ip = $1', [ip]
     );
 
-    const payload = { id: usuario.id };
+    const sid = await abrirSesion(usuario.id);
+    const payload = { id: usuario.id, sid };
     const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: `${env.JWT_ACCESO_MINUTOS}m` });
     const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: `${env.JWT_RENOVACION_MINUTOS}m` });
 
@@ -136,6 +138,147 @@ export const revocarToken = async (token, minutosExpiracion) => {
 };
 
 /**
+ * Registra la sesión de la persona que acaba de iniciar sesión. Cada inicio de sesión es una sesión
+ * distinta, así que cada dispositivo lleva su propio tiempo de inactividad.
+ *
+ * @param {number} usuarioId - Identificador de la cuenta.
+ * @returns {Promise<string>} Identificador de la sesión (sid) que viaja dentro de los tokens.
+ */
+const abrirSesion = async (usuarioId) => {
+    const sid = randomUUID();
+    await consulta('INSERT INTO sesiones (id, usuario_id) VALUES ($1, $2)', [sid, usuarioId]);
+    return sid;
+};
+
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Crea un error 401 con un código que el frontend puede leer en "detalles.codigo".
+ *
+ * @param {string} mensaje - Texto para la persona usuaria.
+ * @param {string} codigo - SESION_INACTIVA, SESION_CERRADA o SESION_INVALIDA.
+ * @returns {ErrorApp}
+ */
+export const errorDeSesion = (mensaje, codigo) => {
+    const error = new ErrorApp(mensaje, 401);
+    error.detalles = { codigo };
+    return error;
+};
+
+/**
+ * Evalúa si una sesión sigue vigente (abierta y con actividad dentro del límite de inactividad).
+ * Solo adelanta la última actividad cuando se indica cuánto hace que la persona interactuó con la
+ * pantalla; las renovaciones y las conexiones en tiempo real pasan null y nunca la reinician.
+ * Evaluar y adelantar ocurre en una sola sentencia, y la fecha nunca retrocede ni se escribe
+ * más de una vez cada 10 segundos.
+ *
+ * @param {string} sid - Identificador de la sesión.
+ * @param {number|null} segundosDesdeInteraccion - Segundos desde la última interacción humana, según el navegador.
+ * @returns {Promise<{activa: true, usuarioId: number}|{activa: false, motivo: 'inactiva'|'cerrada'}>}
+ */
+export const evaluarSesion = async (sid, segundosDesdeInteraccion) => {
+    if (typeof sid !== 'string' || !ES_UUID.test(sid)) return { activa: false, motivo: 'cerrada' };
+
+    const { rows } = await consulta(`
+        WITH vigente AS (
+            SELECT id, usuario_id FROM sesiones
+            WHERE id = $1 AND cerrada_en IS NULL
+              AND ultima_actividad > NOW() - ($3::int * INTERVAL '1 minute')
+        ), avance AS (
+            UPDATE sesiones s
+            SET ultima_actividad = NOW() - ($2::int * INTERVAL '1 second')
+            FROM vigente v
+            WHERE s.id = v.id
+              AND s.ultima_actividad < NOW() - ($2::int * INTERVAL '1 second') - INTERVAL '10 seconds'
+            RETURNING s.id
+        )
+        SELECT usuario_id FROM vigente
+        `, [sid, segundosDesdeInteraccion ?? null, env.INACTIVIDAD_MINUTOS]
+    );
+    if (rows[0]) return { activa: true, usuarioId: rows[0].usuario_id };
+
+    const { rows: estado } = await consulta('SELECT cerrada_en FROM sesiones WHERE id = $1', [sid]);
+    return { activa: false, motivo: estado[0] && !estado[0].cerrada_en ? 'inactiva' : 'cerrada' };
+};
+
+/**
+ * Indica, sin modificar nada, si una sesión sigue vigente.
+ *
+ * @param {string} sid - Identificador de la sesión.
+ * @returns {Promise<boolean>}
+ */
+export const sesionVigente = async (sid) => {
+    const vigentes = await sesionesVigentes([sid]);
+    return vigentes.has(sid);
+};
+
+/**
+ * Indica, sin modificar nada, cuáles de las sesiones recibidas siguen vigentes.
+ *
+ * @param {string[]} sids - Identificadores de sesión.
+ * @returns {Promise<Set<string>>} Identificadores que siguen vigentes.
+ */
+export const sesionesVigentes = async (sids) => {
+    const validos = sids.filter((sid) => typeof sid === 'string' && ES_UUID.test(sid));
+    if (validos.length === 0) return new Set();
+
+    const { rows } = await consulta(`
+        SELECT id FROM sesiones
+        WHERE id = ANY($1::uuid[]) AND cerrada_en IS NULL
+          AND ultima_actividad > NOW() - ($2::int * INTERVAL '1 minute')
+        `, [validos, env.INACTIVIDAD_MINUTOS]
+    );
+    return new Set(rows.map((fila) => fila.id));
+};
+
+/**
+ * Revoca un token solo si la firma es auténtica y todavía no expiró. La expiración se ignora al
+ * verificar para poder leer el contenido de un token vencido, pero uno vencido no se guarda
+ * porque ya no sirve, y uno falsificado se descarta sin tocar la base de datos.
+ *
+ * @param {string|undefined} token - Token recibido del cliente.
+ * @param {string} secreto - Secreto con el que se firmó ese tipo de token.
+ * @returns {Promise<Object|null>} Contenido del token si la firma es válida; null en otro caso.
+ */
+const revocarSiEsValido = async (token, secreto) => {
+    if (typeof token !== 'string' || token === '') return null;
+
+    let payload;
+    try {
+        payload = jwt.verify(token, secreto, { ignoreExpiration: true });
+    } catch (error) {
+        return null;
+    }
+
+    const segundosRestantes = payload.exp - Math.floor(Date.now() / 1000);
+    if (segundosRestantes > 0) await revocarToken(token, Math.ceil(segundosRestantes / 60));
+    return payload;
+};
+
+/**
+ * Cierra las sesiones a las que pertenecen los tokens recibidos y revoca los que sigan vigentes.
+ * Funciona aunque el token de acceso ya haya expirado y no hace nada con tokens falsificados.
+ *
+ * @param {string|undefined} accessToken - Token de acceso recibido del cliente.
+ * @param {string|undefined} refreshToken - Token de renovación recibido del cliente.
+ * @returns {Promise<string[]>} Identificadores de las sesiones cerradas.
+ */
+export const cerrarSesionPorTokens = async (accessToken, refreshToken) => {
+    const sids = new Set();
+    const accesos = await revocarSiEsValido(accessToken, env.JWT_SECRET);
+    const renovaciones = await revocarSiEsValido(refreshToken, env.JWT_REFRESH_SECRET);
+
+    for (const payload of [accesos, renovaciones]) {
+        if (payload && typeof payload.sid === 'string' && ES_UUID.test(payload.sid)) sids.add(payload.sid);
+    }
+
+    for (const sid of sids) {
+        await consulta('UPDATE sesiones SET cerrada_en = NOW() WHERE id = $1 AND cerrada_en IS NULL', [sid]);
+    }
+    return [...sids];
+};
+
+/**
  * Renueva la sesión a partir de un token de renovación válido y revoca el anterior.
  *
  * @param {string|undefined} refreshToken - Token de renovación recibido en la cookie.
@@ -148,16 +291,27 @@ export const renovarSesion = async (refreshToken) => {
     const { rows } = await consulta('SELECT 1 FROM tokens_revocados WHERE token = $1', [refreshToken]);
     if (rows.length > 0) throw new ErrorApp('Token de renovación revocado.', 401);
 
+    let payload;
     try {
-        const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET);
-        await revocarToken(refreshToken, env.JWT_RENOVACION_MINUTOS);
-
-        const nuevoPayload = { id: payload.id };
-        const nuevoAccessToken = jwt.sign(nuevoPayload, env.JWT_SECRET, { expiresIn: `${env.JWT_ACCESO_MINUTOS}m` });
-        const nuevoRefreshToken = jwt.sign(nuevoPayload, env.JWT_REFRESH_SECRET, { expiresIn: `${env.JWT_RENOVACION_MINUTOS}m` });
-
-        return { nuevoAccessToken, nuevoRefreshToken };
+        payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET);
     } catch (error) {
         throw new ErrorApp('Token de renovación inválido o expirado.', 401);
     }
+
+    // Renovar no es actividad de la persona: solo se comprueba que la sesión siga vigente
+    if (!payload.sid) throw errorDeSesion('Sesión no válida. Inicia sesión de nuevo.', 'SESION_INVALIDA');
+    const sesion = await evaluarSesion(payload.sid, null);
+    if (!sesion.activa) {
+        throw sesion.motivo === 'inactiva'
+            ? errorDeSesion('Sesión cerrada por inactividad.', 'SESION_INACTIVA')
+            : errorDeSesion('Sesión finalizada o token inválido.', 'SESION_CERRADA');
+    }
+
+    await revocarToken(refreshToken, env.JWT_RENOVACION_MINUTOS);
+
+    const nuevoPayload = { id: payload.id, sid: payload.sid };
+    const nuevoAccessToken = jwt.sign(nuevoPayload, env.JWT_SECRET, { expiresIn: `${env.JWT_ACCESO_MINUTOS}m` });
+    const nuevoRefreshToken = jwt.sign(nuevoPayload, env.JWT_REFRESH_SECRET, { expiresIn: `${env.JWT_RENOVACION_MINUTOS}m` });
+
+    return { nuevoAccessToken, nuevoRefreshToken };
 };

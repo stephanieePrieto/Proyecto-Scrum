@@ -42,7 +42,7 @@ const API = {
 };
 
 const contenedorTablero = document.getElementById('tablero-contenedor');
-const modalConfig = document.getElementById('modal-configurar-columnas');
+const modalConfig = document.getElementById('overlay-configurar-columnas');
 
 /** @type {Array<Object>} */
 let columnasActivas = [];
@@ -178,7 +178,6 @@ export async function cargarTablero(proyectoId) {
                 renderizarTarjetasEnTablero(respuesta.data.tareas);
             }
 
-            // Inicializar eventos de Drag & Drop al cargar las columnas
             inicializarDragAndDrop(proyectoIdActual);
         }
     } catch (error) {
@@ -242,12 +241,15 @@ export function iniciarConfiguracionColumnas() {
                 campoGroup.appendChild(entrada);
                 listaInputs.appendChild(campoGroup);
             });
-            if (modalConfig) modalConfig.showModal();
+
+            if (modalConfig) modalConfig.classList.remove('modal--hidden');
         });
     }
 
     if (btnCerrarConfig) {
-        btnCerrarConfig.addEventListener('click', () => modalConfig && modalConfig.close());
+        btnCerrarConfig.addEventListener('click', () => {
+            if (modalConfig) modalConfig.classList.add('modal--hidden');
+        });
     }
 
     if (btnGuardarConfig) {
@@ -269,7 +271,7 @@ export function iniciarConfiguracionColumnas() {
 
                 await API.put(`/api/tablero/${proyectoIdActual}/columnas`, { columnas: nuevosNombres });
 
-                if (modalConfig) modalConfig.close();
+                if (modalConfig) modalConfig.classList.add('modal--hidden');
                 document.dispatchEvent(new CustomEvent('tablero:recargar'));
             } catch (error) {
                 console.error("Error al guardar configuración:", error);

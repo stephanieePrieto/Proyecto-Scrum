@@ -65,6 +65,102 @@ const KPIS = [
   { id: 'desviacion',    etiqueta: 'Desviación acumulada',  claveIcono: 'desviacion' },
 ];
 
+/**
+ * Modal de detalles de los KPI
+ */ 
+const modalKpi = document.getElementById('dialogo-detalle-kpi');
+const tituloModalKpi = document.getElementById('detalle-kpi-titulo');
+const descripcionModalKpi = document.getElementById('detalle-kpi-descripcion');
+const contenidoModalKpi = document.getElementById('detalle-kpi-contenido');
+const enlaceModalKpi = document.getElementById('detalle-kpi-enlace');
+const cerrarModalKpi = document.getElementById('detalle-kpi-cerrar');
+
+function abrirDetalleKpi(id) {
+  const indicador = KPIS.find(kpi => kpi.id === id);
+
+  if (!indicador || !modalKpi) return;
+
+  tituloModalKpi.textContent = indicador.etiqueta;
+
+  const descripciones = {
+    avance: 'Muestra qué porcentaje de las tareas del proyecto se ha completado.',
+    diasRestantes: 'Indica cuántos días faltan para finalizar el sprint activo.',
+    impedimentos: 'Muestra los obstáculos pendientes que pueden afectar el trabajo del equipo.',
+    desviacion: 'Compara las horas reales de trabajo con las horas estimadas.'
+  };
+
+  descripcionModalKpi.textContent = descripciones[id] || 'Información del indicador.';
+  contenidoModalKpi.textContent = '';
+  
+  const k = datosKpiActuales[id];
+
+  if (id === 'avance' && k) {
+    const porcentaje = Number(k.valor);
+    const hechas = Number(k.hechas);
+    const total = Number(k.total);
+
+    contenidoModalKpi.textContent =
+      `Avance actual: ${Number.isFinite(porcentaje) ? porcentaje : 'No disponible'}%\n` +
+      `Tareas completadas: ${Number.isFinite(hechas) ? hechas : 'No disponible'}\n` +
+      `Total de tareas: ${Number.isFinite(total) ? total : 'No disponible'}`;
+  }
+  
+  if (id === 'diasRestantes' && k) {
+    if (k.valor === null || k.valor === undefined) {
+      contenidoModalKpi.textContent =
+        'No hay un sprint activo en este momento.';
+    } else {
+      const dias = Number(k.valor);
+
+      contenidoModalKpi.textContent =
+        `Días restantes: ${Number.isFinite(dias) ? dias : 'No disponible'}\n` +
+        'Este indicador muestra el tiempo que falta para cerrar el sprint activo.';
+    }
+  }
+
+  if (id === 'impedimentos' && k) {
+    const total = Number(k.valor);
+    const criticos = Number(k.criticos);
+
+    if (total === 0) {
+      contenidoModalKpi.textContent =
+        'No hay impedimentos abiertos en este momento.';
+    } else {
+      contenidoModalKpi.textContent =
+        `Impedimentos abiertos: ${Number.isFinite(total) ? total : 'No disponible'}\n` +
+        `Impedimentos críticos: ${Number.isFinite(criticos) ? criticos : 'No disponible'}\n` +
+        'Los impedimentos son obstáculos que pueden dificultar el avance del equipo.';
+    }
+  }
+  
+  if (id === 'desviacion' && k) {
+    const diferencia = Number(k.valor);
+    const reales = Number(k.real);
+    const estimadas = Number(k.estimado);
+
+    const estado = diferencia < 0
+      ? 'Por debajo de lo estimado'
+      : diferencia === 0
+        ? 'Dentro de lo estimado'
+        : 'Por encima de lo estimado';
+
+    contenidoModalKpi.textContent =
+      `Desviación acumulada: ${Number.isFinite(diferencia) ? `${diferencia > 0 ? '+' : ''}${diferencia} h` : 'No disponible'}\n` +
+      `Horas reales: ${Number.isFinite(reales) ? reales : 'No disponible'} h\n` +
+      `Horas estimadas: ${Number.isFinite(estimadas) ? estimadas : 'No disponible'} h\n` +
+      `Estado: ${estado}`;
+  }
+
+  enlaceModalKpi.hidden = true;
+
+  modalKpi.showModal();
+}
+
+cerrarModalKpi?.addEventListener('click', () => {
+  modalKpi.close();
+});
+
+
 /* ====================================================================
  * DATOS SIMULADOS (solo para pruebas)
  * Activar agregando ?escenario=... a la URL.
@@ -174,6 +270,7 @@ const constructores = {
       : 'Ninguno crítico';
     return tarjetaValor({ ...meta, tono: tonoImpedimentos(k.valor, k.criticos), valor: k.valor, pista });
   },
+  
 
   /** Pintar la desviación (horas reales − estimadas) con signo explícito. */
   desviacion(k, meta) {
@@ -200,6 +297,8 @@ function pintarCarga() {
   }
 }
 
+let datosKpiActuales = {};
+
 /**
  * Pintar la respuesta del servidor.
  * Mostrar el aviso de estado vacío cuando datos.vacio es true.
@@ -208,8 +307,11 @@ function pintarCarga() {
  * @param {{vacio: boolean, kpis: Object}} datos - Respuesta del backend.
  * @returns {void}
  */
+
 function pintarDatos(datos) {
   if (!grilla) return;
+  // Guardar los KPI del proyecto seleccionado
+  datosKpiActuales = datos.vacio ? {} : (datos.kpis || {});
 
   // Mostrar un mensaje diferente cuando no hay proyecto seleccionado
   if (!proyectoId) {
@@ -240,10 +342,40 @@ function pintarDatos(datos) {
     // Pintar error si el KPI falta o viene marcado con error
     if (!k || k.error) return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
     // Capturar fallos inesperados al construir la tarjeta para no afectar a las demás
-    try { return constructores[meta.id](k, meta); }
-    catch { return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id); }
+    
+    try {
+      const tarjeta = constructores[meta.id](k, meta);
+
+      return tarjeta.replace(
+        '<article ',
+        `<article data-kpi="${meta.id}" tabindex="0" role="button" aria-haspopup="dialog" `
+      );
+    } catch {
+      return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
+    }
+
   }).join('');
 }
+
+/* Abrir el modal al seleccionar una tarjeta KPI */
+grilla?.addEventListener('click', (evento) => {
+  const tarjeta = evento.target.closest('[data-kpi]');
+  if (!tarjeta) return;
+
+  abrirDetalleKpi(tarjeta.dataset.kpi);
+});
+
+/* Permitir abrir el modal con Enter o Espacio */
+grilla?.addEventListener('keydown', (evento) => {
+  if (evento.key !== 'Enter' && evento.key !== ' ') return;
+
+  const tarjeta = evento.target.closest('[data-kpi]');
+  if (!tarjeta) return;
+
+  evento.preventDefault();
+  abrirDetalleKpi(tarjeta.dataset.kpi);
+});
+
 
 function pintarInfoProyecto(proyecto) {
   if (!proyecto) return;

@@ -88,7 +88,54 @@ export async function marcarLeida(req, res) {
   }
 }
 
+/**
+ * PATCH /leidas — Marca como leídas todas las notificaciones del usuario autenticado.
+ * @param {import('express').Request} req Petición.
+ * @param {import('express').Response} res Respuesta.
+ * @returns {Promise<void>}
+ */
+export async function marcarTodasLeidas(req, res) {
+  try {
+    const usuarioId = obtenerUsuarioId(req);
+    if (!usuarioId) {
+      res.status(401).json({ ok: false, error: 'No autenticado.' });
+      return;
+    }
+    const datos = await servicio.marcarTodasComoLeidas(usuarioId);
+    res.status(200).json({ ok: true, datos });
+  } catch (error) {
+    responderError(res, error);
+  }
+}
+
+/**
+ * POST /demo — Crea una notificación de ejemplo para el usuario autenticado.
+ * Solo para demostraciones: responde 404 cuando NODE_ENV es "production".
+ * @param {import('express').Request} req Petición.
+ * @param {import('express').Response} res Respuesta.
+ * @returns {Promise<void>}
+ */
+export async function crearDemo(req, res) {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      res.status(404).json({ ok: false, error: 'No encontrado.' });
+      return;
+    }
+    const usuarioId = obtenerUsuarioId(req);
+    if (!usuarioId) {
+      res.status(401).json({ ok: false, error: 'No autenticado.' });
+      return;
+    }
+    const datos = await servicio.crearNotificacionDemo(usuarioId);
+    res.status(201).json({ ok: true, datos });
+  } catch (error) {
+    responderError(res, error);
+  }
+}
+
 export default {
   obtenerHistorial,
   marcarLeida,
+  marcarTodasLeidas,
+  crearDemo,
 };

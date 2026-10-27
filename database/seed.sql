@@ -3,7 +3,7 @@
 --
 -- Todos los usuarios son "base": ninguno tiene rol global. El rol existe solo DENTRO de un proyecto.
 -- Contrasena de todos:  Scrum2026!   (correos personalizados)
---   Proyecto Demo Alfa: Stephy = Scrum Master, Citlaly = Product Owner, Dana / Diego = Developers
+--   Proyecto Demo Alfa: Stephy = Scrum Master, Citlaly = Product Owner, Dana / Diego / Alfonso = Developers
 --   Proyecto Demo Beta: Dana = Scrum Master, Diego = Product Owner, Stephy / Citlaly = Developers
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -15,7 +15,8 @@ FROM (VALUES
   ('Stephy Hernández',  'stephanieehpr@gmail.com'),
   ('Citlaly Morales',   'citlipop@gmail.com'),
   ('Dana Carmona',      'dana044car@gmail.com'),
-  ('Diego Jimenez',     'diegotrujano3c@gmail.com')
+  ('Diego Jimenez',     'diegotrujano3c@gmail.com'),
+  ('Alfonso Mendoza',   'mendozavas615@gmail.com')
 ) AS v(nombre, correo)
 ON CONFLICT DO NOTHING;
 
@@ -42,6 +43,7 @@ FROM (VALUES
   ('Equipo Alfa', 'citlipop@gmail.com'),
   ('Equipo Alfa', 'dana044car@gmail.com'),
   ('Equipo Alfa', 'diegotrujano3c@gmail.com'),
+  ('Equipo Alfa', 'mendozavas615@gmail.com'),
   ('Equipo Beta', 'dana044car@gmail.com'),
   ('Equipo Beta', 'diegotrujano3c@gmail.com'),
   ('Equipo Beta', 'stephanieehpr@gmail.com'),
@@ -66,6 +68,7 @@ FROM (VALUES
   ('Proyecto Demo Alfa', 'citlipop@gmail.com',     'product_owner'),
   ('Proyecto Demo Alfa', 'dana044car@gmail.com',     'developer'),
   ('Proyecto Demo Alfa', 'diegotrujano3c@gmail.com', 'developer'),
+  ('Proyecto Demo Alfa', 'mendozavas615@gmail.com',  'developer'),
   ('Proyecto Demo Beta', 'dana044car@gmail.com',     'scrum_master'),
   ('Proyecto Demo Beta', 'diegotrujano3c@gmail.com', 'product_owner'),
   ('Proyecto Demo Beta', 'stephanieehpr@gmail.com',  'developer'),

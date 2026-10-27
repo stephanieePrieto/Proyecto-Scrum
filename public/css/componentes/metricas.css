@@ -1,0 +1,154 @@
+/* 
+   METRICAS.CSS — Estilos del dashboard de KPIs, la gráfica Velocity
+   y las barras de avance 
+   @author Dana */
+.principal {
+  width: 100%; max-width: var(--ancho-max); margin: 0 auto;
+  padding: var(--espacio-6);
+  display: flex; flex-direction: column; gap: var(--espacio-6);
+}
+ 
+.encabezado-pagina {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: var(--espacio-4);
+}
+.encabezado-pagina__acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+ 
+/* Lista de proyectos del dashboard (las tarjetas las pinta dashboard.js) */
+.proyectos { display: flex; flex-direction: column; gap: var(--espacio-4); }
+.proyectos__cabecera { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.proyectos__acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.proyectos__archivados { display: inline-flex; align-items: center; gap: 8px; color: var(--texto-suave); cursor: pointer; }
+.proyectos__lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--espacio-4); }
+.proyectos__error { padding: 12px 16px; border-radius: var(--radio-lg); background: var(--rosa-50); color: var(--rosa-700); border: 1px solid var(--rosa-500); }
+ 
+/* Tarjeta de cada proyecto (la construye dashboard.js) */
+.proyecto { display: flex; flex-direction: column; gap: 6px; }
+.proyecto--activo { border-color: var(--primario); box-shadow: 0 0 0 1px var(--primario); }
+.proyecto__cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.proyecto__nombre { font-size: 16px; font-weight: 600; }
+.proyecto__insignias { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.proyecto__equipo { color: var(--primario-texto); font-weight: 500; }
+.proyecto__vision, .proyecto__fechas { color: var(--texto-suave); }
+.proyecto__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.proyecto__carga { height: 150px; }
+.proyectos__vacio { grid-column: 1 / -1; }
+ 
+/* Diálogo para archivar un proyecto */
+.proy-dialogo-dash { border: 0; padding: var(--espacio-6); max-width: 440px; width: calc(100% - 32px); }
+.proy-dialogo-dash::backdrop { background: rgba(15, 23, 42, 0.65); }
+.proy-dialogo-dash h2 { font-size: 18px; margin-bottom: 8px; }
+.proy-dialogo-dash__acciones { margin-top: var(--espacio-4); padding: 0; background: transparent; border: 0; }
+ 
+/* Tarjetas KPI del dashboard (las genera public/js/core/ui.js)*/
+.kpi-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--espacio-4);
+}
+ 
+.kpi { display: flex; flex-direction: column; gap: 12px; }
+.kpi__cabecera { display: flex; justify-content: space-between; align-items: center; }
+.kpi__etiqueta { color: var(--texto-suave); font-weight: 500; }
+.kpi__icono {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--primario-claro); color: var(--primario);
+}
+.kpi__valor { font-size: 32px; font-weight: 700; line-height: 1.1; }
+.kpi__unidad { margin-left: 4px; font-size: 14px; font-weight: 500; color: var(--texto-suave); }
+.kpi__pista { color: var(--texto-suave); font-size: 13px; }
+ 
+/* Tono semántico: cambia el color del icono según el estado del indicador */
+.kpi--exito .kpi__icono       { background: var(--esmeralda-50); color: var(--esmeralda-700); }
+.kpi--advertencia .kpi__icono { background: var(--ambar-50);     color: var(--ambar-700); }
+.kpi--peligro .kpi__icono     { background: var(--rosa-50);      color: var(--rosa-700); }
+.kpi--info .kpi__icono        { background: var(--celeste-50);   color: var(--celeste-700); }
+ 
+/* Estado de carga y de error (aislado por tarjeta) */
+.kpi--cargando { pointer-events: none; }
+.esqueleto--valor { height: 36px; width: 60%; }
+.esqueleto--linea { height: 12px; width: 85%; }
+.kpi--error { border-color: var(--rosa-500); background: var(--rosa-50); }
+.kpi__error { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.kpi__error-texto { font-weight: 600; color: var(--rosa-700); }
+.kpi__error-detalle { font-size: 13px; color: var(--texto-suave); }
+ 
+/* Barra de progreso (la usan los KPIs y también las barras de avance de la HU-31) */
+.progreso {
+  width: 100%; height: 8px; overflow: hidden;
+  border-radius: 999px; background: var(--slate-200);
+}
+.progreso__barra {
+  height: 100%; width: 0; /* El ancho real lo asigna el JavaScript con data-valor */
+  border-radius: 999px; background: var(--primario);
+  transition: width 0.4s ease;
+}
+.progreso__barra--exito       { background: var(--esmeralda-500); }
+.progreso__barra--advertencia { background: var(--ambar-500); }
+.progreso__barra--peligro     { background: var(--rosa-500); }
+ 
+/* Definition of Done del proyecto (bloque inferior de dashboard.html) */
+.dashboard__dod { margin: 0; }
+.dashboard__dod-titulo { margin-bottom: 0.5rem; font-size: 16px; font-weight: 600; }
+.dashboard__dod-texto { white-space: pre-wrap; color: var(--texto-suave); font-size: 0.95rem; }
+ 
+/* Página de métricas (metricas.html): secciones, filtros y avisos */
+.metricas__seccion { margin: 0; }
+.metricas__cabecera {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 12px; margin-bottom: var(--espacio-4);
+}
+.metricas__titulo { font-size: 18px; font-weight: 600; }
+ 
+.metricas__filtro { display: flex; align-items: center; gap: 8px; color: var(--texto-suave); }
+.metricas__selector {
+  padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio-lg);
+  background: var(--blanco); color: var(--texto); font: inherit;
+}
+ 
+.metricas__esqueleto { height: 220px; width: 100%; }
+ 
+.metricas__error { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+ 
+/* Aviso informativo (ventana de promedio incompleta, tareas sin estimar...) */
+.alerta--info { background: var(--celeste-50); color: var(--celeste-700); border: 1px solid #BAE6FD; }
+ 
+/* Gráfica Velocity (SVG generado en metricas/velocity.js) */
+.grafica { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; }
+.grafica__rejilla { stroke: var(--slate-200); stroke-width: 1; }
+.grafica__eje     { stroke: var(--slate-300); stroke-width: 1; }
+.grafica__texto   { fill: var(--texto-suave); font-size: 12px; }
+.grafica__valor   { fill: var(--texto); font-size: 12px; font-weight: 600; }
+.grafica__barra   { fill: var(--primario); }
+.grafica__barra:hover { fill: var(--primario-hover); }
+.grafica__linea   { fill: none; stroke: var(--ambar-500); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.grafica__punto   { fill: var(--blanco); stroke: var(--ambar-500); stroke-width: 2; }
+ 
+.grafica__leyenda { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; color: var(--texto-suave); }
+.leyenda__item { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda__muestra { display: inline-block; border-radius: 3px; }
+.leyenda__muestra--barra  { width: 14px; height: 14px; background: var(--primario); }
+.leyenda__muestra--linea  { width: 18px; height: 4px;  background: var(--ambar-500); }
+ 
+.grafica__detalle { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.grafica__detalle-fila {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio-lg);
+}
+.grafica__detalle-dato { color: var(--texto-suave); }
+ 
+/* Barras de avance por equipo y por persona (metricas/avance.js) */
+.avance__equipo {
+  padding: var(--espacio-4); margin-bottom: var(--espacio-4);
+  background: var(--primario-claro); border-radius: var(--radio-xl);
+}
+.avance__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espacio-4); }
+.avance__fila { display: grid; gap: 6px; }
+.avance__fila--baja .avance__nombre { color: var(--texto-suave); }
+.avance__encabezado { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.avance__nombre { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 600; }
+.avance__porcentaje { font-weight: 700; }
+.avance__porcentaje--vacio { font-weight: 500; color: var(--texto-suave); }
+.avance__detalle { color: var(--texto-suave); font-size: 13px; }
+ 

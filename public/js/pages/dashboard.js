@@ -47,11 +47,10 @@ const btnActualizar = document.getElementById('btn-actualizar');
 // Leer los parámetros de la URL: ?proyecto=ID y ?escenario=nombre (solo pruebas)
 const params = new URLSearchParams(location.search);
 const proyectoId = params.get('proyecto') || localStorage.getItem('proyectoActivo') || 1;
-const escenario = params.get('escenario');   // Simular en el navegador (sin servidor)
-const demo = params.get('demo');             // Pedir al servidor un escenario de ejemplo
+const escenario = params.get('escenario');   // Simular en el navegador
 
-const tituloPagina = document.querySelector('.titulo-pagina');
-const subtituloPagina = document.querySelector('.subtitulo-pagina');
+const tituloPagina = document.getElementById('dashboard-titulo');
+const subtituloPagina = document.getElementById('dashboard-subtitulo');
 const infoProyecto = document.getElementById('info-proyecto');
 const dodTexto = document.getElementById('dod-texto');
 
@@ -140,9 +139,7 @@ async function simular(nombre) {
  */
 function obtenerDatos(signal) {
   if (escenario) return simular(escenario);
-  const consulta = demo ? `?escenario=${encodeURIComponent(demo)}` : '';
-  // Se usa el módulo `api` que ahora integra un mock de autenticación
-  return api(`/proyectos/${proyectoId}/metricas/dashboard${consulta}`, { signal });
+  return api(`/metricas/proyectos/${proyectoId}/dashboard`, { signal });
 }
 
 /* ====================================================================

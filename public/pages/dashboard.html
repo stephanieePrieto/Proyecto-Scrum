@@ -18,8 +18,8 @@
   <link rel="stylesheet" href="/css/componentes/formularios.css" />
   <link rel="stylesheet" href="/css/componentes/modales.css" />
 
-  <!-- Estilos propios -->
-  <link rel="stylesheet" href="/css/pages/dashboard.css" />
+  <!-- Estilos de KPIs del dashboard (tarjetas, barras de progreso y bloque de DoD) -->
+  <link rel="stylesheet" href="/css/componentes/metricas.css" />
 
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
@@ -42,8 +42,8 @@
 
     <div class="encabezado-pagina">
       <div>
-        <h2 class="titulo-pagina">Dashboard del proyecto</h2>
-        <p class="subtitulo-pagina">Estado general de un vistazo</p>
+        <h2 id="dashboard-titulo" class="titulo-pagina">Dashboard del proyecto</h2>
+        <p id="dashboard-subtitulo" class="subtitulo-pagina">Estado general de un vistazo</p>
       </div>
       <button class="boton boton--secundario btn btn--secondary" id="btn-actualizar" type="button">Actualizar</button>
     </div>
@@ -58,16 +58,11 @@
     </section>
 
     <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
-    
-    <section id="info-proyecto" class="tarjeta" hidden style="margin-top: 2rem;">
-      <h2 class="tarjeta__titulo" style="margin-bottom: 0.5rem;">Definition of Done (DoD)</h2>
-      <div id="dod-texto" style="white-space: pre-wrap; color: var(--texto-suave); font-size: 0.95rem;"></div>
-    </section>
   </main>
 
   <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash modal-card" aria-labelledby="archivar-proyecto-titulo">
     <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
-    <p>«<span id="archivar-proyecto-nombre"></span>» saldrá de la lista pero conservará todo su historial.</p>
+    <p><span id="archivar-proyecto-nombre"></span> saldrá de la lista pero conservará todo su historial.</p>
     <div class="proy-dialogo-dash__acciones modal-footer">
       <button class="boton boton--secundario btn btn--secondary" type="button" id="archivar-proyecto-cancelar">Cancelar</button>
       <button class="boton boton--primario btn btn--primary" type="button" id="archivar-proyecto-confirmar">Archivar proyecto</button>

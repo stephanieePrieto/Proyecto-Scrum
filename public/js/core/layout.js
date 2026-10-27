@@ -1,8 +1,34 @@
 /**
  * Construir e insertar la barra superior de navegación en <header id="barra-superior">.
  * Reutilizar este módulo en todas las páginas para mantener un menú único.
+ * Incluye la campana de notificaciones (HU-24) y carga su hoja de estilos de forma global.
  */
 import { escaparHtml, iniciales } from './utils.js';
+
+/** Ruta pública de la hoja de estilos de la campana de notificaciones (HU-24). */
+const RUTA_CSS_NOTIFICACIONES = '/css/componentes/notificaciones.css';
+
+/** Ruta (relativa a este archivo) del componente de la campana. */
+const RUTA_MODULO_NOTIFICACIONES = '../componentes/notificaciones.js';
+
+/**
+ * Inyectar en el <head> la hoja de estilos de las notificaciones.
+ * Evitar duplicados si la página ya incluye el <link> manualmente.
+ *
+ * @returns {void}
+ */
+function cargarEstilosNotificaciones() {
+  if (document.querySelector('link[href$="notificaciones.css"]')) return;
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = RUTA_CSS_NOTIFICACIONES;
+  link.dataset.origen = 'layout';
+  document.head.appendChild(link);
+}
+
+// Ejecutar al importar el módulo para que el estilo cargue antes de dibujar la campana
+cargarEstilosNotificaciones();
 
 /**
  * Listar las opciones del menú.
@@ -32,6 +58,30 @@ function leerUsuario() {
   return { nombre: 'Usuario', rol: '' };
 }
 
+/** Campana de notificaciones montada actualmente (para liberarla si la barra se redibuja). */
+let campana = null;
+
+/**
+ * Montar la campana de notificaciones (HU-24) dentro de #notificaciones-root.
+ * Se importa de forma dinámica: si el componente fallara, el menú sigue funcionando.
+ * Es seguro llamarlo varias veces: el componente no duplica la campana.
+ *
+ * @returns {Promise<void>}
+ */
+async function montarCampana() {
+  try {
+    const { inicializarNotificaciones } = await import(RUTA_MODULO_NOTIFICACIONES);
+    const raiz = document.getElementById('notificaciones-root');
+    if (!raiz) return;
+    campana = inicializarNotificaciones({
+      contenedor: raiz,
+      socket: globalThis.scrumflowSocket ?? globalThis.socket ?? null,
+    });
+  } catch (error) {
+    console.warn('[layout] No se pudo montar la campana de notificaciones:', error);
+  }
+}
+
 /**
  * Renderizar la barra superior dentro del contenedor #barra-superior.
  * Marcar con aria-current="page" el enlace de la página abierta.
@@ -44,6 +94,10 @@ export function montarBarraSuperior() {
   const contenedor = document.getElementById('barra-superior');
   if (!contenedor) return;
 
+  // Si la barra ya tenía campana, liberarla antes de volver a dibujar
+  campana?.destruir();
+  campana = null;
+
   const usuario = leerUsuario();
 
   // Generar el HTML de cada enlace y marcar el activo comparando la ruta actual
@@ -54,7 +108,7 @@ export function montarBarraSuperior() {
       ${e.etiqueta}</a>`;
   }).join('');
 
-  // Componer la barra e inyectar el contenedor de notificaciones
+  // Componer la barra e inyectar el contenedor de notificaciones (HU-24)
   contenedor.innerHTML = `
     <a class="barra-superior__marca" href="/pages/dashboard.html" aria-label="AgileDesk, ir al dashboard">
       <span class="barra-superior__logo" aria-hidden="true">A</span>
@@ -65,14 +119,17 @@ export function montarBarraSuperior() {
     </a>
     <nav class="barra-superior__enlaces" aria-label="Principal">${enlaces}</nav>
     <div class="barra-superior__usuario" style="display: flex; align-items: center; gap: 15px;">
-      
-      <!-- Contenedor inyectado para la inicialización de la campana -->
+
+      <!-- HU-24: contenedor donde se monta la campana -->
       <div id="notificaciones-root"></div>
-      
+
       <div class="barra-superior__usuario-texto">
         <div class="barra-superior__usuario-nombre">${escaparHtml(usuario.nombre)}</div>
         <div class="barra-superior__usuario-rol">${escaparHtml(usuario.rol)}</div>
       </div>
       <div class="barra-superior__avatar" aria-hidden="true">${escaparHtml(iniciales(usuario.nombre))}</div>
     </div>`;
+
+  // Montar la campana en todas las páginas que usen la barra
+  montarCampana();
 }

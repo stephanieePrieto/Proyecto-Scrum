@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Responsable: Camila - Tablero Kanban -->
 <html lang="es">
+<!-- Responsable: Camila - Tablero Kanban -->
 
 <head>
     <meta charset="UTF-8">
@@ -15,57 +15,75 @@
     <link rel="stylesheet" href="../css/componentes/formularios.css">
     <link rel="stylesheet" href="../css/componentes/insignias.css">
     <link rel="stylesheet" href="../css/componentes/modales.css">
-    <link rel="stylesheet" href="../css/pages/tablero.css">
 </head>
 
 <body>
+    <!-- Contenedor principal del Layout -->
+    <div class="app-container">        
 
-    <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
+        <!-- Área de trabajo central -->
+        <main class="main-content">
 
-        <!-- Encabezado del Sprint -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-4);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <h1 class="titulo-pagina" id="sprint-nombre">Cargando sprint...</h1>
-                <span class="insignia insignia--exito" id="sprint-estado">Activo</span>
-                <span style="font-size: 13px; color: var(--texto-suave);" id="sprint-dias-restantes">Quedan X días</span>
+            <!-- Contenedor para la navbar inyectada por JS -->
+            <header class="barra-superior" id="barra-superior"></header>
+
+            <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
+
+                <!-- Encabezado del Sprint -->
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-4);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h1 class="titulo-pagina" id="sprint-nombre">Cargando sprint...</h1>
+                        <span class="insignia insignia--exito" id="sprint-estado">Activo</span>
+                        <span style="font-size: 13px; color: var(--texto-suave);" id="sprint-dias-restantes">Quedan X
+                            días</span>
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn--primary" id="btn-nueva-tarea">+ Tarea</button>
+                        <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
+                    </div>
+                </div>
+
+                <!-- Barra de Filtros -->
+                <div class="tarjeta"
+                    style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
+                    <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
+                    <select id="filtro-persona" class="form-select" style="width: auto;">
+                        <option value="">Persona: Todos</option>
+                    </select>
+                    <select id="filtro-epica" class="form-select" style="width: auto;">
+                        <option value="">Épica: Todas</option>
+                    </select>
+                </div>
+
+                <!-- Contenedor de las Columnas -->
+                <div id="tablero-contenedor"
+                    style="flex: 1; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;">
+                    <!-- Columnas inyectadas desde JavaScript -->
+                </div>
+
             </div>
-
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn--primary" id="btn-nueva-tarea">+ Tarea</button>
-                <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
-            </div>
-        </div>
-
-        <!-- Barra de Filtros -->
-        <div class="tarjeta" style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
-            <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
-            <select id="filtro-persona" class="form-select" style="width: auto;">
-                <option value="">Persona: Todos</option>
-            </select>
-            <select id="filtro-epica" class="form-select" style="width: auto;">
-                <option value="">Épica: Todas</option>
-            </select>
-        </div>
-
-        <!-- Contenedor de las Columnas -->
-        <div id="tablero-contenedor" style="flex: 1; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;">
-            <!-- Columnas inyectadas desde JavaScript -->
-        </div>
-
+        </main>
     </div>
 
     <!-- Modal de Configuración de Columnas -->
-    <dialog id="modal-configurar-columnas" class="modal-card" style="width: 100%; max-width: 440px; padding: var(--espacio-6);">
-        <form method="dialog" style="display: flex; flex-direction: column; gap: var(--espacio-4);">
-            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Configurar Columnas</h2>
-            <div id="lista-config-columnas" style="display: flex; flex-direction: column; gap: 8px;">
+    <div id="overlay-configurar-columnas" class="modal-overlay modal--hidden">
+        <div id="modal-configurar-columnas" class="modal-card" style="width: 100%; max-width: 440px;">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0;">Configurar Columnas</h2>
+            </div>
+
+            <div class="modal-body" id="lista-config-columnas" style="display: flex; flex-direction: column; gap: 8px;">
                 <!-- Inputs inyectados desde JS -->
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+
+            <div class="modal-footer">
                 <button type="button" class="btn btn--secondary" id="btn-cerrar-config-modal">Cancelar</button>
                 <button type="button" class="btn btn--primary" id="btn-guardar-config-columnas">Guardar Cambios</button>
             </div>
-        </form>
+        </div>
+    </div>
     </dialog>
 
     <script type="module" src="../js/pages/tablero.js"></script>

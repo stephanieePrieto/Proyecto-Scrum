@@ -1,0 +1,361 @@
+
+/* ==========================================================
+   BACKLOG.CSS — Estilos propios del Product Backlog
+   Mantiene la identidad visual de AgileDesk.
+   No modifica los estilos globales ni la lógica de JavaScript.
+   ========================================================== */
+
+/* Estructura general de la página */
+.principal {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: var(--espacio-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+}
+
+.encabezado-pagina {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--espacio-4);
+}
+
+/* Lista priorizada */
+#lista {
+  list-style: none;
+  padding: 0;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bl-historia {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.bl-historia[draggable="true"] {
+  cursor: grab;
+}
+
+.bl-historia[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.bl-historia:hover {
+  border-color: var(--acento);
+}
+
+.bl-historia--seleccionada {
+  border-color: var(--primario);
+  box-shadow: 0 0 0 1px var(--primario);
+  background: var(--slate-50);
+}
+
+.bl-historia--en-sprint {
+  background: var(--slate-50);
+}
+
+.bl-historia__asa {
+  color: var(--texto-suave);
+  font-size: 16px;
+  cursor: grab;
+  user-select: none;
+}
+
+.bl-historia__id {
+  color: var(--texto-suave);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Botón con el título de la historia */
+.bl-historia__abrir {
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.bl-historia__abrir:hover {
+  color: var(--primario-hover);
+  text-decoration: underline;
+}
+
+.bl-historia__abrir:focus-visible,
+.bl-mover:focus-visible {
+  outline: 2px solid var(--acento-oscuro);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Etiquetas, sprint, épica y puntos */
+.bl-historia__chips,
+.bl-detalle__chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bl-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 10px;
+
+  border: 1px solid var(--epica, #d9c9fa);
+  border-radius: 999px;
+
+  background: color-mix(
+    in srgb,
+    var(--epica, #7854dc) 12%,
+    white
+  );
+
+  color: color-mix(
+    in srgb,
+    var(--epica, #7854dc) 75%,
+    black
+  );
+
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.bl-puntos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--celeste-50);
+  color: var(--celeste-700);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bl-puntos--vacio {
+  background: var(--slate-50);
+  color: var(--texto-suave);
+  font-weight: 400;
+}
+
+/* Controles para cambiar la prioridad */
+.bl-historia__mover {
+  display: flex;
+  gap: 5px;
+}
+
+.bl-mover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+  background: var(--fondo-tarjeta);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.bl-mover:hover:not(:disabled) {
+  border-color: var(--acento);
+  background: var(--acento-claro);
+}
+
+.bl-mover:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Arrastrar y reordenar historias */
+.bl-historia--arrastrando {
+  opacity: 0.45;
+}
+
+.bl-historia--destino {
+  border-color: var(--acento-oscuro);
+  box-shadow: 0 0 0 2px var(--acento-claro);
+}
+
+.bl-lista--destino-final {
+  border-bottom: 2px dashed var(--acento-oscuro);
+}
+
+/* Mensajes y estados de la lista */
+.bl-vacio {
+  margin-top: 12px;
+  padding: 24px;
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--slate-50);
+  text-align: center;
+}
+
+.bl-ayuda,
+.bl-meta {
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.bl-carga {
+  min-height: 64px;
+  margin-bottom: 10px;
+  border-radius: var(--radio-lg);
+}
+
+/* Panel de detalle de la historia */
+#detalle {
+  min-width: 0;
+}
+
+.bl-detalle__vacio {
+  margin: 0;
+  padding: 12px 4px;
+  color: var(--texto-suave);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.bl-meta {
+  margin: 0 0 8px;
+}
+
+.bl-detalle__titulo {
+  margin: 0;
+  color: var(--texto);
+  font-size: 20px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.bl-detalle__chips {
+  margin: 16px 0;
+}
+
+.bl-como-detalle {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin: 16px 0;
+}
+
+.bl-como-detalle dt {
+  margin-top: 8px;
+  color: var(--texto-suave);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.bl-como-detalle dd {
+  margin: 0;
+  color: var(--texto);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.bl-subtitulo {
+  margin: 20px 0 10px;
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bl-criterios {
+  padding-left: 20px;
+  color: var(--texto);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.bl-criterios li {
+  padding-left: 3px;
+  margin-bottom: 6px;
+}
+
+.bl-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.bl-detalle__acciones {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+
+/* Mensajes específicos del backlog */
+.bl-mensaje {
+  margin: 12px 0;
+}
+
+/* Adaptación para pantallas pequeñas */
+@media (max-width: 760px) {
+  .principal {
+    padding: var(--espacio-4);
+  }
+
+  .bl-historia {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .bl-historia__abrir {
+    grid-column: 3;
+  }
+
+  .bl-historia__chips {
+    grid-column: 2 / -1;
+  }
+
+  .bl-historia__mover {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+
+  .principal > div[style*="grid-template-columns: 2fr 1fr"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .bl-detalle__acciones {
+    justify-content: stretch;
+  }
+}

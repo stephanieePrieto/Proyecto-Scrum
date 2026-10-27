@@ -213,7 +213,7 @@ function pintarDetalle() {
     ${etiquetas ? `<div class="bl-etiquetas">${etiquetas}</div>` : ''}
     <p class="bl-meta">${h.creada_por_nombre ? `Creada por ${escaparHtml(h.creada_por_nombre)}` : ''}</p>
     <div class="bl-detalle__acciones">
-      <button class="bl-boton-peligro" type="button" data-accion="eliminar">Eliminar</button>
+      <button class="boton boton--secundario boton--peligro" type="button" data-accion="eliminar">Eliminar</button>
       <button class="boton boton--primario" type="button" data-accion="editar">Editar historia</button>
     </div>`;
 }

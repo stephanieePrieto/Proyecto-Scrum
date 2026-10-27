@@ -46,7 +46,7 @@ const btnActualizar = document.getElementById('btn-actualizar');
 
 // Leer los parámetros de la URL: ?proyecto=ID y ?escenario=nombre (solo pruebas)
 const params = new URLSearchParams(location.search);
-const proyectoId = params.get('proyecto') || localStorage.getItem('proyectoActivo') || 1;
+const proyectoId = params.get('proyecto') || localStorage.getItem('proyectoActivo') || null;
 const escenario = params.get('escenario');   // Simular en el navegador
 
 const tituloPagina = document.getElementById('dashboard-titulo');
@@ -210,7 +210,21 @@ function pintarCarga() {
  */
 function pintarDatos(datos) {
   if (!grilla) return;
-  
+
+  // Mostrar un mensaje diferente cuando no hay proyecto seleccionado
+  if (!proyectoId) {
+    const titulo = avisoVacio?.querySelector('.aviso__titulo');
+    const texto = avisoVacio?.querySelector('.aviso__texto');
+
+    if (titulo) titulo.textContent = 'Selecciona un proyecto';
+    if (texto) texto.textContent =
+      'Haz clic en "Ver" en cualquiera de los proyectos para consultar sus indicadores.';
+
+    // Ocultar el botón de ir al backlog
+    const enlace = avisoVacio?.querySelector('a');
+    if (enlace) enlace.hidden = true;
+  }
+
   // Mostrar el mensaje de proyecto nuevo y ocultar la grilla
   if (datos.vacio) {
     grilla.hidden = true;
@@ -279,6 +293,12 @@ let controlador;
  * @returns {Promise<void>}
  */
 async function cargar() {
+   if (!proyectoId) {
+    pintarDatos({ vacio: true, kpis: {} });
+    return;
+  }
+  controlador?.abort();
+  controlador = new AbortController();
   controlador?.abort();
   controlador = new AbortController();
   if (btnActualizar) btnActualizar.disabled = true;
@@ -340,10 +360,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
   if (!lista) return;
 
   const idActivo = Number(proyectoId);
-  const urlTraeProyecto = new URLSearchParams(location.search).has('proyecto');
-  let puedeGestionar = false;
   let pendienteArchivar = null;
-  let primeraCarga = true;
 
   const mostrarError = (texto) => { error.textContent = texto; error.hidden = !texto; };
 
@@ -372,8 +389,8 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     ].join('');
     const acciones = [
       `<a class="boton boton--secundario boton--pequeno" href="/pages/dashboard.html?proyecto=${id}" data-ver="${id}">Ver</a>`,
-      puedeGestionar ? `<a class="boton boton--secundario boton--pequeno" href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>` : '',
-      puedeGestionar && !p.archivado
+      p.puede_gestionar ? `<a class="boton boton--secundario boton--pequeno" href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>` : '',
+      p.puede_gestionar && !p.archivado
         ? `<button class="boton boton--secundario boton--pequeno" type="button" data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}">Archivar</button>` : '',
     ].join('');
     return `<article class="tarjeta proyecto${p.id === idActivo ? ' proyecto--activo' : ''}">
@@ -391,21 +408,26 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     pintarCarga();
     try {
       const datos = await api(`/proyectos${archivados ? '?archivados=true' : ''}`);
-      puedeGestionar = Boolean(datos.puede_gestionar);
       
       // Permitir que el botón de nuevo proyecto esté visible siempre para que cualquier usuario pueda crear uno
       btnNuevo.hidden = false;
 
-      // Si el proyecto guardado ya no existe para el usuario, abrir el primero disponible.
-      if (primeraCarga && !archivados && !urlTraeProyecto && datos.proyectos.length
-          && !datos.proyectos.some((p) => p.id === idActivo)) {
-        localStorage.setItem('proyectoActivo', datos.proyectos[0].id);
-        location.replace(`/pages/dashboard.html?proyecto=${datos.proyectos[0].id}`);
-        return;
+    if (!datos.proyectos.length) {
+      pintarVacio(archivados);
+
+      // Si no tiene proyectos y no hay uno seleccionado,
+      // mostrar un mensaje apropiado en el Dashboard.
+      if (!archivados && !proyectoId && avisoVacio) {
+        const titulo = avisoVacio.querySelector('.aviso__titulo');
+        const texto = avisoVacio.querySelector('.aviso__texto');
+
+        if (titulo) titulo.textContent = 'Aún no tienes proyectos';
+        if (texto) texto.textContent =
+          'Crea tu primer proyecto para comenzar a consultar sus indicadores.';
       }
-      primeraCarga = false;
-      if (!datos.proyectos.length) return pintarVacio(archivados);
-      lista.innerHTML = datos.proyectos.map(tarjeta).join('');
+
+  return;
+}      lista.innerHTML = datos.proyectos.map(tarjeta).join('');
     } catch {
       lista.innerHTML = '';
       mostrarError('No se pudieron cargar los proyectos.');

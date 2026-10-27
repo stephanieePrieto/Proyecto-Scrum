@@ -4,6 +4,7 @@ import { consulta } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { randomUUID } from 'crypto';
+import { enviarCorreo } from '../../utils/correo.js'; // Utilidad de correo existente en el proyecto
 
 /**
  * @file auth.service.js
@@ -235,7 +236,7 @@ export const sesionesVigentes = async (sids) => {
 /**
  * Revoca un token solo si la firma es auténtica y todavía no expiró. La expiración se ignora al
  * verificar para poder leer el contenido de un token vencido, pero uno vencido no se guarda
- * porque ya no sirve, y one falsificado se descarta sin tocar la base de datos.
+ * porque ya no sirve, y uno falsificado se descarta sin tocar la base de datos.
  *
  * @param {string|undefined} token - Token recibido del cliente.
  * @param {string} secreto - Secreto con el que se firmó ese tipo de token.
@@ -318,7 +319,7 @@ export const renovarSesion = async (refreshToken) => {
 };
 
 /**
- * Registra un nuevo usuario en la base de datos con contraseña hasheada.
+ * Registra un nuevo usuario en la base de datos con contraseña hasheada y envía correo de bienvenida.
  *
  * @param {string} nombre - Nombre del usuario.
  * @param {string} correo - Correo electrónico único.
@@ -327,6 +328,12 @@ export const renovarSesion = async (refreshToken) => {
  */
 export const registrarUsuario = async (nombre, correo, password) => {
     const correoLimpio = correo.trim().toLowerCase();
+
+    // Validación de seguridad de contraseña en servidor (Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número)
+    const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!regexPassword.test(password)) {
+        throw new ErrorApp('La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.', 400);
+    }
 
     // Verificar si el correo ya está registrado
     const { rows: existente } = await consulta('SELECT id FROM usuarios WHERE correo = $1', [correoLimpio]);
@@ -345,5 +352,27 @@ export const registrarUsuario = async (nombre, correo, password) => {
         [nombre.trim(), correoLimpio, passwordHash]
     );
 
-    return rows[0];
+    const usuarioCreado = rows[0];
+
+// Enviar correo de bienvenida de forma real por SMTP
+    try {
+        await enviarCorreo({
+            para: correoLimpio, // <-- CAMBIADO: Debe ser 'para' para que correo.js lo lea bien
+            asunto: '¡Bienvenido a ScrumFlow!',
+            html: `
+                <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+                    <h2 style="color: #055651;">¡Hola, ${nombre.trim()}!</h2>
+                    <p>Te damos la más cordial bienvenida a <strong>ScrumFlow</strong>, tu plataforma de gestión ágil de proyectos.</p>
+                    <p>Tu cuenta ha sido creada exitosamente. Ya puedes iniciar sesión con tu correo electrónico y contraseña para comenzar a organizar tus sprints y equipos.</p>
+                    <br>
+                    <p>¡Mucho éxito en tus proyectos!</p>
+                    <p style="color: #666; font-size: 0.9rem;">Equipo de ScrumFlow</p>
+                </div>
+            `
+        });
+    } catch (errorCorreo) {
+        console.error('[auth.service] No se pudo enviar el correo de bienvenida:', errorCorreo);
+    }
+
+    return usuarioCreado;
 };

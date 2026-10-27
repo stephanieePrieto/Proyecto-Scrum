@@ -17,7 +17,9 @@ FROM (VALUES
   ('Citlaly Morales',   'citlipop@gmail.com'),
   ('Dana Carmona',      'dana044car@gmail.com'),
   ('Diego Jimenez',     'diegotrujano3c@gmail.com'),
-  ('Alfonso Mendoza',   'mendozavas615@gmail.com')
+  ('Alfonso Mendoza',   'mendozavas615@gmail.com'),
+  ('Camila Crespo', 'camcrezu@gmail.com'),
+  ('Jetzaly Tello', 'jetzaly2006@gmail.com')
 ) AS v(nombre, correo)
 ON CONFLICT DO NOTHING;
 

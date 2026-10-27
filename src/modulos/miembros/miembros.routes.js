@@ -8,7 +8,8 @@
  */
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';
-import { listar, asignarRol, quitarRol } from './miembros.controller.js';
+import { requierePermiso } from '../../middlewares/requiereRol.js';
+import { listar, misPermisos, asignarRol, quitarRol } from './miembros.controller.js';
 
 const router = Router();
 
@@ -16,6 +17,9 @@ router.use(autenticar);
 
 /** Matriz de roles del proyecto. */
 router.get('/proyecto/:proyectoId', listar);
+
+/** Rol y permisos vigentes de la persona autenticada en el proyecto, para que la interfaz oculte lo no autorizado. */
+router.get('/proyecto/:proyectoId/mis-permisos', requierePermiso('proyecto.ver'), misPermisos);
 
 /** Asigna o cambia el rol de una persona en el proyecto. */
 router.put('/proyecto/:proyectoId/usuario/:usuarioId', asignarRol);

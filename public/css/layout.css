@@ -1,6 +1,14 @@
+/**
+ * @author Citlaly Morales Viveros (Cliente / Programadora XP)
+ *
+ * Estructura general con la paleta minimalista: sidebar carbón, barra superior clara y acento beige.
+ */
 /* ==========================================================================
     02. LAYOUT.CSS — Barra superior, menú lateral y contenedores
    ========================================================================== */
+/**
+ * Contenedor raíz de la aplicación: sidebar y contenido sobre el fondo blanco hueso.
+ */
 .app-container {
   display: flex;
   min-height: 100vh;
@@ -20,6 +28,9 @@
   height: 100vh;
 }
 
+/**
+ * Marca del sidebar, separada del menú por una línea fina.
+ */
 .sidebar__brand {
   padding: 1.5rem;
   font-size: 1.125rem;
@@ -28,6 +39,9 @@
   color: var(--blanco);
 }
 
+/**
+ * Lista de navegación del sidebar, con scroll vertical propio.
+ */
 .sidebar__nav {
   list-style: none;
   padding: 1rem 0;
@@ -36,12 +50,15 @@
   overflow-y: auto;
 }
 
+/**
+ * Enlace del sidebar: gris cálido en reposo; en hover o activo se resalta con borde beige.
+ */
 .sidebar__link {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  color: #94A3B8;
+  color: #B8B2A6;
   text-decoration: none;
   font-size: 0.875rem;
   transition: color 0.2s, background 0.2s;
@@ -51,7 +68,7 @@
 .sidebar__link--active {
   color: var(--blanco);
   background-color: var(--slate-800);
-  border-left: 4px solid var(--primario);
+  border-left: 4px solid var(--acento);
 }
 
 /**
@@ -86,7 +103,7 @@
   display: grid;
   place-items: center;
   background: var(--primario);
-  color: var(--blanco);
+  color: var(--acento);
   font-weight: 600;
   font-size: 18px;
   border-radius: var(--radio-lg);
@@ -117,6 +134,9 @@
   overflow-x: auto;
 }
 
+/**
+ * Enlace de la barra superior; el de la página actual se marca en beige claro.
+ */
 .barra-superior__enlace {
   display: inline-flex;
   align-items: center;
@@ -167,7 +187,7 @@
   display: grid;
   place-items: center;
   background: var(--primario);
-  color: var(--blanco);
+  color: var(--acento);
   font-size: 13px;
   font-weight: 500;
 }
@@ -202,6 +222,9 @@
   overflow-y: auto;
 }
 
+/**
+ * Encabezado de cada página: título a la izquierda y acciones a la derecha.
+ */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -211,11 +234,17 @@
   flex-wrap: wrap;
 }
 
+/**
+ * Título principal de la página.
+ */
 .titulo-pagina {
   font-size: 24px;
   font-weight: 600;
 }
 
+/**
+ * Subtítulo en gris cálido bajo el título.
+ */
 .subtitulo-pagina {
   color: var(--texto-suave);
   margin-top: 2px;
@@ -364,7 +393,7 @@
   padding: var(--espacio-6);
   border: 1px solid var(--borde);
   border-radius: var(--radio-xl);
-  box-shadow: 0 10px 30px rgb(15 23 42 / .18);
+  box-shadow: 0 10px 30px rgb(40 40 40 / .18);
   color: var(--texto);
 }
 
@@ -373,7 +402,7 @@
 }
 
 .eq-dialogo::backdrop {
-  background: rgb(15 23 42 / .45);
+  background: rgb(40 40 40 / .5);
 }
 
 .eq-dialogo__titulo {
@@ -585,7 +614,7 @@
 
 .eq-select:focus {
   border-color: var(--primario);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  box-shadow: 0 0 0 3px rgba(214, 185, 140, 0.45);
 }
 
 /* Páginas de autenticación: inicio de sesión, recuperación y restablecimiento de contraseña */

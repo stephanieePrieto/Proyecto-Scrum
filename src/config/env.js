@@ -42,6 +42,7 @@ export const env = {
   MAX_INTENTOS_CORREO: parseInt(process.env.MAX_INTENTOS_CORREO, 10) || 10,
   MAX_INTENTOS_IP: parseInt(process.env.MAX_INTENTOS_IP, 10) || 30,
   BLOQUEO_MINUTOS: parseInt(process.env.BLOQUEO_MINUTOS, 10) || 15,
+  INACTIVIDAD_MINUTOS: parseInt(process.env.INACTIVIDAD_MINUTOS, 10) || 30,
   APP_URL: process.env.APP_URL || 'http://localhost:3000',
   CONFIAR_PROXY: process.env.CONFIAR_PROXY === 'true',
   // --- Seguridad HTTPS ---

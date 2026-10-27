@@ -20,6 +20,17 @@ export const listar = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Devuelve el rol y los permisos vigentes de la persona autenticada en el proyecto. La ruta ya
+ * validó el acceso con requierePermiso, que deja el proyecto comprobado en req.proyectoId.
+ *
+ * @param {import('express').Request} req - Petición con proyectoId en la ruta.
+ * @param {import('express').Response} res - Respuesta JSON con el rol y la lista de permisos.
+ */
+export const misPermisos = asyncHandler(async (req, res) => {
+    res.json(await servicio.misPermisos(req.proyectoId, req.user));
+});
+
+/**
  * Asigna o cambia el rol de una persona en el proyecto.
  *
  * @param {import('express').Request} req - Petición con proyectoId y usuarioId en la ruta, y rol en el cuerpo.

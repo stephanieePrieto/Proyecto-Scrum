@@ -1,6 +1,7 @@
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import * as authService from './auth.service.js';
 import { env } from '../../config/env.js';
+import { cerrarSocketsDeSesion } from '../../sockets/index.js';
 
 /**
  * @file auth.controller.js
@@ -8,15 +9,60 @@ import { env } from '../../config/env.js';
  * @author Citlaly Morales Viveros
  */
 
+const opcionesCookies = () => ({
+    httpOnly: true,
+    secure: env.ES_PRODUCCION || env.HTTPS_ACTIVO,
+    sameSite: 'strict',
+});
+
 const configurarCookies = (res, accessToken, refreshToken) => {
-    const opciones = {
-        httpOnly: true,
-        secure: env.ES_PRODUCCION || env.HTTPS_ACTIVO,
-        sameSite: 'strict',
-    };
+    const opciones = opcionesCookies();
 
     res.cookie('accessToken', accessToken, { ...opciones, maxAge: env.JWT_ACCESO_MINUTOS * 60 * 1000 });
     res.cookie('refreshToken', refreshToken, { ...opciones, maxAge: env.JWT_RENOVACION_MINUTOS * 60 * 1000 });
+};
+
+/**
+ * Lee las cookies de la petición como un objeto nombre -> valor.
+ *
+ * @param {import('express').Request} req
+ * @returns {Object<string, string>}
+ */
+export const leerCookies = (req) => {
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) return {};
+
+    return cookieHeader.split(';').reduce((acc, current) => {
+        const [key, value] = current.trim().split('=');
+        acc[key] = value;
+        return acc;
+    }, {});
+};
+
+/**
+ * Borra las cookies de sesión con las mismas opciones con las que se crearon.
+ *
+ * @param {import('express').Response} res
+ */
+const limpiarCookies = (res) => {
+    res.clearCookie('accessToken', opcionesCookies());
+    res.clearCookie('refreshToken', opcionesCookies());
+};
+
+/**
+ * Termina por completo la sesión a la que pertenecen los tokens recibidos: la cierra, revoca los
+ * tokens vigentes, desconecta sus conexiones en tiempo real y limpia las cookies.
+ * Los tokens se verifican por firma, así que uno falsificado no cierra nada.
+ *
+ * @param {import('express').Response} res
+ * @param {string|undefined} accessToken - Token de acceso recibido, aunque ya haya expirado.
+ * @param {string|undefined} refreshToken - Token de renovación recibido.
+ * @returns {Promise<void>}
+ */
+export const terminarSesion = async (res, accessToken, refreshToken) => {
+    const sesiones = await authService.cerrarSesionPorTokens(accessToken, refreshToken);
+    sesiones.forEach((sid) => cerrarSocketsDeSesion(sid));
+    limpiarCookies(res);
 };
 
 export const login = async (req, res) => {
@@ -35,41 +81,36 @@ export const login = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-    const cookieHeader = req.headers.cookie;
-    if (cookieHeader) {
-        const cookies = cookieHeader.split(';').reduce((acc, current) => {
-            const [key, value] = current.trim().split('=');
-            acc[key] = value;
-            return acc;
-        }, {});
+    const cookies = leerCookies(req);
+    const bearer = req.headers.authorization?.startsWith('Bearer') ? req.headers.authorization.split(' ')[1] : undefined;
 
-        if (cookies.accessToken) {
-            await authService.revocarToken(cookies.accessToken, env.JWT_ACCESO_MINUTOS);
-        }
-        if (cookies.refreshToken) {
-            await authService.revocarToken(cookies.refreshToken, env.JWT_RENOVACION_MINUTOS);
-        }
-    }
-
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    // No exige un token de acceso vigente: debe poder cerrar la sesión aunque ya haya expirado
+    await terminarSesion(res, cookies.accessToken ?? bearer, cookies.refreshToken);
     res.status(200).json({ mensaje: 'Sesión cerrada correctamente' });
 };
 
 export const renovarToken = async (req, res) => {
-    const cookieHeader = req.headers.cookie;
-    let refreshToken;
+    const cookies = leerCookies(req);
 
-    if (cookieHeader) {
-        const cookies = cookieHeader.split(';').reduce((acc, current) => {
-            const [key, value] = current.trim().split('=');
-            acc[key] = value;
-            return acc;
-        }, {});
-        refreshToken = cookies.refreshToken;
+    let tokens;
+    try {
+        tokens = await authService.renovarSesion(cookies.refreshToken);
+    } catch (error) {
+        // Si la sesión terminó (inactividad o cierre), se revocan los tokens y se limpian las cookies
+        if (error.detalles?.codigo?.startsWith('SESION_')) {
+            await terminarSesion(res, cookies.accessToken, cookies.refreshToken);
+        }
+        throw error;
     }
 
-    const { nuevoAccessToken, nuevoRefreshToken } = await authService.renovarSesion(refreshToken);
-    configurarCookies(res, nuevoAccessToken, nuevoRefreshToken);
+    configurarCookies(res, tokens.nuevoAccessToken, tokens.nuevoRefreshToken);
     res.status(200).json({ mensaje: 'Token renovado' });
+};
+
+/**
+ * Confirma que la sesión sigue vigente. El control de inactividad ocurre en el middleware
+ * autenticar, que es quien registra la actividad según la cabecera X-Interaccion-Segundos.
+ */
+export const latido = (req, res) => {
+    res.status(204).end();
 };

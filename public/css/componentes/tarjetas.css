@@ -5,3 +5,50 @@
   box-shadow: var(--sombra-sm);
   padding: var(--espacio-6);
 }
+/*Forzar la estructura de las columnas*/
+[data-columna-id] {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important; /* Esto elimina el hueco gigante */
+    min-width: 320px;
+    background-color: #f8fafc; /* Fondo gris claro de la columna */
+    border-radius: 12px;
+    padding: 16px;
+    height: 100%;
+}
+
+/* Forzar la zona de arrastre para que las tarjetas se apilen desde arriba */
+[id^="lista-tarjetas-"] {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    gap: 12px;
+    margin-top: 16px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* Conectar el estilo del proyectoo con la clase que inyecta el JS (.tarjeta-item) */
+.tarjeta-item {
+    background: var(--fondo-tarjeta, #ffffff);
+    border: 1px solid var(--borde, #e2e8f0);
+    border-radius: var(--radio-xl, 12px);
+    box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.1));
+    padding: var(--espacio-6, 16px);
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.tarjeta-item {    
+    cursor: grab;
+    user-select: none; /*Evita la selección de texto al arrastrar */
+}
+.tarjeta-item:active {
+    cursor: grabbing;
+}
+
+/* Asegura un área de caída mínima cuando la columna está vacía */
+[id^="lista-tarjetas-"] {
+    min-height: 150px;
+}

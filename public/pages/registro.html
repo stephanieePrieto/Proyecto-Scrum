@@ -1,0 +1,61 @@
+<!--
+  @file registro.html
+  @description Interfaz para el registro de nuevos usuarios en la plataforma (ScrumFlow).
+  @author Stephanie Elizdeth Hernández Prieto
+-->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cuenta - ScrumFlow</title>
+    <!-- Estilos unificados del sistema -->
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/componentes/accesibilidad.css">
+    <link rel="stylesheet" href="../css/componentes/botones.css">
+    <link rel="stylesheet" href="../css/componentes/formularios.css">
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="../css/componentes/avisos.css">
+</head>
+
+<body>
+    <div class="contenedor-auth">
+        <main class="tarjeta tarjeta-auth">
+            <div class="auth-encabezado">
+                <h1 class="titulo-pagina">ScrumFlow</h1>
+                <p class="subtitulo-pagina">Crea tu cuenta para comenzar</p>
+            </div>
+
+            <div id="mensaje-alerta" class="alerta" role="status" aria-live="polite" hidden></div>
+
+            <form id="form-registro">
+                <div class="form-group">
+                    <label for="nombre" class="form-label">Nombre completo</label>
+                    <input type="text" id="nombre" name="nombre" class="form-input" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="correo" class="form-label">Correo electrónico</label>
+                    <input type="email" id="correo" name="correo" class="form-input" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="password" id="password" name="password" class="form-input" required
+                        autocomplete="new-password">
+                </div>
+
+                <button type="submit" class="boton boton--primario boton--bloque">Registrarse</button>
+            </form>
+
+            <div class="enlaces-auth">
+                <a href="login.html" class="enlace">¿Ya tienes una cuenta? Inicia sesión</a>
+            </div>
+        </main>
+    </div>
+    <script type="module" src="../js/pages/registro.js"></script>
+</body>
+
+</html>

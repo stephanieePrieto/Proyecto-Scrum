@@ -6,6 +6,7 @@
  * Usa las tablas reales de database/schema.sql: proyectos, equipos, miembros_equipo, sprints, usuarios.
  * @author Jetzaly
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import { consulta as query } from '../../config/db.js';
@@ -126,15 +127,21 @@ export async function listar(usuario, { archivados = false } = {}) {
 }
 
 export async function obtener(id, usuario) {
+  // Si no mandan un ID válido (por ejemplo, es undefined, null o 'null' por defecto en el frontend), 
+  // devolvemos null amigablemente en lugar de buscar un ID inválido en la base de datos.
+  if (!id || id === 'null' || id === 'undefined') {
+    return null; 
+  }
+
   const { rows } = await query(`SELECT ${COLUMNAS} ${DESDE} WHERE p.id = $1`, [id]);
   const proyecto = rows[0];
-  if (!proyecto) lanzar(404, 'Proyecto no encontrado.');
+  if (!proyecto) return null; // En lugar de lanzar 404 estricto, devolvemos null para que el frontend lo gestione
 
   const miembro = await query(
     'SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2',
     [proyecto.equipo_id, usuario.id],
   );
-  if (!miembro.rows.length) lanzar(404, 'Proyecto no encontrado.');
+  if (!miembro.rows.length) return null; // Usuario sin acceso a este proyecto específico
 
   return proyecto;
 }
@@ -186,6 +193,7 @@ export async function actualizar(id, datos, usuario) {
   if (!Number.isInteger(versionCliente)) lanzar(400, 'Falta la versión del proyecto.', { campos: {} });
 
   const actual = await obtener(id, usuario);
+  if (!actual) lanzar(404, 'Proyecto no encontrado.');
   if (actual.archivado) lanzar(409, 'El proyecto está archivado y no se puede editar.');
 
   if (await existeNombre(actual.equipo_id, limpio.nombre, id)) {
@@ -215,7 +223,8 @@ export async function actualizar(id, datos, usuario) {
 
 export async function archivar(id, usuario) {
   await exigirGestion(id, usuario);
-  await obtener(id, usuario);
+  const proyectoActual = await obtener(id, usuario);
+  if (!proyectoActual) lanzar(404, 'Proyecto no encontrado.');
 
   const { rows } = await query(
     `UPDATE proyectos
@@ -228,7 +237,7 @@ export async function archivar(id, usuario) {
 
   if (!rows.length) {
     const proyecto = await obtener(id, usuario);
-    if (proyecto.archivado) return proyecto;
+    if (proyecto?.archivado) return proyecto;
     lanzar(409, 'El proyecto tiene un sprint activo. Cierra el sprint antes de archivarlo.', { motivo: 'sprint_activo' });
   }
   return obtener(id, usuario);

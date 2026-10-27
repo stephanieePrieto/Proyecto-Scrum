@@ -139,6 +139,10 @@ async function simular(nombre) {
  */
 function obtenerDatos(signal) {
   if (escenario) return simular(escenario);
+  // Si no hay proyecto seleccionado válido, devolvemos estado vacío controlado sin error
+  if (!proyectoId || proyectoId === 'null') {
+    return Promise.resolve({ vacio: true, kpis: {} });
+  }
   return api(`/metricas/proyectos/${proyectoId}/dashboard`, { signal });
 }
 
@@ -250,6 +254,12 @@ function pintarFalloTotal() {
   if (avisoVacio) avisoVacio.hidden = true;
   if (grilla) {
     grilla.hidden = false;
+    // Si no hay proyecto seleccionado, en vez de error total mostramos vacío amigable
+    if (!proyectoId || proyectoId === 'null') {
+      grilla.hidden = true;
+      if (avisoVacio) avisoVacio.hidden = false;
+      return;
+    }
     grilla.innerHTML = KPIS.map(k => tarjetaError(k.etiqueta, k.claveIcono, k.id)).join('');
   }
 }
@@ -344,13 +354,13 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
 
   /** Pintar el estado vacío según el filtro. */
   function pintarVacio(archivados) {
-    const crear = puedeGestionar && !archivados
+    // CORREGIDO: Ahora cualquier usuario puede crear un proyecto, por lo que se muestra la opción a todos.
+    const crear = !archivados
       ? '<a class="boton boton--primario" href="/pages/configuracion-proyecto.html">Crear el primer proyecto</a>' : '';
     lista.innerHTML = `<div class="aviso aviso--vacio proyectos__vacio">
       <h3 class="aviso__titulo">${archivados ? 'No hay proyectos archivados' : 'Aún no hay proyectos'}</h3>
       <p class="aviso__texto">${archivados ? 'Los proyectos que archives aparecerán aquí con todo su historial.'
-        : puedeGestionar ? 'Crea un proyecto para empezar a organizar el trabajo del equipo.'
-        : 'Cuando un administrador cree un proyecto de tu equipo, aparecerá aquí.'}</p>${crear}</div>`;
+        : 'Crea un proyecto para empezar a organizar el trabajo del equipo.'}</p>${crear}</div>`;
   }
 
   /** Construir la tarjeta de un proyecto. */
@@ -382,7 +392,9 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     try {
       const datos = await api(`/proyectos${archivados ? '?archivados=true' : ''}`);
       puedeGestionar = Boolean(datos.puede_gestionar);
-      btnNuevo.hidden = !puedeGestionar;
+      
+      // Permitir que el botón de nuevo proyecto esté visible siempre para que cualquier usuario pueda crear uno
+      btnNuevo.hidden = false;
 
       // Si el proyecto guardado ya no existe para el usuario, abrir el primero disponible.
       if (primeraCarga && !archivados && !urlTraeProyecto && datos.proyectos.length
@@ -403,11 +415,17 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
 
   /** Cargar el proyecto seleccionado y entregárselo al dashboard. */
   async function cargarSeleccionado() {
+    if (!idActivo || Number.isNaN(idActivo)) return;
     try {
       const datos = await api(`/proyectos/${encodeURIComponent(idActivo)}`);
-      alCargarProyecto?.(datos.proyecto);
+      if (datos?.proyecto) {
+        alCargarProyecto?.(datos.proyecto);
+      }
     } catch (e) {
-      if (e.estado === 404 || e.estado === 403) mostrarError('El proyecto seleccionado no existe o no tienes acceso.');
+      if (e.estado === 404 || e.estado === 403) {
+        // En lugar de texto agresivo, lo manejamos limpiando el proyecto activo si no existe
+        localStorage.removeItem('proyectoActivo');
+      }
     }
   }
 

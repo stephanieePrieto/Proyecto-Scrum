@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
  * @file auth.service.js
  * @description Lógica de negocio para autenticación, control de intentos y tokens.
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 /**
@@ -234,7 +235,7 @@ export const sesionesVigentes = async (sids) => {
 /**
  * Revoca un token solo si la firma es auténtica y todavía no expiró. La expiración se ignora al
  * verificar para poder leer el contenido de un token vencido, pero uno vencido no se guarda
- * porque ya no sirve, y uno falsificado se descarta sin tocar la base de datos.
+ * porque ya no sirve, y one falsificado se descarta sin tocar la base de datos.
  *
  * @param {string|undefined} token - Token recibido del cliente.
  * @param {string} secreto - Secreto con el que se firmó ese tipo de token.
@@ -307,11 +308,42 @@ export const renovarSesion = async (refreshToken) => {
             : errorDeSesion('Sesión finalizada o token inválido.', 'SESION_CERRADA');
     }
 
-    await revocarToken(refreshToken, env.JWT_RENOVACION_MINUTOS);
+    await revocarToken(refreshToken, env.JWT_REFRESH_MINUTOS);
 
     const nuevoPayload = { id: payload.id, sid: payload.sid };
     const nuevoAccessToken = jwt.sign(nuevoPayload, env.JWT_SECRET, { expiresIn: `${env.JWT_ACCESO_MINUTOS}m` });
     const nuevoRefreshToken = jwt.sign(nuevoPayload, env.JWT_REFRESH_SECRET, { expiresIn: `${env.JWT_RENOVACION_MINUTOS}m` });
 
     return { nuevoAccessToken, nuevoRefreshToken };
+};
+
+/**
+ * Registra un nuevo usuario en la base de datos con contraseña hasheada.
+ *
+ * @param {string} nombre - Nombre del usuario.
+ * @param {string} correo - Correo electrónico único.
+ * @param {string} password - Contraseña en texto plano.
+ * @returns {Promise<Object>} Datos básicos del usuario creado.
+ */
+export const registrarUsuario = async (nombre, correo, password) => {
+    const correoLimpio = correo.trim().toLowerCase();
+
+    // Verificar si el correo ya está registrado
+    const { rows: existente } = await consulta('SELECT id FROM usuarios WHERE correo = $1', [correoLimpio]);
+    if (existente.length > 0) {
+        throw new ErrorApp('El correo electrónico ya está registrado.', 400);
+    }
+
+    // Hashear la contraseña de forma segura
+    const passwordHash = await hashearPassword(password);
+
+    // Insertar el nuevo usuario
+    const { rows } = await consulta(
+        `INSERT INTO usuarios (nombre, correo, password_hash, activo) 
+         VALUES ($1, $2, $3, true) 
+         RETURNING id, nombre, correo`,
+        [nombre.trim(), correoLimpio, passwordHash]
+    );
+
+    return rows[0];
 };

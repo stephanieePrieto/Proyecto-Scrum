@@ -7,6 +7,7 @@ import { cerrarSocketsDeSesion } from '../../sockets/index.js';
  * @file auth.controller.js
  * @description Controladores para gestionar peticiones HTTP de autenticación.
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 const opcionesCookies = () => ({
@@ -113,4 +114,20 @@ export const renovarToken = async (req, res) => {
  */
 export const latido = (req, res) => {
     res.status(204).end();
+};
+
+export const register = async (req, res) => {
+    const { nombre, correo, password } = req.body ?? {};
+
+    if (typeof nombre !== 'string' || typeof correo !== 'string' || typeof password !== 'string' ||
+        !nombre.trim() || !correo.trim() || !password.trim()) {
+        throw new ErrorApp('Nombre, correo y contraseña son obligatorios y deben ser válidos.', 400);
+    }
+
+    const nuevoUsuario = await authService.registrarUsuario(nombre, correo, password);
+
+    res.status(201).json({
+        mensaje: 'Cuenta creada exitosamente. Ahora puedes iniciar sesión.',
+        usuario: nuevoUsuario
+    });
 };

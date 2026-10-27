@@ -1,4 +1,11 @@
 // HU-01: recibe la peticion y responde (proyectos y Definition of Done); sin logica de negocio
+
+/**
+ * @file proyectos.controller.js
+ * @description Recibe la petición y responde (proyectos y Definition of Done); sin lógica de negocio.
+ * @author Citlaly Morales Viveros
+ */
+
 import * as servicio from './proyectos.service.js';
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -20,7 +27,10 @@ export const crear = asyncHandler(async (req, res) => {
 
 export const obtener = asyncHandler(async (req, res) => {
   const proyecto = await servicio.obtener(req.params.id, req.user);
-  res.json({ proyecto, puede_gestionar: await servicio.esAdmin(req.user) });
+  res.json({
+    proyecto,
+    puede_gestionar: await servicio.puedeGestionar(req.params.id, req.user)
+  });
 });
 
 export const actualizar = asyncHandler(async (req, res) => {

@@ -1,6 +1,9 @@
 <!doctype html>
 <!--
   Gestión de equipos de trabajo.
+  Mostrar la lista de equipos con sus integrantes y los diálogos para crear, renombrar,
+  agregar integrantes, quitar integrantes y eliminar equipos. El contenido de los diálogos
+  de quitar y eliminar lo pinta equipos.js según lo que responda el servidor.
   @author Citlaly Morales Viveros
 -->
 <html lang="es">
@@ -8,58 +11,197 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Equipos · ScrumFlow</title>
+    <title>Equipos · AgileDesk</title>
 
-    <!-- Estilos globales unificados -->
-    <link rel="stylesheet" href="/css/base.css" />
-    <link rel="stylesheet" href="/css/layout.css" />
-    <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
-    <link rel="stylesheet" href="/css/componentes/botones.css" />
-    <link rel="stylesheet" href="/css/componentes/insignias.css" />
-    <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
-    <link rel="stylesheet" href="/css/componentes/avisos.css" />
-    <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
-    <link rel="stylesheet" href="/css/componentes/formularios.css" />
-    <link rel="stylesheet" href="/css/componentes/modales.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
-    <!-- Estilos propios -->
-    <link rel="stylesheet" href="/css/pages/equipos.css" />
+    <!-- Estilos globales y componentes reutilizables -->
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+    <link rel="stylesheet" href="../css/componentes/botones.css" />
+    <link rel="stylesheet" href="../css/componentes/formularios.css" />
+    <link rel="stylesheet" href="../css/componentes/insignias.css" />
+    <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+    <link rel="stylesheet" href="../css/componentes/avisos.css" />
+    <link rel="stylesheet" href="../css/componentes/notificaciones.css" />
+    <style>
+        /**
+         * @file equipos.html (bloque <style>)
+         * @description Estilos complementarios de la página de Gestión de equipos. Cubre las clases que
+         * equipos.js pinta y que no tenían estilo en los demás CSS (barra superior, mensajes de resultado,
+         * botón de peligro y selectores del diálogo de quitar integrante). Usa solo los tokens de base.css.
+         * Va después de los CSS de componentes y antes de responsive.css y accesibilidad.css.
+         * @author Citlaly Morales Viveros (Cliente / Programadora XP)
+         */
 
-    <link rel="stylesheet" href="/css/componentes/responsive.css" />
-    <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+        /* Token que notificaciones.css usa (gap de los toasts) pero base.css no define */
+        :root {
+            --espacio-2: 8px;
+        }
+
+        /* ==========================================================================
+           Barra superior (la inserta montarBarraSuperior() en #barra-superior)
+           ========================================================================== */
+        .barra-superior {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--espacio-4);
+            min-height: var(--altura-barra);
+            padding: 0 var(--espacio-6);
+            background: var(--fondo-tarjeta);
+            border-bottom: 1px solid var(--borde);
+            box-shadow: var(--sombra-sm);
+        }
+
+        /* La campana de notificaciones siempre queda al extremo derecho */
+        .barra-superior #notificaciones-root {
+            margin-left: auto;
+        }
+
+        /* ==========================================================================
+           Mensajes de resultado (equipos.js asigna "eq-mensaje eq-mensaje--tipo")
+           Mismos tonos que .alerta--exito / --advertencia / --error de avisos.css
+           ========================================================================== */
+        .eq-mensaje {
+            padding: 1rem;
+            border-radius: var(--radio-lg);
+            margin-bottom: 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .eq-mensaje p+p {
+            margin-top: 4px;
+        }
+
+        .eq-mensaje--exito {
+            background: var(--esmeralda-50);
+            color: var(--esmeralda-700);
+            border: 1px solid var(--esmeralda-500);
+        }
+
+        .eq-mensaje--advertencia {
+            background: var(--ambar-50);
+            color: var(--ambar-700);
+            border: 1px solid var(--ambar-500);
+        }
+
+        .eq-mensaje--error {
+            background: var(--rosa-50);
+            color: var(--rosa-700);
+            border: 1px solid var(--rosa-500);
+        }
+
+        /* Dentro de una tarjeta o un diálogo el espaciado lo da el contenedor */
+        .equipo .eq-mensaje,
+        .eq-dialogo .eq-mensaje {
+            margin-bottom: 0;
+        }
+
+        /* ==========================================================================
+           Botón de acción destructiva (Quitar, Eliminar) sobre botón secundario
+           ========================================================================== */
+        .boton--secundario.eq-peligro {
+            color: var(--rosa-700);
+            border-color: #FECDD3;
+        }
+
+        .boton--secundario.eq-peligro:hover:not(:disabled) {
+            background-color: var(--rosa-50);
+            border-color: var(--rosa-500);
+        }
+
+        /* ==========================================================================
+           Selector de personas del diálogo "Quitar integrante" (mismo aspecto que .form-select)
+           ========================================================================== */
+        .eq-select {
+            width: 100%;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--texto);
+            background: var(--blanco);
+            border: 1px solid var(--borde);
+            border-radius: var(--radio-lg);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .eq-select:focus {
+            border-color: var(--primario);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+
+        /* ==========================================================================
+           Ajustes de los diálogos nativos <dialog>
+           ========================================================================== */
+        .eq-dialogo {
+            background: var(--fondo-tarjeta);
+        }
+
+        /* Interacción de las filas de resultados y de las etiquetas elegidas */
+        .eq-resultado:hover {
+            background: var(--slate-50);
+        }
+
+        .eq-chip__quitar:focus-visible {
+            border-radius: 50%;
+        }
+
+        /* Casilla de confirmación de cambio de rol */
+        .eq-confirmar input {
+            accent-color: var(--primario);
+        }
+    </style>
+
+    <!-- Ajustes responsive y de accesibilidad al final para que prevalezcan -->
+    <link rel="stylesheet" href="../css/componentes/responsive.css" />
+    <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
 </head>
 
 <body>
     <header id="barra-superior" class="barra-superior"></header>
 
-    <main class="principal">
-        <div class="encabezado-pagina">
-            <div>
-                <h1 class="titulo-pagina">Equipos</h1>
-                <p class="subtitulo-pagina">Administra los equipos de trabajo y a sus integrantes</p>
+    <main class="main-content">
+        <div class="equipos">
+            <div class="page-header">
+                <div>
+                    <h1 class="titulo-pagina">Equipos</h1>
+                    <p class="subtitulo-pagina">Administra los equipos de trabajo y a sus integrantes</p>
+                </div>
+                <button class="boton boton--primario" id="btn-nuevo-equipo" type="button" hidden>Nuevo equipo</button>
             </div>
-            <button class="boton boton--primario btn btn--primary" id="btn-nuevo-equipo" type="button" hidden>Nuevo equipo</button>
+
+            <!-- Mensaje de resultado de la última acción (éxito, advertencia o error) -->
+            <div id="equipos-mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
+
+            <section id="equipos-lista" class="equipos__lista" aria-live="polite" aria-label="Lista de equipos">
+            </section>
         </div>
-
-        <div id="equipos-mensaje" class="eq-mensaje" role="status" aria-live="polite" hidden></div>
-
-        <section id="equipos-lista" class="equipos__lista" aria-live="polite" aria-label="Lista de equipos"></section>
     </main>
 
-    <dialog id="dialogo-equipo" class="eq-dialogo modal-card" aria-labelledby="equipo-titulo">
+    <!-- Crear equipo, cambiar su nombre o agregar integrantes (según el modo con que se abra) -->
+    <dialog id="dialogo-equipo" class="eq-dialogo" aria-labelledby="equipo-titulo">
         <form id="form-equipo" novalidate>
             <h2 id="equipo-titulo" class="eq-dialogo__titulo"></h2>
 
-            <div id="campo-nombre" class="eq-campo form-group">
-                <label class="eq-etiqueta form-label" for="equipo-nombre">Nombre del equipo</label>
-                <input id="equipo-nombre" class="eq-input form-input" type="text" maxlength="120" autocomplete="off" />
+            <div id="campo-nombre" class="form-group">
+                <label class="form-label" for="equipo-nombre">Nombre del equipo</label>
+                <input id="equipo-nombre" class="form-input" type="text" maxlength="120" autocomplete="off" />
                 <p id="error-nombre" class="eq-error" role="alert" hidden></p>
             </div>
 
-            <div id="seccion-miembros" class="eq-campo form-group">
-                <label class="eq-etiqueta form-label" for="buscar-usuarios">Integrantes</label>
-                <p id="nota-creador" class="eq-ayuda" hidden>Tú serás integrante del equipo.</p>
-                <input id="buscar-usuarios" class="eq-input form-input" type="search" placeholder="Buscar por nombre o correo"
+            <div id="seccion-miembros" class="form-group">
+                <label class="form-label" for="buscar-usuarios">Integrantes</label>
+                <p id="nota-creador" class="eq-ayuda" hidden>Tú serás integrante y administrador del equipo.</p>
+                <input id="buscar-usuarios" class="form-input" type="search" placeholder="Buscar por nombre o correo"
                     autocomplete="off" />
                 <ul id="resultados-usuarios" class="eq-resultados" aria-label="Usuarios encontrados"></ul>
                 <ul id="elegidos-usuarios" class="eq-chips" aria-label="Usuarios elegidos"></ul>
@@ -67,30 +209,34 @@
             </div>
 
             <p id="error-equipo" class="eq-error" role="alert" hidden></p>
-            <div class="eq-dialogo__acciones modal-footer">
-                <button class="boton boton--secundario btn btn--secondary" type="button" id="equipo-cancelar">Cancelar</button>
-                <button class="boton boton--primario btn btn--primary" type="submit" id="equipo-guardar">Guardar</button>
+            <div class="eq-dialogo__acciones">
+                <button class="boton boton--secundario" type="button" id="equipo-cancelar">Cancelar</button>
+                <button class="boton boton--primario" type="submit" id="equipo-guardar">Guardar</button>
             </div>
         </form>
     </dialog>
 
-    <dialog id="dialogo-quitar" class="eq-dialogo eq-dialogo--ancho modal-card" aria-labelledby="quitar-titulo">
+    <!-- Quitar un integrante: muestra las tareas y responsabilidades que hay que resolver antes -->
+    <dialog id="dialogo-quitar" class="eq-dialogo eq-dialogo--ancho" aria-labelledby="quitar-titulo">
         <h2 id="quitar-titulo" class="eq-dialogo__titulo">Quitar integrante</h2>
         <div id="quitar-contenido"></div>
         <p id="quitar-error" class="eq-error" role="alert" hidden></p>
-        <div class="eq-dialogo__acciones modal-footer">
-            <button class="boton boton--secundario btn btn--secondary" type="button" id="quitar-cancelar">Cancelar</button>
-            <button class="boton boton--primario btn btn--primary" type="button" id="quitar-confirmar" disabled>Quitar del equipo</button>
+        <div class="eq-dialogo__acciones">
+            <button class="boton boton--secundario" type="button" id="quitar-cancelar">Cancelar</button>
+            <button class="boton boton--primario" type="button" id="quitar-confirmar" disabled>Quitar del
+                equipo</button>
         </div>
     </dialog>
 
-    <dialog id="dialogo-eliminar" class="eq-dialogo modal-card" aria-labelledby="eliminar-titulo">
+    <!-- Eliminar un equipo -->
+    <dialog id="dialogo-eliminar" class="eq-dialogo" aria-labelledby="eliminar-titulo">
         <h2 id="eliminar-titulo" class="eq-dialogo__titulo">Eliminar equipo</h2>
         <div id="eliminar-contenido"></div>
         <p id="eliminar-error" class="eq-error" role="alert" hidden></p>
-        <div class="eq-dialogo__acciones modal-footer">
-            <button class="boton boton--secundario btn btn--secondary" type="button" id="eliminar-cancelar">Cancelar</button>
-            <button class="boton boton--primario eq-peligro btn btn--danger" type="button" id="eliminar-confirmar">Eliminar equipo</button>
+        <div class="eq-dialogo__acciones">
+            <button class="boton boton--secundario" type="button" id="eliminar-cancelar">Cancelar</button>
+            <button class="boton boton--primario boton--peligro" type="button" id="eliminar-confirmar">Eliminar
+                equipo</button>
         </div>
     </dialog>
 

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   02. LAYOUT.CSS — Barra superior, menú lateral y contenedores
+    02. LAYOUT.CSS — Barra superior, menú lateral y contenedores
    ========================================================================== */
 .app-container {
   display: flex;
@@ -54,6 +54,147 @@
   border-left: 4px solid var(--primario);
 }
 
+/**
+ * Barra superior: la inserta montarBarraSuperior() (layout.js) en #barra-superior.
+ * Estructura: marca (logo + nombre) · enlaces de navegación · bloque de usuario con la campana.
+ */
+.barra-superior {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-6);
+  min-height: var(--altura-barra);
+  padding: 0 var(--espacio-6);
+  background: var(--fondo-tarjeta);
+  border-bottom: 1px solid var(--borde);
+  box-shadow: var(--sombra-sm);
+}
+
+/* Marca: logo morado y nombre de la aplicación */
+.barra-superior__marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.barra-superior__logo {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: var(--primario);
+  color: var(--blanco);
+  font-weight: 600;
+  font-size: 18px;
+  border-radius: var(--radio-lg);
+}
+
+.barra-superior__marca-texto {
+  line-height: 1.2;
+}
+
+.barra-superior__nombre {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primario);
+}
+
+.barra-superior__sub {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* Navegación principal: ocupa el espacio central y se desplaza si no cabe */
+.barra-superior__enlaces {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.barra-superior__enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radio-lg);
+  color: var(--texto-suave);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.barra-superior__enlace:hover {
+  color: var(--primario);
+  background: var(--slate-50);
+}
+
+.barra-superior__enlace[aria-current="page"] {
+  color: var(--primario-texto);
+  background: var(--primario-claro);
+}
+
+/* Usuario: campana de notificaciones, nombre, rol y avatar con iniciales */
+.barra-superior__usuario {
+  flex-shrink: 0;
+}
+
+.barra-superior__usuario-texto {
+  text-align: right;
+  line-height: 1.3;
+}
+
+.barra-superior__usuario-nombre {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.barra-superior__usuario-rol {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.barra-superior__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--primario);
+  color: var(--blanco);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* En pantallas angostas la navegación pasa a una segunda fila */
+@media (max-width: 900px) {
+  .barra-superior {
+    flex-wrap: wrap;
+    gap: 8px var(--espacio-4);
+    padding: 8px var(--espacio-4);
+  }
+
+  .barra-superior__usuario {
+    margin-left: auto;
+  }
+
+  .barra-superior__enlaces {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .barra-superior__sub,
+  .barra-superior__usuario-texto {
+    display: none;
+  }
+}
+
 /* Área de Trabajo Principal */
 .main-content {
   flex-grow: 1;
@@ -70,5 +211,413 @@
   flex-wrap: wrap;
 }
 
-.titulo-pagina { font-size: 24px; font-weight: 600; }
-.subtitulo-pagina { color: var(--texto-suave); margin-top: 2px; }
+.titulo-pagina {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.subtitulo-pagina {
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
+/* Gestión de equipos: lista, tarjeta de equipo e integrantes */
+.equipos {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+}
+
+.equipos__lista {
+  display: grid;
+  gap: var(--espacio-4);
+}
+
+.equipos__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.equipo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.equipo .alerta,
+.equipo .eq-mensaje {
+  margin-bottom: 0;
+}
+
+.equipo__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.equipo__nombre {
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.equipo__meta {
+  color: var(--texto-suave);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.equipo__acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.equipo__miembros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.miembro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border-top: 1px solid var(--borde);
+}
+
+.miembro:first-child {
+  border-top: 0;
+}
+
+.miembro__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--slate-900);
+  color: var(--blanco);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.miembro__datos {
+  min-width: 0;
+  flex: 1;
+}
+
+.miembro__nombre {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.miembro__correo {
+  color: var(--texto-suave);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.miembro__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.miembro__acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.equipo--carga .esqueleto {
+  display: block;
+  height: 16px;
+  margin-top: 8px;
+}
+
+.equipo--carga .esqueleto--titulo {
+  width: 35%;
+  height: 22px;
+  margin-top: 0;
+}
+
+.equipo--carga .esqueleto--linea {
+  width: 70%;
+}
+
+/* Gestión de equipos: diálogos y selector de usuarios */
+.eq-dialogo {
+  width: min(520px, calc(100% - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: var(--espacio-6);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  box-shadow: 0 10px 30px rgb(15 23 42 / .18);
+  color: var(--texto);
+}
+
+.eq-dialogo--ancho {
+  width: min(720px, calc(100% - 32px));
+}
+
+.eq-dialogo::backdrop {
+  background: rgb(15 23 42 / .45);
+}
+
+.eq-dialogo__titulo {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.eq-dialogo__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: var(--espacio-4);
+}
+
+.eq-dialogo p+p {
+  margin-top: 8px;
+}
+
+.eq-ayuda {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.eq-error {
+  color: var(--rosa-700);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.eq-resultados {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+}
+
+.eq-resultados:empty {
+  display: none;
+}
+
+.eq-resultado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--borde);
+}
+
+.eq-resultado:first-child {
+  border-top: 0;
+}
+
+.eq-resultado__nombre {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.eq-resultado__correo {
+  color: var(--texto-suave);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.eq-resultados__vacio {
+  padding: 8px 10px;
+  color: var(--texto-suave);
+}
+
+.eq-chips {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px 2px 10px;
+  background: var(--slate-50);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+}
+
+.eq-chip__quitar {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--texto-suave);
+  padding: 2px 6px;
+}
+
+.eq-chip__quitar:hover {
+  color: var(--rosa-700);
+}
+
+/* Gestión de equipos: pendientes al quitar a un integrante */
+.eq-bloque {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.eq-bloque__titulo {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.eq-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 8px 0;
+  border-top: 1px solid var(--borde);
+}
+
+.eq-fila:first-of-type {
+  border-top: 0;
+}
+
+.eq-fila__titulo {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.eq-fila__detalle {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.eq-fila__aviso {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--rosa-700);
+}
+
+.eq-confirmar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ambar-700);
+}
+
+@media (max-width: 640px) {
+  .eq-fila {
+    grid-template-columns: 1fr;
+  }
+
+  .miembro {
+    flex-wrap: wrap;
+  }
+
+  .miembro__acciones {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+/**
+ * Gestión de equipos: ajustes complementarios de diálogos, mensajes y selector de personas
+ * (eq-select lo pinta equipos.js en el diálogo de quitar integrante).
+ */
+.eq-dialogo {
+  background: var(--fondo-tarjeta);
+}
+
+.eq-dialogo .eq-mensaje {
+  margin-bottom: 0;
+}
+
+.eq-resultado:hover {
+  background: var(--slate-50);
+}
+
+.eq-chip__quitar:focus-visible {
+  border-radius: 50%;
+}
+
+.eq-confirmar input {
+  accent-color: var(--primario);
+}
+
+.eq-select {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--texto);
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.eq-select:focus {
+  border-color: var(--primario);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* Páginas de autenticación: inicio de sesión, recuperación y restablecimiento de contraseña */
+.contenedor-auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background-color: var(--fondo-app);
+}
+
+.tarjeta-auth {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-encabezado {
+  text-align: center;
+  margin-bottom: var(--espacio-6);
+}
+
+.enlaces-auth {
+  margin-top: var(--espacio-6);
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.enlace {
+  color: var(--primario);
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}

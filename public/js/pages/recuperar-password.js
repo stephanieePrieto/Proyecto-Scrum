@@ -1,4 +1,5 @@
 import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
 
 /**
  * @file recuperar-password.js
@@ -22,12 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     cuerpo: { correo }
                 });
 
-                alerta.className = 'alerta-mensaje exito';
-                alerta.textContent = 'Si el correo existe, recibirás un enlace de recuperación pronto.';
+                mostrarAlerta(alerta, 'exito', 'Si el correo existe, recibirás un enlace de recuperación pronto.');
                 formulario.reset();
             } catch (error) {
-                alerta.className = 'alerta-mensaje error';
-                alerta.textContent = 'Ocurrió un error al procesar la solicitud.';
+                mostrarAlerta(alerta, 'error', 'Ocurrió un error al procesar la solicitud.');
             }
         });
     }

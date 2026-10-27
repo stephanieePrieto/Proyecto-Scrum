@@ -3,31 +3,43 @@
    ========================================================================== */
 :root {
   /* Escala de grises (Slate) */
-  --slate-50:  #F8FAFC;
+  --slate-50: #F8FAFC;
   --slate-200: #E2E8F0;
   --slate-300: #CBD5E1;
   --slate-500: #64748B;
   --slate-800: #1E293B;
   --slate-900: #0F172A;
-  --blanco:    #FFFFFF;
+  --blanco: #FFFFFF;
 
   /* Tonos Morados Principales (Acento POS / Sistema) */
-  --primario:        #7C3AED; /* Morado vibrante principal */
-  --primario-hover:  #6D28D9; /* Morado oscuro para hover */
-  --primario-claro:  #EDE9FE; /* Fondo suave morado */
-  --primario-texto:  #5B21B6; /* Texto morado fuerte */
+  --primario: #7C3AED;
+  /* Morado vibrante principal */
+  --primario-hover: #6D28D9;
+  /* Morado oscuro para hover */
+  --primario-claro: #EDE9FE;
+  /* Fondo suave morado */
+  --primario-texto: #5B21B6;
+  /* Texto morado fuerte */
 
   /* Colores Semánticos */
-  --esmeralda-500: #10B981; --esmeralda-50: #ECFDF5; --esmeralda-700: #047857;
-  --ambar-500:     #F59E0B; --ambar-50:     #FFFBEB; --ambar-700:     #B45309;
-  --rosa-500:      #F43F5E; --rosa-50:      #FFF1F2; --rosa-700:      #BE123C;
-  --celeste-500:   #0EA5E9; --celeste-50:   #F0F9FF; --celeste-700:   #0369A1;
+  --esmeralda-500: #10B981;
+  --esmeralda-50: #ECFDF5;
+  --esmeralda-700: #047857;
+  --ambar-500: #F59E0B;
+  --ambar-50: #FFFBEB;
+  --ambar-700: #B45309;
+  --rosa-500: #F43F5E;
+  --rosa-50: #FFF1F2;
+  --rosa-700: #BE123C;
+  --celeste-500: #0EA5E9;
+  --celeste-50: #F0F9FF;
+  --celeste-700: #0369A1;
 
   /* Roles de Color */
-  --fondo-app:   var(--slate-50);
+  --fondo-app: var(--slate-50);
   --fondo-tarjeta: var(--blanco);
-  --borde:       var(--slate-200);
-  --texto:       var(--slate-800);
+  --borde: var(--slate-200);
+  --texto: var(--slate-800);
   --texto-suave: var(--slate-500);
 
   /* Tipografía y Medidas */
@@ -35,14 +47,23 @@
   --radio-lg: 8px;
   --radio-xl: 12px;
   --sombra-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+  /* Espacio pequeño (8px): lo usa notificaciones.css en el gap de los toasts */
+  --espacio-2: 8px;
   --espacio-4: 16px;
   --espacio-6: 24px;
   --altura-barra: 64px;
   --ancho-max: 1200px;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   margin: 0;
@@ -53,10 +74,25 @@ body {
   background: var(--fondo-app);
 }
 
-h1, h2, h3, p { margin: 0; }
-a { color: inherit; text-decoration: none; }
-button { font-family: inherit; }
-[hidden] { display: none !important; }
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
 
 /* Foco de teclado accesible con contorno morado */
 :focus-visible {

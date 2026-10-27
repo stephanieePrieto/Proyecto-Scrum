@@ -19,7 +19,7 @@ import { enviarCorreo } from '../../utils/correo.js';
  * @returns {Promise<void>}
  */
 export const solicitarRecuperacion = async (correo) => {
-    const { rows } = await consulta('SELECT id, nombre FROM usuarios WHERE correo = $1', [correo.toLowerCase()]);
+    const { rows } = await consulta('SELECT id, nombre FROM usuarios WHERE correo = $1 AND activo = TRUE', [correo.trim().toLowerCase()]);
     const usuario = rows[0];
 
     if (!usuario) {
@@ -36,7 +36,7 @@ export const solicitarRecuperacion = async (correo) => {
     );
 
     const enlace = `${env.APP_URL}/pages/restablecer-password.html?token=${tokenPlano}`;
-    
+
     await enviarCorreo({
         para: correo,
         asunto: 'Recuperación de contraseña',

@@ -1,18 +1,15 @@
 // Responsable: Jetz - HU-01: reglas, SQL y avisos por socket (proyectos y Definition of Done)
+
 /**
- * HU-01 · Gestionar proyectos (Jetz)
  * Reglas de negocio: crear, editar, archivar y consultar proyectos.
  *
  * Usa las tablas reales de database/schema.sql: proyectos, equipos, miembros_equipo, sprints, usuarios.
- * SUPUESTOS sobre el código BASE (solo los puntos marcados con [AJUSTAR]):
- *  - db.js exporta { query(texto, params) } y devuelve el resultado de pg (.rows).
- *  - ErrorApp se construye como new ErrorApp(mensaje, estadoHttp).
- *  - autenticar.js deja el id del usuario en req.user.id.
+ * @author Jetzaly
+ * @author Citlaly Morales Viveros
  */
+
 import { consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
-
-
 
 // ---------- Utilidades internas ----------
 
@@ -22,14 +19,32 @@ function lanzar(estado, mensaje, detalles) {
   throw error;
 }
 
-async function esAdmin(usuario) {
+/**
+ * Verifica si un usuario tiene rol de Scrum Master en un proyecto específico.
+ */
+export async function puedeGestionar(proyectoId, usuario) {
   if (!usuario?.id) return false;
-  const { rows } = await query('SELECT es_admin FROM usuarios WHERE id = $1 AND activo = TRUE', [usuario.id]);
-  return rows[0]?.es_admin === true;
+  const { rows } = await query(
+    "SELECT 1 FROM miembros_proyecto WHERE proyecto_id = $1 AND usuario_id = $2 AND rol = 'scrum_master'",
+    [proyectoId, usuario.id]
+  );
+  return rows.length > 0;
 }
 
-async function exigirAdmin(usuario) {
-  if (!(await esAdmin(usuario))) lanzar(403, 'Solo un administrador puede realizar esta acción.');
+async function exigirGestion(proyectoId, usuario) {
+  if (!(await puedeGestionar(proyectoId, usuario))) {
+    lanzar(403, 'Solo el Scrum Master del proyecto puede realizar esta acción.');
+  }
+}
+
+async function exigirMiembroEquipo(equipoId, usuario) {
+  const { rows } = await query(
+    'SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2',
+    [equipoId, usuario.id]
+  );
+  if (rows.length === 0) {
+    lanzar(403, 'Debes pertenecer al equipo para realizar esta acción.');
+  }
 }
 
 export const DOD_BASE = [
@@ -41,7 +56,7 @@ export const DOD_BASE = [
 
 const COLUMNAS = `p.id, p.equipo_id, e.nombre AS equipo_nombre, p.nombre, p.vision,
   p.fecha_inicio::text AS fecha_inicio, p.fecha_fin::text AS fecha_fin,
-  p.definition_of_done, p.archivado, p.version, p.creado_en,
+  p.definition_of_done, p.archivado, p.version, p.creado_por, p.creado_en,
   EXISTS (SELECT 1 FROM sprints s WHERE s.proyecto_id = p.id AND s.estado = 'activo') AS sprint_activo`;
 
 const DESDE = 'FROM proyectos p JOIN equipos e ON e.id = p.equipo_id';
@@ -100,15 +115,12 @@ function traducirDuplicado(error) {
 }
 
 export async function listar(usuario, { archivados = false } = {}) {
-  const params = [archivados];
-  let filtroEquipo = '';
-  if (!(await esAdmin(usuario))) {
-    params.push(usuario.id);
-    filtroEquipo = 'AND p.equipo_id IN (SELECT equipo_id FROM miembros_equipo WHERE usuario_id = $2)';
-  }
   const { rows } = await query(
-    `SELECT ${COLUMNAS} ${DESDE} WHERE p.archivado = $1 ${filtroEquipo} ORDER BY p.creado_en DESC`,
-    params,
+    `SELECT ${COLUMNAS} ${DESDE} 
+     WHERE p.archivado = $1 
+       AND p.equipo_id IN (SELECT equipo_id FROM miembros_equipo WHERE usuario_id = $2)
+     ORDER BY p.creado_en DESC`,
+    [archivados, usuario.id],
   );
   return rows;
 }
@@ -118,28 +130,31 @@ export async function obtener(id, usuario) {
   const proyecto = rows[0];
   if (!proyecto) lanzar(404, 'Proyecto no encontrado.');
 
-  if (!(await esAdmin(usuario))) {
-    const miembro = await query(
-      'SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2',
-      [proyecto.equipo_id, usuario.id],
-    );
-    if (!miembro.rows.length) lanzar(404, 'Proyecto no encontrado.');
-  }
+  const miembro = await query(
+    'SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2',
+    [proyecto.equipo_id, usuario.id],
+  );
+  if (!miembro.rows.length) lanzar(404, 'Proyecto no encontrado.');
+
   return proyecto;
 }
 
 export async function equiposDisponibles(usuario) {
-  await exigirAdmin(usuario);
-  const { rows } = await query('SELECT id, nombre FROM equipos ORDER BY nombre');
+  const { rows } = await query(
+    `SELECT e.id, e.nombre 
+     FROM equipos e
+     JOIN miembros_equipo me ON e.id = me.equipo_id
+     WHERE me.usuario_id = $1
+     ORDER BY e.nombre`,
+    [usuario.id]
+  );
   return rows;
 }
 
 export async function crear(datos, usuario) {
-  await exigirAdmin(usuario);
   const limpio = validarDatos(datos, { esCreacion: true });
 
-  const equipo = await query('SELECT 1 FROM equipos WHERE id = $1', [limpio.equipo_id]);
-  if (!equipo.rows.length) lanzar(400, 'Revisa los campos marcados.', { campos: { equipo_id: 'El equipo seleccionado no existe.' } });
+  await exigirMiembroEquipo(limpio.equipo_id, usuario);
 
   if (await existeNombre(limpio.equipo_id, limpio.nombre)) {
     lanzar(409, 'Ya existe un proyecto con ese nombre en el equipo.', ERROR_NOMBRE);
@@ -147,10 +162,16 @@ export async function crear(datos, usuario) {
 
   try {
     const { rows } = await query(
-      `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [limpio.equipo_id, limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin, limpio.definition_of_done],
+      `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done, creado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [limpio.equipo_id, limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin, limpio.definition_of_done, usuario.id],
     );
+
+    await query(
+      `INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol) VALUES ($1, $2, 'scrum_master')`,
+      [rows[0].id, usuario.id]
+    );
+
     return obtener(rows[0].id, usuario);
   } catch (error) {
     return traducirDuplicado(error);
@@ -158,7 +179,8 @@ export async function crear(datos, usuario) {
 }
 
 export async function actualizar(id, datos, usuario) {
-  await exigirAdmin(usuario);
+  await exigirGestion(id, usuario);
+
   const limpio = validarDatos(datos, { esCreacion: false });
   const versionCliente = Number(datos.version);
   if (!Number.isInteger(versionCliente)) lanzar(400, 'Falta la versión del proyecto.', { campos: {} });
@@ -178,7 +200,7 @@ export async function actualizar(id, datos, usuario) {
         WHERE id = $6 AND version = $7 AND archivado = FALSE
         RETURNING id`,
       [limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin,
-        limpio.definition_of_done, id, versionCliente],
+      limpio.definition_of_done, id, versionCliente],
     );
 
     if (!rows.length) {
@@ -192,7 +214,7 @@ export async function actualizar(id, datos, usuario) {
 }
 
 export async function archivar(id, usuario) {
-  await exigirAdmin(usuario);
+  await exigirGestion(id, usuario);
   await obtener(id, usuario);
 
   const { rows } = await query(
@@ -211,5 +233,3 @@ export async function archivar(id, usuario) {
   }
   return obtener(id, usuario);
 }
-
-export { esAdmin };

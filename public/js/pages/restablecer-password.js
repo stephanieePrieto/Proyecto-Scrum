@@ -1,4 +1,5 @@
 import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
 
 /**
  * @file restablecer-password.js
@@ -14,8 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = parametros.get('token');
 
     if (!token) {
-        alerta.className = 'alerta-mensaje error';
-        alerta.textContent = 'Token de recuperación no válido o ausente.';
+        mostrarAlerta(alerta, 'error', 'Token de recuperación no válido o ausente.');
         if (formulario) {
             const boton = formulario.querySelector('button');
             if (boton) boton.disabled = true;
@@ -31,8 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmarPassword = document.getElementById('confirmar-password').value;
 
             if (nuevaPassword !== confirmarPassword) {
-                alerta.className = 'alerta-mensaje error';
-                alerta.textContent = 'Las contraseñas no coinciden.';
+                mostrarAlerta(alerta, 'error', 'Las contraseñas no coinciden.');
                 return;
             }
 
@@ -42,18 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     cuerpo: { token, nuevaPassword }
                 });
 
-                alerta.className = 'alerta-mensaje exito';
-                alerta.textContent = 'Contraseña actualizada correctamente. Redirigiendo...';
+                mostrarAlerta(alerta, 'exito', 'Contraseña actualizada correctamente. Redirigiendo...');
                 formulario.reset();
 
                 setTimeout(() => {
                     window.location.href = '/login.html';
                 }, 2000);
             } catch (error) {
-                alerta.className = 'alerta-mensaje error';
-                alerta.textContent = error.estado === 400
-                    ? 'El enlace de recuperación ha expirado o es inválido.'
-                    : 'Ocurrió un error al restablecer la contraseña.';
+                mostrarAlerta(
+                    alerta,
+                    'error',
+                    error.estado === 400
+                        ? 'El enlace de recuperación ha expirado o es inválido.'
+                        : 'Ocurrió un error al restablecer la contraseña.'
+                );
             }
         });
     }

@@ -10,7 +10,8 @@
 import { pool, consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import {
-    esAdminGlobal,
+    esAdminEquipo,
+    esUsuarioActivo,
     puedeVerEquipo,
     exigirGestionEquipo,
 } from '../../utils/permisos.js';
@@ -203,7 +204,9 @@ async function cargarEquipos(filtro, params, usuario) {
         [rows.map((equipo) => equipo.id)],
     );
 
-    const global = await esAdminGlobal(usuario);
+    /** Equipos que el usuario puede gestionar: los que creó o donde es Scrum Master de un proyecto activo. */
+    const gestionables = new Set((await Promise.all(rows.map(async (equipo) =>
+        (await esAdminEquipo(usuario, equipo.id)) ? equipo.id : null))).filter(Boolean));
     return rows.map((equipo) => {
         const integrantes = miembros
             .filter((m) => m.equipo_id === equipo.id)
@@ -212,7 +215,7 @@ async function cargarEquipos(filtro, params, usuario) {
             ...equipo,
             miembros: integrantes,
             advertencias: advertenciasTamano(equipo.total_miembros),
-            puede_gestionar: global,
+            puede_gestionar: gestionables.has(equipo.id),
         };
     });
 }
@@ -225,11 +228,14 @@ async function cargarEquipos(filtro, params, usuario) {
  * @returns {Promise<{equipos: Object[], puede_crear: boolean}>}
  */
 export async function listar(usuario) {
-    const global = await esAdminGlobal(usuario);
-    const equipos = global
-        ? await cargarEquipos('', [], usuario)
-        : await cargarEquipos('WHERE e.id IN (SELECT equipo_id FROM miembros_equipo WHERE usuario_id = $1)', [usuario.id], usuario);
-    return { equipos, puede_crear: global };
+    /** Ven el equipo quienes son integrantes y quien lo creó, aunque ya no figure como integrante. */
+    const equipos = await cargarEquipos(
+        'WHERE e.id IN (SELECT equipo_id FROM miembros_equipo WHERE usuario_id = $1) OR e.creado_por = $1',
+        [usuario.id],
+        usuario,
+    );
+    /** Crear equipos no depende del rol: los roles de Scrum se asignan al crear cada proyecto. */
+    return { equipos, puede_crear: true };
 }
 
 /**
@@ -255,7 +261,8 @@ export async function obtener(id, usuario) {
  * @returns {Promise<{id: number, nombre: string, correo: string}[]>}
  */
 export async function usuariosDisponibles({ q = '', equipoId = null } = {}, usuario) {
-    if (!(await esAdminGlobal(usuario))) lanzar(403, 'Solo un administrador puede buscar usuarios para los equipos.');
+    /** Cualquier usuario activo puede buscar personas para armar su equipo; gestionar uno existente se valida abajo. */
+    if (!(await esUsuarioActivo(usuario))) lanzar(403, 'Tu cuenta no está activa.');
     if (equipoId) await exigirEquipoGestionable(equipoId, usuario);
 
     const texto = String(q ?? '').trim().replace(/[\\%_]/g, '\\$&');
@@ -283,7 +290,8 @@ export async function usuariosDisponibles({ q = '', equipoId = null } = {}, usua
  * @returns {Promise<Object>} Equipo creado.
  */
 export async function crear(datos = {}, usuario) {
-    if (!(await esAdminGlobal(usuario))) lanzar(403, 'Solo un administrador puede crear equipos.');
+    /** Cualquier usuario activo puede crear equipos; quien lo crea queda registrado como creador. */
+    if (!(await esUsuarioActivo(usuario))) lanzar(403, 'Tu cuenta no está activa.');
     const nombre = validarNombre(datos.nombre);
     const ids = normalizarIds(datos.miembros ?? []);
 
@@ -293,9 +301,10 @@ export async function crear(datos = {}, usuario) {
     try {
         equipoId = await enTransaccion(async (cliente) => {
             await validarUsuariosActivos(ids, cliente);
+            /** Registrar quién crea el equipo: permisos.js (esAdminEquipo) lo usa para darle permiso de gestión. */
             const { rows } = await cliente.query(
-                'INSERT INTO equipos (nombre) VALUES ($1) RETURNING id',
-                [nombre],
+                'INSERT INTO equipos (nombre, creado_por) VALUES ($1, $2) RETURNING id',
+                [nombre, usuario.id],
             );
             const nuevoId = rows[0].id;
             /** Quien crea el equipo queda siempre como integrante por defecto (sin permisos extra). */

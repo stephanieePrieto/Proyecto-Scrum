@@ -1,4 +1,5 @@
 import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
 
 /**
  * @file login.js
@@ -23,17 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     cuerpo: { correo, password }
                 });
 
-                alerta.className = 'alerta-mensaje exito';
-                alerta.textContent = respuesta.mensaje || 'Inicio de sesión exitoso';
+                mostrarAlerta(alerta, 'exito', respuesta.mensaje || 'Inicio de sesión exitoso');
 
                 setTimeout(() => {
                     window.location.href = '/pages/dashboard.html';
                 }, 1000);
             } catch (error) {
-                alerta.className = 'alerta-mensaje error';
-                alerta.textContent = error.estado === 401
-                    ? 'Credenciales incorrectas o cuenta bloqueada.'
-                    : 'Error al iniciar sesión. Inténtalo más tarde.';
+                let texto = 'Error al iniciar sesión. Inténtalo más tarde.';
+                if (error.estado === 401) texto = 'Credenciales incorrectas o cuenta bloqueada.';
+                else if (error.estado === 429) texto = 'Demasiados intentos fallidos. Inténtalo de nuevo más tarde.';
+
+                mostrarAlerta(alerta, 'error', texto);
             }
         });
     }

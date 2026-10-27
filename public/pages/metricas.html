@@ -1,1 +1,80 @@
-<!-- Responsable: Dana - HU-28 a HU-33, HU-36: pantalla de metricas y rendimiento (se arma con los archivos de js/pages/metricas/). Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!DOCTYPE html>
+<!-- HU-30: Gráfica Velocity. HU-31: Porcentaje de avance.
+     Esta página no lleva estilos propios: todo viene de /css (ver componentes/metricas.css).
+     El proyecto sale de ?proyecto=ID; si falta, se elige con GET /api/metricas/mis-proyectos. 
+     @author Dana -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Métricas · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+
+  <!-- Estilos de métricas (gráfica, barras de avance y tarjetas KPI) -->
+  <link rel="stylesheet" href="/css/componentes/metricas.css" />
+
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Métricas del proyecto</h1>
+        <p class="subtitulo-pagina">Velocity del equipo y avance por persona</p>
+      </div>
+      <div class="encabezado-pagina__acciones">
+        <label id="selector-proyecto" class="metricas__filtro" for="filtro-proyecto" hidden>Proyecto
+          <select id="filtro-proyecto" class="metricas__selector"></select>
+        </label>
+        <a class="boton boton--secundario btn btn--secondary" href="/pages/dashboard.html">Volver al dashboard</a>
+      </div>
+    </div>
+
+    <p id="metricas-error" class="alerta alerta--error" role="alert" hidden></p>
+
+    <!-- HU-30: velocity por sprint cerrado -->
+    <section id="seccion-velocity" class="tarjeta metricas__seccion" aria-labelledby="velocity-titulo">
+      <div class="metricas__cabecera">
+        <div>
+          <h2 id="velocity-titulo" class="metricas__titulo">Velocity por sprint</h2>
+          <p class="subtitulo-pagina">Puntos de historias aceptadas en cada sprint cerrado</p>
+        </div>
+      </div>
+      <div id="velocity-contenido" aria-live="polite"></div>
+    </section>
+
+    <!-- HU-31: avance por persona y por equipo -->
+    <section id="seccion-avance" class="tarjeta metricas__seccion" aria-labelledby="avance-titulo">
+      <div class="metricas__cabecera">
+        <div>
+          <h2 id="avance-titulo" class="metricas__titulo">Porcentaje de avance</h2>
+          <p class="subtitulo-pagina">Horas estimadas en «Hecho» entre las horas estimadas asignadas</p>
+        </div>
+        <label class="metricas__filtro" for="filtro-sprint">Sprint
+          <select id="filtro-sprint" class="metricas__selector">
+            <option value="">Todo el proyecto</option>
+          </select>
+        </label>
+      </div>
+      <div id="avance-contenido" aria-live="polite"></div>
+    </section>
+
+    <!-- Las demás métricas (burndown, distribución, umbrales, exportar) se agregan aquí en sus sprints -->
+  </main>
+
+  <script type="module" src="/js/pages/metricas.js"></script>
+</body>
+</html>

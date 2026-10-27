@@ -1,33 +1,32 @@
 /**
  * @file metricas.routes.js
- * @description Declarar las rutas del módulo de métricas y encadenar sus middlewares (HU-29 a HU-33, HU-35, HU-36).
+ * @description Declarar las rutas del módulo de métricas y encadenar sus middlewares
+ * app.js monta este router automáticamente en /api/metricas (el prefijo es el nombre de la carpeta),
+ * por eso las rutas de aquí no repiten "metricas".
  * @author Dana
  */
 
 import { Router } from 'express';
-import { esModoDemo } from './metricas.demo.js';
-import { dashboard } from './metricas.controller.js';
 import { autenticar } from '../../middlewares/autenticar.js';
-
-/**
- * Elegir el middleware de protección de la ruta.
- * Omitir la autenticación en modo demo (aún no existe login ni base de datos).
- * Cargar middlewares/autenticar.js solo fuera del modo demo.
- */
-let proteger = (req, res, next) => next();
-
-if (!esModoDemo()) {
-  proteger = autenticar;
-}
+import { misProyectos, dashboard, velocity, avance } from './metricas.controller.js';
 
 const router = Router();
 
 /**
- * Registrar GET /proyectos/:proyectoId/metricas/dashboard.
- * Ejecutar en este orden:
- *   1. proteger   → verificar sesión (se omite en modo demo).
- *   2. dashboard  → validar el parámetro, calcular y responder los KPIs.
+ * Registrar las rutas.
+ *   1. autenticar: verificar la sesión y llenar req.user.
+ *   2. controlador: validar el proyecto, comprobar que el usuario pertenezca a él y responder.
  */
-router.get('/proyectos/:proyectoId/metricas/dashboard', proteger, dashboard);
+// Proyectos del usuario: GET /api/metricas/mis-proyectos
+router.get('/mis-proyectos', autenticar, misProyectos);
+
+// HU-35: GET /api/metricas/proyectos/:proyectoId/dashboard
+router.get('/proyectos/:proyectoId/dashboard', autenticar, dashboard);
+
+// HU-30: GET /api/metricas/proyectos/:proyectoId/velocity
+router.get('/proyectos/:proyectoId/velocity', autenticar, velocity);
+
+// HU-31: GET /api/metricas/proyectos/:proyectoId/avance?sprintId=N
+router.get('/proyectos/:proyectoId/avance', autenticar, avance);
 
 export default router;

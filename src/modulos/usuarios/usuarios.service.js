@@ -72,3 +72,40 @@ export const restablecerPassword = async (tokenPlano, nuevaPassword) => {
     await consulta('UPDATE usuarios SET password_hash = $1, intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = $2', [passwordHash, registroToken.usuario_id]);
     await consulta('UPDATE tokens_recuperacion SET usado = TRUE WHERE id = $1', [registroToken.id]);
 };
+
+/**
+ * Define la contraseña de un usuario nuevo (alta directa).
+ * @param {string} tokenPlano - Token de recuperación (usado para definir contraseña).
+ * @param {string} nuevaPassword - Nueva contraseña.
+ * @returns {Promise<void>}
+ */
+export const definirPassword = async (tokenPlano, nuevaPassword) => {
+    const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
+
+    const { rows } = await consulta(
+        `SELECT tr.id, tr.usuario_id, u.correo
+        FROM tokens_recuperacion tr
+        JOIN usuarios u ON u.id = tr.usuario_id
+        WHERE tr.token_hash = $1 AND tr.usado = FALSE AND tr.expira_en > NOW()`,
+        [tokenHash]
+    );
+
+    const registroToken = rows[0];
+    if (!registroToken) {
+        throw new ErrorApp('El enlace para definir contraseña es inválido o ha expirado.', 400);
+    }
+
+    if (!esPasswordFuerte(nuevaPassword)) {
+        throw new ErrorApp('La contraseña no cumple los requisitos de seguridad.', 400);
+    }
+
+    const passwordHash = await hashearPassword(nuevaPassword);
+    await consulta('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [passwordHash, registroToken.usuario_id]);
+    await consulta('UPDATE tokens_recuperacion SET usado = TRUE WHERE id = $1', [registroToken.id]);
+
+    await enviarCorreo({
+        para: registroToken.correo,
+        asunto: 'Bienvenido a ScrumFlow',
+        texto: `Hola,\n\nTu contraseña ha sido definida correctamente. Ahora puedes iniciar sesión en:\n${env.APP_URL}/pages/login.html`,
+    });
+};

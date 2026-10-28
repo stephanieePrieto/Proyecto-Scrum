@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { solicitarRecuperacion, restablecerPassword } from './usuarios.controller.js';
+import { solicitarRecuperacion, restablecerPassword, definirPasswordController } from './usuarios.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 /**
@@ -11,5 +11,6 @@ const router = Router();
 
 router.post('/recuperar-password', asyncHandler(solicitarRecuperacion));
 router.post('/restablecer-password', asyncHandler(restablecerPassword));
+router.post('/definir-password', asyncHandler(definirPasswordController));
 
 export default router;

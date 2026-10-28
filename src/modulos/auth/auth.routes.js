@@ -18,4 +18,6 @@ router.post('/logout', asyncHandler(logout));
 router.post('/refresh', asyncHandler(renovarToken));
 router.post('/actividad', autenticar, asyncHandler(latido));
 
+router.get('/latido', autenticar, latido);
+
 export default router;

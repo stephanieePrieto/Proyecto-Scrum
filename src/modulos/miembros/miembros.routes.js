@@ -11,6 +11,7 @@ import autenticar from '../../middlewares/autenticar.js';
 import { requierePermiso } from '../../middlewares/requiereRol.js';
 //sin permisosUsuarios
 import { listar, misPermisos, asignarRol, quitarRol } from './miembros.controller.js';
+import { obtenerRolProyecto, puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
 
 const router = Router();
 

@@ -1,6 +1,7 @@
 /**
  * @file app.js
  * @description Configuración central de Express con ES Modules.
+ * @author Citlaly Morales Viveros
  */
 import express from 'express';
 import cors from 'cors';
@@ -14,6 +15,12 @@ import { manejoErrores, noEncontrado } from './middlewares/manejoErrores.js';
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const carpetaPublica = path.join(aqui, '..', 'public');
 
+/**
+ * Importa un módulo si el archivo existe. Si la carga falla, registra el error y devuelve un objeto vacío.
+ *
+ * @param {string} rutaAbsoluta - Ruta absoluta del archivo a importar.
+ * @returns {Promise<Object>} Exportaciones del módulo o un objeto vacío.
+ */
 async function importarSiExiste(rutaAbsoluta) {
   if (!fs.existsSync(rutaAbsoluta)) return {};
   try {
@@ -24,6 +31,12 @@ async function importarSiExiste(rutaAbsoluta) {
   }
 }
 
+/**
+ * Crea y configura la aplicación de Express. Cada carpeta de src/modulos con un archivo
+ * <nombre>.routes.js se monta automáticamente en /api/<nombre>.
+ *
+ * @returns {Promise<import('express').Express>} Aplicación configurada.
+ */
 export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
@@ -60,5 +73,6 @@ export async function crearApp() {
 
   app.use('/api', noEncontrado);
   app.use(manejoErrores);
+
   return app;
 }

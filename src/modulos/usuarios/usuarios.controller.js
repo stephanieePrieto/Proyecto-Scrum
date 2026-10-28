@@ -1,4 +1,5 @@
 import * as usuariosService from './usuarios.service.js';
+import { ErrorApp } from '../../utils/ErrorApp.js';
 
 /**
  * @file usuarios.controller.js
@@ -39,4 +40,21 @@ export const restablecerPassword = async (req, res) => {
     res.status(200).json({
         mensaje: 'Contraseña actualizada correctamente.'
     });
+};
+
+/**
+ * Controlador para definir contraseña (alta directa).
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const definirPasswordController = async (req, res) => {
+    const { token, password } = req.body;
+
+    if (typeof token !== 'string' || typeof password !== 'string') {
+        throw new ErrorApp('Token y contraseña son obligatorios.', 400);
+    }
+
+    await usuariosService.definirPassword(token, password);
+    res.status(200).json({ mensaje: 'Contraseña definida correctamente.' });
 };

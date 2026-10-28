@@ -12,7 +12,7 @@
  */
 import { pool, consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
-import { permisosDeUsuario, puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
+import { PERMISOS, obtenerRolProyecto, tienePermiso, puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
 import emisor from '../../sockets/emisor.js';
 
 /** Roles válidos dentro de un proyecto, en el orden en que se muestran. */
@@ -326,6 +326,22 @@ export async function listar(proyectoId, usuario) {
     const proyecto = await cargarProyecto(id);
     if (!(await puedeVerEquipo(usuario, proyecto.equipo_id))) lanzar(404, 'Proyecto no encontrado.');
     return armarMatriz(proyecto, usuario);
+}
+
+/**
+ * Obtiene el rol vigente de la persona en el proyecto y las claves de la matriz de permisos que
+ * tiene concedidas, evaluando cada una contra la base de datos.
+ *
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @param {number} proyectoId - Identificador del proyecto.
+ * @returns {Promise<{rol: string|null, permisos: string[]}>}
+ */
+async function permisosDeUsuario(usuario, proyectoId) {
+    const rol = await obtenerRolProyecto(usuario, proyectoId);
+    const evaluados = await Promise.all(
+        Object.keys(PERMISOS).map(async (clave) => ((await tienePermiso(usuario, clave, proyectoId)) ? clave : null)),
+    );
+    return { rol, permisos: evaluados.filter(Boolean) };
 }
 
 /**

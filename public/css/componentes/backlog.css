@@ -368,9 +368,8 @@
 #dialogo-historia #formulario-historia {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  max-height: 90vh;
   min-height: 0;
+  max-height: calc(100dvh - 40px);
 }
 
 #dialogo-historia .modal-body {
@@ -409,3 +408,23 @@
 #dialogo-historia:not([open]) {
   display: none;
 }
+
+#dialogo-historia[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: calc(100% - 32px);
+  max-width: 600px;
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: none;
+  box-sizing: border-box;
+}
+
+#dialogo-historia[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  border: none;
+}
+

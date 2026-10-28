@@ -91,6 +91,41 @@ function abrirDetalleKpi(id) {
 
   descripcionModalKpi.textContent = descripciones[id] || 'Información del indicador.';
   contenidoModalKpi.textContent = '';
+  contenidoModalKpi.style.whiteSpace = 'pre-line';
+  contenidoModalKpi.style.lineHeight = '1.8';
+  contenidoModalKpi.style.marginTop = '16px';
+  contenidoModalKpi.style.marginBottom = '16px';
+
+  enlaceModalKpi.hidden = true;
+  enlaceModalKpi.style.display = 'none';
+
+  const destinosKpi = {
+  avance: {
+    texto: 'Ver Backlog',
+    ruta: '/pages/backlog.html'
+  },
+  diasRestantes: {
+    texto: 'Ver Sprints',
+    ruta: '/pages/sprints.html'
+  },
+  impedimentos: {
+    texto: 'Ver impedimentos',
+    ruta: '/pages/impedimentos.html'
+  },
+  desviacion: {
+    texto: 'Ver métricas',
+    ruta: '/pages/metricas.html'
+  }
+};
+
+const destino = destinosKpi[id];
+
+if (destino) {
+  enlaceModalKpi.textContent = destino.texto;
+  enlaceModalKpi.href = destino.ruta;
+  enlaceModalKpi.removeAttribute('hidden');
+  enlaceModalKpi.style.setProperty('display', 'inline-flex', 'important');
+}
   
   const k = datosKpiActuales[id];
 

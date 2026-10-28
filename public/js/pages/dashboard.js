@@ -83,7 +83,7 @@ function abrirDetalleKpi(id) {
   tituloModalKpi.textContent = indicador.etiqueta;
 
   const descripciones = {
-    avance: 'Muestra qué porcentaje de las tareas del proyecto se ha completado.',
+    avance: 'Muestra tu progreso individual y las tareas que tienes pendientes.',
     diasRestantes: 'Indica cuántos días faltan para finalizar el sprint activo.',
     impedimentos: 'Muestra los obstáculos pendientes que pueden afectar el trabajo del equipo.',
     desviacion: 'Compara las horas reales de trabajo con las horas estimadas.'
@@ -130,60 +130,116 @@ if (destino) {
   const k = datosKpiActuales[id];
 
   if (id === 'avance' && k) {
-    const porcentaje = Number(k.valor);
-    const hechas = Number(k.hechas);
-    const total = Number(k.total);
+    contenidoModalKpi.style.whiteSpace = 'normal';
 
-    contenidoModalKpi.textContent =
-      `Avance actual: ${Number.isFinite(porcentaje) ? porcentaje : 'No disponible'}%\n` +
-      `Tareas completadas: ${Number.isFinite(hechas) ? hechas : 'No disponible'}\n` +
-      `Total de tareas: ${Number.isFinite(total) ? total : 'No disponible'}`;
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mi avance en el proyecto</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará la gráfica de tu avance individual
+            cuando esté disponible la información del usuario.
+          </p>
+        </div>
+
+        <h3>Tareas pendientes</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerá la lista de tareas que todavía
+            tienes pendientes por completar.
+          </p>
+        </div>
+
+      </div>
+    `;
   }
   
   if (id === 'diasRestantes' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
     if (k.valor === null || k.valor === undefined) {
-      contenidoModalKpi.textContent =
-        'No hay un sprint activo en este momento.';
+      contenidoModalKpi.innerHTML = `
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            No hay un sprint activo en este momento.
+          </p>
+        </div>
+      `;
     } else {
       const dias = Number(k.valor);
 
-      contenidoModalKpi.textContent =
-        `Días restantes: ${Number.isFinite(dias) ? dias : 'No disponible'}\n` +
-        'Este indicador muestra el tiempo que falta para cerrar el sprint activo.';
+      contenidoModalKpi.innerHTML = `
+        <div class="detalle-avance">
+          <h3>Tiempo restante del sprint</h3>
+
+          <div class="aviso aviso--vacio">
+            <p class="aviso__texto">
+              Quedan <strong>${Number.isFinite(dias) ? dias : '—'} días</strong>
+              para finalizar el sprint activo.
+            </p>
+          </div>
+        </div>
+      `;
     }
   }
 
   if (id === 'impedimentos' && k) {
-    const total = Number(k.valor);
-    const criticos = Number(k.criticos);
+    contenidoModalKpi.style.whiteSpace = 'normal';
 
-    if (total === 0) {
-      contenidoModalKpi.textContent =
-        'No hay impedimentos abiertos en este momento.';
-    } else {
-      contenidoModalKpi.textContent =
-        `Impedimentos abiertos: ${Number.isFinite(total) ? total : 'No disponible'}\n` +
-        `Impedimentos críticos: ${Number.isFinite(criticos) ? criticos : 'No disponible'}\n` +
-        'Los impedimentos son obstáculos que pueden dificultar el avance del equipo.';
-    }
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mis impedimentos abiertos</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará la cantidad de impedimentos
+            abiertos que tienes asignados.
+          </p>
+        </div>
+
+        <h3>Lista de impedimentos</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerán los impedimentos que tienes
+            pendientes de resolver.
+          </p>
+        </div>
+
+      </div>
+    `;
   }
   
   if (id === 'desviacion' && k) {
-    const diferencia = Number(k.valor);
-    const reales = Number(k.real);
-    const estimadas = Number(k.estimado);
+    contenidoModalKpi.style.whiteSpace = 'normal';
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
 
-    const estado = diferencia < 0
-      ? 'Por debajo de lo estimado'
-      : diferencia === 0
-        ? 'Dentro de lo estimado'
-        : 'Por encima de lo estimado';
+        <h3>Mi gráfica burndown</h3>
 
-    contenidoModalKpi.textContent =
-      `Desviación acumulada: ${Number.isFinite(diferencia) ? `${diferencia > 0 ? '+' : ''}${diferencia} h` : 'No disponible'}\n` +
-      `Horas reales: ${Number.isFinite(reales) ? reales : 'No disponible'} h\n` +
-      `Horas estimadas: ${Number.isFinite(estimadas) ? estimadas : 'No disponible'} h\n` +
-      `Estado: ${estado}`;
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará una gráfica con el trabajo
+            que tienes pendiente durante el sprint,
+            comparando el avance ideal con tu avance real.
+          </p>
+        </div>
+
+        <h3>Seguimiento individual</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerá el seguimiento de tus tareas
+            pendientes conforme avance el sprint.
+          </p>
+        </div>
+
+      </div>
+    `;
   }
 
   enlaceModalKpi.hidden = true;

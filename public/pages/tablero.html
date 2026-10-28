@@ -18,15 +18,31 @@
 </head>
 
 <body>
-    <!-- Contenedor principal del Layout -->      
+    <!-- Contenedor principal del Layout -->
 
-        <!-- Área de trabajo central -->
-        <main class="main-content">
+    <!-- Área de trabajo central -->
+    <main class="main-content">
 
-            <!-- Contenedor para la navbar inyectada por JS -->
-            <header class="barra-superior" id="barra-superior"></header>
+        <!-- Contenedor para la navbar inyectada por JS -->
+        <header class="barra-superior" id="barra-superior"></header>
 
-            <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
+        <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
+
+            <!--ESTADO VACÍO (Oculto por defecto) -->
+            <div id="tablero-vacio" class="estado-vacio text-center"
+                style="display: none; padding: 4rem 2rem; margin: auto;">
+                <div class="icono-vacio">
+                    <i class="fas fa-columns fa-3x" style="color: #ccc;"></i>
+                </div>
+                <h3 style="margin-top: 1rem; font-size: 1.5rem; font-weight: 600;">Aún no tienes un proyecto activo</h3>
+                <p style="color: var(--texto-suave); margin-top: 0.5rem;">Selecciona o crea un proyecto desde tu
+                    Dashboard para empezar a organizar el trabajo.</p>
+                <a href="/pages/dashboard.html" class="btn btn--primary"
+                    style="margin-top: 1.5rem; display: inline-block;">Ir al Dashboard</a>
+            </div>
+
+            <!--CONTENEDOR DEL TABLERO-->
+            <div id="contenedor-tablero" style="display: flex; flex-direction: column; height: 100%;">
 
                 <!-- Encabezado del Sprint -->
                 <div
@@ -62,8 +78,9 @@
                     <!-- Columnas inyectadas desde JavaScript -->
                 </div>
 
-            </div>
-        </main>
+            </div> <!-- Fin contenedor-tablero -->
+        </div>
+    </main>
 
     <!-- Modal de Configuración de Columnas -->
     <div id="overlay-configurar-columnas" class="modal-overlay modal--hidden">

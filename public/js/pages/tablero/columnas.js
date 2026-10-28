@@ -48,7 +48,7 @@ const modalConfig = document.getElementById('overlay-configurar-columnas');
 let columnasActivas = [];
 
 /** @type {number|string} */
-let proyectoIdActual = localStorage.getItem('proyectoActivoId') || 1;
+let proyectoIdActual = localStorage.getItem('proyectoActivo') || null;
 
 /**
  * Genera nodos esqueléticos (skeletons) mediante la API del DOM durante la carga.

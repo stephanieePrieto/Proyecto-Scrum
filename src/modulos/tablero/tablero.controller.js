@@ -17,7 +17,17 @@ import { actualizarColumnas, moverTarjeta, obtenerEstructuraTablero } from './ta
  * @returns {Promise<void>}
  */
 export const obtenerTablero = asyncHandler(async (req, res) => {
-    const proyectoId = req.params.proyectoId || 1;
+    const proyectoId = req.params.proyectoId;
+    
+    // Validar que el proyectoId exista
+    if (!proyectoId || proyectoId === 'null') {
+        return res.status(200).json({
+            status: 'success',
+            mensaje: 'No hay proyecto seleccionado.',
+            data: { columnas: [], tareas: [] } // Proyecto nulo = estructura vacía
+        });
+    }
+
     const datosTablero = await obtenerEstructuraTablero(proyectoId);
 
     res.status(200).json({

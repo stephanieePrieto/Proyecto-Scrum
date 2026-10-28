@@ -14,19 +14,38 @@ import { montarBarraSuperior } from '../core/layout.js';
  */
 document.addEventListener('DOMContentLoaded', () => {
     /**
-     * 1. Inyecta la barra de navegación superior en la interfaz.
+     * Inyecta la barra de navegación superior en la interfaz.
      */
     if (typeof montarBarraSuperior === 'function') {
         montarBarraSuperior();
     }
 
     /**
-     * 2. Inicia la carga de las columnas y tarjetas correspondientes al sprint activo.
+     * Validación de proyecto
      */
-    inicializarTablero();
+    const proyectoActivoId = localStorage.getItem('proyectoActivo');
+    const contenedorTablero = document.getElementById('contenedor-tablero');
+    const tableroVacio = document.getElementById('tablero-vacio');
+
+    if (!proyectoActivoId || proyectoActivoId === 'null') {
+        // Mostrar estado vacío y ocultar el kanban
+        if (contenedorTablero) contenedorTablero.style.display = 'none';
+        if (tableroVacio) tableroVacio.style.display = 'block';
+
+        // Retornar temprano para evitar peticiones innecesarias
+        return;
+    } else {
+        // Asegurar que el tablero se muestre si hay proyecto
+        if (contenedorTablero) contenedorTablero.style.display = 'flex';
+        if (tableroVacio) tableroVacio.style.display = 'none';
+    }
+    /**
+     * Inicia la carga de las columnas y tarjetas correspondientes al sprint activo.
+     */
+    inicializarTablero(proyectoActivoId);
 
     /**
-     * 3. Configura los escuchadores de eventos para los botones de acción del encabezado.
+     * Configura los escuchadores de eventos para los botones de acción del encabezado.
      */
     const btnNuevaTarea = document.getElementById('btn-nueva-tarea');
     if (btnNuevaTarea) {

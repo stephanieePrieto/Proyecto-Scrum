@@ -5,7 +5,7 @@
  * @see {@link module:tablero/columnas}
  */
 
-import { inicializarTablero, cargarTablero } from './tablero/columnas.js';
+import { inicializarTablero, aplicarFiltrosTablero } from './tablero/columnas.js';
 import { montarBarraSuperior } from '../core/layout.js';
 
 /**
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Validación de proyecto
+     * Validación de proyecto activo en el almacenamiento local.
      */
     const proyectoActivoId = localStorage.getItem('proyectoActivo');
     const contenedorTablero = document.getElementById('contenedor-tablero');
@@ -39,10 +39,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (contenedorTablero) contenedorTablero.style.display = 'flex';
         if (tableroVacio) tableroVacio.style.display = 'none';
     }
+
     /**
-     * Inicia la carga de las columnas y tarjetas correspondientes al sprint activo.
+     * Inicia la carga de las columnas, tarjetas y cálculo de días del sprint activo.
      */
     inicializarTablero(proyectoActivoId);
+
+    /**
+     * Configura los escuchadores para los filtros dinámicos en tiempo real (Persona / Épica).
+     */
+    const filtroPersona = document.getElementById('filtro-persona');
+    const filtroEpica = document.getElementById('filtro-epica');
+
+    if (filtroPersona) {
+        filtroPersona.addEventListener('change', aplicarFiltrosTablero);
+    }
+
+    if (filtroEpica) {
+        filtroEpica.addEventListener('change', aplicarFiltrosTablero);
+    }
 
     /**
      * Configura los escuchadores de eventos para los botones de acción del encabezado.
@@ -60,24 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnConfigurar.addEventListener('click', () => {
             // Se activará con el modal de personalización de columnas (HU-17)
             console.log('Abrir modal para personalizar columnas');
-        });
-    }
-
-    /**
-     * 4. Configura los escuchadores para los filtros dinámicos (Persona / Épica).
-     */
-    const filtroPersona = document.getElementById('filtro-persona');
-    const filtroEpica = document.getElementById('filtro-epica');
-
-    if (filtroPersona) {
-        filtroPersona.addEventListener('change', (e) => {
-            cargarTablero({ personaId: e.target.value });
-        });
-    }
-
-    if (filtroEpica) {
-        filtroEpica.addEventListener('change', (e) => {
-            cargarTablero({ epicaId: e.target.value });
         });
     }
 });

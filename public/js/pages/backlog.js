@@ -129,7 +129,7 @@ function filaHtml(h, indice, total, permitirMover) {
   const clases = ['bl-historia', h.id === ctx.seleccionadaId ? 'bl-historia--seleccionada' : '', h.estado === 'en_sprint' ? 'bl-historia--en-sprint' : ''].join(' ').trim();
   return `<li class="${clases}" data-id="${h.id}" draggable="${permitirMover}">
     <span class="bl-historia__asa" aria-hidden="true">⠿</span>
-    <span class="bl-historia__id">#${h.id}</span>
+    <span class="bl-historia__id">HU-${String(h.numero_hu ?? h.id).padStart(2, '0')}</span>
     <button class="bl-historia__abrir" type="button" data-control="abrir"
       aria-label="Historia ${indice + 1} de ${total}: ${escaparHtml(h.titulo)}. ${h.puntos == null ? 'Sin estimar' : h.puntos + ' puntos'}"
       aria-pressed="${h.id === ctx.seleccionadaId}">${escaparHtml(h.titulo)}</button>
@@ -172,6 +172,8 @@ function pintar() {
   $('total-historias').textContent = `${ctx.historias.length} ${pluralizar(ctx.historias.length, 'historia', 'historias')}`;
   $('total-puntos').textContent = `${puntos} pts`;
   $('resumen-historias').textContent = ctx.historias.length;
+  $('resumen-historias-texto').textContent =
+  pluralizar(ctx.historias.length, 'historia', 'historias');
   $('resumen-puntos').textContent = puntos;
   $('resumen-sin-estimar').textContent = sinEstimar;
   el.resumen.hidden = !ctx.historias.length;
@@ -197,7 +199,7 @@ function pintarDetalle() {
   const epica = h.epica_nombre ? `<span class="bl-chip" style="--epica:${colorSeguro(h.epica_color)}">${escaparHtml(h.epica_nombre)}</span>` : '';
   el.detalle.innerHTML = `
     <div>
-      <p class="bl-meta">#${h.id}${h.propuesta ? ' · Propuesta' : ''}${h.estado === 'en_sprint' && h.sprint_nombre ? ` · En ${escaparHtml(h.sprint_nombre)}` : ''}</p>
+      <p class="bl-meta">HU-${String(h.numero_hu ?? h.id).padStart(2, '0')}${h.propuesta ? ' · Propuesta' : ''}${h.estado === 'en_sprint' && h.sprint_nombre ? ` · En ${escaparHtml(h.sprint_nombre)}` : ''}</p>
       <h2 class="bl-detalle__titulo">${escaparHtml(h.titulo)}</h2>
     </div>
     <div class="bl-detalle__chips">${epica}<span class="bl-puntos${h.puntos == null ? ' bl-puntos--vacio' : ''}">${h.puntos == null ? 'Sin estimar' : textoPuntos(h.puntos)}</span></div>
@@ -498,6 +500,17 @@ function mostrarAvisoForm(texto) {
 /** Misma validación que el servidor, para avisar sin esperar la respuesta. */
 function validarLocal(v) {
   const errores = {};
+  if (!v.como.trim()) {
+    errores.como = 'El campo Como es obligatorio.';
+  }
+
+  if (!v.quiero.trim()) {
+    errores.quiero = 'El campo Quiero es obligatorio.';
+  }
+
+  if (!v.para.trim()) {
+    errores.para = 'El campo Para es obligatorio.';
+  }
   if (!v.titulo.trim()) errores.titulo = 'Escribe el título de la historia.';
   else if (v.titulo.trim().length > 200) errores.titulo = 'El título no puede superar 200 caracteres.';
   if (v.puntos !== '' && ![1, 2, 3, 5, 8, 13, 21].includes(Number(v.puntos))) errores.puntos = 'Los puntos deben ser 1, 2, 3, 5, 8, 13 o 21.';
@@ -675,10 +688,18 @@ function revisarBorradores() {
   const id = clave.split(':')[2];
   const borrador = leerBorrador(clave);
   const titulo = borrador?.valores?.titulo?.trim();
-  el.avisoBorrador.dataset.clave = clave;
+
+  const historia = id !== 'nueva'
+    ? buscarHistoria(Number(id))
+    : null;
+
+  const numeroVisible = historia
+    ? `HU-${String(historia.numero_hu ?? historia.id).padStart(2, '0')}`
+    : `#${id}`;
+
   $('aviso-borrador-texto').textContent = id === 'nueva'
     ? `Tienes un borrador sin guardar${titulo ? `: «${titulo}»` : ''}.`
-    : `Tienes cambios sin guardar en la historia #${id}.`;
+    : `Tienes cambios sin guardar en la historia ${numeroVisible}.`;
   el.avisoBorrador.hidden = false;
 }
 

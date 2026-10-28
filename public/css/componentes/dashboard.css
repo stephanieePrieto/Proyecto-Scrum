@@ -10,7 +10,7 @@
   width: calc(100% - 32px);
   max-width: 520px;
   box-sizing: border-box;
-  padding: 24px;
+  padding: 0px;
 
   max-height: calc(100vh - 40px);
   overflow-y: auto;

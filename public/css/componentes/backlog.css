@@ -428,3 +428,56 @@
   border: none;
 }
 
+/* Modales de confirmación exclusivos del backlog */
+#dialogo-eliminar:not([open]),
+#dialogo-devolver:not([open]) {
+  display: none !important;
+}
+
+#dialogo-eliminar[open],
+#dialogo-devolver[open] {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: none !important;
+  margin: auto !important;
+
+  width: calc(100% - 32px);
+  max-width: 450px;
+  height: fit-content;
+  max-height: calc(100dvh - 32px);
+
+  padding: 0 !important;
+  border: none !important;
+  border-radius: var(--radio-lg);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-lg);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#dialogo-eliminar::backdrop,
+#dialogo-devolver::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Contenido de los modales de confirmación */
+#dialogo-eliminar .bl-confirmacion__contenido,
+#dialogo-devolver .bl-confirmacion__contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Alinear título y descripción */
+#dialogo-eliminar .bl-confirmacion__contenido > h2,
+#dialogo-eliminar .bl-confirmacion__contenido > p,
+#dialogo-devolver .bl-confirmacion__contenido > h2,
+#dialogo-devolver .bl-confirmacion__contenido > p {
+  margin-left: 0;
+  margin-right: 0;
+}

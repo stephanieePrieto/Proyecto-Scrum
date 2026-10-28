@@ -104,8 +104,9 @@ WHERE p.nombre = 'Proyecto Demo Alfa'
   AND NOT EXISTS (SELECT 1 FROM sprints s WHERE s.proyecto_id = p.id);
 
 -- Cuatro historias de ejemplo en el backlog del Proyecto Demo Alfa (las crea su Product Owner: Citlaly)
-INSERT INTO historias (proyecto_id, titulo, como, quiero, para, criterios, puntos, orden, creada_por)
-SELECT p.id, h.titulo, h.como, h.quiero, h.para, h.criterios, h.puntos, h.orden,
+INSERT INTO historias (proyecto_id, numero_hu, titulo, como, quiero, para, criterios, puntos, orden, creada_por)
+SELECT p.id, h.orden, h.titulo, h.como, h.quiero, h.para,
+       h.criterios, h.puntos, h.orden,
        (SELECT id FROM usuarios WHERE correo = 'citlipop@gmail.com')
 FROM proyectos p
 CROSS JOIN (VALUES
@@ -181,9 +182,9 @@ BEGIN
   RETURNING id INTO v_sprint;
 
   -- ---------------------------------------------------------------- Historias
-  INSERT INTO historias (proyecto_id, epica_id, sprint_id, titulo, como, quiero, para, criterios, puntos, etiquetas, estado, orden, creada_por)
-  SELECT v_proy, e.id, v_sprint, h.titulo, h.como, h.quiero, h.para, h.criterios, h.puntos, h.etiquetas, h.estado,
-         (SELECT COALESCE(MAX(x.orden), 0) FROM historias x WHERE x.proyecto_id = v_proy) + h.orden, v_po
+INSERT INTO historias (proyecto_id, numero_hu, epica_id, sprint_id, titulo, como, quiero, para, criterios, puntos, etiquetas, estado, orden, creada_por)
+SELECT v_proy, (SELECT COALESCE(MAX(x.numero_hu), 0) FROM historias x WHERE x.proyecto_id = v_proy) + h.orden, e.id, v_sprint, h.titulo, h.como, h.quiero, h.para, h.criterios, h.puntos, h.etiquetas, h.estado, 
+       (SELECT COALESCE(MAX(x.orden), 0) FROM historias x WHERE x.proyecto_id = v_proy) + h.orden, v_po
   FROM (VALUES
     ('Inicio de sesion seguro',                 'Acceso y cuentas',    'usuario',       'iniciar sesion con mi correo',                            'acceder al sistema',                          'Con credenciales validas entro al dashboard',                            3, ARRAY['auth'],         'hecho',     1),
     ('Tablero con columnas configurables','Tablero Kanban',       'desarrollador', 'un tablero del sprint activo con columnas',                'ver el avance del trabajo',                   'El tablero carga en menos de 2 segundos con las columnas correspondientes', 8, ARRAY['tablero'],      'en_sprint', 2),
@@ -293,3 +294,14 @@ BEGIN
 
   RAISE NOTICE 'Listo: sprint "%" con 5 historias y 14 tarjetas en "%" (id de proyecto = %).', v_sprint_nombre, v_proyecto_nombre, v_proy;
 END $$;
+
+------------------------------------------------------------- HU-02: sincronizar el contador de historias por proyecto. GREATEST evita disminuir un contador que ya era mayor.
+UPDATE proyectos p
+SET ultimo_numero_hu = GREATEST(
+    p.ultimo_numero_hu,
+    COALESCE((
+        SELECT MAX(h.numero_hu)
+        FROM historias h
+        WHERE h.proyecto_id = p.id
+    ), 0)
+);

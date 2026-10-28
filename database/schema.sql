@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS proyectos (
   ),
   archivado BOOLEAN NOT NULL DEFAULT FALSE,
   version INTEGER NOT NULL DEFAULT 1,
+  ultimo_numero_hu INTEGER NOT NULL DEFAULT 0 CHECK (ultimo_numero_hu >= 0),
   creado_por INTEGER REFERENCES usuarios (id) ON DELETE
   SET NULL,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -179,6 +180,7 @@ WHERE estado = 'activo';
 CREATE TABLE IF NOT EXISTS historias (
   id SERIAL PRIMARY KEY,
   proyecto_id INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
+  numero_hu INTEGER NOT NULL CHECK (numero_hu > 0),
   epica_id INTEGER REFERENCES epicas (id) ON DELETE
   SET NULL,
     sprint_id INTEGER REFERENCES sprints (id) ON DELETE
@@ -208,6 +210,8 @@ CREATE TABLE IF NOT EXISTS historias (
 );
 CREATE INDEX IF NOT EXISTS ix_historias_proyecto_orden ON historias (proyecto_id, orden);
 CREATE INDEX IF NOT EXISTS ix_historias_sprint ON historias (sprint_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_historias_proyecto_numero_hu
+ON historias (proyecto_id, numero_hu);
 -- ===========================================================================
 -- Tablero y tarjetas (HU-08, HU-17 a HU-25)
 -- ===========================================================================

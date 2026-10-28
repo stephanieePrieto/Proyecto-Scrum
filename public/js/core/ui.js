@@ -11,7 +11,7 @@ const ICONOS = {
   avance: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
   dias: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   impedimentos: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>',
-  desviacion: '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  desviacion: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
 };
 
 /**

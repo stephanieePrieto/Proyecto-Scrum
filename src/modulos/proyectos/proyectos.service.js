@@ -117,9 +117,21 @@ function traducirDuplicado(error) {
 
 export async function listar(usuario, { archivados = false } = {}) {
   const { rows } = await query(
-    `SELECT ${COLUMNAS} ${DESDE} 
-     WHERE p.archivado = $1 
-       AND p.equipo_id IN (SELECT equipo_id FROM miembros_equipo WHERE usuario_id = $2)
+    `SELECT ${COLUMNAS},
+       EXISTS (
+         SELECT 1
+         FROM miembros_proyecto mp
+         WHERE mp.proyecto_id = p.id
+           AND mp.usuario_id = $2
+           AND mp.rol = 'scrum_master'
+       ) AS puede_gestionar
+     ${DESDE}
+     WHERE p.archivado = $1
+       AND p.equipo_id IN (
+         SELECT equipo_id
+         FROM miembros_equipo
+         WHERE usuario_id = $2
+       )
      ORDER BY p.creado_en DESC`,
     [archivados, usuario.id],
   );

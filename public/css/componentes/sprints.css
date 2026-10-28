@@ -1,0 +1,164 @@
+
+/* HU-06: Modal de creación de sprints */
+
+#dialogo-sprint {
+  width: calc(100% - 32px);
+  max-width: 600px;
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: none;
+  margin: auto;
+  overflow: hidden;
+}
+
+/* El formulario organiza las tres secciones */
+#formulario-sprint {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - 40px);
+}
+
+/* Solo el contenido central se desplaza */
+#dialogo-sprint .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* Encabezado y pie siempre visibles */
+#dialogo-sprint .modal-header,
+#dialogo-sprint .modal-footer {
+  flex-shrink: 0;
+}
+
+/* Botón de cerrar */
+#dialogo-sprint .bl-boton-cerrar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+#dialogo-sprint:not([open]) {
+  display: none;
+}
+
+#dialogo-sprint[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+}
+
+
+/* Lista de sprints del proyecto */
+
+#lista-sprints {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+
+/* Tarjetas de sprints: estética oficial de AgileDesk */
+#lista-sprints .tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+
+  padding: var(--espacio-6);
+  height: auto;
+  min-height: 0;
+
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-sm);
+}
+
+
+/* Títulos */
+#lista-sprints .tarjeta h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Información del sprint */
+#lista-sprints .tarjeta p {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Destacar ligeramente cada tarjeta */
+#lista-sprints .tarjeta:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  transition: box-shadow 0.2s ease;
+}
+
+
+/* HU-06: Ancho y centrado de la página Sprints */
+.sprints-contenido {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+}
+
+/* Separación entre las secciones */
+.sprints-contenido > * + * {
+  margin-top: var(--espacio-6);
+}
+
+/* Separador de información del sprint */
+#lista-sprints .tarjeta hr {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--borde);
+  margin: var(--espacio-2) 0;
+}
+
+
+/* HU-06: Advertencia de duración del sprint */
+#advertencia-duracion-sprint {
+  padding: 16px;
+}
+
+/* Título de la advertencia */
+#advertencia-duracion-sprint strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Texto de la advertencia */
+#texto-advertencia-duracion {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+/* Botón para aceptar la duración */
+#btn-continuar-duracion {
+  display: block;
+  margin-left: auto;
+}
+
+
+/* HU-06: Distribución de las tarjetas de sprints */
+#lista-sprints {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* En pantallas pequeñas, mostrar una sola columna */
+@media (max-width: 700px) {
+  #lista-sprints {
+    grid-template-columns: 1fr;
+  }
+}

@@ -46,7 +46,7 @@ const btnActualizar = document.getElementById('btn-actualizar');
 
 // Leer los parámetros de la URL: ?proyecto=ID y ?escenario=nombre (solo pruebas)
 const params = new URLSearchParams(location.search);
-const proyectoId = params.get('proyecto') || localStorage.getItem('proyectoActivo') || 1;
+const proyectoId = params.get('proyecto') || null;
 const escenario = params.get('escenario');   // Simular en el navegador
 
 const tituloPagina = document.getElementById('dashboard-titulo');
@@ -64,6 +64,193 @@ const KPIS = [
   { id: 'impedimentos',  etiqueta: 'Impedimentos abiertos', claveIcono: 'impedimentos' },
   { id: 'desviacion',    etiqueta: 'Desviación acumulada',  claveIcono: 'desviacion' },
 ];
+
+/**
+ * Modal de detalles de los KPI
+ */ 
+const modalKpi = document.getElementById('dialogo-detalle-kpi');
+const tituloModalKpi = document.getElementById('detalle-kpi-titulo');
+const descripcionModalKpi = document.getElementById('detalle-kpi-descripcion');
+const contenidoModalKpi = document.getElementById('detalle-kpi-contenido');
+const enlaceModalKpi = document.getElementById('detalle-kpi-enlace');
+const cerrarModalKpi = document.getElementById('detalle-kpi-cerrar');
+
+function abrirDetalleKpi(id) {
+  const indicador = KPIS.find(kpi => kpi.id === id);
+
+  if (!indicador || !modalKpi) return;
+
+  tituloModalKpi.textContent = indicador.etiqueta;
+
+  const descripciones = {
+    avance: 'Muestra tu progreso individual y las tareas que tienes pendientes.',
+    diasRestantes: 'Indica cuántos días faltan para finalizar el sprint activo.',
+    impedimentos: 'Muestra los obstáculos pendientes que pueden afectar el trabajo del equipo.',
+    desviacion: 'Compara las horas reales de trabajo con las horas estimadas.'
+  };
+
+  descripcionModalKpi.textContent = descripciones[id] || 'Información del indicador.';
+  contenidoModalKpi.textContent = '';
+  contenidoModalKpi.style.whiteSpace = 'pre-line';
+  contenidoModalKpi.style.lineHeight = '1.8';
+  contenidoModalKpi.style.marginTop = '16px';
+  contenidoModalKpi.style.marginBottom = '16px';
+
+  enlaceModalKpi.hidden = true;
+  enlaceModalKpi.style.display = 'none';
+
+  const destinosKpi = {
+  avance: {
+    texto: 'Ver Backlog',
+    ruta: '/pages/backlog.html'
+  },
+  diasRestantes: {
+    texto: 'Ver Sprints',
+    ruta: '/pages/sprints.html'
+  },
+  impedimentos: {
+    texto: 'Ver impedimentos',
+    ruta: '/pages/impedimentos.html'
+  },
+  desviacion: {
+    texto: 'Ver métricas',
+    ruta: '/pages/metricas.html'
+  }
+};
+
+const destino = destinosKpi[id];
+
+if (destino) {
+  enlaceModalKpi.textContent = destino.texto;
+  enlaceModalKpi.href = destino.ruta;
+  enlaceModalKpi.removeAttribute('hidden');
+  enlaceModalKpi.style.setProperty('display', 'inline-flex', 'important');
+}
+  
+  const k = datosKpiActuales[id];
+
+  if (id === 'avance' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mi avance en el proyecto</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará la gráfica de tu avance individual
+            cuando esté disponible la información del usuario.
+          </p>
+        </div>
+
+        <h3>Tareas pendientes</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerá la lista de tareas que todavía
+            tienes pendientes por completar.
+          </p>
+        </div>
+
+      </div>
+    `;
+  }
+  
+  if (id === 'diasRestantes' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
+    if (k.valor === null || k.valor === undefined) {
+      contenidoModalKpi.innerHTML = `
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            No hay un sprint activo en este momento.
+          </p>
+        </div>
+      `;
+    } else {
+      const dias = Number(k.valor);
+
+      contenidoModalKpi.innerHTML = `
+        <div class="detalle-avance">
+          <h3>Tiempo restante del sprint</h3>
+
+          <div class="aviso aviso--vacio">
+            <p class="aviso__texto">
+              Quedan <strong>${Number.isFinite(dias) ? dias : '—'} días</strong>
+              para finalizar el sprint activo.
+            </p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  if (id === 'impedimentos' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mis impedimentos abiertos</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará la cantidad de impedimentos
+            abiertos que tienes asignados.
+          </p>
+        </div>
+
+        <h3>Lista de impedimentos</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerán los impedimentos que tienes
+            pendientes de resolver.
+          </p>
+        </div>
+
+      </div>
+    `;
+  }
+  
+  if (id === 'desviacion' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mi gráfica burndown</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará una gráfica con el trabajo
+            que tienes pendiente durante el sprint,
+            comparando el avance ideal con tu avance real.
+          </p>
+        </div>
+
+        <h3>Seguimiento individual</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerá el seguimiento de tus tareas
+            pendientes conforme avance el sprint.
+          </p>
+        </div>
+
+      </div>
+    `;
+  }
+
+  enlaceModalKpi.hidden = true;
+
+  modalKpi.showModal();
+}
+
+cerrarModalKpi?.addEventListener('click', () => {
+  modalKpi.close();
+});
+
 
 /* ====================================================================
  * DATOS SIMULADOS (solo para pruebas)
@@ -174,6 +361,7 @@ const constructores = {
       : 'Ninguno crítico';
     return tarjetaValor({ ...meta, tono: tonoImpedimentos(k.valor, k.criticos), valor: k.valor, pista });
   },
+  
 
   /** Pintar la desviación (horas reales − estimadas) con signo explícito. */
   desviacion(k, meta) {
@@ -200,6 +388,8 @@ function pintarCarga() {
   }
 }
 
+let datosKpiActuales = {};
+
 /**
  * Pintar la respuesta del servidor.
  * Mostrar el aviso de estado vacío cuando datos.vacio es true.
@@ -208,9 +398,26 @@ function pintarCarga() {
  * @param {{vacio: boolean, kpis: Object}} datos - Respuesta del backend.
  * @returns {void}
  */
+
 function pintarDatos(datos) {
   if (!grilla) return;
-  
+  // Guardar los KPI del proyecto seleccionado
+  datosKpiActuales = datos.vacio ? {} : (datos.kpis || {});
+
+  // Mostrar un mensaje diferente cuando no hay proyecto seleccionado
+  if (!proyectoId) {
+    const titulo = avisoVacio?.querySelector('.aviso__titulo');
+    const texto = avisoVacio?.querySelector('.aviso__texto');
+
+    if (titulo) titulo.textContent = 'Selecciona un proyecto';
+    if (texto) texto.textContent =
+      'Haz clic en "Ver" en cualquiera de los proyectos para consultar sus indicadores.';
+
+    // Ocultar el botón de ir al backlog
+    const enlace = avisoVacio?.querySelector('a');
+    if (enlace) enlace.hidden = true;
+  }
+
   // Mostrar el mensaje de proyecto nuevo y ocultar la grilla
   if (datos.vacio) {
     grilla.hidden = true;
@@ -226,10 +433,40 @@ function pintarDatos(datos) {
     // Pintar error si el KPI falta o viene marcado con error
     if (!k || k.error) return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
     // Capturar fallos inesperados al construir la tarjeta para no afectar a las demás
-    try { return constructores[meta.id](k, meta); }
-    catch { return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id); }
+    
+    try {
+      const tarjeta = constructores[meta.id](k, meta);
+
+      return tarjeta.replace(
+        '<article ',
+        `<article data-kpi="${meta.id}" tabindex="0" role="button" aria-haspopup="dialog" `
+      );
+    } catch {
+      return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
+    }
+
   }).join('');
 }
+
+/* Abrir el modal al seleccionar una tarjeta KPI */
+grilla?.addEventListener('click', (evento) => {
+  const tarjeta = evento.target.closest('[data-kpi]');
+  if (!tarjeta) return;
+
+  abrirDetalleKpi(tarjeta.dataset.kpi);
+});
+
+/* Permitir abrir el modal con Enter o Espacio */
+grilla?.addEventListener('keydown', (evento) => {
+  if (evento.key !== 'Enter' && evento.key !== ' ') return;
+
+  const tarjeta = evento.target.closest('[data-kpi]');
+  if (!tarjeta) return;
+
+  evento.preventDefault();
+  abrirDetalleKpi(tarjeta.dataset.kpi);
+});
+
 
 function pintarInfoProyecto(proyecto) {
   if (!proyecto) return;
@@ -279,6 +516,12 @@ let controlador;
  * @returns {Promise<void>}
  */
 async function cargar() {
+   if (!proyectoId) {
+    pintarDatos({ vacio: true, kpis: {} });
+    return;
+  }
+  controlador?.abort();
+  controlador = new AbortController();
   controlador?.abort();
   controlador = new AbortController();
   if (btnActualizar) btnActualizar.disabled = true;
@@ -340,10 +583,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
   if (!lista) return;
 
   const idActivo = Number(proyectoId);
-  const urlTraeProyecto = new URLSearchParams(location.search).has('proyecto');
-  let puedeGestionar = false;
   let pendienteArchivar = null;
-  let primeraCarga = true;
 
   const mostrarError = (texto) => { error.textContent = texto; error.hidden = !texto; };
 
@@ -370,12 +610,31 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
       p.archivado ? '<span class="insignia insignia--neutro">Archivado</span>' : '',
       p.sprint_activo ? '<span class="insignia insignia--exito">Sprint activo</span>' : '',
     ].join('');
+    
     const acciones = [
-      `<a class="boton boton--secundario boton--pequeno" href="/pages/dashboard.html?proyecto=${id}" data-ver="${id}">Ver</a>`,
-      puedeGestionar ? `<a class="boton boton--secundario boton--pequeno" href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>` : '',
-      puedeGestionar && !p.archivado
-        ? `<button class="boton boton--secundario boton--pequeno" type="button" data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}">Archivar</button>` : '',
+      // Ver siempre está disponible para los proyectos de la lista.
+      `<a class="boton boton--secundario boton--pequeno"
+          href="/pages/dashboard.html?proyecto=${id}"
+          data-ver="${id}">Ver</a>`,
+
+      // Editar aparece siempre, pero se deshabilita sin permiso.
+      p.puede_gestionar
+        ? `<a class="boton boton--secundario boton--pequeno"
+              href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>`
+        : `<button class="boton boton--secundario boton--pequeno"
+              type="button" disabled
+              title="No tienes permiso para editar este proyecto">Editar</button>`,
+
+      // Archivar aparece siempre, pero se deshabilita sin permiso
+      // o cuando el proyecto ya está archivado.
+      `<button class="boton boton--secundario boton--pequeno"
+          type="button"
+          ${p.puede_gestionar && !p.archivado
+            ? `data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}"`
+            : 'disabled title="No puedes archivar este proyecto"'}
+          >Archivar</button>`
     ].join('');
+
     return `<article class="tarjeta proyecto${p.id === idActivo ? ' proyecto--activo' : ''}">
       <div class="proyecto__cabecera"><h3 class="proyecto__nombre">${escaparHtml(p.nombre)}</h3><div class="proyecto__insignias">${insignias}</div></div>
       <p class="proyecto__equipo">${escaparHtml(p.equipo_nombre)}</p>
@@ -391,21 +650,26 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     pintarCarga();
     try {
       const datos = await api(`/proyectos${archivados ? '?archivados=true' : ''}`);
-      puedeGestionar = Boolean(datos.puede_gestionar);
       
       // Permitir que el botón de nuevo proyecto esté visible siempre para que cualquier usuario pueda crear uno
       btnNuevo.hidden = false;
 
-      // Si el proyecto guardado ya no existe para el usuario, abrir el primero disponible.
-      if (primeraCarga && !archivados && !urlTraeProyecto && datos.proyectos.length
-          && !datos.proyectos.some((p) => p.id === idActivo)) {
-        localStorage.setItem('proyectoActivo', datos.proyectos[0].id);
-        location.replace(`/pages/dashboard.html?proyecto=${datos.proyectos[0].id}`);
-        return;
+    if (!datos.proyectos.length) {
+      pintarVacio(archivados);
+
+      // Si no tiene proyectos y no hay uno seleccionado,
+      // mostrar un mensaje apropiado en el Dashboard.
+      if (!archivados && !proyectoId && avisoVacio) {
+        const titulo = avisoVacio.querySelector('.aviso__titulo');
+        const texto = avisoVacio.querySelector('.aviso__texto');
+
+        if (titulo) titulo.textContent = 'Aún no tienes proyectos';
+        if (texto) texto.textContent =
+          'Crea tu primer proyecto para comenzar a consultar sus indicadores.';
       }
-      primeraCarga = false;
-      if (!datos.proyectos.length) return pintarVacio(archivados);
-      lista.innerHTML = datos.proyectos.map(tarjeta).join('');
+
+  return;
+}      lista.innerHTML = datos.proyectos.map(tarjeta).join('');
     } catch {
       lista.innerHTML = '';
       mostrarError('No se pudieron cargar los proyectos.');

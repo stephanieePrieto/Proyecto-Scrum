@@ -1,0 +1,54 @@
+/* Modal de detalles del Dashboard */
+#dialogo-detalle-kpi {
+  border: 0 !important;
+  outline: none;
+
+  border-radius: var(--radio-xl);
+  background: var(--fondo-tarjeta);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+
+  width: calc(100% - 32px);
+  max-width: 520px;
+  box-sizing: border-box;
+  padding: 24px;
+
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+#dialogo-detalle-kpi::backdrop {
+  background: rgba(40, 40, 40, 0.6);
+}
+
+/* Avisos compactos dentro del modal de avance */
+#dialogo-detalle-kpi .detalle-avance .aviso {
+  min-height: 0;
+  height: auto;
+  padding: 16px;
+  margin: 8px 0 16px;
+  display: block;
+  text-align: left;
+}
+
+#dialogo-detalle-kpi .detalle-avance .aviso__texto {
+  margin: 0;
+  text-align: left;
+}
+
+/* Separación entre los títulos y sus avisos */
+#dialogo-detalle-kpi .detalle-avance h3 {
+  font-size: 15px;
+  margin: 12px 0 8px;
+}
+
+/* Pie del modal KPI, con el estilo del modal de archivar */
+#dialogo-detalle-kpi .modal-footer {
+  margin-top: 16px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

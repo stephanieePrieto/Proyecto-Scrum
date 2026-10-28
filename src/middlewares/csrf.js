@@ -53,6 +53,11 @@ export const proteccionCsrf = (req, res, next) => {
 
   if (METODOS_SEGUROS.has(req.method)) return next();
 
+  // Excluir las rutas de inicio de sesión y registro de la validación estricta de cabecera CSRF
+  if (req.originalUrl.includes('/api/auth/login') || req.originalUrl.includes('/api/auth/register')) {
+    return next();
+  }
+
   const enviado = req.get(NOMBRE_CABECERA);
   if (typeof enviado !== 'string' || !sonIguales(enviado, token)) {
     return res.status(403).json({ mensaje: 'Token CSRF inválido o ausente.' });

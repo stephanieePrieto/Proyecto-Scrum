@@ -213,7 +213,7 @@ function pintarDetalle() {
     ${etiquetas ? `<div class="bl-etiquetas">${etiquetas}</div>` : ''}
     <p class="bl-meta">${h.creada_por_nombre ? `Creada por ${escaparHtml(h.creada_por_nombre)}` : ''}</p>
     <div class="bl-detalle__acciones">
-      <button class="bl-boton-peligro" type="button" data-accion="eliminar">Eliminar</button>
+      <button class="boton boton--secundario boton--peligro" type="button" data-accion="eliminar">Eliminar</button>
       <button class="boton boton--primario" type="button" data-accion="editar">Editar historia</button>
     </div>`;
 }
@@ -561,8 +561,21 @@ el.btnDescartarBorrador.addEventListener('click', () => {
   ctx.pendiente = false;
 });
 
-$('btn-cancelar-historia').addEventListener('click', () => el.dlgHistoria.close());
-el.dlgHistoria.addEventListener('close', () => { guardarBorradorAhora(); revisarBorradores(); });
+// Cerrar el formulario con el botón Cancelar.
+$('btn-cancelar-historia').addEventListener('click', () => {
+  el.dlgHistoria.close();
+});
+
+// Cerrar el formulario con la X del encabezado.
+$('btn-cerrar-historia').addEventListener('click', () => {
+  el.dlgHistoria.close();
+});
+
+// Guardar los cambios como borrador al cerrar el formulario.
+el.dlgHistoria.addEventListener('close', () => {
+  guardarBorradorAhora();
+  revisarBorradores();
+});
 
 el.form.addEventListener('submit', (e) => {
   e.preventDefault();

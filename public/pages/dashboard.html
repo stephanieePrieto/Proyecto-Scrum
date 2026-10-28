@@ -20,6 +20,7 @@
 
   <!-- Estilos de KPIs del dashboard (tarjetas, barras de progreso y bloque de DoD) -->
   <link rel="stylesheet" href="/css/componentes/metricas.css" />
+  <link rel="stylesheet" href="/css/componentes/dashboard.css" />
 
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
@@ -60,12 +61,41 @@
     <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
   </main>
 
-  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash modal-card" aria-labelledby="archivar-proyecto-titulo">
-    <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
+  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash modal-card" aria-labelledby="archivar-proyecto-titulo" style="display: revert; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;">    <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
     <p><span id="archivar-proyecto-nombre"></span> saldrá de la lista pero conservará todo su historial.</p>
     <div class="proy-dialogo-dash__acciones modal-footer">
       <button class="boton boton--secundario btn btn--secondary" type="button" id="archivar-proyecto-cancelar">Cancelar</button>
       <button class="boton boton--primario btn btn--primary" type="button" id="archivar-proyecto-confirmar">Archivar proyecto</button>
+    </div>
+  </dialog>
+
+  <!-- Modal de información de las tarjetas KPI -->
+    <dialog id="dialogo-detalle-kpi"
+        class="modal-card modal-kpi"
+        aria-labelledby="detalle-kpi-titulo"
+        style="display: revert; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;width: calc(100% - 32px);
+box-sizing: border-box;">
+    <h2 id="detalle-kpi-titulo">Detalle del indicador</h2>
+
+    <p id="detalle-kpi-descripcion"></p>
+
+    <!-- Aquí se mostrará información específica de cada KPI -->
+    <div id="detalle-kpi-contenido"></div>
+
+    <div class="modal-footer">
+      <!-- Se mostrará únicamente si existe una página relacionada -->
+      <a id="detalle-kpi-enlace"
+         class="boton boton--primario btn btn--primary"
+         href="#"
+         hidden>
+        Ver más detalles
+      </a>
+
+      <button id="detalle-kpi-cerrar"
+              class="boton boton--secundario btn btn--secondary"
+              type="button">
+        Cerrar
+      </button>
     </div>
   </dialog>
 

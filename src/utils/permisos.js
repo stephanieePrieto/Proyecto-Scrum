@@ -301,3 +301,10 @@ export async function exigirPermiso(usuario, clave, proyectoId, cliente = pool) 
     if (!vinculado) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
     throw new ErrorApp(`No tienes permiso para ${PERMISOS[clave].descripcion}.`, 403);
 }
+
+/**
+ * @description Alias temporal para compatibilidad con módulos existentes.
+ */
+export async function permisosDeUsuario(usuario, proyectoId, cliente = pool) {
+    return await obtenerRolProyecto(usuario, proyectoId, cliente);
+}

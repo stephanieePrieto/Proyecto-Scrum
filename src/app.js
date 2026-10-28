@@ -1,8 +1,10 @@
 /**
  * @file app.js
- * @description Configuración central de Express con ES Modules.
+ * @description Configuración central de Express con ES Modules y middlewares de seguridad integrados (XSS y CSRF).
  * @author Citlaly Morales Viveros
  */
+
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -11,6 +13,8 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { consulta } from './config/db.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { manejoErrores, noEncontrado } from './middlewares/manejoErrores.js';
+import { sanitizarEntrada } from './middlewares/seguridad.js';
+import { proteccionCsrf } from './middlewares/csrf.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const carpetaPublica = path.join(aqui, '..', 'public');
@@ -41,9 +45,21 @@ export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
   app.use(cors());
+
+  // Leer las cookies antes de validar el token CSRF
+  app.use(cookieParser());
+
+  // 1. Lectura de cuerpos de petición
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // 2. Sanitización anti-XSS en el req.body
+  app.use(sanitizarEntrada);
+
+  // 3. Protección CSRF (Double-Submit Cookie)
+  app.use(proteccionCsrf);
+
+  // Archivos estáticos del frontend
   app.use(express.static(carpetaPublica));
 
   app.get(

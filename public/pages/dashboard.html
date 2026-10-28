@@ -71,33 +71,34 @@
 
   <!-- Modal de información de las tarjetas KPI -->
     <dialog id="dialogo-detalle-kpi"
-        class="modal-card modal-kpi"
-        aria-labelledby="detalle-kpi-titulo"
-        style="display: revert; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;width: calc(100% - 32px);
-box-sizing: border-box;">
-    <h2 id="detalle-kpi-titulo">Detalle del indicador</h2>
+            class="modal-card modal-kpi"
+            aria-labelledby="detalle-kpi-titulo">
 
-    <p id="detalle-kpi-descripcion"></p>
+      <div class="modal-kpi__contenido">
+        <h2 id="detalle-kpi-titulo">Detalle del indicador</h2>
 
-    <!-- Aquí se mostrará información específica de cada KPI -->
-    <div id="detalle-kpi-contenido"></div>
+        <p id="detalle-kpi-descripcion"></p>
 
-    <div class="modal-footer">
-      <!-- Se mostrará únicamente si existe una página relacionada -->
-      <a id="detalle-kpi-enlace"
-         class="boton boton--primario btn btn--primary"
-         href="#"
-         hidden>
-        Ver más detalles
-      </a>
+        <!-- Aquí se mostrará información específica de cada KPI -->
+        <div id="detalle-kpi-contenido"></div>
+      </div>
 
-      <button id="detalle-kpi-cerrar"
-              class="boton boton--secundario btn btn--secondary"
-              type="button">
-        Cerrar
-      </button>
-    </div>
-  </dialog>
+      <div class="modal-footer">
+        <a id="detalle-kpi-enlace"
+          class="boton boton--primario btn btn--primary"
+          href="#"
+          hidden>
+          Ver más detalles
+        </a>
+
+        <button id="detalle-kpi-cerrar"
+                class="boton boton--secundario btn btn--secondary"
+                type="button">
+          Cerrar
+        </button>
+      </div>
+
+    </dialog>
 
   <script type="module" src="/js/pages/dashboard.js"></script>
 </body>

@@ -255,14 +255,37 @@ function avisarCambioMientrasSeEdita() {
  * Pedir la lista al servidor.
  * @param {{forzar?: boolean}} opciones - forzar = repintar aunque no haya cambios.
  */
+
 async function refrescar({ forzar = false } = {}) {
-  if (!ctx.proyectoId || ctx.arrastrandoId !== null || ctx.guardando) return;
-  const r = await llamar(`/backlog/proyecto/${ctx.proyectoId}`);
+  if (!ctx.proyectoId || ctx.arrastrandoId !== null || ctx.guardando) {
+    return;
+  }
+
+  // Recordar a qué proyecto pertenece esta consulta
+  const proyectoConsultado = ctx.proyectoId;
+
+  const r = await llamar(
+    `/backlog/proyecto/${proyectoConsultado}`
+  );
+
+  // Ignorar respuestas de proyectos anteriores
+  if (String(proyectoConsultado) !== String(ctx.proyectoId)) {
+    return;
+  }
+
   if (!r.ok) {
     if (!ctx.cargada) mostrarErrorDeCarga(r);
     return;
   }
-  if (!forzar && ctx.cargada && firmaDe(r.datos.historias) === ctx.firma) return;
+
+  if (
+    !forzar &&
+    ctx.cargada &&
+    firmaDe(r.datos.historias) === ctx.firma
+  ) {
+    return;
+  }
+
   ctx.cargada = true;
   aplicarDatos(r.datos);
 }
@@ -292,16 +315,40 @@ async function resolverProyecto() {
   return primero ? { id: primero.id, proyecto: primero } : { id: null };
 }
 
+// Conexión de Socket.io utilizada por el Product Backlog
+let socketBacklog = null;
+
 /** Eventos en tiempo real: cualquier cambio de otra persona dispara una recarga inmediata. */
 function conectarTiempoReal() {
-  if (typeof window.io !== 'function') return;   // El cliente de Socket.io no cargó: queda la recarga cada 5 s
+  // Si Socket.io no está disponible, seguimos usando el refresco automático
+  if (typeof window.io !== 'function') return;
+
+  // Evitar crear conexiones duplicadas
+  if (socketBacklog) return;
+
   try {
-    const socket = window.io();
-    // [AJUSTAR] El nombre de este evento y la sala por proyecto los define sockets/index.js (BASE, Stephy).
-    socket.on('connect', () => socket.emit('proyecto:unirse', ctx.proyectoId));
-    ['story:created', 'story:updated', 'story:deleted', 'story:reordered']
-      .forEach((evento) => socket.on(evento, () => refrescar({ forzar: true })));
-  } catch { /* sin sockets: sigue la recarga automática */ }
+    socketBacklog = window.io();
+
+    // Unirse al proyecto activo cada vez que se establece la conexión
+    socketBacklog.on('connect', () => {
+      socketBacklog.emit('proyecto:unirse', ctx.proyectoId);
+    });
+
+    // Actualizar las historias cuando ocurra un cambio
+    [
+      'story:created',
+      'story:updated',
+      'story:deleted',
+      'story:reordered'
+    ].forEach((evento) => {
+      socketBacklog.on(evento, () => {
+        refrescar({ forzar: true });
+      });
+    });
+
+  } catch (error) {
+    console.error('No se pudo conectar Socket.io:', error);
+  }
 }
 
 // ====================================================================
@@ -550,6 +597,12 @@ function abrirFormulario(historia) {
 // El texto se guarda como borrador mientras se escribe (con una pequeña espera para no escribir en cada tecla)
 el.form.addEventListener('input', () => {
   clearTimeout(ctx.temporizadorBorrador);
+
+  // Mostrar el botón inmediatamente cuando haya cambios
+  const valores = leerFormulario();
+  el.btnDescartarBorrador.hidden = !hayCambios(valores);
+
+  // Guardar el borrador después de 300 ms
   ctx.temporizadorBorrador = setTimeout(guardarBorradorAhora, 300);
 });
 
@@ -566,10 +619,20 @@ function guardarBorradorAhora() {
 }
 
 el.btnDescartarBorrador.addEventListener('click', () => {
+  // Cancelar cualquier guardado automático pendiente
+  clearTimeout(ctx.temporizadorBorrador);
+
+  // Eliminar el borrador almacenado
   borrarBorrador(claveBorrador(ctx.editando));
+
+  // Recuperar los valores originales
   escribirFormulario(ctx.base);
+
+  // Limpiar avisos y errores
   limpiarErrores();
   mostrarAvisoForm('');
+
+  // Ocultar el botón
   el.btnDescartarBorrador.hidden = true;
   ctx.pendiente = false;
 });
@@ -685,6 +748,10 @@ function revisarBorradores() {
   const claves = borradoresDelProyecto();
   if (!claves.length) { ocultarAvisoBorradorPagina(); return; }
   const clave = claves[0];
+
+  // Identificar qué borrador se puede continuar o descartar
+  el.avisoBorrador.dataset.clave = clave;
+
   const id = clave.split(':')[2];
   const borrador = leerBorrador(clave);
   const titulo = borrador?.valores?.titulo?.trim();
@@ -770,6 +837,213 @@ $('btn-confirmar-devolver').addEventListener('click', async () => {
 });
 
 // ====================================================================
+// Pestañas de proyectos - Product Backlog
+// ====================================================================
+
+// Animar la línea negra al cambiar de proyecto
+let temporizadorIndicador = null;
+
+function animarPestana(destino) {
+  const contenedor = $('pestanas-proyectos');
+  const actual = contenedor.querySelector(
+    '.sprints-proyectos__pestana--activa'
+  );
+
+  if (!actual || !destino || actual === destino) return;
+
+  // Eliminar una animación anterior si todavía existe
+  clearTimeout(temporizadorIndicador);
+  contenedor.querySelector(
+    '.sprints-proyectos__indicador'
+  )?.remove();
+
+  // Crear la línea animada
+  const indicador = document.createElement('span');
+  indicador.className = 'sprints-proyectos__indicador';
+
+  indicador.style.width = `${actual.offsetWidth}px`;
+  indicador.style.transform =
+    `translateX(${actual.offsetLeft}px)`;
+
+  contenedor.appendChild(indicador);
+
+  // Ocultar temporalmente la línea fija
+  actual.style.borderBottomColor = 'transparent';
+
+  // Deslizar la línea hasta el nuevo proyecto
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      indicador.style.width = `${destino.offsetWidth}px`;
+      indicador.style.transform =
+        `translateX(${destino.offsetLeft}px)`;
+    });
+  });
+
+  // Retirar el indicador cuando termine la animación
+  temporizadorIndicador = setTimeout(() => {
+    indicador.remove();
+    actual.style.removeProperty('border-bottom-color');
+  }, 350);
+}
+
+// Cambiar de proyecto sin recargar la página
+async function cambiarProyecto(nuevoId, guardarHistorial = true) {  // Evitar seleccionar nuevamente el mismo proyecto
+  if (String(nuevoId) === String(ctx.proyectoId)) return;
+
+  // No cambiar mientras se guarda una historia o su prioridad
+  if (ctx.guardando || ctx.arrastrandoId !== null) return;
+
+  // Evitar cambiar mientras hay un modal abierto
+  if (
+    el.dlgHistoria.open ||
+    el.dlgEliminar.open ||
+    el.dlgDevolver.open
+  ) {
+    mostrarMensaje(
+      'Cierra el formulario o la confirmación antes de cambiar de proyecto.',
+      'aviso'
+    );
+    return;
+  }
+
+  // Actualizar el proyecto activo
+  ctx.proyectoId = Number(nuevoId);
+  localStorage.setItem('proyectoActivo', String(nuevoId));
+
+  // Actualizar la URL sin recargar
+  if (guardarHistorial) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('proyecto', nuevoId);
+    window.history.pushState({}, '', url);
+  }
+
+  // Marcar la pestaña seleccionada
+  const pestanas = document.querySelectorAll(
+    '.sprints-proyectos__pestana'
+  );
+
+  // Animar la línea hacia el proyecto seleccionado
+  const pestanaDestino = [...pestanas].find(
+    (pestana) =>
+      pestana.dataset.proyectoId === String(nuevoId)
+  );
+
+  animarPestana(pestanaDestino);
+
+  pestanas.forEach((pestana) => {
+    const activa =
+      pestana.dataset.proyectoId === String(nuevoId);
+
+    pestana.classList.toggle(
+      'sprints-proyectos__pestana--activa',
+      activa
+    );
+
+    if (activa) {
+      pestana.setAttribute('aria-current', 'page');
+    } else {
+      pestana.removeAttribute('aria-current');
+    }
+  });
+
+  // Limpiar la información del proyecto anterior
+  ctx.historias = [];
+  ctx.epicas = [];
+  ctx.seleccionadaId = null;
+  ctx.firma = '';
+  ctx.cargada = false;
+  ctx.texto = '';
+
+  el.buscar.value = '';
+  el.mensaje.hidden = true;
+
+  // Mostrar el proyecto seleccionado en el encabezado
+  const pestanaActiva = document.querySelector(
+    '.sprints-proyectos__pestana--activa'
+  );
+
+  $('subtitulo').textContent =
+    pestanaActiva?.textContent || `Proyecto ${nuevoId}`;
+
+  // Actualizar la lista, el detalle y los contadores
+  pintar();
+  pintarCarga();
+
+  // Reconectar Socket.io para unirse al nuevo proyecto
+  if (socketBacklog) {
+    socketBacklog.disconnect();
+    socketBacklog.connect();
+  }
+
+  // Consultar las historias del nuevo proyecto
+  await refrescar({ forzar: true });
+
+  // Revisar únicamente los borradores del proyecto seleccionado
+  ocultarAvisoBorradorPagina();
+  revisarBorradores();
+}
+
+async function cargarPestanasProyectos() {
+  const contenedor = $('pestanas-proyectos');
+
+  if (!contenedor) return;
+
+  try {
+    // Obtener los proyectos disponibles
+    const respuesta = await llamar('/proyectos');
+
+    if (!respuesta.ok) {
+      throw new Error('No se pudieron consultar los proyectos.');
+    }
+
+    const proyectos = respuesta.datos.proyectos || [];
+
+    // Limpiar las pestañas anteriores
+    contenedor.replaceChildren();
+
+    proyectos.forEach((proyecto) => {
+      const pestana = document.createElement('button');
+
+      pestana.type = 'button';
+      pestana.dataset.proyectoId = String(proyecto.id);
+      pestana.className = 'sprints-proyectos__pestana';
+      pestana.textContent = proyecto.nombre;
+
+      // Marcar el proyecto seleccionado
+      if (String(proyecto.id) === String(ctx.proyectoId)) {
+        pestana.classList.add(
+          'sprints-proyectos__pestana--activa'
+        );
+
+        pestana.setAttribute('aria-current', 'page');
+      }
+
+      // Cambiar de proyecto al hacer clic
+      pestana.addEventListener('click', () => {
+        cambiarProyecto(proyecto.id);
+      });
+      contenedor.appendChild(pestana);
+    });
+
+  } catch (error) {
+    console.error('Error al cargar proyectos:', error);
+
+    contenedor.textContent =
+      'No se pudieron cargar los proyectos.';
+  }
+}
+
+// Navegar entre proyectos usando Atrás y Adelante
+window.addEventListener('popstate', () => {
+  const parametros = new URLSearchParams(window.location.search);
+  const proyecto = parametros.get('proyecto');
+
+  if (!proyecto) return;
+
+  cambiarProyecto(proyecto, false);
+});
+
+// ====================================================================
 // Arranque
 // ====================================================================
 
@@ -784,6 +1058,17 @@ async function iniciar() {
   }
   ctx.proyectoId = id;
   localStorage.setItem('proyectoActivo', id);
+
+  // Registrar el proyecto inicial sin crear otra entrada en el historial
+  const urlInicial = new URL(window.location.href);
+
+  if (!urlInicial.searchParams.has('proyecto')) {
+    urlInicial.searchParams.set('proyecto', id);
+    window.history.replaceState({}, '', urlInicial);
+  }
+
+  await cargarPestanasProyectos();
+
   $('subtitulo').textContent = proyecto ? `${proyecto.nombre}${proyecto.equipo_nombre ? ` · ${proyecto.equipo_nombre}` : ''}` : `Proyecto ${id}`;
   el.btnNueva.disabled = false;
 

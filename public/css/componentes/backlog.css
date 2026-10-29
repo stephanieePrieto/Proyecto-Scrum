@@ -481,3 +481,81 @@
   margin-left: 0;
   margin-right: 0;
 }
+
+/* ==========================================
+   Pestañas de proyectos - Product Backlog
+   ========================================== */
+
+/* Contenedor de las pestañas */
+.sprints-proyectos {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 24px;
+}
+
+/* Lista horizontal de proyectos */
+.sprints-proyectos__lista {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--borde);
+  scrollbar-width: thin;
+  position: relative;
+}
+
+/* Cada pestaña */
+.sprints-proyectos__pestana {
+  flex: 0 0 auto;
+  padding: 12px 8px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #777;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+/* Efecto al pasar el cursor */
+.sprints-proyectos__pestana:hover {
+  color: #292929;
+}
+
+/* Proyecto seleccionado */
+.sprints-proyectos__pestana--activa {
+  color: #292929;
+  border-bottom-color: #292929;
+  font-weight: 600;
+}
+
+.sprints-proyectos__pestana--activa:hover {
+  color: #292929;
+}
+
+/* Accesibilidad con teclado */
+.sprints-proyectos__pestana:focus-visible {
+  outline: 2px solid #292929;
+  outline-offset: -3px;
+}
+
+/* Rayita animada entre proyectos */
+.sprints-proyectos__indicador {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: #292929;
+  border-radius: 3px;
+  pointer-events: none;
+  transition: transform 0.3s ease, width 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprints-proyectos__indicador {
+    transition: none;
+  }
+}

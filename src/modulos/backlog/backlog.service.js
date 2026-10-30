@@ -90,7 +90,7 @@ async function exigirPermisoEscritura(usuario, proyectoId) {
 }
 
 // Columnas y JOINs que se devuelven siempre, para que todas las respuestas tengan la misma forma
-const COLUMNAS = `h.id, h.proyecto_id, h.epica_id, e.nombre AS epica_nombre, e.color AS epica_color,
+const COLUMNAS = `h.id, h.numero_hu, h.proyecto_id, h.epica_id, e.nombre AS epica_nombre, e.color AS epica_color,
   h.sprint_id, s.nombre AS sprint_nombre, s.estado AS sprint_estado,
   h.titulo, h.como, h.quiero, h.para, h.criterios, h.puntos, h.etiquetas,
   h.estado, h.orden, h.propuesta, h.version, h.creada_por, u.nombre AS creada_por_nombre, h.creado_en`;
@@ -132,6 +132,11 @@ function validarDatos(datos = {}) {
   const quiero = texto(datos.quiero);
   const para = texto(datos.para);
   const criterios = texto(datos.criterios);
+
+  if (!como) campos.como = 'El campo Como es obligatorio.';
+  if (!quiero) campos.quiero = 'El campo Quiero es obligatorio.';
+  if (!para) campos.para = 'El campo Para es obligatorio.';
+  
   if (como && como.length > 300) campos.como = 'Máximo 300 caracteres.';
   if (quiero && quiero.length > 500) campos.quiero = 'Máximo 500 caracteres.';
   if (para && para.length > 500) campos.para = 'Máximo 500 caracteres.';
@@ -207,16 +212,62 @@ export async function crear(usuario, proyectoId, datos) {
     const { rows: [{ siguiente }] } = await cliente.query(
       'SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente FROM historias WHERE proyecto_id = $1', [proyecto.id],
     );
-    const { rows: [{ id: nuevoId }] } = await cliente.query(
-      `INSERT INTO historias (proyecto_id, epica_id, titulo, como, quiero, para, criterios, puntos, etiquetas, orden, propuesta, creada_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-      // propuesta = false: [AJUSTAR HU-42] cuando exista el rol, un Developer crea con propuesta = true
-      [proyecto.id, d.epicaId, d.titulo, d.como, d.quiero, d.para, d.criterios, d.puntos, d.etiquetas, siguiente, false, usuario.id],
-    );
-    return nuevoId;
-  });
 
-  const historia = await buscarHistoria(id);
+  const { rows: [{ siguiente_hu }] } = await cliente.query(
+    `SELECT COALESCE(
+      (
+        SELECT MIN(candidato)
+        FROM generate_series(
+          1,
+          (SELECT COALESCE(MAX(numero_hu), 0) + 1
+            FROM historias
+            WHERE proyecto_id = $1)
+        ) AS candidato
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM historias h
+          WHERE h.proyecto_id = $1
+            AND h.numero_hu = candidato
+        )
+      ),
+      1
+    )::int AS siguiente_hu`,
+    [proyecto.id],
+  );
+
+  
+  const { rows: [{ id: nuevoId }] } = await cliente.query(
+    `INSERT INTO historias (
+      proyecto_id, epica_id, titulo, como, quiero, para,
+      criterios, puntos, etiquetas, orden, numero_hu,
+      propuesta, creada_por
+    )
+    VALUES (
+      $1, $2, $3, $4, $5, $6, $7,
+      $8, $9, $10, $11, $12, $13
+    )
+    RETURNING id`,
+    [
+      proyecto.id,
+      d.epicaId,
+      d.titulo,
+      d.como,
+      d.quiero,
+      d.para,
+      d.criterios,
+      d.puntos,
+      d.etiquetas,
+      siguiente,
+      siguiente_hu,
+      false,
+      usuario.id,
+    ],
+  );
+
+  return nuevoId;
+});
+
+const historia = await buscarHistoria(id);
   emitirAProyecto(proyecto.id, EVENTOS.creada, { historia });
   return historia;
 }

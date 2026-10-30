@@ -8,6 +8,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sprints · ScrumFlow</title>
 
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
   <!-- Estilos compartidos del proyecto -->
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/layout.css" />
@@ -48,6 +56,19 @@
       </button>
     </div>
 
+    <!-- HU-06: Pestañas para navegar entre proyectos -->
+    <nav
+      class="sprints-proyectos"
+      aria-label="Seleccionar proyecto"
+    >
+      <div
+        id="pestanas-proyectos"
+        class="sprints-proyectos__lista"
+      >
+        <!-- Las pestañas se cargarán con JavaScript -->
+      </div>
+    </nav>
+
     <!-- Mensajes -->
     <div
       id="mensaje-sprints"
@@ -60,7 +81,7 @@
     <!-- Listado de sprints -->
     <section class="tarjeta" aria-labelledby="titulo-sprints">
       <h2 id="titulo-sprints" class="tarjeta__titulo">
-        Sprints del proyecto
+      <h2 id="titulo-lista-sprints">Sprints del proyecto</h2>
       </h2>
 
       <div id="lista-sprints" aria-live="polite">

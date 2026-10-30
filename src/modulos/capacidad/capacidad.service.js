@@ -1,10 +1,11 @@
 // Responsable: Diego - HU-44: reglas, SQL y avisos por socket (horas por dia y ausencias)
+
 /**
  * Aplicar las reglas de la capacidad individual: guardar horas por día y ausencias,
  * y calcular la capacidad del equipo en un sprint.
  *
  * SUPUESTOS (ajustar nombres de tablas y columnas a database/schema.sql):
- *   usuarios            (id, nombre)
+ *   usuarios              (id, nombre)
  *   equipo_miembros     (equipo_id, usuario_id)
  *   capacidad_usuarios  (usuario_id PK, horas_por_dia NUMERIC, notas TEXT, actualizado_en)
  *   ausencias           (id, usuario_id, tipo TEXT 'ausencia'|'vacaciones', fecha_inicio DATE, fecha_fin DATE)
@@ -16,22 +17,23 @@
  *
  * MODO DEMO: si no hay DATABASE_URL (o MODO_DEMO=true) usar los datos de capacidad.demo.js.
  */
-const { esModoDemo, repo: repoDemo } = require('./capacidad.demo');
-const {
+
+import { esModoDemo, repo as repoDemo } from './capacidad.demo.js';
+import {
   validarCapacidad,
   fusionarAusencias,
   capacidadEquipo,
   leerDia,
-} = require('./capacidad.calculo');
+} from './capacidad.calculo.js';
 
 /**
  * Representar un error con código HTTP para que el controller responda con el estado correcto.
  */
 class ErrorCapacidad extends Error {
   /**
-   * @param {number} estado - Código HTTP (400, 403...).
-   * @param {string} mensaje - Texto para mostrar al usuario.
-   * @param {Array<{campo: string, mensaje: string}>} [errores] - Detalle por campo.
+   * @param {number} estado Código HTTP (400, 403...).
+   * @param {string} mensaje Texto para mostrar al usuario.
+   * @param {Array<{campo: string, mensaje: string}>} [errores] Detalle por campo.
    */
   constructor(estado, mensaje, errores = []) {
     super(mensaje);
@@ -47,11 +49,11 @@ let db;
  * Obtener el pool de conexiones a PostgreSQL cargando config/db.js solo cuando se necesita.
  * Evitar así que el modo demo dependa de ese archivo.
  *
- * @returns {import('pg').Pool} Pool de conexiones.
+ * @returns {Promise<import('pg').Pool>} Pool de conexiones.
  */
-function obtenerDb() {
+async function obtenerDb() {
   if (!db) {
-    const modulo = require('../../config/db');
+    const modulo = await import('../../config/db.js');
     db = modulo.default || modulo;
   }
   return db;
@@ -61,19 +63,20 @@ function obtenerDb() {
  * Ejecutar una consulta SQL parametrizada y devolver sus filas.
  * Usar siempre parámetros ($1, $2...) para prevenir inyección SQL.
  *
- * @param {string} sql - Consulta con marcadores $1, $2...
- * @param {Array} [params] - Valores de los marcadores.
+ * @param {string} sql Consulta con marcadores $1, $2...
+ * @param {Array} [params] Valores de los marcadores.
  * @returns {Promise<Array<Object>>} Filas resultantes.
  */
 async function consultar(sql, params = []) {
-  const { rows } = await obtenerDb().query(sql, params);
+  const pool = await obtenerDb();
+  const { rows } = await pool.query(sql, params);
   return rows;
 }
 
 /**
  * Convertir una columna DATE a texto en SQL para evitar desfases por zona horaria.
  *
- * @param {string} columna - Nombre de la columna.
+ * @param {string} columna Nombre de la columna.
  * @returns {string} Expresión SQL.
  */
 const fechaSql = (columna) => `to_char(${columna}, 'YYYY-MM-DD')`;
@@ -105,12 +108,13 @@ const repoPg = {
    * Guardar perfil y ausencias en una sola transacción: o se guarda todo o nada.
    */
   async guardarTodo(usuarioId, { horasPorDia, notas, ausencias }) {
-    const cliente = await obtenerDb().connect();
+    const pool = await obtenerDb();
+    const cliente = await pool.connect();
     try {
       await cliente.query('BEGIN');
       await cliente.query(
         `INSERT INTO capacidad_usuarios (usuario_id, horas_por_dia, notas, actualizado_en)
-              VALUES ($1, $2, $3, NOW())
+             VALUES ($1, $2, $3, NOW())
          ON CONFLICT (usuario_id)
            DO UPDATE SET horas_por_dia = EXCLUDED.horas_por_dia, notas = EXCLUDED.notas, actualizado_en = NOW()`,
         [usuarioId, horasPorDia, notas],
@@ -185,9 +189,9 @@ async function obtenerCapacidad(usuarioId) {
  * fusionar las ausencias que se traslapan y avisar cuántas se fusionaron.
  * En modo demo, aceptar peticiones sin sesión.
  *
- * @param {{id: number, rol: string}|null} actor - Usuario autenticado (req.user).
- * @param {number} usuarioId - Persona cuya capacidad se guarda.
- * @param {Object} datos - { horasPorDia, notas, ausencias }.
+ * @param {{id: number, rol: string}|null} actor Usuario autenticado (req.user).
+ * @param {number} usuarioId Persona cuya capacidad se guarda.
+ * @param {Object} datos { horasPorDia, notas, ausencias }.
  * @returns {Promise<Object>} Capacidad guardada más { fusionadas, mensaje }.
  * @throws {ErrorCapacidad} 403 sin permiso, 400 si los datos no son válidos.
  */
@@ -222,7 +226,7 @@ async function guardarCapacidad(actor, usuarioId, datos = {}) {
  * Recalcular en cada consulta, de modo que cualquier cambio en horas o ausencias se refleje al instante.
  *
  * @param {number} equipoId
- * @param {{inicio: string, fin: string}} sprint - Fechas "AAAA-MM-DD".
+ * @param {{inicio: string, fin: string}} sprint Fechas "AAAA-MM-DD".
  * @returns {Promise<{miembros: Array, totalHoras: number, sinCapacidad: boolean}>}
  * @throws {ErrorCapacidad} 400 si las fechas no son válidas.
  */
@@ -236,4 +240,4 @@ async function obtenerCapacidadEquipo(equipoId, sprint) {
   return capacidadEquipo(miembros, sprint);
 }
 
-module.exports = { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo };
+export { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo };

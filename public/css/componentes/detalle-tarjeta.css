@@ -171,3 +171,6 @@
   .dt-panel, .dt-esqueleto { animation: none; }
   .dt-progreso__barra { transition: none; }
 }
+
+.dt-overlay[hidden],
+.dt-aviso[hidden] { display: none !important; }

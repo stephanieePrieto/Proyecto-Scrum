@@ -10,6 +10,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Product Backlog · ScrumFlow</title>
 
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
   <!-- Estilos globales unificados -->
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/layout.css" />
@@ -46,6 +54,23 @@
 
     <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
 
+    </div>
+
+    <!-- Pestañas para navegar entre proyectos -->
+    <nav
+      class="sprints-proyectos"
+      aria-label="Seleccionar proyecto"
+    >
+      <div
+        id="pestanas-proyectos"
+        class="sprints-proyectos__lista"
+      >
+        <!-- Los proyectos se cargarán con JavaScript -->
+      </div>
+    </nav>
+
+    
+    <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
     <div id="aviso-borrador" class="alerta alerta--advertencia" role="status" hidden>
       <span id="aviso-borrador-texto"></span>
       <div style="display: flex; gap: 8px; margin-top: 8px;">
@@ -70,7 +95,10 @@
         <ol id="lista" style="list-style: none; padding: 0; margin-top: 16px; display: flex; flex-direction: column; gap: 12px;" aria-describedby="ayuda-orden"></ol>
         <div id="estado-lista"></div>
         <footer id="resumen" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); display: flex; gap: 16px; color: var(--texto-suave); font-size: 13px;" hidden>
-          <span><strong id="resumen-historias">0</strong> historias</span>
+          <span>
+            <strong id="resumen-historias">0</strong>
+            <span id="resumen-historias-texto">historias</span>
+          </span>
           <span><strong id="resumen-puntos">0</strong> puntos totales</span>
           <span><strong id="resumen-sin-estimar">0</strong> sin estimar</span>
         </footer>
@@ -118,18 +146,15 @@
         <legend class="eq-bloque__titulo" style="font-weight: 600; padding: 0 6px; color: var(--texto);">Descripción</legend>
         <div class="grupo-formulario">
           <label for="f-como" class="etiqueta-formulario">Como…</label>
-          <input id="f-como" name="como" type="text" maxlength="300" placeholder="un product owner" aria-describedby="error-como" class="entrada-formulario" />
-          <p class="eq-error" id="error-como" role="alert"></p>
+          <input id="f-como" name="como" type="text" maxlength="300" required placeholder="un product owner" aria-describedby="error-como" class="entrada-formulario" />          <p class="eq-error" id="error-como" role="alert"></p>
         </div>
         <div class="grupo-formulario">
           <label for="f-quiero" class="etiqueta-formulario">Quiero…</label>
-          <input id="f-quiero" name="quiero" type="text" maxlength="500" placeholder="reordenar el backlog arrastrando" aria-describedby="error-quiero" class="entrada-formulario" />
-          <p class="eq-error" id="error-quiero" role="alert"></p>
+          <input id="f-quiero" name="quiero" type="text" maxlength="500" required placeholder="reordenar el backlog arrastrando" aria-describedby="error-quiero" class="entrada-formulario" />          <p class="eq-error" id="error-quiero" role="alert"></p>
         </div>
         <div class="grupo-formulario">
           <label for="f-para" class="etiqueta-formulario">Para…</label>
-          <input id="f-para" name="para" type="text" maxlength="500" placeholder="definir la prioridad del producto" aria-describedby="error-para" class="entrada-formulario" />
-          <p class="eq-error" id="error-para" role="alert"></p>
+        <input id="f-para" name="para" type="text" maxlength="500" required placeholder="definir la prioridad del producto" aria-describedby="error-para" class="entrada-formulario" />          <p class="eq-error" id="error-para" role="alert"></p>
         </div>
       </fieldset>
 
@@ -174,24 +199,53 @@
     </form>
   </dialog>
 
-    <dialog id="dialogo-eliminar" class="eq-dialogo modal-card" aria-labelledby="dialogo-eliminar-titulo" style="display: revert; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); max-width: 450px; width: 90%; border: none; border-radius: var(--radio-lg); box-shadow: var(--sombra-lg); padding: 24px; background: var(--fondo-tarjeta);">    <div style="display: flex; flex-direction: column; gap: 12px;">
-      <h2 id="dialogo-eliminar-titulo" class="eq-dialogo__titulo" style="margin: 0;">¿Eliminar esta historia?</h2>
-      <p style="margin: 0;">«<span id="eliminar-nombre"></span>» se eliminará junto con sus tareas. Esta acción no se puede deshacer.</p>
-      <div class="eq-dialogo__acciones modal-footer" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;">
-        <button class="boton boton--secundario" type="button" id="btn-cancelar-eliminar">Cancelar</button>
-        <button class="boton boton--primario boton--peligro eq-peligro" type="button" id="btn-confirmar-eliminar">Eliminar historia</button>
-      </div>
+    <dialog id="dialogo-eliminar" class="eq-dialogo modal-card"
+          aria-labelledby="dialogo-eliminar-titulo">
+
+    <div class="bl-confirmacion__contenido">
+      <h2 id="dialogo-eliminar-titulo" class="eq-dialogo__titulo">
+        ¿Eliminar esta historia?
+      </h2>
+
+      <p>
+        «<span id="eliminar-nombre"></span>» se eliminará junto con sus tareas.
+        Esta acción no se puede deshacer.
+      </p>
     </div>
+
+    <div class="eq-dialogo__acciones modal-footer">
+      <button class="boton boton--secundario" type="button"
+              id="btn-cancelar-eliminar">Cancelar</button>
+
+      <button class="boton boton--primario boton--peligro eq-peligro"
+              type="button" id="btn-confirmar-eliminar">
+        Eliminar historia
+      </button>
+    </div>
+
   </dialog>
 
-    <dialog id="dialogo-devolver" class="eq-dialogo modal-card" aria-labelledby="dialogo-devolver-titulo" style="display: revert; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); max-width: 450px; width: 90%; border: none; border-radius: var(--radio-lg); box-shadow: var(--sombra-lg); padding: 24px; background: var(--fondo-tarjeta);">    <div style="display: flex; flex-direction: column; gap: 12px;">
-      <h2 id="dialogo-devolver-titulo" class="eq-dialogo__titulo" style="margin: 0;">No se puede eliminar</h2>
-      <p id="devolver-texto" style="margin: 0;"></p>
-      <div class="eq-dialogo__acciones modal-footer" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;">
-        <button class="boton boton--secundario" type="button" id="btn-cancelar-devolver">Cerrar</button>
-        <button class="boton boton--primario" type="button" id="btn-confirmar-devolver">Devolver al backlog</button>
-      </div>
+  <dialog id="dialogo-devolver" class="eq-dialogo modal-card"
+          aria-labelledby="dialogo-devolver-titulo">
+
+    <div class="bl-confirmacion__contenido">
+      <h2 id="dialogo-devolver-titulo" class="eq-dialogo__titulo">
+        No se puede eliminar
+      </h2>
+
+      <p id="devolver-texto"></p>
     </div>
+
+    <div class="eq-dialogo__acciones modal-footer">
+      <button class="boton boton--secundario" type="button"
+              id="btn-cancelar-devolver">Cerrar</button>
+
+      <button class="boton boton--primario" type="button"
+              id="btn-confirmar-devolver">
+        Devolver al backlog
+      </button>
+    </div>
+
   </dialog>
   
   <script src="/socket.io/socket.io.js"></script>

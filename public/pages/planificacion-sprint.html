@@ -1,1 +1,286 @@
 <!-- Responsable: Jetz - HU-07, HU-08: pantalla de planificacion con medidor de capacidad y tareas. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Planificación del Sprint · AgileDesk</title>
+
+    <!-- Tipografía utilizada en la pantalla Equipos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <!-- Estilos compartidos de AgileDesk -->
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css">
+  <link rel="stylesheet" href="/css/componentes/botones.css">
+  <link rel="stylesheet" href="/css/componentes/insignias.css">
+  <link rel="stylesheet" href="/css/componentes/formularios.css">
+  <link rel="stylesheet" href="/css/componentes/modales.css">
+  <link rel="stylesheet" href="/css/componentes/avisos.css">
+  <link rel="stylesheet" href="/css/componentes/responsive.css">
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css">
+
+  <!-- Estilos exclusivos de HU-08 -->
+  <link rel="stylesheet"
+        href="/css/componentes/planificacion-sprint.css">
+</head>
+
+<body>
+
+  <!-- El menú lo administra layout.js -->
+<header id="barra-superior" class="barra-superior"></header>
+
+  <main class="main-content">
+  <div class="planificacion-contenido">
+
+
+    <!-- Encabezado -->
+    <div class="page-header">
+    <div>
+        <h1 class="titulo-pagina">
+        Planificación del Sprint
+        </h1>
+
+        <p class="subtitulo-pagina">
+        Divide las historias en tareas técnicas,
+        asigna responsables y estima el esfuerzo.
+        </p>
+    </div>
+
+    <!-- Regresar a la pantalla de Sprints -->
+    <a id="enlace-volver-sprints"
+        class="boton boton--secundario"
+        href="/pages/sprints.html">
+        Volver a Sprints
+    </a>
+    </div>
+
+
+    <!-- Navegación por proyectos -->
+    <nav class="sprints-proyectos"
+         aria-label="Seleccionar proyecto">
+      <div id="pestanas-proyectos"
+           class="sprints-proyectos__lista">
+      </div>
+    </nav>
+
+    <!-- Selector de Sprint -->
+    <section class="tarjeta planificacion-selector">
+      <div class="grupo-formulario">
+        <label for="selector-sprint"
+               class="etiqueta-formulario">
+          Sprint
+        </label>
+
+        <select id="selector-sprint"
+                class="entrada-formulario">
+          <option value="">
+            Selecciona un Sprint
+          </option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Mensajes -->
+    <div id="mensaje-planificacion"
+         class="alerta"
+         role="status"
+         aria-live="polite"
+         hidden>
+    </div>
+
+    <!-- Resumen -->
+    <section class="planificacion-resumen"
+             aria-label="Resumen del Sprint">
+
+      <article class="tarjeta planificacion-metrica">
+        <span class="planificacion-metrica__valor"
+              id="total-historias">0</span>
+        <span>Historias</span>
+      </article>
+
+      <article class="tarjeta planificacion-metrica">
+        <span class="planificacion-metrica__valor"
+              id="total-tareas">0</span>
+        <span>Tareas técnicas</span>
+      </article>
+
+      <article class="tarjeta planificacion-metrica">
+        <span class="planificacion-metrica__valor"
+              id="total-horas">0 h</span>
+        <span>Horas estimadas</span>
+      </article>
+
+    </section>
+
+    <!-- Historias del Sprint -->
+    <section class="planificacion-historias"
+             aria-labelledby="titulo-historias">
+
+      <h2 id="titulo-historias">
+        Historias del Sprint
+      </h2>
+
+      <p class="subtitulo-pagina">
+        Despliega una historia para consultar
+        y administrar sus tareas técnicas.
+      </p>
+
+      <!-- JavaScript generará las tarjetas aquí -->
+      <div id="lista-historias-sprint"
+           class="planificacion-lista"
+           aria-live="polite">
+
+        <div class="tarjeta planificacion-vacio">
+          <p>
+            Selecciona un Sprint para consultar
+            sus historias de usuario.
+          </p>
+        </div>
+
+      </div>
+
+    </section>
+    </div>
+    </main>
+
+  <!-- Modal para crear y editar tareas -->
+  <dialog id="dialogo-tarea"
+          class="modal-card"
+          aria-labelledby="titulo-dialogo-tarea">
+
+    <form id="formulario-tarea" novalidate>
+
+      <div class="modal-header">
+        <h2 id="titulo-dialogo-tarea">
+          Agregar tarea técnica
+        </h2>
+
+        <button
+        type="button"
+        id="btn-cerrar-tarea"
+        class="planificacion-cerrar"
+        aria-label="Cerrar formulario"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round"
+                aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div id="mensaje-formulario-tarea"
+             class="alerta alerta--error"
+             role="alert"
+             hidden>
+        </div>
+
+        <p class="subtitulo-pagina"
+           id="historia-tarea-nombre">
+        </p>
+
+        <input type="hidden"
+               id="tarea-historia-id">
+
+        <div class="grupo-formulario">
+          <label for="tarea-titulo"
+                 class="etiqueta-formulario">
+            Título de la tarea *
+          </label>
+
+          <input id="tarea-titulo"
+                 class="entrada-formulario"
+                 type="text"
+                 maxlength="150"
+                 required
+                 placeholder="Ej. Implementar validaciones">
+
+          <p id="error-tarea-titulo"
+             class="eq-error"></p>
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="tarea-responsable"
+                 class="etiqueta-formulario">
+            Responsable *
+          </label>
+
+          <select id="tarea-responsable"
+                  class="entrada-formulario"
+                  required>
+            <option value="">
+              Selecciona un integrante
+            </option>
+          </select>
+
+          <p id="error-tarea-responsable"
+             class="eq-error"></p>
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="tarea-horas"
+                 class="etiqueta-formulario">
+            Horas estimadas *
+          </label>
+
+          <input id="tarea-horas"
+                 class="entrada-formulario"
+                 type="number"
+                 min="0.01"
+                 step="0.01"
+                 required
+                 placeholder="Ej. 3.5">
+
+          <p id="error-tarea-horas"
+             class="eq-error"></p>
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="tarea-descripcion"
+                 class="etiqueta-formulario">
+            Descripción (opcional)
+          </label>
+
+          <textarea id="tarea-descripcion"
+                    class="entrada-formulario"
+                    maxlength="1000"
+                    rows="3"
+                    placeholder="Describe el trabajo técnico">
+          </textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                id="btn-cancelar-tarea"
+                class="boton boton--secundario">
+          Cancelar
+        </button>
+
+        <button type="submit"
+                id="btn-guardar-tarea"
+                class="boton boton--primario">
+          Guardar tarea
+        </button>
+      </div>
+
+    </form>
+  </dialog>
+
+  <script type="module"
+          src="/js/pages/planificacion-sprint.js">
+  </script>
+
+</body>
+</html>

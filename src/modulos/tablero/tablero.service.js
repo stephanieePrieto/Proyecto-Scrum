@@ -36,11 +36,23 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
             ];
         }
 
+        // Se incluye responsable y épica (la épica vive en la historia padre) para que
+        // el tablero pueda poblar y aplicar los filtros de Persona / Épica (HU-21).
         const tarRes = await consulta(
-            `SELECT id, titulo, descripcion, columna_id, orden, version 
-             FROM tareas 
-             WHERE proyecto_id = $1 
-             ORDER BY orden ASC`,
+            `SELECT t.id, t.titulo, t.descripcion, t.columna_id, t.orden, t.version,
+                    t.bloqueada, t.motivo_bloqueo,
+                    t.responsable_id,
+                    u.nombre AS responsable,
+                    (u.id IS NOT NULL AND u.activo = FALSE) AS responsable_inactivo,
+                    h.epica_id,
+                    e.nombre AS epica_nombre,
+                    COALESCE((SELECT SUM(r.horas) FROM registros_horas r WHERE r.tarea_id = t.id), 0) AS horas_reales
+             FROM tareas t
+             JOIN historias h ON h.id = t.historia_id
+             LEFT JOIN epicas e ON e.id = h.epica_id
+             LEFT JOIN usuarios u ON u.id = t.responsable_id
+             WHERE t.proyecto_id = $1
+             ORDER BY t.orden ASC`,
             [proyectoId]
         );
 
@@ -50,6 +62,7 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
             tareas: tarRes?.rows || []
         };
     } catch (error) {
+        console.error('Error al consultar el tablero:', error.message);
         // Fallback resiliente si la tabla en la BD aún no ha sido creada
         return {
             sprint: { nombre: 'Sprint 1', diasRestantes: 7 },

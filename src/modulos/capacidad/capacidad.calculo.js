@@ -172,7 +172,7 @@ function capacidadEquipo(miembros, sprint) {
   return { miembros: filas, totalHoras, sinCapacidad: totalHoras === 0 };
 }
 
-module.exports = {
+export {
   MAX_HORAS_POR_DIA,
   TIPOS_AUSENCIA,
   leerDia,

@@ -90,13 +90,15 @@ function iniciarLatido() {
  * @param {string} ruta - Ruta relativa a /api.
  * @param {Object} opciones
  * @param {string} opciones.metodo - Método HTTP.
- * @param {Object} [opciones.cuerpo] - Datos a enviar serializados como JSON.
+ * @param {Object|FormData} [opciones.cuerpo] - Datos: objeto (JSON) o FormData (subida de archivos).
  * @param {AbortSignal} [opciones.signal] - Señal para cancelar la petición.
  * @returns {Promise<Response>}
  */
 function enviarPeticion(ruta, { metodo, cuerpo, signal }) {
+  // Con FormData el navegador fija solo el Content-Type (multipart + boundary); con objetos se usa JSON
+  const esFormData = typeof FormData !== 'undefined' && cuerpo instanceof FormData;
   // La sesión viaja en cookies httpOnly (no accesibles por JS); no se usa token en localStorage
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = esFormData ? {} : { 'Content-Type': 'application/json' };
 
   // Los métodos que modifican datos deben enviar el token CSRF
   if (!['GET', 'HEAD', 'OPTIONS'].includes(metodo.toUpperCase())) {
@@ -112,7 +114,7 @@ function enviarPeticion(ruta, { metodo, cuerpo, signal }) {
     signal,
     credentials: 'same-origin',
     headers,
-    body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+    body: cuerpo ? (esFormData ? cuerpo : JSON.stringify(cuerpo)) : undefined,
   });
 }
 
@@ -124,7 +126,7 @@ function enviarPeticion(ruta, { metodo, cuerpo, signal }) {
  * @param {string} ruta - Ruta relativa a /api, por ejemplo "/proyectos/1/metricas/dashboard".
  * @param {Object} [opciones]
  * @param {string} [opciones.metodo='GET'] - Método HTTP.
- * @param {Object} [opciones.cuerpo] - Datos a enviar serializados como JSON.
+ * @param {Object|FormData} [opciones.cuerpo] - Datos: objeto (se serializa como JSON) o FormData (subida de archivos, HU-20).
  * @param {AbortSignal} [opciones.signal] - Señal para cancelar la petición.
  * @returns {Promise<any>} Cuerpo de la respuesta ya convertido a objeto (null si es 204).
  */

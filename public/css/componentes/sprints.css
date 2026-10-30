@@ -33,16 +33,32 @@
   flex-shrink: 0;
 }
 
-/* Botón de cerrar */
-#dialogo-sprint .bl-boton-cerrar {
+/* Botón X del modal de Sprints */
+#dialogo-sprint #btn-cerrar-sprint {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: none;
+  border-radius: 8px;
   background: transparent;
-  color: var(--texto);
+  color: var(--texto-suave);
   cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Hover igual al Product Backlog */
+#dialogo-sprint #btn-cerrar-sprint:hover {
+  background: var(--borde);
+  color: var(--texto);
+}
+
+/* Accesibilidad con teclado */
+#dialogo-sprint #btn-cerrar-sprint:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 #dialogo-sprint:not([open]) {
@@ -245,4 +261,19 @@
 /* Separación entre el título y las tarjetas de sprints */
 #titulo-lista-sprints {
   margin-bottom: 24px;
+}
+
+/* Separar la introducción de los campos del formulario */
+#dialogo-sprint .eq-ayuda {
+  display: block;
+  margin: 0 0 20px;
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Ajustar la posición vertical del título del modal */
+#dialogo-sprint #titulo-dialogo-sprint {
+  position: relative;
+  top: 9px;
 }

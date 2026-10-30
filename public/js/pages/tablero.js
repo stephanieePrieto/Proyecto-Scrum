@@ -61,4 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
             cargarTablero({ epicaId: e.target.value });
         });
     }
+
+    /**
+     * 5. Carga diferida del detalle de tarjeta (HU-20).
+     * Si este módulo falla, solo falla el drawer; el tablero sigue funcionando.
+     */
+    import('./tablero/detalle-tarjeta.js').catch((error) => {
+        console.error('[HU-20] No se pudo cargar el detalle de tarjeta:', error);
+    });
 });

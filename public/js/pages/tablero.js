@@ -9,10 +9,27 @@ import { inicializarTablero, aplicarFiltrosTablero } from './tablero/columnas.js
 import { montarBarraSuperior } from '../core/layout.js';
 
 /**
+ * Carga diferida del detalle de tarjeta (HU-20).
+ * Usa import() para que un fallo en ese módulo no impida cargar el tablero.
+ * @returns {void}
+ */
+function cargarDetalleTarjeta() {
+    import('./tablero/detalle-tarjeta.js').catch((error) => {
+        console.error('[HU-20] No se pudo cargar el detalle de tarjeta:', error);
+    });
+}
+
+/**
  * Listener principal que se ejecuta una vez que el DOM ha sido completamente cargado.
  * @listens DOMContentLoaded
  */
 document.addEventListener('DOMContentLoaded', () => {
+    /**
+     * Carga el detalle antes de validar el proyecto activo: el enlace ?tarea=ID de las
+     * notificaciones debe abrir la tarjeta aunque no haya proyecto seleccionado.
+     */
+    cargarDetalleTarjeta();
+
     /**
      * Inyecta la barra de navegación superior en la interfaz.
      */

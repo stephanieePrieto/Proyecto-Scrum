@@ -33,6 +33,7 @@ export function crearElementoTarjeta(tarea) {
     contenedor.id = `tarjeta-${tarea.id}`;
     contenedor.dataset.tareaId = tarea.id;
     contenedor.draggable = !tarea.bloqueada;
+    contenedor.tabIndex = 0;
 
     contenedor.classList.add(
         'tarjeta-item', 'p-3', 'rounded-lg', 'shadow-sm', 'cursor-grab', 

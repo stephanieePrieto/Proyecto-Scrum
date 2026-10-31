@@ -1,0 +1,371 @@
+
+/* ==========================================
+   HU-08 · Planificación del Sprint
+   Estilos exclusivos de esta pantalla
+   ========================================== */
+
+/* Contenedor principal */
+.planificacion-contenido {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+}
+
+.planificacion-contenido > * + * {
+  margin-top: var(--espacio-6);
+}
+
+
+
+/* ==========================================
+   Resumen del Sprint
+   ========================================== */
+
+.planificacion-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espacio-4);
+}
+
+.planificacion-metrica {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 110px;
+  padding: 20px;
+}
+
+.planificacion-metrica__valor {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--texto);
+}
+
+.planificacion-metrica > span:last-child {
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+/* ==========================================
+   Historias del Sprint
+   ========================================== */
+
+.planificacion-historias {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.planificacion-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.planificacion-vacio {
+  padding: var(--espacio-6);
+  text-align: center;
+}
+
+/* Tarjetas desplegables */
+.planificacion-historia {
+  padding: 0;
+  overflow: hidden;
+}
+
+.planificacion-historia__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  width: 100%;
+  padding: 20px;
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.planificacion-historia__encabezado:hover {
+  background: var(--slate-50);
+}
+
+.planificacion-historia__titulo {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.planificacion-historia__detalle {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.planificacion-historia__contenido {
+  padding: 20px;
+  border-top: 1px solid var(--borde);
+}
+
+/* Separación del botón para agregar tareas */
+.planificacion-historia__contenido > .boton {
+  margin-top: 16px;
+}
+
+/* ==========================================
+   Tareas técnicas
+   ========================================== */
+
+.planificacion-tareas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.planificacion-tarea {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 2fr)
+    minmax(0, 1fr)
+    100px auto;
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+}
+
+.planificacion-tarea__titulo {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.planificacion-tarea__acciones {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ==========================================
+   Modal de tareas
+   Reutiliza los estilos de modales.css
+   ========================================== */
+
+#dialogo-tarea {
+  width: calc(100% - 32px);
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: none;
+  margin: auto;
+  overflow: hidden;
+}
+
+/* modal-card tiene display:flex;
+   ocultar explícitamente el diálogo cerrado */
+#dialogo-tarea:not([open]) {
+  display: none;
+}
+
+#formulario-tarea {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 40px);
+  min-height: 0;
+}
+
+#dialogo-tarea .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Botón de cerrar modal*/
+.planificacion-cerrar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.planificacion-cerrar:hover {
+  background: var(--borde);
+  color: var(--texto);
+}
+
+.planificacion-cerrar:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ==========================================
+   Pestañas de proyectos
+   Misma apariencia que HU-06
+   ========================================== */
+
+.planificacion-contenido .sprints-proyectos {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: var(--espacio-6);
+}
+
+.planificacion-contenido .sprints-proyectos__lista {
+  display: flex;
+  gap: var(--espacio-6);
+  position: relative;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--borde);
+  scrollbar-width: thin;
+}
+
+.planificacion-contenido .sprints-proyectos__pestana {
+  flex: 0 0 auto;
+  padding: 12px 8px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.planificacion-contenido .sprints-proyectos__pestana:hover,
+.planificacion-contenido .sprints-proyectos__pestana--activa {
+  color: var(--texto);
+}
+
+.planificacion-contenido .sprints-proyectos__pestana--activa {
+  border-bottom-color: var(--texto);
+  font-weight: 600;
+}
+
+.planificacion-contenido .sprints-proyectos__pestana:focus-visible {
+  outline: 2px solid var(--texto);
+  outline-offset: -3px;
+}
+
+.planificacion-contenido .sprints-proyectos__indicador {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: var(--texto);
+  border-radius: 3px;
+  pointer-events: none;
+  transition: transform 0.3s ease, width 0.3s ease;
+}
+
+/* Estado de las historias */
+.planificacion-estado {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 6px;
+  padding: 3px 9px;
+
+  border: 1px solid #a5a0ff;
+  border-radius: 999px;
+  background-color: #f5f3ff;
+
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* Historia a la que pertenece la tarea */
+#historia-tarea-nombre {
+  display: block;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  background-color: var(--hueso);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   HU-08: Presentación de tareas técnicas
+   ========================================== */
+
+/* Separación entre las tareas de una historia */
+.planificacion-historia__tareas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Apariencia individual de cada tarea */
+.planificacion-tarea {
+  padding: 16px 18px;
+  border-radius: 10px;
+}
+
+/* Título de la tarea */
+.planificacion-tarea h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Responsable y horas estimadas */
+.planificacion-tarea p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   Responsive
+   ========================================== */
+
+@media (max-width: 800px) {
+  .planificacion-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .planificacion-tarea {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .planificacion-selector {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .planificacion-tarea {
+    grid-template-columns: 1fr;
+  }
+
+  .planificacion-historia__encabezado {
+    padding: var(--espacio-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planificacion-contenido .sprints-proyectos__indicador {
+    transition: none;
+  }
+}

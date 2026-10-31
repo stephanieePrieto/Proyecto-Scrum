@@ -2,21 +2,17 @@
  * @file notificaciones.routes.js
  * @description Declarar y registrar las rutas del módulo de notificaciones (HU-24).
  *              Se montan en /api/notificaciones (app.js carga la carpeta del módulo automáticamente).
+ *              Todas exigen sesión iniciada: cada persona solo ve y marca sus propias notificaciones.
  */
 
 import { Router } from 'express';
+import { autenticar } from '../../middlewares/autenticar.js';
 import controlador from './notificaciones.controller.js';
 
 const router = Router();
 
-// Middleware temporal para pruebas de HU-24: simula al usuario autenticado.
-// Usa el usuario 1 (Stephy en seed.sql). Para probar con otra persona, definir
-// USUARIO_DEMO_ID en el .env (ej. USUARIO_DEMO_ID=5 para Alfonso) y reiniciar el servidor.
-// Se reemplaza por el middleware `autenticar` cuando el login esté integrado.
-router.use((req, res, next) => {
-  req.usuario = { id: Number(process.env.USUARIO_DEMO_ID) || 1 };
-  next();
-});
+// Exigir sesión válida; deja el usuario en req.user
+router.use(autenticar);
 
 // Obtener historial de notificaciones
 router.get('/', controlador.obtenerHistorial);
@@ -26,8 +22,5 @@ router.patch('/leidas', controlador.marcarTodasLeidas);
 
 // Marcar una notificación como leída
 router.patch('/:id/leida', controlador.marcarLeida);
-
-// Crear una notificación de ejemplo (solo fuera de producción)
-router.post('/demo', controlador.crearDemo);
 
 export default router;

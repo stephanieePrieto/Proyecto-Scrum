@@ -7,7 +7,8 @@
  *  2. Persistir la notificación (PostgreSQL) y emitirla por WebSocket (`notificacion:nueva`).
  *  3. Enviar correo de forma asíncrona sin comprometer la notificación in-app.
  *  4. Agrupar ráfagas de asignaciones (buffer) para evitar spam.
- *  5. Historial, marcado como leída (una o todas) y notificaciones de demostración.
+ *  5. Historial, marcado como leída (una o todas).
+ *  6. Atajos para los eventos reales del tablero: menciones en comentarios y asignación de tareas.
  *
  * Tablas que usa: `notificaciones` y `usuarios.preferencias_notif` (ver database/notificaciones.sql).
  */
@@ -48,36 +49,14 @@ const LIMITE_MAXIMO = 100;
 const COLUMNAS =
   'id, tipo, titulo, mensaje, enlace, referencia_id, metadatos, leida, creado_en AS creada_en';
 
+/** Página a la que lleva una notificación de tarjeta; se le agrega `?tarjeta=ID` para abrir esa tarjeta. */
+const RUTA_TABLERO = '/pages/tablero.html';
+
+/** Máximo de caracteres del comentario que se muestra en una mención. */
+const MAX_FRAGMENTO = 140;
+
 /** Solo se aceptan enlaces internos ("/pages/tablero.html"); nunca "//otro-sitio" ni "javascript:". */
 const PATRON_ENLACE = /^\/(?![\\/])[\w\-./?=&#%]*$/;
-
-/** Plantillas para simular notificaciones nuevas durante una demostración. */
-const PLANTILLAS_DEMO = Object.freeze([
-  {
-    tipo: TIPOS.MENCION,
-    titulo: 'Diego te mencionó en un comentario',
-    mensaje: 'Diego: ¿puedes revisar esta tarjeta antes de la Review del viernes?',
-    enlace: '/pages/tablero.html',
-  },
-  {
-    tipo: TIPOS.MENCION,
-    titulo: 'Stephy te mencionó en un comentario',
-    mensaje: 'Stephy: recuerda registrar tus horas antes de cerrar el día.',
-    enlace: '/pages/tablero.html',
-  },
-  {
-    tipo: TIPOS.ASIGNACION,
-    titulo: 'Nueva tarea: Pruebas de permisos por rol',
-    mensaje: 'Citlaly te asignó «Pruebas de permisos por rol» (4 h estimadas).',
-    enlace: '/pages/tablero.html',
-  },
-  {
-    tipo: TIPOS.ASIGNACION,
-    titulo: 'Nueva tarea: Validar límite WIP',
-    mensaje: 'Dana te asignó «Validar límite WIP» (3 h estimadas).',
-    enlace: '/pages/tablero.html',
-  },
-]);
 
 /*
  * Errores
@@ -292,7 +271,7 @@ function consolidar(items) {
     titulo: `Tienes ${items.length} nuevas asignaciones`,
     mensaje: `${nombres}${sufijo}`.slice(0, MAX_MENSAJE),
     referenciaId: null,
-    enlace: mismoEnlace ? items[0].enlace : null,
+    enlace: mismoEnlace ? items[0].enlace : RUTA_TABLERO,
     metadatos: {
       agrupada: true,
       total: items.length,
@@ -355,8 +334,7 @@ export async function vaciarBuffers() {
  */
 
 /**
- * Notifica a un usuario. Es la función que deben llamar los demás módulos
- * (por ejemplo tareas.service al asignar una tarea, comentarios.service al mencionar).
+ * Notifica a un usuario. Es la función base que usan los atajos de abajo.
  * @param {{usuarioId:number, tipo:string, titulo:string, mensaje:string, referenciaId?:number|null, enlace?:string|null}} evento
  * @returns {Promise<{estado:'omitida'|'agrupada'|'creada', notificacion?:Object}>}
  * @throws {ErrorValidacion} Si el evento es inválido.
@@ -448,13 +426,108 @@ export async function marcarTodasComoLeidas(usuarioId) {
   return { actualizadas: resultado.rowCount ?? 0, noLeidas: await contarNoLeidas(usuarioId) };
 }
 
-/**
- * Crea una notificación de ejemplo para el usuario (solo para demostraciones).
- * Pasa por `notificar`, así que respeta preferencias, WebSocket y buffer.
- * @param {number} usuarioId Usuario que recibe la notificación.
- * @returns {Promise<{estado:string, notificacion?:Object}>}
+/*
+ * Eventos reales del tablero (los llaman comentarios.service y tareas.service)
  */
-export async function crearNotificacionDemo(usuarioId) {
-  const plantilla = PLANTILLAS_DEMO[Math.floor(Math.random() * PLANTILLAS_DEMO.length)];
-  return notificar({ usuarioId, ...plantilla });
+
+/**
+ * Carga lo necesario para armar una notificación de tarjeta: la tarea, el nombre de quien actúa
+ * y cuáles de los destinatarios son integrantes activos del proyecto de esa tarea.
+ * @param {number} tareaId Tarjeta involucrada.
+ * @param {number|null} actorId Persona que comenta o asigna (puede ser `null`).
+ * @param {number[]} destinatarios Posibles destinatarios.
+ * @returns {Promise<{tarea: Object, actor: string, destinatarios: number[]}|null>} `null` si la tarea no existe.
+ */
+async function cargarContextoTarjeta(tareaId, actorId, destinatarios) {
+  const [tareas, actores, miembros] = await Promise.all([
+    consulta('SELECT id, titulo, proyecto_id, horas_estimadas FROM tareas WHERE id = $1', [tareaId]),
+    actorId
+      ? consulta('SELECT nombre FROM usuarios WHERE id = $1', [actorId])
+      : Promise.resolve({ rows: [] }),
+    consulta(
+      `SELECT m.usuario_id
+         FROM miembros_proyecto m
+         JOIN tareas t ON t.proyecto_id = m.proyecto_id
+         JOIN usuarios u ON u.id = m.usuario_id
+        WHERE t.id = $1 AND m.usuario_id = ANY($2::int[]) AND u.activo = TRUE`,
+      [tareaId, destinatarios],
+    ),
+  ]);
+  if (tareas.rows.length === 0) return null;
+  return {
+    tarea: tareas.rows[0],
+    actor: actores.rows[0]?.nombre ?? 'Alguien',
+    destinatarios: miembros.rows.map((fila) => Number(fila.usuario_id)),
+  };
+}
+
+/**
+ * Notifica a cada persona mencionada en un comentario de una tarjeta.
+ * Ignora a quien escribe el comentario, a los repetidos y a quien no es integrante del proyecto.
+ * Nunca lanza errores: un fallo aquí no debe impedir que el comentario se guarde.
+ * @param {{tareaId:number, autorId:number, mencionadosIds:number[], texto:string}} datos
+ * @returns {Promise<Object[]>} Resultado de `notificar` por cada destinatario.
+ */
+export async function notificarMenciones({ tareaId, autorId, mencionadosIds, texto }) {
+  try {
+    const candidatos = [...new Set((mencionadosIds ?? []).map(Number))]
+      .filter((id) => Number.isInteger(id) && id > 0 && id !== Number(autorId));
+    if (!Number.isInteger(Number(tareaId)) || candidatos.length === 0) return [];
+
+    const contexto = await cargarContextoTarjeta(Number(tareaId), Number(autorId) || null, candidatos);
+    if (!contexto) return [];
+
+    const limpio = String(texto ?? '').replace(/\s+/g, ' ').trim();
+    const fragmento = limpio.length > MAX_FRAGMENTO ? `${limpio.slice(0, MAX_FRAGMENTO - 1)}…` : limpio;
+    const { tarea, actor } = contexto;
+
+    return await Promise.all(contexto.destinatarios.map((usuarioId) => notificar({
+      usuarioId,
+      tipo: TIPOS.MENCION,
+      titulo: `${actor} te mencionó en «${tarea.titulo}»`,
+      mensaje: fragmento ? `${actor}: ${fragmento}` : `${actor} te mencionó en un comentario.`,
+      referenciaId: Number(tarea.id),
+      enlace: `${RUTA_TABLERO}?tarjeta=${Number(tarea.id)}`,
+    }).catch((error) => {
+      console.error('[notificaciones] No se pudo notificar la mención:', error?.message ?? error);
+      return { estado: 'error' };
+    })));
+  } catch (error) {
+    console.error('[notificaciones] Falló notificarMenciones:', error?.message ?? error);
+    return [];
+  }
+}
+
+/**
+ * Notifica a una persona que le asignaron una tarea. No avisa si se la asigna a sí misma
+ * ni si no es integrante del proyecto. Nunca lanza errores.
+ * @param {{tareaId:number, responsableId:number, asignadorId?:number|null}} datos
+ * @returns {Promise<{estado:string, notificacion?:Object}|null>} Resultado de `notificar` o `null` si no se avisó.
+ */
+export async function notificarAsignacion({ tareaId, responsableId, asignadorId = null }) {
+  try {
+    const responsable = Number(responsableId);
+    if (!Number.isInteger(responsable) || responsable <= 0) return null;
+    if (asignadorId !== null && Number(asignadorId) === responsable) return null;
+
+    const contexto = await cargarContextoTarjeta(Number(tareaId), Number(asignadorId) || null, [responsable]);
+    if (!contexto || !contexto.destinatarios.includes(responsable)) return null;
+
+    const { tarea, actor } = contexto;
+    const horas = Number(tarea.horas_estimadas);
+    const detalle = Number.isFinite(horas) && horas > 0 ? ` (${horas} h estimadas)` : '';
+    const quien = asignadorId ? `${actor} te asignó` : 'Te asignaron';
+
+    return await notificar({
+      usuarioId: responsable,
+      tipo: TIPOS.ASIGNACION,
+      titulo: `Nueva tarea: ${tarea.titulo}`,
+      mensaje: `${quien} «${tarea.titulo}»${detalle}.`,
+      referenciaId: Number(tarea.id),
+      enlace: `${RUTA_TABLERO}?tarjeta=${Number(tarea.id)}`,
+    });
+  } catch (error) {
+    console.error('[notificaciones] Falló notificarAsignacion:', error?.message ?? error);
+    return null;
+  }
 }

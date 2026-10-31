@@ -4,8 +4,9 @@
  * @description Componente de notificaciones de ScrumFlow (HU-24).
  *
  * - Renderiza una campana con badge de no leídas y un panel desplegable.
- * - Recibe notificaciones nuevas por WebSocket (`notificacion:nueva`) y, si no hay
- *   socket disponible, consulta la API cada 15 s (degradación elegante, RNF-11).
+ * - Recibe notificaciones nuevas por Socket.io (`notificacion:nueva`, sala personal del
+ *   usuario) y, si el canal no está conectado, consulta la API cada 10 s (RNF-11).
+ * - Usa `api()` de core/api.js: sesión por cookie y token CSRF en los PATCH.
  * - Avisa con un toast cuando llega una notificación nueva.
  * - Marca como leída vía `PATCH /api/notificaciones/:id/leida` (o todas con `/leidas`)
  *   con actualización optimista del DOM y reversión si el servidor falla.
@@ -24,17 +25,22 @@
  * // notif.destruir() al cerrar sesión.
  */
 
+import { api } from '../core/api.js';
+
 /** @constant {string} Nombre del evento de WebSocket emitido por el servidor. */
 const EVENTO_NUEVA = 'notificacion:nueva';
 
-/** @constant {string} URL base de la API de notificaciones. */
-const URL_API_POR_DEFECTO = '/api/notificaciones';
+/** @constant {string} Ruta de la API de notificaciones (api() agrega el prefijo /api). */
+const URL_API_POR_DEFECTO = '/notificaciones';
 
 /** @constant {number} Máximo numérico mostrado en el badge antes de "99+". */
 const MAX_BADGE = 99;
 
-/** @constant {number} Cada cuántos ms se consulta la API cuando no hay socket. */
-const INTERVALO_SONDEO_MS = 15000;
+/** @constant {number} Cada cuántos ms se consulta la API cuando no hay socket conectado. */
+const INTERVALO_SONDEO_MS = 10000;
+
+/** @constant {string} Cliente de Socket.io que sirve el propio servidor. */
+const URL_CLIENTE_SOCKET = '/socket.io/socket.io.js';
 
 /** @constant {number} Notificaciones pedidas al servidor en cada consulta. */
 const LIMITE_HISTORIAL = 30;
@@ -72,7 +78,7 @@ const instancias = new WeakMap();
  * @typedef {Object} OpcionesNotificaciones
  * @property {HTMLElement} contenedor - Elemento donde se monta el componente.
  * @property {*} [socket] - Socket global (socket.io o WebSocket nativo).
- * @property {string} [urlApi] - URL base de la API.
+ * @property {string} [urlApi] - Ruta de la API (relativa a /api).
  */
 
 /*
@@ -207,35 +213,25 @@ function suscribirSocket(socket, alRecibir) {
   return () => {};
 }
 
-/**
- * Lee el token CSRF de `<meta name="csrf-token">` si existe.
- * @returns {string|null} Token o `null`.
- */
-function obtenerTokenCsrf() {
-  return document.querySelector('meta[name="csrf-token"]')?.content ?? null;
-}
+/** Promesa compartida: el cliente de Socket.io se descarga una sola vez por página. */
+let promesaClienteSocket = null;
 
 /**
- * Realiza una petición a la API con credenciales de sesión y CSRF.
- * @param {string} url - URL destino.
- * @param {RequestInit} [opciones] - Opciones de fetch.
- * @returns {Promise<Object>} Cuerpo JSON de la respuesta.
- * @throws {Error} Si la respuesta no es 2xx o el cuerpo no es JSON válido.
+ * Obtiene la función `io` del cliente de Socket.io (la reutiliza si la página ya la cargó).
+ * @returns {Promise<Function|null>} `io`, o `null` si el servidor no la ofrece.
  */
-async function solicitarApi(url, opciones = {}) {
-  const headers = { Accept: 'application/json', ...(opciones.headers ?? {}) };
-  const csrf = obtenerTokenCsrf();
-  if (csrf) headers['X-CSRF-Token'] = csrf;
-
-  const respuesta = await fetch(url, {
-    credentials: 'same-origin',
-    ...opciones,
-    headers,
-  });
-  if (!respuesta.ok) {
-    throw new Error(`Error ${respuesta.status} al contactar el servidor.`);
+function cargarClienteSocket() {
+  if (typeof globalThis.io === 'function') return Promise.resolve(globalThis.io);
+  if (!promesaClienteSocket) {
+    promesaClienteSocket = new Promise((resolver) => {
+      const script = document.createElement('script');
+      script.src = URL_CLIENTE_SOCKET;
+      script.onload = () => resolver(typeof globalThis.io === 'function' ? globalThis.io : null);
+      script.onerror = () => resolver(null);
+      document.head.appendChild(script);
+    });
   }
-  return respuesta.json();
+  return promesaClienteSocket;
 }
 
 /**
@@ -411,7 +407,7 @@ export function inicializarNotificaciones({
    * @throws {Error} Si la petición falla.
    */
   async function consultarServidor() {
-    const cuerpo = await solicitarApi(`${urlApi}?limite=${LIMITE_HISTORIAL}`);
+    const cuerpo = await api(`${urlApi}?limite=${LIMITE_HISTORIAL}`);
     const datos = cuerpo?.datos ?? {};
     const recibidas = (Array.isArray(datos.notificaciones) ? datos.notificaciones : [])
       .map(normalizarNotificacion)
@@ -520,8 +516,8 @@ export function inicializarNotificaciones({
     renderizarContador();
 
     try {
-      const cuerpo = await solicitarApi(`${urlApi}/${encodeURIComponent(id)}/leida`, {
-        method: 'PATCH',
+      const cuerpo = await api(`${urlApi}/${encodeURIComponent(id)}/leida`, {
+        metodo: 'PATCH',
       });
       if (Number.isInteger(cuerpo?.datos?.noLeidas)) {
         noLeidas = cuerpo.datos.noLeidas; // Sincroniza con la fuente de verdad.
@@ -557,7 +553,7 @@ export function inicializarNotificaciones({
     renderizarContador();
 
     try {
-      await solicitarApi(`${urlApi}/leidas`, { method: 'PATCH' });
+      await api(`${urlApi}/leidas`, { metodo: 'PATCH' });
       mostrarEstado('');
     } catch {
       for (const n of porMarcar) n.leida = false; // Reversión.
@@ -643,15 +639,15 @@ export function inicializarNotificaciones({
     }
   };
 
-  /** Cada ciclo: sondea la API si no hay socket; con socket solo refresca los textos de tiempo. */
+  /** Cada ciclo: sondea la API si no hay socket conectado; con socket solo refresca los textos de tiempo. */
   const alCiclo = () => {
     if (!raiz.isConnected) { // La barra se volvió a dibujar: esta campana quedó huérfana
       destruir();
       return;
     }
     if (document.hidden) return;
-    if (socket) {
-      if (!panel.hidden) renderizarLista();
+    if (hayTiempoReal()) {
+      if (!panel.hidden) renderizarLista(); // Solo refresca los "hace X minutos"
     } else {
       sincronizar();
     }
@@ -669,7 +665,41 @@ export function inicializarNotificaciones({
   document.addEventListener('keydown', alTeclado);
   document.addEventListener('visibilitychange', alCambiarVisibilidad);
   window.addEventListener('resize', alRedimensionar);
-  const cancelarSocket = suscribirSocket(socket, recibir);
+
+  /* ---------- Tiempo real ---------- */
+  let socketActivo = socket || null;
+  let socketPropio = null;
+  let destruida = false;
+  let cancelarSocket = () => {};
+
+  /** ¿Hay un canal en tiempo real conectado? Si no, se sondea la API. */
+  const hayTiempoReal = () => Boolean(socketActivo) && socketActivo.connected !== false;
+
+  /** Al (re)conectar el socket, ponerse al día con lo que llegó mientras no había canal. */
+  const alConectarSocket = () => { sincronizar(); };
+
+  /**
+   * Empieza a escuchar `notificacion:nueva` en el socket indicado.
+   * @param {*} nuevo - Socket de Socket.io o WebSocket nativo.
+   * @returns {void}
+   */
+  function usarSocket(nuevo) {
+    socketActivo = nuevo;
+    cancelarSocket = suscribirSocket(nuevo, recibir);
+    if (typeof nuevo.on === 'function') nuevo.on('connect', alConectarSocket);
+  }
+
+  if (socketActivo) {
+    usarSocket(socketActivo);
+  } else {
+    // Sin socket compartido: abrir uno propio (la sesión viaja en la cookie httpOnly)
+    cargarClienteSocket().then((io) => {
+      if (!io || destruida) return;
+      socketPropio = io({ withCredentials: true });
+      usarSocket(socketPropio);
+    }).catch(() => { /* Sin tiempo real: queda el sondeo */ });
+  }
+
   const temporizador = setInterval(alCiclo, INTERVALO_SONDEO_MS);
 
   cargarHistorial();
@@ -679,7 +709,10 @@ export function inicializarNotificaciones({
    * @returns {void}
    */
   function destruir() {
+    destruida = true;
     cancelarSocket();
+    if (typeof socketActivo?.off === 'function') socketActivo.off('connect', alConectarSocket);
+    socketPropio?.disconnect();
     clearInterval(temporizador);
     document.removeEventListener('click', alClickDocumento);
     document.removeEventListener('keydown', alTeclado);
@@ -689,7 +722,7 @@ export function inicializarNotificaciones({
     raiz.remove();
   }
 
-  const api = { destruir, recibir };
-  instancias.set(contenedor, api);
-  return api;
+  const instancia = { destruir, recibir };
+  instancias.set(contenedor, instancia);
+  return instancia;
 }

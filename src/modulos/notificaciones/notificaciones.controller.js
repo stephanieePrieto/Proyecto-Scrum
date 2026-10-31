@@ -2,7 +2,7 @@
 /**
  * @file notificaciones.controller.js
  * @description Controladores HTTP de la HU-24. Traducen peticiones a llamadas del servicio, extraen el ID del usuario desde el middleware de
- *              autenticación (`req.usuario.id`) y devuelven respuestas uniformes sin filtrar detalles internos.
+ *              autenticación (`req.user.id`) y devuelven respuestas uniformes sin filtrar detalles internos.
  *
  * Forma de respuesta: `{ ok: boolean, datos?: Object, error?: string }`.
  */
@@ -10,12 +10,12 @@
 import * as servicio from './notificaciones.service.js';
 
 /**
- * Obtiene el ID del usuario autenticado.
- * @param {import('express').Request} req Petición (con `req.usuario`).
+ * Obtiene el ID del usuario autenticado (el middleware `autenticar` lo deja en `req.user`).
+ * @param {import('express').Request} req Petición (con `req.user`).
  * @returns {number|null} ID válido o `null` si no hay sesión.
  */
 function obtenerUsuarioId(req) {
-  const id = Number(req.usuario?.id);
+  const id = Number(req.user?.id);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
@@ -108,34 +108,8 @@ export async function marcarTodasLeidas(req, res) {
   }
 }
 
-/**
- * POST /demo — Crea una notificación de ejemplo para el usuario autenticado.
- * Solo para demostraciones: responde 404 cuando NODE_ENV es "production".
- * @param {import('express').Request} req Petición.
- * @param {import('express').Response} res Respuesta.
- * @returns {Promise<void>}
- */
-export async function crearDemo(req, res) {
-  try {
-    if (process.env.NODE_ENV === 'production') {
-      res.status(404).json({ ok: false, error: 'No encontrado.' });
-      return;
-    }
-    const usuarioId = obtenerUsuarioId(req);
-    if (!usuarioId) {
-      res.status(401).json({ ok: false, error: 'No autenticado.' });
-      return;
-    }
-    const datos = await servicio.crearNotificacionDemo(usuarioId);
-    res.status(201).json({ ok: true, datos });
-  } catch (error) {
-    responderError(res, error);
-  }
-}
-
 export default {
   obtenerHistorial,
   marcarLeida,
   marcarTodasLeidas,
-  crearDemo,
 };

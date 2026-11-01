@@ -7,6 +7,7 @@
 
 import { inicializarTablero, aplicarFiltrosTablero } from './tablero/columnas.js';
 import { montarBarraSuperior } from '../core/layout.js';
+import { escucharMovimientosSocket } from './tablero/reconexion.js';
 
 /**
  * Carga diferida del detalle de tarjeta (HU-20).
@@ -61,6 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
      * Inicia la carga de las columnas, tarjetas y cálculo de días del sprint activo.
      */
     inicializarTablero(proyectoActivoId);
+
+    /**
+     * Inicializa la escucha por WebSockets y la sincronización offline (HU-58).
+     */
+    escucharMovimientosSocket(proyectoActivoId);
 
     /**
      * Configura los escuchadores para los filtros dinámicos en tiempo real (Persona / Épica).

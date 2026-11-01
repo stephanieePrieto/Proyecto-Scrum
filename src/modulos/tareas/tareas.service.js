@@ -2,6 +2,7 @@
 
 import { consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import { notificarAsignacion } from '../notificaciones/notificaciones.service.js';
 
 // HU-08: Crear una tarea técnica para una historia del Sprint.
 export async function crear(datos = {}, usuario) {
@@ -119,6 +120,13 @@ export async function crear(datos = {}, usuario) {
       horas
     ]
   );
+
+  // HU-24: avisar al responsable. No se espera ni puede hacer fallar la creación de la tarea.
+  notificarAsignacion({
+    tareaId: rows[0].id,
+    responsableId,
+    asignadorId: usuario.id,
+  });
 
   return rows[0];
 }

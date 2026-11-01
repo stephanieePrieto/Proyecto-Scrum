@@ -9,6 +9,7 @@ import { api } from '../../core/api.js';
 import { crear, crearAviso, mensajeError, formatearFecha } from './dom.js';
 import { montarComentarios } from './comentarios.js';
 import { montarAdjuntos } from './adjuntos.js';
+import { validarMotivoBloqueo, debeSugerirDesbloqueo } from './bloqueo.js';
 
 const RUTA_CSS = '/css/componentes/detalle-tarjeta.css';
 const ENFOCABLES = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
@@ -303,32 +304,69 @@ function render({ tarea, checklist, historial }) {
 
   const bloques = [];
   if (tarea.bloqueada) {
-    bloques.push(crear('div', { clase: 'dt-banner-bloqueo', atributos: { role: 'status' } }, [
-      crear('strong', { texto: '🔒 Tarea bloqueada' }),
-      crear('p', { texto: tarea.motivoBloqueo || 'Sin motivo registrado.' }),
-    ]));
-  }
-  bloques.push(construirDatos(tarea));
-  if (tarea.etiquetas.length) {
-    bloques.push(crear('ul', { clase: 'dt-etiquetas', atributos: { 'aria-label': 'Etiquetas' } },
-      tarea.etiquetas.map((etiqueta) => crear('li', { clase: 'dt-etiqueta', texto: etiqueta }))));
-  }
-  bloques.push(crear('section', { clase: 'dt-seccion' }, [
-    crear('h3', { clase: 'dt-seccion__titulo', texto: 'Descripción' }),
-    tarea.descripcion
-      ? crear('p', { clase: 'dt-descripcion', texto: tarea.descripcion })
-      : crear('p', { clase: 'dt-vacio', texto: 'Sin descripción.' }),
-  ]));
-  bloques.push(construirChecklist(idTarea, checklist, () => refrescarHistorial?.()));
-  bloques.push(seccionAdjuntos, seccionComentarios);
-  bloques.push(crear('details', { clase: 'dt-historial', atributos: { open: true } }, [
-    crear('summary', { texto: 'Historial de cambios' }),
-    listaHistorial,
-  ]));
+    const elementosBanner = [
+      crear('strong', { texto: 'Tarea bloqueada' }),
+      crear('p', { texto: tarea.motivoBloqueo || 'Sin motivo registrado.' })
+    ];
 
-  cuerpo.replaceChildren(...bloques);
-  montarAdjuntos(seccionAdjuntos, idTarea, { alCambiar: () => refrescarHistorial?.() });
-  montarComentarios(seccionComentarios, idTarea, { alCambiar: () => refrescarHistorial?.() });
+    if (debeSugerirDesbloqueo(tarea.bloqueada, tarea.estadoImpedimento)) {
+      elementosBanner.push(crear('button', {
+        clase: 'dt-boton dt-boton--secundario dt-boton--pequeno',
+        texto: 'Desbloquear (Impedimento resuelto)',
+        eventos: { click: () => { /* Llamada a API de desbloqueo */ } }
+      }));
+    }
+
+    bloques.push(crear('div', { clase: 'dt-banner-bloqueo', atributos: { role: 'status' } }, elementosBanner));
+  } else {
+  const inputMotivo = crear('input', {
+    clase: 'dt-entrada',
+    atributos: { type: 'text', placeholder: 'Motivo para bloquear...' }
+  });
+  const avisoBloqueo = crearAviso();
+
+  const btnBloquear = crear('button', {
+    clase: 'dt-boton dt-boton--secundario',
+    texto: 'Bloquear',
+    eventos: {
+      click: () => {
+        avisoBloqueo.ocultar();
+        if (!validarMotivoBloqueo(inputMotivo.value)) {
+          avisoBloqueo.mostrar('Ingrese un motivo para reportar el impedimento.');
+          return;
+        }
+        // Llamada a API para crear el impedimento
+      }
+    }
+  });
+
+  bloques.push(crear('div', { clase: 'dt-seccion' }, [
+    crear('h3', { clase: 'dt-seccion__titulo', texto: 'Reportar impedimento' }),
+    crear('div', { clase: 'dt-fila' }, [inputMotivo, btnBloquear]),
+    avisoBloqueo.nodo
+  ]));
+}
+bloques.push(construirDatos(tarea));
+if (tarea.etiquetas.length) {
+  bloques.push(crear('ul', { clase: 'dt-etiquetas', atributos: { 'aria-label': 'Etiquetas' } },
+    tarea.etiquetas.map((etiqueta) => crear('li', { clase: 'dt-etiqueta', texto: etiqueta }))));
+}
+bloques.push(crear('section', { clase: 'dt-seccion' }, [
+  crear('h3', { clase: 'dt-seccion__titulo', texto: 'Descripción' }),
+  tarea.descripcion
+    ? crear('p', { clase: 'dt-descripcion', texto: tarea.descripcion })
+    : crear('p', { clase: 'dt-vacio', texto: 'Sin descripción.' }),
+]));
+bloques.push(construirChecklist(idTarea, checklist, () => refrescarHistorial?.()));
+bloques.push(seccionAdjuntos, seccionComentarios);
+bloques.push(crear('details', { clase: 'dt-historial', atributos: { open: true } }, [
+  crear('summary', { texto: 'Historial de cambios' }),
+  listaHistorial,
+]));
+
+cuerpo.replaceChildren(...bloques);
+montarAdjuntos(seccionAdjuntos, idTarea, { alCambiar: () => refrescarHistorial?.() });
+montarComentarios(seccionComentarios, idTarea, { alCambiar: () => refrescarHistorial?.() });
 }
 
 /**

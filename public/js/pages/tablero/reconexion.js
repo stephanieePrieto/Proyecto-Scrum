@@ -4,7 +4,8 @@
  * @author Camila Mariné Crespo Zurita
  */
 
-import { socket } from '../../core/socket.js';
+import * as socketModule from '../../core/socket.js';
+const socket = socketModule.socket || socketModule.default || window.socket;
 
 /**
  * Sincroniza la cola local de movimientos pendientes con el servidor al recuperar la red (HU-58).

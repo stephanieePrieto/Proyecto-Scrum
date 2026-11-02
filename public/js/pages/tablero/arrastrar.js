@@ -1,8 +1,10 @@
 /**
  * @file arrastrar.js
- * @description Manejo interactivo de Drag & Drop, alertas WIP, sockets y resiliencia offline (HU-18, HU-22).
+ * @description Manejo interactivo de Drag & Drop, alertas WIP, sockets y resiliencia offline (HU-18, HU-22, HU-23).
  * @author Camila Mariné Crespo Zurita
  */
+
+import { evaluarMovimientoBloqueo } from './bloqueo.js';
 
 let tarjetaArrastrada = null;
 let columnaOrigenId = null;
@@ -75,7 +77,7 @@ export function inicializarDragAndDrop(proyectoId) {
                 const listaDestino = document.querySelector(`[data-columna-id="${datos.nuevaColumnaId}"] [id^="lista-tarjetas-"]`);
                 if (tarjeta && listaDestino) {
                     listaDestino.appendChild(tarjeta);
-                    
+                    actualizarContadoresYAlertasWip();
                 }
             }
         });
@@ -156,6 +158,16 @@ export function inicializarDragAndDrop(proyectoId) {
         const listaOrigen = document.getElementById(`lista-tarjetas-${columnaOrigenId}`);
 
         if (!listaDestino) return;
+
+        // Modificación HU-23: Evaluar si el movimiento de una tarjeta bloqueada está permitido[cite: 4]
+        const estaBloqueada = tarjetaArrastrada.dataset.bloqueada === 'true';
+        const esColumnaFinal = columnaDestino.dataset.esFinal === 'true';
+        const validacionBloqueo = evaluarMovimientoBloqueo(estaBloqueada, esColumnaFinal);
+
+        if (!validacionBloqueo.permitido) {
+            alert(validacionBloqueo.mensaje);
+            return; // Bloquea la acción antes de hacer el appendChild
+        }
 
         // Movimiento visual optimista
         listaDestino.appendChild(tarjetaArrastrada);

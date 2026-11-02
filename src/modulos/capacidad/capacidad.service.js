@@ -1,74 +1,49 @@
 // Responsable: Diego - HU-44: reglas, SQL y avisos por socket (horas por dia y ausencias)
-
 /**
  * Aplicar las reglas de la capacidad individual: guardar horas por día y ausencias,
  * y calcular la capacidad del equipo en un sprint.
  *
- * SUPUESTOS (ajustar nombres de tablas y columnas a database/schema.sql):
- *   usuarios              (id, nombre)
- *   equipo_miembros     (equipo_id, usuario_id)
- *   capacidad_usuarios  (usuario_id PK, horas_por_dia NUMERIC, notas TEXT, actualizado_en)
- *   ausencias           (id, usuario_id, tipo TEXT 'ausencia'|'vacaciones', fecha_inicio DATE, fecha_fin DATE)
- * Las dos últimas están en database/capacidad.sql.
+ * Tablas (database/schema.sql): usuarios, miembros_equipo, capacidad_usuarios y ausencias.
  *
- * SUPUESTO DE DRIVER: librería "pg". config/db.js debe exportar un Pool (CommonJS):
- *   module.exports = new Pool({ connectionString: process.env.DATABASE_URL });
- * Con pg, db.query(sql, params) devuelve { rows } y los marcadores son $1, $2, ...
+ * Permisos (no hay administrador global; el rol vive dentro de cada proyecto):
+ *   - Ver o editar la capacidad de una persona: ella misma, o quien administra un equipo que comparten
+ *     (creó el equipo o es Scrum Master de alguno de sus proyectos).
+ *   - Ver la capacidad de un equipo: integrantes del equipo y quien lo administra.
  *
- * MODO DEMO: si no hay DATABASE_URL (o MODO_DEMO=true) usar los datos de capacidad.demo.js.
+ * MODO DEMO: solo con MODO_DEMO=true se usan los datos de capacidad.demo.js (lo usan las pruebas).
  */
-
+import pool from '../../config/db.js';
+import { ErrorApp } from '../../utils/ErrorApp.js';
+import { esAdminEquipo, puedeVerEquipo, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { esModoDemo, repo as repoDemo } from './capacidad.demo.js';
-import {
-  validarCapacidad,
-  fusionarAusencias,
-  capacidadEquipo,
-  leerDia,
-} from './capacidad.calculo.js';
+import { validarCapacidad, fusionarAusencias, capacidadEquipo, leerDia } from './capacidad.calculo.js';
 
 /**
  * Representar un error con código HTTP para que el controller responda con el estado correcto.
+ * Extiende ErrorApp, así que el manejador global también lo entiende.
  */
-class ErrorCapacidad extends Error {
+export class ErrorCapacidad extends ErrorApp {
   /**
-   * @param {number} estado Código HTTP (400, 403...).
-   * @param {string} mensaje Texto para mostrar al usuario.
-   * @param {Array<{campo: string, mensaje: string}>} [errores] Detalle por campo.
+   * @param {number} estado - Código HTTP (400, 403...).
+   * @param {string} mensaje - Texto para mostrar al usuario.
+   * @param {Array<{campo: string, mensaje: string}>} [errores] - Detalle por campo.
    */
   constructor(estado, mensaje, errores = []) {
-    super(mensaje);
+    super(mensaje, estado);
     this.estado = estado;
     this.errores = errores;
   }
-}
-
-// Guardar el pool de conexiones una vez cargado (carga diferida)
-let db;
-
-/**
- * Obtener el pool de conexiones a PostgreSQL cargando config/db.js solo cuando se necesita.
- * Evitar así que el modo demo dependa de ese archivo.
- *
- * @returns {Promise<import('pg').Pool>} Pool de conexiones.
- */
-async function obtenerDb() {
-  if (!db) {
-    const modulo = await import('../../config/db.js');
-    db = modulo.default || modulo;
-  }
-  return db;
 }
 
 /**
  * Ejecutar una consulta SQL parametrizada y devolver sus filas.
  * Usar siempre parámetros ($1, $2...) para prevenir inyección SQL.
  *
- * @param {string} sql Consulta con marcadores $1, $2...
- * @param {Array} [params] Valores de los marcadores.
+ * @param {string} sql - Consulta con marcadores $1, $2...
+ * @param {Array} [params] - Valores de los marcadores.
  * @returns {Promise<Array<Object>>} Filas resultantes.
  */
 async function consultar(sql, params = []) {
-  const pool = await obtenerDb();
   const { rows } = await pool.query(sql, params);
   return rows;
 }
@@ -76,7 +51,7 @@ async function consultar(sql, params = []) {
 /**
  * Convertir una columna DATE a texto en SQL para evitar desfases por zona horaria.
  *
- * @param {string} columna Nombre de la columna.
+ * @param {string} columna - Nombre de la columna.
  * @returns {string} Expresión SQL.
  */
 const fechaSql = (columna) => `to_char(${columna}, 'YYYY-MM-DD')`;
@@ -108,13 +83,12 @@ const repoPg = {
    * Guardar perfil y ausencias en una sola transacción: o se guarda todo o nada.
    */
   async guardarTodo(usuarioId, { horasPorDia, notas, ausencias }) {
-    const pool = await obtenerDb();
     const cliente = await pool.connect();
     try {
       await cliente.query('BEGIN');
       await cliente.query(
         `INSERT INTO capacidad_usuarios (usuario_id, horas_por_dia, notas, actualizado_en)
-             VALUES ($1, $2, $3, NOW())
+              VALUES ($1, $2, $3, NOW())
          ON CONFLICT (usuario_id)
            DO UPDATE SET horas_por_dia = EXCLUDED.horas_por_dia, notas = EXCLUDED.notas, actualizado_en = NOW()`,
         [usuarioId, horasPorDia, notas],
@@ -138,10 +112,10 @@ const repoPg = {
   async listarMiembros(equipoId) {
     const miembros = await consultar(
       `SELECT u.id AS "usuarioId", u.nombre, c.horas_por_dia
-         FROM equipo_miembros em
+         FROM miembros_equipo em
          JOIN usuarios u ON u.id = em.usuario_id
     LEFT JOIN capacidad_usuarios c ON c.usuario_id = u.id
-        WHERE em.equipo_id = $1
+        WHERE em.equipo_id = $1 AND u.activo = TRUE
         ORDER BY u.nombre`,
       [equipoId],
     );
@@ -177,28 +151,67 @@ const elegirRepo = () => (esModoDemo() ? repoDemo : repoPg);
  * @param {number} usuarioId
  * @returns {Promise<{usuarioId: number, horasPorDia: number|null, notas: string, ausencias: Array}>}
  */
-async function obtenerCapacidad(usuarioId) {
+export async function obtenerCapacidad(usuarioId) {
   const repo = elegirRepo();
   const [perfil, ausencias] = await Promise.all([repo.obtenerPerfil(usuarioId), repo.listarAusencias(usuarioId)]);
   return { usuarioId, horasPorDia: perfil?.horasPorDia ?? null, notas: perfil?.notas ?? '', ausencias };
 }
 
 /**
+ * Indicar si el actor puede editar la capacidad de otra persona: la propia, o la de alguien
+ * de un equipo que el actor administra. En modo demo solo cuenta la propia (o el rol "Admin" de prueba).
+ *
+ * @param {{id: number, rol?: string}|null} actor - Usuario autenticado (req.user).
+ * @param {number} usuarioId - Persona dueña de la capacidad.
+ * @returns {Promise<boolean>}
+ */
+async function puedeEditarCapacidad(actor, usuarioId) {
+  if (!actor) return esModoDemo();
+  if (actor.id === usuarioId) return true;
+  if (esModoDemo()) return actor.rol === 'Admin';
+  const compartidos = await consultar(
+    `SELECT a.equipo_id FROM miembros_equipo a JOIN miembros_equipo b ON b.equipo_id = a.equipo_id
+      WHERE a.usuario_id = $1 AND b.usuario_id = $2`,
+    [usuarioId, actor.id],
+  );
+  for (const { equipo_id: equipoId } of compartidos) {
+    if (await esAdminEquipo(actor, equipoId)) return true;
+  }
+  return false;
+}
+
+/**
+ * Indicar si el actor puede ver la capacidad de una persona: la propia o la de alguien de su equipo.
+ *
+ * @param {{id: number}|null} actor
+ * @param {number} usuarioId
+ * @returns {Promise<boolean>}
+ */
+async function puedeVerCapacidad(actor, usuarioId) {
+  if (!actor) return esModoDemo();
+  if (actor.id === usuarioId || esModoDemo()) return true;
+  const filas = await consultar(
+    `SELECT 1 FROM miembros_equipo a JOIN miembros_equipo b ON b.equipo_id = a.equipo_id
+      WHERE a.usuario_id = $1 AND b.usuario_id = $2 LIMIT 1`,
+    [usuarioId, actor.id],
+  );
+  return filas.length > 0;
+}
+
+/**
  * Guardar las horas por día, las notas y las ausencias de una persona.
- * Permitir editar solo a la propia persona o a un Admin. Validar los datos,
+ * Permitir editar solo a la propia persona o a quien administra su equipo. Validar los datos,
  * fusionar las ausencias que se traslapan y avisar cuántas se fusionaron.
  * En modo demo, aceptar peticiones sin sesión.
  *
- * @param {{id: number, rol: string}|null} actor Usuario autenticado (req.user).
- * @param {number} usuarioId Persona cuya capacidad se guarda.
- * @param {Object} datos { horasPorDia, notas, ausencias }.
+ * @param {{id: number, rol?: string}|null} actor - Usuario autenticado (req.user).
+ * @param {number} usuarioId - Persona cuya capacidad se guarda.
+ * @param {Object} datos - { horasPorDia, notas, ausencias }.
  * @returns {Promise<Object>} Capacidad guardada más { fusionadas, mensaje }.
  * @throws {ErrorCapacidad} 403 sin permiso, 400 si los datos no son válidos.
  */
-async function guardarCapacidad(actor, usuarioId, datos = {}) {
-  const esDueno = Boolean(actor) && (actor.id === usuarioId || actor.rol === 'Admin');
-  const demoSinSesion = esModoDemo() && !actor;
-  if (!esDueno && !demoSinSesion) {
+export async function guardarCapacidad(actor, usuarioId, datos = {}) {
+  if (!(await puedeEditarCapacidad(actor, usuarioId))) {
     throw new ErrorCapacidad(403, 'Solo puedes editar tu propia capacidad.');
   }
 
@@ -222,15 +235,67 @@ async function guardarCapacidad(actor, usuarioId, datos = {}) {
 }
 
 /**
+ * Consultar la capacidad de una persona comprobando que el actor puede verla (lo usa la ruta).
+ *
+ * @param {{id: number}|null} actor
+ * @param {number} usuarioId
+ * @returns {Promise<Object>}
+ * @throws {ErrorCapacidad} 403 si no comparten equipo.
+ */
+export async function verCapacidad(actor, usuarioId) {
+  if (!(await puedeVerCapacidad(actor, usuarioId))) {
+    throw new ErrorCapacidad(403, 'No tienes permiso para ver la capacidad de esta persona.');
+  }
+  return obtenerCapacidad(usuarioId);
+}
+
+/**
+ * Consultar la capacidad de un equipo comprobando que el actor lo puede ver (lo usa la ruta).
+ * Responde 404 si no pertenece al equipo, para no revelar que existe (HU-43).
+ *
+ * @param {{id: number}|null} actor
+ * @param {number} equipoId
+ * @param {{inicio: string, fin: string}} rango
+ * @returns {Promise<Object>}
+ */
+export async function verCapacidadEquipo(actor, equipoId, rango) {
+  if (!esModoDemo() && !(await puedeVerEquipo(actor, equipoId))) {
+    throw new ErrorCapacidad(404, MENSAJE_NO_ENCONTRADO);
+  }
+  return obtenerCapacidadEquipo(equipoId, rango);
+}
+
+/**
+ * Datos de la sesión para la pantalla: quién es la persona y a qué equipos pertenece.
+ * Sustituye lo que antes se leía de localStorage ("usuario", "equipoActivo").
+ *
+ * @param {{id: number}|null} actor
+ * @returns {Promise<{usuario: {id: number, nombre: string}, equipos: Array<{id: number, nombre: string}>}>}
+ */
+export async function contextoActual(actor) {
+  if (!actor && esModoDemo()) {
+    return { usuario: { id: 1, nombre: 'Laura Méndez' }, equipos: [{ id: 1, nombre: 'Equipo demo' }] };
+  }
+  const [usuario] = await consultar('SELECT id, nombre FROM usuarios WHERE id = $1 AND activo = TRUE', [actor?.id]);
+  if (!usuario) throw new ErrorCapacidad(401, 'Tu cuenta ya no está activa. Inicia sesión de nuevo.');
+  const equipos = await consultar(
+    `SELECT e.id, e.nombre FROM equipos e JOIN miembros_equipo m ON m.equipo_id = e.id
+      WHERE m.usuario_id = $1 ORDER BY e.nombre`,
+    [actor.id],
+  );
+  return { usuario, equipos };
+}
+
+/**
  * Calcular la capacidad total de un equipo dentro de un rango de fechas (un sprint).
  * Recalcular en cada consulta, de modo que cualquier cambio en horas o ausencias se refleje al instante.
  *
  * @param {number} equipoId
- * @param {{inicio: string, fin: string}} sprint Fechas "AAAA-MM-DD".
+ * @param {{inicio: string, fin: string}} sprint - Fechas "AAAA-MM-DD".
  * @returns {Promise<{miembros: Array, totalHoras: number, sinCapacidad: boolean}>}
  * @throws {ErrorCapacidad} 400 si las fechas no son válidas.
  */
-async function obtenerCapacidadEquipo(equipoId, sprint) {
+export async function obtenerCapacidadEquipo(equipoId, sprint) {
   const inicio = leerDia(sprint?.inicio);
   const fin = leerDia(sprint?.fin);
   if (inicio === null || fin === null || fin < inicio) {
@@ -240,4 +305,3 @@ async function obtenerCapacidadEquipo(equipoId, sprint) {
   return capacidadEquipo(miembros, sprint);
 }
 
-export { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo };

@@ -5,9 +5,13 @@ Cada integrante define cuántas horas puede trabajar por día y qué días no es
 
 ## Endpoints
 
-Todos cuelgan de `/api`. Las rutas se montan en `src/app.js`.
+Todos cuelgan de `/api/capacidad` (`src/app.js` monta el módulo solo, por el nombre de su carpeta).
 
-### GET `/api/usuarios/:usuarioId/capacidad`
+### GET `/api/capacidad/yo`
+
+Quién es la persona de la sesión y a qué equipos pertenece: `{ usuario: {id, nombre}, equipos: [{id, nombre}] }`.
+
+### GET `/api/capacidad/usuarios/:usuarioId`
 
 Devuelve lo guardado. `horasPorDia` es `null` si la persona aún no lo captura.
 
@@ -22,9 +26,9 @@ Devuelve lo guardado. `horasPorDia` es `null` si la persona aún no lo captura.
 }
 ```
 
-### PUT `/api/usuarios/:usuarioId/capacidad`
+### PUT `/api/capacidad/usuarios/:usuarioId`
 
-Reemplaza las horas, las notas y todas las ausencias. Solo la propia persona o un `Admin` pueden usarlo.
+Reemplaza las horas, las notas y todas las ausencias. Solo la propia persona o quien administra un equipo que comparten (creador del equipo o Scrum Master de uno de sus proyectos) pueden usarlo.
 
 ```json
 {

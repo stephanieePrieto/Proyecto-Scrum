@@ -25,29 +25,32 @@ const campoDesde = document.getElementById('desde');
 const campoHasta = document.getElementById('hasta');
 const resumen = document.getElementById('resumen');
 
+// Parámetros opcionales: ?usuario=ID (ver a otra persona de tu equipo) y ?equipo=ID
+const params = new URLSearchParams(location.search);
+
 /**
- * Leer el usuario guardado en localStorage (clave "usuario", en JSON).
- * Devolver un usuario genérico si no existe o si el JSON es inválido.
+ * Preguntar al servidor quién es la persona de la sesión y a qué equipos pertenece.
+ * (La sesión viaja en cookies httpOnly: ya no se lee nada de localStorage.)
  *
- * @returns {{id: (number|null), nombre: string, rol: string}}
+ * @returns {Promise<{usuario: {id: number, nombre: string}, equipos: Array<{id: number, nombre: string}>}|null>}
+ *   null si no se pudo consultar.
  */
-function leerUsuarioLocal() {
+async function cargarContexto() {
   try {
-    const guardado = JSON.parse(localStorage.getItem('usuario'));
-    if (guardado && guardado.nombre) return { id: guardado.id ?? null, nombre: guardado.nombre, rol: guardado.rol || '' };
-  } catch { /* Ignorar JSON inválido y usar el valor por defecto */ }
-  return { id: null, nombre: 'Usuario', rol: '' };
+    return await api('/capacidad/yo');
+  } catch {
+    return null;
+  }
 }
 
-// Resolver la persona y el equipo: ?usuario=ID y ?equipo=ID, o lo guardado en la sesión
-const params = new URLSearchParams(location.search);
-const usuarioLocal = leerUsuarioLocal();
-const usuarioId = Number(params.get('usuario') || usuarioLocal.id || 1);
-const equipoId = Number(params.get('equipo') || localStorage.getItem('equipoActivo') || 1);
+const contexto = await cargarContexto();
+const usuarioId = Number(params.get('usuario')) || contexto?.usuario.id || null;
+const equipoId = Number(params.get('equipo')) || contexto?.equipos[0]?.id || null;
 
 // Mostrar quién edita su capacidad
-document.getElementById('avatar').textContent = iniciales(usuarioLocal.nombre);
-document.getElementById('rol-persona').textContent = usuarioLocal.rol || usuarioLocal.nombre;
+const nombrePersona = contexto?.usuario.nombre ?? '';
+document.getElementById('avatar').textContent = iniciales(nombrePersona);
+document.getElementById('rol-persona').textContent = nombrePersona;
 
 // Guardar las filas de ausencias en pantalla y los errores de validación por campo
 let filas = [];
@@ -198,7 +201,7 @@ async function cargarFormulario() {
   mostrarEstado('info', 'Cargando capacidad…');
   formulario.setAttribute('aria-busy', 'true');
   try {
-    aplicarDatos(await api(`/usuarios/${usuarioId}/capacidad`));
+    aplicarDatos(await api(`/capacidad/usuarios/${usuarioId}`));
     mostrarEstado('info', '');
   } catch (error) {
     mostrarEstado('error', mensajeDeError(error));
@@ -245,7 +248,7 @@ formulario.addEventListener('submit', async (evento) => {
   btnGuardar.disabled = true;
   mostrarEstado('info', 'Guardando…');
   try {
-    const guardado = await api(`/usuarios/${usuarioId}/capacidad`, {
+    const guardado = await api(`/capacidad/usuarios/${usuarioId}`, {
       metodo: 'PUT',
       cuerpo: {
         horasPorDia: Number(campoHoras.value),
@@ -325,13 +328,13 @@ function pintarResumen(datos) {
       : `${m.diasHabiles} ${pluralizar(m.diasHabiles, 'día hábil', 'días hábiles')}`
         + (m.diasAusente ? ` · ${m.diasAusente} ${pluralizar(m.diasAusente, 'día de ausencia', 'días de ausencia')}` : '');
     const marca = m.configurado ? '' : ' <span class="insignia insignia--advertencia">Sin configurar</span>';
-    return `<li class="miembro">
-      <div class="miembro__fila">
-        <span class="miembro__nombre">${escaparHtml(m.nombre)}${marca}</span>
-        <span class="miembro__horas">${formatoHoras(m.horas)} h</span>
+    return `<li class="resumen__miembro">
+      <div class="resumen__miembro-fila">
+        <span class="resumen__miembro-nombre">${escaparHtml(m.nombre)}${marca}</span>
+        <span class="resumen__miembro-horas">${formatoHoras(m.horas)} h</span>
       </div>
-      <div class="miembro__barra" aria-hidden="true"><div class="miembro__relleno" style="width:${(m.horas / maximo) * 100}%"></div></div>
-      <span class="miembro__detalle">${detalle}</span>
+      <div class="resumen__miembro-barra" aria-hidden="true"><div class="resumen__miembro-relleno" style="width:${(m.horas / maximo) * 100}%"></div></div>
+      <span class="resumen__miembro-detalle">${detalle}</span>
     </li>`;
   }).join('');
 
@@ -360,7 +363,7 @@ async function cargarResumen() {
   pintarCargaResumen();
   try {
     const datos = await api(
-      `/equipos/${equipoId}/capacidad?inicio=${campoDesde.value}&fin=${campoHasta.value}`,
+      `/capacidad/equipos/${equipoId}?inicio=${campoDesde.value}&fin=${campoHasta.value}`,
       { signal: consultaResumen.signal },
     );
     pintarResumen(datos);
@@ -387,5 +390,16 @@ dentroDeDosSemanas.setDate(hoy.getDate() + 13);
 campoDesde.value = aTexto(hoy);
 campoHasta.value = aTexto(dentroDeDosSemanas);
 
-cargarFormulario();
-cargarResumen();
+if (!usuarioId) {
+  mostrarEstado('error', 'No pudimos identificar tu sesión. Inicia sesión de nuevo.');
+  btnGuardar.disabled = true;
+} else {
+  cargarFormulario();
+}
+
+if (equipoId) {
+  cargarResumen();
+} else {
+  pintarErrorResumen('Aún no perteneces a un equipo, por eso no hay capacidad que calcular.');
+  resumen.querySelector('[data-reintentar]')?.remove();
+}

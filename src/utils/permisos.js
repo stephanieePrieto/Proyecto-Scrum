@@ -190,6 +190,9 @@ export const PERMISOS = Object.freeze({
     'historia.proponer': definirPermiso('proponer historias en el backlog', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'historia.gestionar': definirPermiso('crear, editar, eliminar o reordenar historias', [SCRUM_MASTER, PRODUCT_OWNER]),
     'tarea.gestionar': definirPermiso('crear o editar tareas y mover tarjetas', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
+    // HU-10 y HU-11 (Diego): Daily Scrum e impedimentos
+    'daily.registrar': definirPermiso('registrar tu Daily Scrum', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
+    'impedimento.gestionar': definirPermiso('registrar o resolver impedimentos', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'sprint.gestionar': definirPermiso('planificar, iniciar o cerrar sprints', [SCRUM_MASTER]),
     'review.decidir': definirPermiso('aceptar o rechazar historias en la review', [PRODUCT_OWNER]),
     'proyecto.gestionar': definirPermiso('gestionar miembros, invitaciones o la configuración del proyecto', [SCRUM_MASTER], { incluyeCreador: true }),

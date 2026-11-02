@@ -336,6 +336,124 @@
 }
 
 
+
+/* HU-08: Resumen de horas por historia */
+
+.planificacion-historia__total-horas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+
+  background: var(--slate-50);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+}
+
+.planificacion-historia__horas-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.planificacion-historia__horas-etiqueta svg {
+  flex-shrink: 0;
+  color: var(--primario-texto);
+}
+
+.planificacion-historia__horas-valor {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+
+  border-radius: 999px;
+  background: var(--primario-claro);
+  border: 1px solid #DCCBA9;
+
+  color: var(--primario-texto);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+
+/* HU-08: Acciones e insignias de tareas técnicas */
+
+.planificacion-tarea__acciones {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.planificacion-tarea__horas {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+
+/* HU-08: Modal de confirmación de eliminación.
+   Reutiliza el diseño del Product Backlog. */
+
+/* Ocultar completamente el modal cuando está cerrado. */
+#dialogo-eliminar-tarea:not([open]) {
+  display: none !important;
+}
+
+/* Centrar el modal y eliminar el espacio exterior. */
+#dialogo-eliminar-tarea[open] {
+  position: fixed !important;
+  inset: 0 !important;
+  transform: none !important;
+  margin: auto !important;
+
+  width: calc(100% - 32px);
+  max-width: 450px;
+  height: fit-content;
+  max-height: calc(100dvh - 32px);
+
+  padding: 0 !important;
+  border: none !important;
+  border-radius: var(--radio-lg);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-lg);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Fondo oscuro detrás del modal. */
+#dialogo-eliminar-tarea::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Espaciado interior igual al del Product Backlog. */
+#dialogo-eliminar-tarea .bl-confirmacion__contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Evitar márgenes laterales adicionales. */
+#dialogo-eliminar-tarea .bl-confirmacion__contenido > h2,
+#dialogo-eliminar-tarea .bl-confirmacion__contenido > p {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+
+
 /* ==========================================
    Responsive
    ========================================== */

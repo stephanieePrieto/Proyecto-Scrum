@@ -1,6 +1,6 @@
 /**
  * @file tarjeta.js
- * @description Construcción programática pura de tarjetas de tareas mediante DOM API (HU-18, HU-19, HU-22).
+ * @description Construcción programática pura de tarjetas de tareas mediante DOM API (HU-18, HU-19, HU-22, HU-23).
  * @author Camila Mariné Crespo Zurita
  */
 
@@ -32,7 +32,11 @@ export function crearElementoTarjeta(tarea) {
     const contenedor = document.createElement('div');
     contenedor.id = `tarjeta-${tarea.id}`;
     contenedor.dataset.tareaId = tarea.id;
-    contenedor.draggable = !tarea.bloqueada;
+    
+    // Modificación HU-23: Permitir arrastre general y asignar dataset bloqueada[cite: 5]
+    contenedor.draggable = true;
+    contenedor.dataset.bloqueada = tarea.bloqueada ? 'true' : 'false';
+    
     contenedor.tabIndex = 0;
 
     contenedor.classList.add(
@@ -63,12 +67,14 @@ export function crearElementoTarjeta(tarea) {
     badgeDias.textContent = `${dias}d`;
     aplicarEstiloSemaforo(badgeDias, dias);
     cajaBadges.appendChild(badgeDias);
-
+    
     if (tarea.bloqueada) {
-        const candado = document.createElement('span');
-        candado.title = 'Tarea Bloqueada';
-        candado.classList.add('text-rose-600', 'font-bold', 'text-xs');
+        const candado = document.createElement('a');
+        candado.title = 'Tarea Bloqueada - Ver impedimento';
+        candado.classList.add('text-rose-600', 'font-bold', 'text-xs', 'cursor-pointer', 'hover:opacity-80');
         candado.textContent = '🔒';
+        candado.href = tarea.idImpedimento ? `/impedimentos/${tarea.idImpedimento}` : '#';
+        candado.target = '_blank';
         cajaBadges.appendChild(candado);
     }
 

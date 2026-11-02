@@ -25,5 +25,26 @@ router.get(
   controlador.listarPorHistoria
 );
 
+/**
+ * HU-08: Editar una tarea técnica existente.
+ * El servicio verifica los permisos y valida los datos.
+ */
+router.put(
+  '/:tareaId',
+  autenticar,
+  controlador.editar
+);
+
+/**
+ * HU-08: Eliminar una tarea técnica existente.
+ * El servicio verifica los permisos y las horas registradas.
+ */
+router.delete(
+  '/:tareaId',
+  autenticar,
+  controlador.eliminar
+);
+
+
 export default router;
 

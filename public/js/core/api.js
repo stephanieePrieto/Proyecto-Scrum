@@ -10,7 +10,7 @@ import { obtenerTokenCsrf } from './seguridad.js';
 const BASE_API = '/api';
 
 // Ruta del login (la misma que usa cerrarSesion en auth.js)
-const RUTA_LOGIN = '/login.html';
+const RUTA_LOGIN = '/pages/login.html';
 
 // Ruta que confirma cada cierto tiempo que la sesión sigue vigente
 const RUTA_LATIDO = '/auth/actividad';

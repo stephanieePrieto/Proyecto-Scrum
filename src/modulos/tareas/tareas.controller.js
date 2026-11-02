@@ -32,3 +32,37 @@ export const listarPorHistoria = manejar(async (req, res) => {
 
   res.status(200).json({ tareas });
 });
+
+/**
+ * HU-08: Editar una tarea técnica existente.
+ * Recibe el ID y los datos actualizados.
+ */
+export const editar = manejar(async (req, res) => {
+  const tarea = await servicio.editar(
+    req.params.tareaId,
+    req.body,
+    req.user
+  );
+
+  res.status(200).json({
+    tarea
+  });
+});
+
+
+/**
+ * HU-08: Eliminar una tarea técnica existente.
+ * Recibe el ID y llama al servicio.
+ */
+export const eliminar = manejar(async (req, res) => {
+  const tarea = await servicio.eliminar(
+    req.params.tareaId,
+    req.user
+  );
+
+  res.status(200).json({
+    mensaje: 'Tarea técnica eliminada correctamente.',
+    tarea
+  });
+});
+

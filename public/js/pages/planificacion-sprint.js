@@ -333,14 +333,156 @@ async function cargarTareasHistoria(historiaId, contenedor) {
       const responsable = tarea.responsable_nombre ||
         'Sin responsable';
 
-      detalle.textContent =
-        `Responsable: ${responsable} · ${tarea.horas_estimadas} h`;
+      detalle.textContent = `Responsable: ${responsable}`;
 
-      tarjeta.append(titulo, detalle);
-      contenedor.appendChild(tarjeta);
+      const insigniaHoras = document.createElement('span');
+      insigniaHoras.className =
+        'insignia insignia--primario planificacion-tarea__horas';
+      
+      insigniaHoras.textContent = `${Number(tarea.horas_estimadas).toFixed(1)} h`;
+
+      // HU-08: Botón para editar esta tarea técnica.
+      const botonEditar = document.createElement('button');
+      botonEditar.type = 'button';
+      botonEditar.className =
+        'boton boton--secundario boton--pequeno';
+      botonEditar.textContent = 'Editar';
+
+      botonEditar.addEventListener('click', async () => {
+        // Preparar el formulario con los datos actuales.
+        prepararFormularioTarea(tarea);
+
+        // Mostrar la historia a la que pertenece.
+        const nombreHistoria = contenedor.closest(
+          '.planificacion-historia'
+        )?.querySelector('.planificacion-historia__titulo');
+
+        document.getElementById('historia-tarea-nombre').textContent =
+          nombreHistoria?.textContent || '';
+
+        // Abrir el modal.
+        dialogoTarea.showModal();
+
+        // Cargar los responsables y seleccionar el actual.
+        await cargarResponsables(tarea.responsable_id);
+      });
+
+      
+        // HU-08: Botón para eliminar una tarea técnica.
+        const botonEliminar = document.createElement('button');
+        botonEliminar.type = 'button';
+        botonEliminar.className =
+          'boton boton--secundario boton--pequeno';
+        botonEliminar.textContent = 'Eliminar';
+
+        
+      botonEliminar.addEventListener('click', () => {
+        // HU-08: Preparar la tarea que se desea eliminar.
+        tareaPendienteEliminar = tarea.id;
+
+        nombreTareaEliminar.textContent = tarea.titulo;
+        
+        mensajeEliminarTarea.hidden = true;
+        mensajeEliminarTarea.textContent = '';
+
+        dialogoEliminarTarea.showModal();
+      });
+
+      
+    // HU-08: Confirmar eliminación desde el modal personalizado.
+    botonConfirmarEliminar.addEventListener('click', async () => {
+      if (!tareaPendienteEliminar) return;
+
+      const tareaId = tareaPendienteEliminar;
+
+      botonConfirmarEliminar.disabled = true;
+      botonConfirmarEliminar.textContent = 'Eliminando...';
+
+      try {
+        await api(`/tareas/${tareaId}`, {
+          metodo: 'DELETE'
+        });
+
+        dialogoEliminarTarea.close();
+
+        // Actualizar las tareas y los totales del Sprint.
+        selectorSprint.dispatchEvent(new Event('change'));
+
+      } catch (error) {
+        console.error('Error al eliminar tarea técnica:', error);
+
+        mensajeEliminarTarea.textContent =
+          error.cuerpo?.mensaje ||
+          error.message ||
+          'No se pudo eliminar la tarea técnica.';
+
+        mensajeEliminarTarea.hidden = false;
+
+      } finally {
+        botonConfirmarEliminar.disabled = false;
+        botonConfirmarEliminar.textContent = 'Eliminar tarea';
+      }
     });
 
+
+
+      const accionesTarea = document.createElement('div');
+      accionesTarea.className = 'planificacion-tarea__acciones';
+
+      accionesTarea.append(insigniaHoras, botonEditar, botonEliminar);
+
+      tarjeta.append(titulo, detalle, accionesTarea);
+      contenedor.appendChild(tarjeta);
+
+    });
+
+    // HU-08: Sumar las horas estimadas de esta historia.
+    const totalHorasHistoria = tareas.reduce(
+      (total, tarea) =>
+        total + (Number(tarea.horas_estimadas) || 0),
+      0
+    );
+
+    // Crear un resumen debajo de las tareas técnicas.
+    // Crear el resumen visual de horas de la historia.
+    const resumenHoras = document.createElement('div');
+    resumenHoras.className = 'planificacion-historia__total-horas';
+
+
+    const etiquetaHoras = document.createElement('span');
+    etiquetaHoras.className = 'planificacion-historia__horas-etiqueta';
+
+    // Icono SVG de reloj, estilo Dashboard.
+    etiquetaHoras.innerHTML = `
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v5l3 2"></path>
+      </svg>
+      <span>Horas estimadas de la historia</span>
+    `;
+
+    const valorHoras = document.createElement('span');
+    valorHoras.className = 'planificacion-historia__horas-valor';
+    valorHoras.textContent =
+      `${Math.round(totalHorasHistoria * 10) / 10} h`;
+
+    resumenHoras.append(etiquetaHoras, valorHoras);
+    contenedor.appendChild(resumenHoras);
+
+
   } catch (error) {
+
     console.error('Error al cargar tareas técnicas:', error);
 
     contenedor.textContent =
@@ -499,9 +641,14 @@ function mostrarHistoriasSprint(historias) {
     botonAgregarTarea.className = 'boton boton--primario';
     botonAgregarTarea.textContent = '+ Agregar tarea técnica';
 
-    botonAgregarTarea.addEventListener('click', () => {
-    // Guardar la historia a la que pertenecerá la tarea
-    document.getElementById('tarea-historia-id').value = historia.id;
+
+  botonAgregarTarea.addEventListener('click', () => {
+    // HU-08: Preparar el formulario en modo creación.
+    prepararFormularioTarea();
+
+  // Guardar la historia a la que pertenecerá la tarea.
+  document.getElementById('tarea-historia-id').value = historia.id;
+
 
     // Mostrar el nombre de la historia en el formulario
     document.getElementById('historia-tarea-nombre').textContent =
@@ -584,12 +731,75 @@ selectorSprint.addEventListener('change', async () => {
   }
 });
 
+// HU-08: Modal personalizado para eliminar tareas técnicas.
+const dialogoEliminarTarea =
+  document.getElementById('dialogo-eliminar-tarea');
+
+const nombreTareaEliminar =
+  document.getElementById('nombre-tarea-eliminar');
+
+const mensajeEliminarTarea =
+  document.getElementById('mensaje-eliminar-tarea');
+
+const botonConfirmarEliminar =
+  document.getElementById('btn-confirmar-eliminar-tarea');
+
+// Guardar la tarea seleccionada para eliminar.
+let tareaPendienteEliminar = null;
+
+function cerrarModalEliminarTarea() {
+  dialogoEliminarTarea.close();
+}
+
+document.getElementById('btn-cancelar-eliminar-tarea')
+  .addEventListener('click', cerrarModalEliminarTarea);
+
+dialogoEliminarTarea.addEventListener('close', () => {
+  tareaPendienteEliminar = null;
+  mensajeEliminarTarea.hidden = true;
+  mensajeEliminarTarea.textContent = '';
+});
+
 // HU-08: Control del modal de tareas técnicas
 const dialogoTarea = document.getElementById('dialogo-tarea');
 const formularioTarea = document.getElementById('formulario-tarea');
 
+/**
+ * HU-08: Preparar el formulario para crear o editar tareas.
+ */
+function prepararFormularioTarea(tarea = null) {
+  const campoTareaId = document.getElementById('tarea-id');
+  const tituloDialogo = document.getElementById('titulo-dialogo-tarea');
+  const botonGuardar = document.getElementById('btn-guardar-tarea');
+
+  if (tarea) {
+    // Modo edición: cargar los datos existentes.
+    campoTareaId.value = tarea.id;
+    tituloDialogo.textContent = 'Editar tarea técnica';
+    botonGuardar.textContent = 'Guardar cambios';
+
+    document.getElementById('tarea-historia-id').value =
+      tarea.historia_id;
+
+    document.getElementById('tarea-titulo').value = tarea.titulo;
+    document.getElementById('tarea-descripcion').value =
+      tarea.descripcion || '';
+
+    document.getElementById('tarea-horas').value =
+      tarea.horas_estimadas;
+
+  } else {
+    // Modo creación: preparar un formulario vacío.
+    formularioTarea.reset();
+    campoTareaId.value = '';
+
+    tituloDialogo.textContent = 'Agregar tarea técnica';
+    botonGuardar.textContent = 'Guardar tarea';
+  }
+}
+
 // HU-08: Cargar integrantes del equipo como responsables
-async function cargarResponsables() {
+async function cargarResponsables(responsableSeleccionado = null) {
   const selector = document.getElementById('tarea-responsable');
 
   selector.replaceChildren();
@@ -615,11 +825,18 @@ async function cargarResponsables() {
     selector.replaceChildren();
     selector.add(new Option('Selecciona un responsable', ''));
 
+
     miembros.forEach(miembro => {
       selector.add(new Option(miembro.nombre, String(miembro.id)));
     });
 
+    // HU-08: Seleccionar al responsable actual al editar.
+    if (responsableSeleccionado !== null) {
+      selector.value = String(responsableSeleccionado);
+    }
+
     selector.disabled = miembros.length === 0;
+
 
   } catch (error) {
     console.error('Error al cargar responsables:', error);
@@ -670,6 +887,9 @@ formularioTarea.addEventListener('submit', async (evento) => {
   const horasTexto = document.getElementById('tarea-horas').value;
   const descripcion = document.getElementById('tarea-descripcion').value.trim();
   const historiaId = document.getElementById('tarea-historia-id').value;
+  // HU-08: Identificar si estamos creando o editando.
+  const tareaId = document.getElementById('tarea-id').value;
+  const esEdicion = Boolean(tareaId);
 
   const mensaje = document.getElementById('mensaje-formulario-tarea');
   const botonGuardar = document.getElementById('btn-guardar-tarea');
@@ -725,16 +945,19 @@ formularioTarea.addEventListener('submit', async (evento) => {
 
   try {
     
-    await api('/tareas', {
-    metodo: 'POST',
-    cuerpo: {
+    // HU-08: Distinguir entre crear y editar una tarea.
+    const ruta = esEdicion ? `/tareas/${tareaId}` : '/tareas';
+    const metodo = esEdicion ? 'PUT' : 'POST';
+
+    await api(ruta, {
+      metodo,
+      cuerpo: {
         historia_id: Number(historiaId),
         titulo,
         descripcion,
         responsable_id: Number(responsableId),
         horas_estimadas: horas
-    }
-
+      }
     });
 
     // Cerrar el formulario después de guardar.
@@ -754,6 +977,11 @@ formularioTarea.addEventListener('submit', async (evento) => {
 
   } finally {
     botonGuardar.disabled = false;
-    botonGuardar.textContent = 'Guardar tarea';
+
+    // HU-08: Mantener el texto según el modo del formulario.
+    botonGuardar.textContent = esEdicion
+      ? 'Guardar cambios'
+      : 'Guardar tarea';
   }
+
 });

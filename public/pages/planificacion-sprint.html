@@ -189,10 +189,17 @@
            id="historia-tarea-nombre">
         </p>
 
-        <input type="hidden"
-               id="tarea-historia-id">
+          <!-- Historia a la que pertenece la tarea -->
+          <input type="hidden"
+                id="tarea-historia-id">
 
-        <div class="grupo-formulario">
+          <!-- ID de la tarea cuando se está editando.
+              Vacío significa que se creará una tarea nueva. -->
+          <input type="hidden"
+                id="tarea-id">
+
+          <div class="grupo-formulario">
+
           <label for="tarea-titulo"
                  class="etiqueta-formulario">
             Título de la tarea *
@@ -277,6 +284,53 @@
 
     </form>
   </dialog>
+  
+<!-- HU-08: Confirmar eliminación de una tarea técnica -->
+<dialog
+  id="dialogo-eliminar-tarea"
+  class="eq-dialogo modal-card"
+  aria-labelledby="titulo-eliminar-tarea"
+>
+  <div class="bl-confirmacion__contenido">
+    <h2
+      id="titulo-eliminar-tarea"
+      class="eq-dialogo__titulo"
+    >
+      ¿Eliminar esta tarea?
+    </h2>
+
+    <p>
+      «<span id="nombre-tarea-eliminar"></span>»
+      se eliminará permanentemente.
+      Esta acción no se puede deshacer.
+    </p>
+
+    <div
+      id="mensaje-eliminar-tarea"
+      class="alerta alerta--error"
+      role="alert"
+      hidden
+    ></div>
+  </div>
+
+  <div class="eq-dialogo__acciones modal-footer">
+    <button
+      type="button"
+      id="btn-cancelar-eliminar-tarea"
+      class="boton boton--secundario"
+    >
+      Cancelar
+    </button>
+
+    <button
+      type="button"
+      id="btn-confirmar-eliminar-tarea"
+      class="boton boton--primario boton--peligro eq-peligro"
+    >
+      Eliminar tarea
+    </button>
+  </div>
+</dialog>
 
   <script type="module"
           src="/js/pages/planificacion-sprint.js">

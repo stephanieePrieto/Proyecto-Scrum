@@ -1,10 +1,9 @@
-import { api } from '/js/core/api.js';
-
 /**
  * @file definir-password.js
  * @description Lógica de la pantalla para definir la contraseña de una cuenta nueva mediante el enlace recibido por correo.
  * @author Citlaly Morales Viveros
  */
+import { api } from '/js/core/api.js';
 
 const params = new URLSearchParams(window.location.search);
 const token = params.get('token');
@@ -36,7 +35,12 @@ if (!token) {
         btn.textContent = 'Procesando...';
 
         try {
-            await api.post('/api/usuarios/definir-password', { token, password });
+            // Usar la función 'api' directamente y remover el prefijo '/api' de la ruta
+            await api('/usuarios/definir-password', {
+                metodo: 'POST',
+                cuerpo: { token, password }
+            });
+
             document.getElementById('mensaje').innerHTML = `
                 <div class="aviso exito">
                     <strong>¡Éxito!</strong> Contraseña definida correctamente. Ahora puedes iniciar sesión.
@@ -51,7 +55,7 @@ if (!token) {
         } catch (error) {
             document.getElementById('mensaje').innerHTML = `
                 <div class="aviso error">
-                    <strong>Error:</strong> ${error.mensaje || 'No se pudo definir la contraseña.'}
+                    <strong>Error:</strong> ${error.cuerpo?.mensaje || 'No se pudo definir la contraseña.'}
                 </div>
             `;
             btn.disabled = false;

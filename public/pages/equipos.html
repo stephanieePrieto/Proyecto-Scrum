@@ -66,12 +66,43 @@
             </div>
 
             <div id="seccion-miembros" class="form-group">
-                <label class="form-label" for="buscar-usuarios">Integrantes</label>
+                <label class="form-label" for="buscar-usuarios">Método de incorporación</label>
                 <p id="nota-creador" class="eq-ayuda" hidden>Tú serás integrante y administrador del equipo.</p>
-                <input id="buscar-usuarios" class="form-input" type="search" placeholder="Buscar por nombre o correo"
-                    autocomplete="off" />
-                <ul id="resultados-usuarios" class="eq-resultados" aria-label="Usuarios encontrados"></ul>
-                <ul id="elegidos-usuarios" class="eq-chips" aria-label="Usuarios elegidos"></ul>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <label><input type="radio" name="metodo_incorporar" value="existente" checked> Buscar
+                        existente</label>
+                    <label><input type="radio" name="metodo_incorporar" value="invitar"> Invitar por correo</label>
+                    <label><input type="radio" name="metodo_incorporar" value="alta"> Alta directa</label>
+                </div>
+
+                <div id="panel-existente">
+                    <input id="buscar-usuarios" class="form-input" type="search"
+                        placeholder="Buscar por nombre o correo" autocomplete="off" />
+                    <ul id="resultados-usuarios" class="eq-resultados" aria-label="Usuarios encontrados"></ul>
+                    <ul id="elegidos-usuarios" class="eq-chips" aria-label="Usuarios elegidos"></ul>
+                </div>
+
+                <div id="panel-nuevo" hidden>
+                    <div class="form-group" id="grupo-nuevo-nombre" hidden>
+                        <label class="form-label" for="nuevo-nombre">Nombre completo</label>
+                        <input id="nuevo-nombre" class="form-input" type="text" autocomplete="off" />
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label" for="nuevo-correo">Correo electrónico</label>
+                        <input id="nuevo-correo" class="form-input" type="email" autocomplete="off" />
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label" for="nuevo-rol">Rol asignado</label>
+                        <select id="nuevo-rol" class="form-input">
+                            <option value="">Ninguno (solo agregar al equipo)</option>
+                            <option value="developer">Developer</option>
+                            <option value="scrum_master">Scrum Master</option>
+                            <option value="product_owner">Product Owner</option>
+                        </select>
+                    </div>
+                </div>
+
                 <p id="error-miembros" class="eq-error" role="alert" hidden></p>
             </div>
 

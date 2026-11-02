@@ -1,17 +1,16 @@
-// Responsable: Citlaly - HU-39: reglas, SQL y avisos por socket (invitar por correo y alta directa)
+/**
+ * @file invitaciones.service.js
+ * @description Lógica de negocio de las invitaciones a equipos, reglas, SQL y avisos por socket (invitar por correo y alta directa).
+ * @author Citlaly Morales Viveros
+ */
 
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { enviarCorreo } from '../../utils/correo.js';
-import { esAdminEquipo } from '../../utils/permisos.js'; 
+import { esAdminEquipo } from '../../utils/permisos.js';
+import { esCorreoValido } from '../../utils/validar.js';
 import crypto from 'crypto';
 import { env } from '../../config/env.js';
-
-/**
- * @file invitaciones.service.js
- * @description Lógica de negocio de las invitaciones a equipos.
- * @author Citlaly Morales Viveros
- */
 
 const EXPIRACION_INVITACION_HORAS = 72;
 const ROLES_PERMITIDOS = ['scrum_master', 'product_owner', 'developer'];
@@ -59,25 +58,30 @@ async function avisarAgregadoAEquipo(destinatario, nombreProyecto, rol) {
  * @returns {Promise<Object>} Invitación creada
  */
 export async function crearInvitacion(datos, usuario) {
-    const { correo, equipo_id, proyecto_id, rol } = datos;
+    // Se aplican valores por defecto (null) para evitar que node-postgres arroje error al recibir variables undefined
+    const { correo, equipo_id, proyecto_id = null, rol = null } = datos;
     const correoLimpio = correo.trim().toLowerCase();
 
     if (!(await esAdminEquipo(usuario, equipo_id))) {
         throw new ErrorApp('No tienes permisos para invitar a este equipo.', 403);
     }
 
-    // Validar rol
+    if (!esCorreoValido(correoLimpio)) {
+        throw new ErrorApp('El formato del correo es inválido.', 400);
+    }
+
     if (rol && !ROLES_PERMITIDOS.includes(rol)) {
         throw new ErrorApp('Rol no válido.', 400);
     }
 
-    // Validar que el proyecto pertenece al equipo (si se proporciona)
     if (proyecto_id) {
         const { rows } = await consulta('SELECT 1 FROM proyectos WHERE id = $1 AND equipo_id = $2', [proyecto_id, equipo_id]);
         if (!rows.length) throw new ErrorApp('El proyecto no pertenece a este equipo.', 400);
     }
 
-    // Verificar si el correo ya está registrado
+    const { rows: eqRows } = await consulta('SELECT nombre FROM equipos WHERE id = $1', [equipo_id]);
+    const equipoNombre = eqRows[0]?.nombre || 'un equipo';
+
     const { rows: usuarioExistente } = await consulta('SELECT id, nombre FROM usuarios WHERE correo = $1', [correoLimpio]);
     if (usuarioExistente.length > 0) {
         throw new ErrorApp('El correo ya está registrado.', 409, {
@@ -86,7 +90,6 @@ export async function crearInvitacion(datos, usuario) {
         });
     }
 
-    // Generar token y guardar invitación
     const { tokenPlano, tokenHash } = generarToken();
     const expiraEn = new Date(Date.now() + EXPIRACION_INVITACION_HORAS * 60 * 60 * 1000);
 
@@ -96,14 +99,108 @@ export async function crearInvitacion(datos, usuario) {
         RETURNING id, correo, equipo_id, proyecto_id, rol, estado, expira_en, creado_en
     `, [correoLimpio, equipo_id, proyecto_id, rol, tokenHash, expiraEn, usuario.id]);
 
+    const invitacionId = rows[0].id;
     const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${tokenPlano}`;
-    await enviarCorreo({
-        para: correoLimpio,
-        asunto: 'Invitación a ScrumFlow',
-        texto: `Has sido invitado a unirte a un equipo en ScrumFlow.\n\nPara aceptar, haz clic en: ${enlace}\n\nEste enlace expirará en ${EXPIRACION_INVITACION_HORAS} horas.`
-    });
+
+    try {
+        await enviarCorreo({
+            para: correoLimpio,
+            asunto: `Invitación a ScrumFlow - Equipo ${equipoNombre}`,
+            texto: `Has sido invitado a unirte al equipo "${equipoNombre}" en ScrumFlow.\n\nPara aceptar, haz clic en: ${enlace}\n\nEste enlace expirará en ${EXPIRACION_INVITACION_HORAS} horas.`
+        });
+    } catch (error) {
+        await consulta(`UPDATE invitaciones SET estado = 'fallida' WHERE id = $1`, [invitacionId]);
+        throw new ErrorApp('El correo rebotó o falló la entrega. La invitación se marcó como fallida.', 500);
+    }
 
     return rows[0];
+}
+
+/**
+ * Da de alta a un usuario directamente en un equipo y le envía un enlace para definir su contraseña.
+ * @param {Object} datos - {nombre, correo, equipo_id, proyecto_id (opcional), rol (opcional)}
+ * @param {Object} usuario - Usuario autenticado
+ * @returns {Promise<Object>}
+ */
+export async function altaDirecta(datos, usuario) {
+    const { nombre, correo, equipo_id, proyecto_id = null, rol = null } = datos;
+    const correoLimpio = correo.trim().toLowerCase();
+
+    if (!(await esAdminEquipo(usuario, equipo_id))) {
+        throw new ErrorApp('No tienes permisos para dar de alta en este equipo.', 403);
+    }
+
+    if (!esCorreoValido(correoLimpio)) {
+        throw new ErrorApp('El formato del correo es inválido.', 400);
+    }
+
+    if (rol && !ROLES_PERMITIDOS.includes(rol)) {
+        throw new ErrorApp('Rol no válido.', 400);
+    }
+
+    if (proyecto_id) {
+        const { rows } = await consulta('SELECT 1 FROM proyectos WHERE id = $1 AND equipo_id = $2', [proyecto_id, equipo_id]);
+        if (!rows.length) throw new ErrorApp('El proyecto no pertenece a este equipo.', 400);
+    }
+
+    const { rows: usuarioExistente } = await consulta('SELECT id, nombre FROM usuarios WHERE correo = $1', [correoLimpio]);
+    if (usuarioExistente.length > 0) {
+        throw new ErrorApp('El correo ya está registrado.', 409, {
+            usuario: usuarioExistente[0],
+            pregunta: '¿Deseas agregar a este usuario al equipo?'
+        });
+    }
+
+    return pool.connect().then(async (cliente) => {
+        try {
+            await cliente.query('BEGIN');
+
+            const { rows: nuevoUsuario } = await cliente.query(`
+                INSERT INTO usuarios (nombre, correo, activo)
+                VALUES ($1, $2, TRUE) RETURNING id
+            `, [nombre.trim(), correoLimpio]);
+            const usuarioId = nuevoUsuario[0].id;
+
+            await cliente.query(`
+                INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)
+            `, [equipo_id, usuarioId]);
+
+            if (proyecto_id && rol) {
+                await cliente.query(`
+                    INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
+                    VALUES ($1, $2, $3)
+                `, [proyecto_id, usuarioId, rol]);
+            }
+
+            const { tokenPlano, tokenHash } = generarToken();
+            const expiraEn = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+            await cliente.query(`
+                INSERT INTO tokens_recuperacion (usuario_id, token_hash, expira_en)
+                VALUES ($1, $2, $3)
+            `, [usuarioId, tokenHash, expiraEn]);
+
+            await cliente.query('COMMIT');
+
+            const enlacePassword = `${env.APP_URL}/pages/definir-password.html?token=${tokenPlano}`;
+            try {
+                await enviarCorreo({
+                    para: correoLimpio,
+                    asunto: 'Bienvenido a ScrumFlow',
+                    texto: `Hola ${nombre.trim()},\n\nHas sido dado de alta en un equipo en ScrumFlow.\n\nPara activar tu cuenta y definir tu contraseña, haz clic en: ${enlacePassword}\n\nEste enlace expirará en 24 horas.`
+                });
+            } catch (error) {
+                console.error('[invitaciones] Error enviando correo de alta directa:', error?.message ?? error);
+            }
+
+            return { mensaje: 'Cuenta creada y agregada al equipo correctamente.' };
+        } catch (error) {
+            await cliente.query('ROLLBACK');
+            throw error;
+        } finally {
+            cliente.release();
+        }
+    });
 }
 
 /**
@@ -127,7 +224,6 @@ export async function aceptarInvitacion(tokenPlano) {
             await cliente.query('UPDATE invitaciones SET estado = $1 WHERE id = $2', ['aceptada', inv.id]);
 
             if (usuarioExistente.length > 0) {
-                // Usuario ya existe: agregar a equipo/proyecto
                 const usuarioId = usuarioExistente[0].id;
                 await cliente.query(`
                     INSERT INTO miembros_equipo (equipo_id, usuario_id)
@@ -142,11 +238,12 @@ export async function aceptarInvitacion(tokenPlano) {
                     `, [inv.proyecto_id, usuarioId, inv.rol]);
                 }
             } else {
-                // Usuario nuevo: crear cuenta y agregar a equipo/proyecto
+                // Previene que inserciones fallen si el campo nombre es requerido por la base de datos
+                const nombreProvisional = inv.correo.split('@')[0];
                 const { rows: nuevoUsuario } = await cliente.query(`
                     INSERT INTO usuarios (nombre, correo, activo)
-                    VALUES (NULL, $1, TRUE) RETURNING id
-                `, [inv.correo]);
+                    VALUES ($1, $2, TRUE) RETURNING id
+                `, [nombreProvisional, inv.correo]);
                 const usuarioId = nuevoUsuario[0].id;
 
                 await cliente.query(`
@@ -160,9 +257,8 @@ export async function aceptarInvitacion(tokenPlano) {
                     `, [inv.proyecto_id, usuarioId, inv.rol]);
                 }
 
-                // Generar token para definir contraseña (reutiliza tokens_recuperacion)
                 const { tokenPlano: tokenPassword, tokenHash: tokenHashPassword } = generarToken();
-                const expiraEnPassword = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+                const expiraEnPassword = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
                 await cliente.query(`
                     INSERT INTO tokens_recuperacion (usuario_id, token_hash, expira_en)
@@ -263,7 +359,7 @@ export async function listarInvitaciones(equipoId, usuario) {
  * Agrega un usuario existente a un equipo (para correo ya registrado) y le avisa por correo.
  */
 export async function agregarUsuarioExistente(datos, usuario) {
-    const { usuario_id, equipo_id, proyecto_id, rol } = datos;
+    const { usuario_id, equipo_id, proyecto_id = null, rol = null } = datos;
 
     if (!(await esAdminEquipo(usuario, equipo_id))) {
         throw new ErrorApp('No tienes permisos para agregar usuarios a este equipo.', 403);
@@ -319,4 +415,17 @@ export async function agregarUsuarioExistente(datos, usuario) {
         await avisarAgregadoAEquipo(destinatario[0], nombreProyecto, rol);
         return { mensaje: 'Usuario agregado al equipo.' };
     });
+}
+
+/**
+ * Rechaza una invitación recibida.
+ */
+export async function rechazarInvitacion(tokenPlano) {
+    const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
+    const { rowCount } = await consulta(`
+        UPDATE invitaciones SET estado = 'rechazada'
+        WHERE token_hash = $1 AND estado = 'pendiente' AND expira_en > NOW()
+    `, [tokenHash]);
+    if (rowCount === 0) throw new ErrorApp('Invitación inválida o expirada.', 400);
+    return { mensaje: 'Has rechazado la invitación correctamente.' };
 }

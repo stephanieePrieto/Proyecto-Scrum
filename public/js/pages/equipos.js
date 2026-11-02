@@ -1,9 +1,7 @@
-// Responsable: Citlaly - HU-39, HU-40, HU-41: logica de la pantalla de equipos, roles y modal de invitar (llama a la API y escucha sockets)
-
 /**
  * @file equipos.js
  * @description Página de equipos: lista los equipos visibles para la persona usuaria y permite
- * crearlos, renombrarlos, eliminarlos, agregar integrantes, cambiar administradores y quitar
+ * crearlos, renombrarlos, eliminarlos, agregar integrantes (búsqueda, invitación o alta directa), cambiar administradores y quitar
  * integrantes resolviendo antes sus tareas abiertas y responsabilidades de Scrum. Los permisos
  * reales se validan en el servidor; la interfaz solo muestra lo que el servidor indica.
  * @author Citlaly Morales Viveros
@@ -18,7 +16,6 @@ const $ = (id) => document.getElementById(id);
 const ETIQUETA_ROL = { product_owner: 'Product Owner', scrum_master: 'Scrum Master', developer: 'Developer' };
 const ROLES_CLAVE = ['product_owner', 'scrum_master'];
 
-// Insertar la barra superior; esto también crea el contenedor de la campana de notificaciones
 montarBarraSuperior();
 
 /**
@@ -37,8 +34,6 @@ montarNotificaciones();
 
 let equipos = [];
 let puedeCrear = false;
-
-/* Mensajes y errores */
 
 /**
  * Mostrar el resultado de la última acción encima de la lista.
@@ -83,8 +78,6 @@ function textoError(error) {
     if (error?.estado === 403) return 'No tienes permiso para realizar esta acción.';
     return 'No se pudo completar la operación. Inténtalo de nuevo.';
 }
-
-/* Lista de equipos */
 
 /**
  * Generar la fila de un integrante con sus acciones, si la persona puede gestionar el equipo.
@@ -179,8 +172,6 @@ async function cargar() {
     }
 }
 
-/* Crear, renombrar y agregar integrantes */
-
 const dialogoEquipo = $('dialogo-equipo');
 const elegidos = new Map();
 let modo = 'crear';
@@ -188,6 +179,16 @@ let equipoEnEdicion = null;
 let resultados = [];
 let busqueda = null;
 let temporizador = null;
+
+const radiosMetodo = document.querySelectorAll('input[name="metodo_incorporar"]');
+radiosMetodo.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const valor = e.target.value;
+        $('panel-existente').hidden = (valor !== 'existente');
+        $('panel-nuevo').hidden = (valor === 'existente');
+        $('grupo-nuevo-nombre').hidden = (valor !== 'alta');
+    });
+});
 
 /** Pintar los usuarios encontrados que todavía no se han elegido. */
 function pintarResultados() {
@@ -245,6 +246,22 @@ function abrirDialogoEquipo(nuevoModo, equipo = null) {
     $('nota-creador').hidden = modo !== 'crear';
     $('equipo-nombre').value = modo === 'renombrar' ? equipo.nombre : '';
     $('buscar-usuarios').value = '';
+    $('nuevo-nombre').value = '';
+    $('nuevo-correo').value = '';
+    $('nuevo-rol').value = '';
+
+    document.querySelector('input[name="metodo_incorporar"][value="existente"]').checked = true;
+    $('panel-existente').hidden = false;
+    $('panel-nuevo').hidden = true;
+
+    radiosMetodo.forEach(r => r.parentElement.hidden = modo === 'crear');
+    if (modo === 'crear') {
+        $('panel-nuevo').hidden = true;
+        $('panel-existente').hidden = false;
+    } else {
+        radiosMetodo.forEach(r => r.parentElement.hidden = false);
+    }
+
     ['error-nombre', 'error-miembros', 'error-equipo'].forEach((id) => ponerError(id));
     $('resultados-usuarios').innerHTML = '';
     pintarElegidos();
@@ -263,30 +280,78 @@ function abrirDialogoEquipo(nuevoModo, equipo = null) {
 async function guardarEquipo(evento) {
     evento.preventDefault();
     ['error-nombre', 'error-miembros', 'error-equipo'].forEach((id) => ponerError(id));
+
     const nombre = $('equipo-nombre').value.trim();
     const miembros = [...elegidos.keys()];
+    const metodo = document.querySelector('input[name="metodo_incorporar"]:checked')?.value || 'existente';
 
     if (modo !== 'agregar' && !nombre) return ponerError('error-nombre', 'Escribe el nombre del equipo.');
-    if (modo === 'agregar' && !miembros.length) return ponerError('error-miembros', 'Selecciona al menos un usuario.');
+    if (modo === 'agregar') {
+        if (metodo === 'existente' && !miembros.length) return ponerError('error-miembros', 'Selecciona al menos un usuario.');
+        if (metodo === 'invitar' && !$('nuevo-correo').value.trim()) return ponerError('error-miembros', 'Ingresa el correo de la persona a invitar.');
+        if (metodo === 'alta' && (!$('nuevo-correo').value.trim() || !$('nuevo-nombre').value.trim())) return ponerError('error-miembros', 'Ingresa nombre y correo para el alta directa.');
+    }
 
     $('equipo-guardar').disabled = true;
     try {
         const id = equipoEnEdicion?.id;
-        const peticion = {
-            crear: ['/equipos', { metodo: 'POST', cuerpo: { nombre, miembros } }],
-            renombrar: [`/equipos/${id}`, { metodo: 'PUT', cuerpo: { nombre } }],
-            agregar: [`/equipos/${id}/miembros`, { metodo: 'POST', cuerpo: { miembros } }],
-        }[modo];
-        const { equipo } = await api(...peticion);
+        let peticion;
+        if (modo === 'crear') {
+            peticion = ['/equipos', { metodo: 'POST', cuerpo: { nombre, miembros } }];
+        } else if (modo === 'renombrar') {
+            peticion = [`/equipos/${id}`, { metodo: 'PUT', cuerpo: { nombre } }];
+        } else if (modo === 'agregar') {
+            if (metodo === 'existente') {
+                peticion = [`/equipos/${id}/miembros`, { metodo: 'POST', cuerpo: { miembros } }];
+            } else if (metodo === 'invitar') {
+                peticion = [`/invitaciones/equipos/${id}/invitaciones`, { metodo: 'POST', cuerpo: { correo: $('nuevo-correo').value, rol: $('nuevo-rol').value || undefined } }];
+            } else if (metodo === 'alta') {
+                peticion = [`/invitaciones/equipos/${id}/alta-directa`, { metodo: 'POST', cuerpo: { nombre: $('nuevo-nombre').value, correo: $('nuevo-correo').value, rol: $('nuevo-rol').value || undefined } }];
+            }
+        }
+
+        const respuesta = await api(...peticion);
         dialogoEquipo.close();
         await cargar();
-        const exito = {
-            crear: `Equipo «${equipo.nombre}» creado.`,
-            renombrar: 'El nombre del equipo se actualizó.',
-            agregar: `Integrantes agregados a «${equipo.nombre}».`,
-        }[modo];
-        mostrarMensaje(equipo.advertencias.length ? 'advertencia' : 'exito', [exito, ...equipo.advertencias.map((a) => a.mensaje)]);
+
+        let exito = '';
+        let advertenciasBase = [];
+        if (modo === 'crear') {
+            exito = `Equipo «${respuesta.equipo.nombre}» creado.`;
+            advertenciasBase = respuesta.equipo.advertencias;
+        } else if (modo === 'renombrar') {
+            exito = 'El nombre del equipo se actualizó.';
+            advertenciasBase = respuesta.equipo.advertencias;
+        } else if (modo === 'agregar') {
+            if (metodo === 'existente') {
+                exito = `Integrantes agregados a «${respuesta.equipo.nombre}».`;
+                advertenciasBase = respuesta.equipo.advertencias;
+            } else if (metodo === 'invitar' || metodo === 'alta') {
+                exito = respuesta.mensaje;
+            }
+        }
+
+        mostrarMensaje(advertenciasBase?.length ? 'advertencia' : 'exito', [exito, ...(advertenciasBase?.map((a) => a.mensaje) || [])]);
     } catch (error) {
+        if (error.estado === 409 && error.cuerpo?.usuario) {
+            const confirmar = confirm(`${error.cuerpo.pregunta}\n\nUsuario: ${error.cuerpo.usuario.nombre}`);
+            if (confirmar) {
+                try {
+                    await api(`/invitaciones/equipos/${equipoEnEdicion.id}/usuarios/existente`, {
+                        metodo: 'POST',
+                        cuerpo: { usuario_id: error.cuerpo.usuario.id, rol: $('nuevo-rol').value || undefined }
+                    });
+                    dialogoEquipo.close();
+                    await cargar();
+                    mostrarMensaje('exito', ['Usuario agregado al equipo exitosamente.']);
+                } catch (err) {
+                    ponerError('error-equipo', textoError(err));
+                }
+            }
+            $('equipo-guardar').disabled = false;
+            return;
+        }
+
         const campos = error?.cuerpo?.detalles?.campos;
         if (campos?.nombre) ponerError('error-nombre', campos.nombre);
         if (campos?.miembros) ponerError('error-miembros', campos.miembros);
@@ -295,8 +360,6 @@ async function guardarEquipo(evento) {
         $('equipo-guardar').disabled = false;
     }
 }
-
-/* Quitar integrantes */
 
 const dialogoQuitar = $('dialogo-quitar');
 let quitar = null;
@@ -496,13 +559,10 @@ async function confirmarQuitar() {
         mostrarMensaje(advertencias.length ? 'advertencia' : 'exito', [...textos, ...advertencias]);
     } catch (error) {
         const motivo = error?.cuerpo?.detalles?.motivo;
-        // Si algo cambió mientras se decidía, volver a consultar lo pendiente antes de mostrar el aviso
         if (motivo === 'cambio_concurrente' || motivo === 'pendientes_sin_resolver') await cargarPendientes();
         ponerError('quitar-error', textoError(error));
     }
 }
-
-/* Eliminar equipos */
 
 const dialogoEliminar = $('dialogo-eliminar');
 let equipoAEliminar = null;
@@ -549,8 +609,6 @@ async function confirmarEliminar() {
         $('eliminar-confirmar').disabled = false;
     }
 }
-
-/* Eventos */
 
 $('btn-nuevo-equipo').addEventListener('click', () => { ocultarMensaje(); abrirDialogoEquipo('crear'); });
 

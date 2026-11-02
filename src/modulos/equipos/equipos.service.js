@@ -1,5 +1,3 @@
-// Responsable: Citlaly - HU-40: reglas, SQL y avisos por socket (equipos y miembros)
-
 /**
  * @file equipos.service.js
  * @description Reglas de negocio de los equipos de trabajo: alta, edición y baja, integrantes,
@@ -7,6 +5,7 @@
  * de responsabilidades. Las operaciones que tocan varias tablas se ejecutan en una transacción.
  * @author Citlaly Morales Viveros
  */
+
 import { pool, consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import {
@@ -15,6 +14,9 @@ import {
     puedeVerEquipo,
     exigirGestionEquipo,
 } from '../../utils/permisos.js';
+import crypto from 'crypto';
+import { enviarCorreo } from '../../utils/correo.js';
+import { env } from '../../config/env.js';
 
 const MIN_INTEGRANTES = 3;
 const MAX_INTEGRANTES = 9;
@@ -28,6 +30,12 @@ const ERROR_NOMBRE = { campos: { nombre: 'Ya existe un equipo con ese nombre.' }
 const CAMBIO_CONCURRENTE = { motivo: 'cambio_concurrente' };
 
 /* Utilidades internas */
+
+function generarToken() {
+    const tokenPlano = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
+    return { tokenPlano, tokenHash };
+}
 
 /**
  * Lanza un ErrorApp con detalles opcionales para el cliente.
@@ -282,8 +290,7 @@ export async function usuariosDisponibles({ q = '', equipoId = null } = {}, usua
 
 /**
  * Crea un equipo. Quien lo crea queda como integrante y administrador del equipo;
- * los demás integrantes indicados se agregan como integrantes sin permisos de administración.
- * El equipo se guarda aunque su tamaño no sea el recomendado; la advertencia viaja en la respuesta.
+ * el resto ahora son invitados mediante correo para que puedan aceptar o rechazar.
  *
  * @param {{nombre: string, miembros?: number[]}} datos - Datos del equipo.
  * @param {{id: number}} usuario - Usuario autenticado.
@@ -298,6 +305,7 @@ export async function crear(datos = {}, usuario) {
     if (await existeNombre(nombre)) lanzar(409, 'Ya existe un equipo con ese nombre.', ERROR_NOMBRE);
 
     let equipoId;
+    let invitadosData = [];
     try {
         equipoId = await enTransaccion(async (cliente) => {
             await validarUsuariosActivos(ids, cliente);
@@ -312,17 +320,69 @@ export async function crear(datos = {}, usuario) {
                 'INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)',
                 [nuevoId, usuario.id],
             );
+            
+            // Recopilar invitaciones
             if (ids.length) {
-                await cliente.query(
-                    'INSERT INTO miembros_equipo (equipo_id, usuario_id) SELECT $1::int, UNNEST($2::int[]) ON CONFLICT DO NOTHING',
-                    [nuevoId, ids],
-                );
+                for (const uId of ids) {
+                    if (uId === usuario.id) continue;
+                    const { rows: uRows } = await cliente.query('SELECT id, correo, nombre FROM usuarios WHERE id = $1', [uId]);
+                    if (!uRows.length) continue;
+                    
+                    const { tokenPlano, tokenHash } = generarToken();
+                    const expiraEn = new Date(Date.now() + 72 * 60 * 60 * 1000);
+                    
+                    const { rows: invRows } = await cliente.query(`
+                        INSERT INTO invitaciones (correo, equipo_id, token_hash, expira_en, invitado_por)
+                        VALUES ($1, $2, $3, $4, $5) RETURNING id
+                    `, [uRows[0].correo, nuevoId, tokenHash, expiraEn, usuario.id]);
+
+                    invitadosData.push({
+                        invitacionId: invRows[0].id,
+                        usuarioId: uRows[0].id,
+                        correo: uRows[0].correo,
+                        nombre: uRows[0].nombre,
+                        tokenPlano
+                    });
+                }
             }
             return nuevoId;
         });
     } catch (error) {
         traducirDuplicado(error);
     }
+
+    // Ejecutar envíos y notificaciones fuera de la transacción para no bloquearla
+    if (invitadosData.length > 0) {
+        const { notificar, TIPOS } = await import('../notificaciones/notificaciones.service.js');
+        for (const inv of invitadosData) {
+            const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`;
+            
+            // 1. Notificación in-app
+            try {
+                await notificar({
+                    usuarioId: inv.usuarioId,
+                    tipo: TIPOS.ASIGNACION,
+                    titulo: 'Invitación a nuevo equipo',
+                    mensaje: `Has sido invitado a unirte al equipo "${nombre}". Revisa tu correo o haz clic aquí para aceptar.`,
+                    enlace: `/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`
+                });
+            } catch (e) {
+                console.error('[equipos] Falló notificar in-app:', e);
+            }
+
+            // 2. Envío de correo
+            try {
+                await enviarCorreo({
+                    para: inv.correo,
+                    asunto: 'Invitación a un equipo en ScrumFlow',
+                    texto: `Hola ${inv.nombre},\n\nHas sido invitado a unirte al equipo "${nombre}".\n\nPara aceptar o rechazar, haz clic aquí: ${enlace}`
+                });
+            } catch (e) {
+                await query(`UPDATE invitaciones SET estado = 'fallida' WHERE id = $1`, [inv.invitacionId]);
+            }
+        }
+    }
+
     return obtener(equipoId, usuario);
 }
 
@@ -379,11 +439,10 @@ export async function eliminar(id, usuario) {
 /* Integrantes */
 
 /**
- * Agrega usuarios al equipo. Solo los incorpora al equipo: la participación y el rol de Scrum
- * en cada proyecto se asignan por separado.
+ * Invita usuarios existentes al equipo en lugar de integrarlos directamente.
  *
  * @param {number} equipoId - Identificador del equipo.
- * @param {{miembros: number[]}} datos - Usuarios a agregar.
+ * @param {{miembros: number[]}} datos - Usuarios a invitar.
  * @param {{id: number}} usuario - Usuario autenticado.
  * @returns {Promise<Object>} Equipo actualizado.
  */
@@ -392,14 +451,70 @@ export async function agregarMiembros(equipoId, datos = {}, usuario) {
     const ids = normalizarIds(datos.miembros ?? []);
     if (!ids.length) lanzar(400, 'Revisa los campos marcados.', { campos: { miembros: 'Selecciona al menos un usuario.' } });
 
+    const [equipo] = await cargarEquipos('WHERE e.id = $1', [equipoId], usuario);
+
+    let invitadosData = [];
     await enTransaccion(async (cliente) => {
         await cliente.query('SELECT id FROM equipos WHERE id = $1 FOR UPDATE', [equipoId]);
         await validarUsuariosActivos(ids, cliente);
-        await cliente.query(
-            'INSERT INTO miembros_equipo (equipo_id, usuario_id) SELECT $1::int, UNNEST($2::int[]) ON CONFLICT DO NOTHING',
-            [equipoId, ids],
-        );
+        
+        for (const uId of ids) {
+            const { rows: uRows } = await cliente.query('SELECT id, correo, nombre FROM usuarios WHERE id = $1', [uId]);
+            if (!uRows.length) continue;
+
+            const { rows: yaEsMiembro } = await cliente.query('SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2', [equipoId, uId]);
+            if (yaEsMiembro.length) continue;
+            
+            const { tokenPlano, tokenHash } = generarToken();
+            const expiraEn = new Date(Date.now() + 72 * 60 * 60 * 1000);
+            
+            const { rows: invRows } = await cliente.query(`
+                INSERT INTO invitaciones (correo, equipo_id, token_hash, expira_en, invitado_por)
+                VALUES ($1, $2, $3, $4, $5) RETURNING id
+            `, [uRows[0].correo, equipoId, tokenHash, expiraEn, usuario.id]);
+
+            invitadosData.push({
+                invitacionId: invRows[0].id,
+                usuarioId: uRows[0].id,
+                correo: uRows[0].correo,
+                nombre: uRows[0].nombre,
+                tokenPlano
+            });
+        }
     });
+
+    // Ejecutar envíos y notificaciones fuera de la transacción
+    if (invitadosData.length > 0) {
+        const { notificar, TIPOS } = await import('../notificaciones/notificaciones.service.js');
+        for (const inv of invitadosData) {
+            const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`;
+            
+            // 1. Notificación in-app
+            try {
+                await notificar({
+                    usuarioId: inv.usuarioId,
+                    tipo: TIPOS.ASIGNACION,
+                    titulo: 'Invitación a equipo',
+                    mensaje: `Has sido invitado a unirte al equipo "${equipo.nombre}". Revisa tu correo o haz clic aquí para aceptar.`,
+                    enlace: `/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`
+                });
+            } catch (e) {
+                console.error('[equipos] Falló notificar in-app:', e);
+            }
+
+            // 2. Correo electrónico
+            try {
+                await enviarCorreo({
+                    para: inv.correo,
+                    asunto: `Invitación al equipo ${equipo.nombre}`,
+                    texto: `Hola ${inv.nombre},\n\nHas sido invitado a unirte al equipo "${equipo.nombre}".\n\nPara aceptar o rechazar, haz clic aquí: ${enlace}`
+                });
+            } catch (e) {
+                await query(`UPDATE invitaciones SET estado = 'fallida' WHERE id = $1`, [inv.invitacionId]);
+            }
+        }
+    }
+
     return obtener(equipoId, usuario);
 }
 

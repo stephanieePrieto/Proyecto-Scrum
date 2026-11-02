@@ -11,6 +11,7 @@
  */
 import { montarBarraSuperior } from '../core/layout.js';
 import { obtenerTokenCsrf } from '../core/seguridad.js';
+import { escaparHtml } from '../core/utils.js';
 
 const $ = (id) => document.getElementById(id);
 const CAMPOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
@@ -75,8 +76,18 @@ function mostrarErroresCampos(campos = {}) {
 
 function leerFormulario() {
   const datos = Object.fromEntries(CAMPOS.map((c) => [c, $(c).value]));
-  if (!editando) datos.equipo_id = $('equipo_id').value;
-  else datos.version = versionActual;
+  
+  if (!editando) {
+    datos.equipo_id = $('equipo_id').value;
+    datos.miembros = Array.from(document.querySelectorAll('.rol-miembro'))
+        .filter(select => select.value !== "")
+        .map(select => ({
+            usuario_id: parseInt(select.dataset.usuario),
+            rol: select.value
+        }));
+  } else {
+    datos.version = versionActual;
+  }
   return datos;
 }
 
@@ -192,6 +203,40 @@ async function guardar(datos) {
     boton.disabled = false;
   }
 }
+
+$('equipo_id').addEventListener('change', async (e) => {
+    const equipoId = e.target.value;
+    const seccion = $('seccion-miembros-proyecto');
+    const lista = $('lista-miembros-equipo');
+    
+    if (!equipoId || editando) {
+        seccion.hidden = true;
+        return;
+    }
+    
+    lista.innerHTML = '<p>Cargando integrantes...</p>';
+    seccion.hidden = false;
+    
+    const { ok, datos } = await llamar(`/equipos/${equipoId}`);
+    if (ok && datos.equipo && datos.equipo.miembros.length) {
+        lista.innerHTML = datos.equipo.miembros.map(m => `
+            <div class="eq-fila" style="padding: 12px; border: 1px solid var(--borde); border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="display: block; font-size: 0.9rem;">${escaparHtml(m.nombre)}</strong>
+                    <small style="color: var(--texto-secundario);">${escaparHtml(m.correo)}</small>
+                </div>
+                <select class="form-select rol-miembro" data-usuario="${m.id}" style="width: auto; padding: 4px 8px; font-size: 0.9rem;">
+                    <option value="">No invitar aún</option>
+                    <option value="developer">Developer</option>
+                    <option value="scrum_master">Scrum Master</option>
+                    <option value="product_owner">Product Owner</option>
+                </select>
+            </div>
+        `).join('');
+    } else {
+        lista.innerHTML = '<p>No hay otros integrantes en este equipo.</p>';
+    }
+});
 
 
 $('formulario').addEventListener('submit', (evento) => {

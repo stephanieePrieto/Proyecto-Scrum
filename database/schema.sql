@@ -517,3 +517,7 @@ CREATE TABLE IF NOT EXISTS temporizadores (
   CONSTRAINT temporizadores_estado_coherente CHECK ((estado = 'corriendo') = (reanudado_en IS NOT NULL))
 );
 CREATE INDEX IF NOT EXISTS ix_temporizadores_tarea ON temporizadores (tarea_id);
+
+ALTER TABLE invitaciones DROP CONSTRAINT invitaciones_estado_check;
+ALTER TABLE invitaciones ADD CONSTRAINT invitaciones_estado_check 
+CHECK (estado IN ('pendiente', 'aceptada', 'fallida', 'expirada', 'rechazada'));

@@ -1,0 +1,166 @@
+/* ==========================================================================
+   CAPACIDAD.CSS — Responsable: Diego - HU-44: pantalla de capacidad individual
+   Solo estilos propios de la pantalla; usa los tokens de base.css.
+   ========================================================================== */
+.principal {
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: var(--espacio-6);
+}
+
+.encabezado-pagina {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-6);
+}
+
+.capacidad {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--espacio-6);
+  align-items: start;
+}
+
+/* --- Formulario ---------------------------------------------------------- */
+.capacidad__persona {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--espacio-6);
+}
+
+.capacidad__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--primario-claro);
+  color: var(--primario-texto);
+  font-weight: 600;
+}
+
+.capacidad__nombre { font-size: 18px; font-weight: 600; }
+.capacidad__rol { color: var(--texto-suave); }
+
+.campo__control {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--texto);
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.campo__control:focus {
+  border-color: var(--primario);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.campo__control[aria-invalid="true"] { border-color: var(--rosa-500); }
+.campo__error { color: var(--rosa-700); font-size: 13px; }
+
+.ausencias {
+  border: 0;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  min-width: 0;
+}
+
+.ausencias legend { padding: 0; margin-bottom: 8px; }
+.ausencias__vacio { color: var(--texto-suave); margin-bottom: 12px; }
+.ausencias__lista { display: grid; gap: 10px; margin-bottom: 12px; }
+
+.ausencia {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(130px, 1.2fr) minmax(130px, 1.2fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.ausencia__quitar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radio-lg);
+  border: 1px solid var(--borde);
+  background: var(--blanco);
+  color: var(--rosa-700);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ausencia__quitar:hover { background: var(--rosa-50); border-color: var(--rosa-500); }
+.ausencia__error { grid-column: 1 / -1; color: var(--rosa-700); font-size: 13px; }
+
+.capacidad__estado { min-height: 22px; margin-bottom: 12px; font-weight: 500; }
+.capacidad__estado--exito { color: var(--esmeralda-700); }
+.capacidad__estado--aviso { color: var(--ambar-700); }
+.capacidad__estado--error { color: var(--rosa-700); }
+.capacidad__estado--info { color: var(--texto-suave); }
+
+/* --- Resumen del equipo -------------------------------------------------- */
+.capacidad__subtitulo { font-size: 18px; font-weight: 600; }
+.capacidad__ayuda { color: var(--texto-suave); margin: 4px 0 var(--espacio-4); }
+
+.rango {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.resumen__total { display: flex; align-items: baseline; gap: 6px; margin: 8px 0 12px; }
+.resumen__valor { font-size: 40px; font-weight: 700; color: var(--primario-texto); line-height: 1; }
+.resumen__unidad { color: var(--texto-suave); font-weight: 600; }
+
+.resumen__alerta,
+.resumen__error {
+  padding: 12px 14px;
+  border-radius: var(--radio-lg);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.resumen__alerta { background: var(--ambar-50); color: var(--ambar-700); border: 1px solid var(--ambar-500); }
+
+.resumen__error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--rosa-50);
+  color: var(--rosa-700);
+  border: 1px solid var(--rosa-500);
+}
+
+.resumen__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.resumen__miembro { display: grid; gap: 6px; }
+.resumen__miembro-fila { display: flex; justify-content: space-between; gap: 8px; }
+.resumen__miembro-nombre { font-weight: 600; }
+.resumen__miembro-horas { font-weight: 600; color: var(--primario-texto); }
+.resumen__miembro-barra { height: 8px; border-radius: 999px; background: var(--slate-200); overflow: hidden; }
+.resumen__miembro-relleno { height: 100%; background: var(--primario); border-radius: 999px; }
+.resumen__miembro-detalle { color: var(--texto-suave); font-size: 13px; }
+
+.resumen--cargando { display: grid; gap: 10px; }
+.esqueleto--valor { height: 40px; width: 40%; }
+.esqueleto--linea { height: 14px; }
+
+@media (max-width: 900px) {
+  .capacidad { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .principal { padding: var(--espacio-4); }
+  .ausencia { grid-template-columns: 1fr 1fr; }
+  .ausencia__tipo { grid-column: 1 / -1; }
+  .ausencia__quitar { justify-self: end; }
+  .rango { grid-template-columns: 1fr; }
+}

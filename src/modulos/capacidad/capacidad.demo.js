@@ -6,15 +6,14 @@
 
 /**
  * Determinar si el módulo debe usar datos de ejemplo.
- * Activar el modo demo con MODO_DEMO=true o cuando no existe DATABASE_URL.
- * Desactivarlo con MODO_DEMO=false aunque falte DATABASE_URL.
+ * Solo se activa de forma explícita con MODO_DEMO=true (las pruebas automáticas lo hacen).
+ * El servidor exige PostgreSQL para arrancar, así que ya no se activa por falta de DATABASE_URL:
+ * en modo demo las rutas NO piden sesión y no debe quedar encendido por accidente.
  *
  * @returns {boolean} true si se deben usar datos de ejemplo.
  */
 export function esModoDemo() {
-  if (process.env.MODO_DEMO === 'true') return true;
-  if (process.env.MODO_DEMO === 'false') return false;
-  return !process.env.DATABASE_URL;
+  return process.env.MODO_DEMO === 'true';
 }
 
 /**

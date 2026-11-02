@@ -3,16 +3,13 @@
  */
 process.env.MODO_DEMO = 'true';
 
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const {
-  validarCapacidad,
-  fusionarAusencias,
-  capacidadUsuario,
-  capacidadEquipo,
-} = require('./capacidad.calculo');
-const demo = require('./capacidad.demo');
-const { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo } = require('./capacidad.service');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+// Los imports estáticos se ejecutan antes que el código del archivo; el service se carga después de fijar MODO_DEMO
+const { validarCapacidad, fusionarAusencias, capacidadUsuario, capacidadEquipo } = await import('./capacidad.calculo.js');
+const demo = await import('./capacidad.demo.js');
+const { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo } = await import('./capacidad.service.js');
 
 // Sprint de 2 semanas: lunes 2026-10-12 a viernes 2026-10-23 (10 días laborables)
 const sprint = { inicio: '2026-10-12', fin: '2026-10-23' };

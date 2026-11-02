@@ -12,6 +12,9 @@
  *     Las menciones las notifica comentarios.service directamente con `notificar()`.
  *
  * Tablas que usa: `notificaciones` y `usuarios.preferencias_notif` (ver database/notificaciones.sql).
+ *
+ * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
 
 import { consulta } from '../../config/db.js';
@@ -446,6 +449,8 @@ async function cargarContextoTarjeta(tareaId, actorId, destinatarios) {
       `SELECT m.usuario_id
          FROM miembros_proyecto m
          JOIN tareas t ON t.proyecto_id = m.proyecto_id
+         JOIN proyectos p ON p.id = m.proyecto_id
+         JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = m.usuario_id
          JOIN usuarios u ON u.id = m.usuario_id
         WHERE t.id = $1 AND m.usuario_id = ANY($2::int[]) AND u.activo = TRUE`,
       [tareaId, destinatarios],

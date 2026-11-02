@@ -1,5 +1,6 @@
 // Responsable: Jetz - HU-02, HU-03, HU-04, HU-05: logica de la pantalla del Product Backlog (modal de historia, arrastrar, epicas y filtros) (llama a la API y escucha sockets)
 /**
+ * @file backlog.js
  * HU-02 · CRUD de historias  |  HU-03 · Priorizar arrastrando.
  *
  * Qué hace esta pantalla:
@@ -9,10 +10,14 @@
  *   3. Borrador local: si se cae la conexión al guardar, el texto se conserva y se reintenta al reconectar.
  *   4. Reordenar arrastrando (o con Alt + ↑ / ↓ y los botones ↑ ↓). Si el servidor falla, la historia vuelve a su lugar.
  *   5. Eliminar con confirmación; si la historia está en un sprint activo se ofrece devolverla al backlog.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
  */
 import { escaparHtml, pluralizar } from '../core/utils.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { obtenerTokenCsrf } from '../core/seguridad.js';
+import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
 
@@ -173,7 +178,7 @@ function pintar() {
   $('total-puntos').textContent = `${puntos} pts`;
   $('resumen-historias').textContent = ctx.historias.length;
   $('resumen-historias-texto').textContent =
-  pluralizar(ctx.historias.length, 'historia', 'historias');
+    pluralizar(ctx.historias.length, 'historia', 'historias');
   $('resumen-puntos').textContent = puntos;
   $('resumen-sin-estimar').textContent = sinEstimar;
   el.resumen.hidden = !ctx.historias.length;
@@ -215,6 +220,8 @@ function pintarDetalle() {
     ${etiquetas ? `<div class="bl-etiquetas">${etiquetas}</div>` : ''}
     <p class="bl-meta">${h.creada_por_nombre ? `Creada por ${escaparHtml(h.creada_por_nombre)}` : ''}</p>
     <div class="bl-detalle__acciones">
+      ${h.propuesta ? `<button class="boton boton--secundario" type="button" data-accion="rechazar-propuesta" data-permiso="historia.gestionar">Rechazar propuesta</button>
+      <button class="boton boton--primario" type="button" data-accion="aceptar-propuesta" data-permiso="historia.gestionar">Aceptar propuesta</button>` : ''}
       <button class="boton boton--secundario boton--peligro" type="button" data-accion="eliminar">Eliminar</button>
       <button class="boton boton--primario" type="button" data-accion="editar">Editar historia</button>
     </div>`;
@@ -293,7 +300,7 @@ async function refrescar({ forzar = false } = {}) {
 function mostrarErrorDeCarga(r) {
   const texto = r.sinConexion ? 'No se pudo conectar con el servidor.'
     : r.estado === 404 ? 'No se encontró el proyecto o no tienes acceso a él.'
-    : 'No se pudo cargar el backlog.';
+      : 'No se pudo cargar el backlog.';
   el.lista.innerHTML = '';
   el.estadoLista.innerHTML = `<div class="aviso--vacio bl-vacio"><h3 class="aviso__titulo">${texto}</h3>
     <button class="boton boton--secundario" type="button" data-accion="reintentar">Reintentar</button></div>`;
@@ -328,10 +335,11 @@ function conectarTiempoReal() {
 
   try {
     socketBacklog = window.io();
+    escucharCambiosDeRol(socketBacklog);
 
     // Unirse al proyecto activo cada vez que se establece la conexión
     socketBacklog.on('connect', () => {
-      socketBacklog.emit('proyecto:unirse', ctx.proyectoId);
+      socketBacklog.emit('unirse_proyecto', ctx.proyectoId);
     });
 
     // Actualizar las historias cuando ocurra un cambio
@@ -379,6 +387,8 @@ document.addEventListener('click', (e) => {
   if (accion === 'nueva') abrirFormulario(null);
   if (accion === 'editar') { const h = buscarHistoria(ctx.seleccionadaId); if (h) abrirFormulario(h); }
   if (accion === 'eliminar') abrirConfirmarEliminar();
+  if (accion === 'aceptar-propuesta') resolverPropuesta(true);
+  if (accion === 'rechazar-propuesta') resolverPropuesta(false);
   if (accion === 'reintentar') { pintarCarga(); refrescar({ forzar: true }); }
   if (accion === 'limpiar') { el.buscar.value = ''; ctx.texto = ''; pintar(); }
 });
@@ -424,8 +434,8 @@ async function moverHistoria(id, antesId) {
   mostrarMensaje(
     r.sinConexion ? 'No se pudo guardar el nuevo orden porque no hay conexión. La historia volvió a su posición.'
       : r.estado === 403 ? 'No tienes permiso para reordenar el backlog.'
-      : r.estado === 409 ? mensajeDe(r, 'La lista cambió mientras la reordenabas.')
-      : mensajeDe(r, 'No se pudo guardar el nuevo orden. La historia volvió a su posición.'),
+        : r.estado === 409 ? mensajeDe(r, 'La lista cambió mientras la reordenabas.')
+          : mensajeDe(r, 'No se pudo guardar el nuevo orden. La historia volvió a su posición.'),
     'error',
   );
   anunciar('No se pudo guardar el orden. La historia volvió a su posición.');
@@ -815,7 +825,7 @@ $('btn-confirmar-eliminar').addEventListener('click', async () => {
   }
   mostrarMensaje(r.sinConexion ? 'No se pudo eliminar: no hay conexión.'
     : r.estado === 403 ? 'No tienes permiso para eliminar historias.'
-    : mensajeDe(r, 'No se pudo eliminar la historia.'), 'error');
+      : mensajeDe(r, 'No se pudo eliminar la historia.'), 'error');
   if (r.estado === 404) refrescar({ forzar: true });
 });
 
@@ -835,6 +845,41 @@ $('btn-confirmar-devolver').addEventListener('click', async () => {
     mostrarMensaje(mensajeDe(r, 'No se pudo devolver la historia al backlog.'), 'error');
   }
 });
+
+/**
+ * Aceptar o rechazar la propuesta seleccionada. Al aceptarla pasa a ser una historia normal del
+ * backlog; al rechazarla se conserva como rechazada y sale de la lista.
+ *
+ * @param {boolean} aceptar - true para aceptarla, false para rechazarla.
+ * @returns {Promise<void>}
+ */
+async function resolverPropuesta(aceptar) {
+  const h = buscarHistoria(ctx.seleccionadaId);
+  if (!h || !h.propuesta || ctx.guardando) return;
+  if (!aceptar && !window.confirm(`¿Rechazar la propuesta «${h.titulo}»? Saldrá del backlog.`)) return;
+
+  ctx.guardando = true;
+  const r = await llamar(`/backlog/historias/${h.id}/${aceptar ? 'aceptar' : 'rechazar'}`, { metodo: 'POST' });
+  ctx.guardando = false;
+
+  if (r.ok) {
+    if (aceptar) {
+      aplicarDatos({ historias: ctx.historias.map((x) => (x.id === h.id ? r.datos.historia : x)) });
+    } else {
+      ctx.seleccionadaId = null;
+      aplicarDatos({ historias: ctx.historias.filter((x) => x.id !== h.id) });
+    }
+    const texto = aceptar ? 'Propuesta aceptada.' : 'Propuesta rechazada.';
+    mostrarMensaje(texto, 'exito');
+    anunciar(texto);
+    refrescar({ forzar: true });
+    return;
+  }
+  mostrarMensaje(r.sinConexion ? 'No se pudo resolver la propuesta: no hay conexión.'
+    : r.estado === 403 ? 'No tienes permiso para aceptar o rechazar propuestas.'
+      : mensajeDe(r, 'No se pudo resolver la propuesta.'), 'error');
+  if (r.estado === 404 || r.estado === 409) refrescar({ forzar: true });
+}
 
 // ====================================================================
 // Pestañas de proyectos - Product Backlog
@@ -909,6 +954,7 @@ async function cambiarProyecto(nuevoId, guardarHistorial = true) {  // Evitar se
   // Actualizar el proyecto activo
   ctx.proyectoId = Number(nuevoId);
   localStorage.setItem('proyectoActivo', String(nuevoId));
+  cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 
   // Actualizar la URL sin recargar
   if (guardarHistorial) {
@@ -1058,6 +1104,7 @@ async function iniciar() {
   }
   ctx.proyectoId = id;
   localStorage.setItem('proyectoActivo', id);
+  cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 
   // Registrar el proyecto inicial sin crear otra entrada en el historial
   const urlInicial = new URL(window.location.href);

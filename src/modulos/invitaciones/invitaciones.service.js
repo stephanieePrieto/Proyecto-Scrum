@@ -7,13 +7,86 @@
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { enviarCorreo } from '../../utils/correo.js';
-import { esAdminEquipo } from '../../utils/permisos.js';
+import { esAdminEquipo, esMiembroEquipo, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { esCorreoValido } from '../../utils/validar.js';
 import crypto from 'crypto';
 import { env } from '../../config/env.js';
 
 const EXPIRACION_INVITACION_HORAS = 72;
 const ROLES_PERMITIDOS = ['scrum_master', 'product_owner', 'developer'];
+
+/** Roles que solo puede ocupar una persona por proyecto, con el nombre que se muestra en los mensajes. */
+const ROLES_UNICOS = { scrum_master: 'Scrum Master', product_owner: 'Product Owner' };
+
+/** Índices únicos de miembros_proyecto que protegen cada rol de ocupación única. */
+const INDICE_ROL_UNICO = {
+    ux_un_scrum_master_por_proyecto: 'scrum_master',
+    ux_un_product_owner_por_proyecto: 'product_owner'
+};
+
+/**
+ * Construye el error 409 que se responde cuando otra persona ya ocupa el rol en el proyecto.
+ *
+ * @param {string} rol - Rol de ocupación única (scrum_master o product_owner).
+ * @param {boolean} [deInvitacion=false] - true si el rol se asigna al aceptar una invitación.
+ * @returns {ErrorApp}
+ */
+function errorRolOcupado(rol, deInvitacion = false) {
+    const indicacion = deInvitacion
+        ? 'Pide que liberen ese rol y vuelve a aceptar la invitación.'
+        : 'Libera ese rol e inténtalo de nuevo.';
+    return new ErrorApp(`El proyecto ya tiene un ${ROLES_UNICOS[rol]}. ${indicacion}`, 409);
+}
+
+/**
+ * Comprueba que el rol de ocupación única no lo tenga otra persona en el proyecto.
+ * Los roles que admiten varias personas (developer) no se consultan.
+ *
+ * @param {import('pg').PoolClient} cliente - Cliente de la transacción en curso.
+ * @param {number} proyectoId - Proyecto al que se asigna el rol.
+ * @param {number|null} usuarioId - Persona que recibirá el rol; null si la cuenta aún no existe.
+ * @param {string} rol - Rol que se quiere asignar.
+ * @param {boolean} [deInvitacion=false] - true si el rol se asigna al aceptar una invitación.
+ * @returns {Promise<void>}
+ * @throws {ErrorApp} 409 si el rol ya está ocupado por otra persona.
+ */
+async function exigirRolLibre(cliente, proyectoId, usuarioId, rol, deInvitacion = false) {
+    if (!ROLES_UNICOS[rol]) return;
+    const { rows } = await cliente.query(`
+        SELECT 1 FROM miembros_proyecto
+        WHERE proyecto_id = $1 AND rol = $2 AND usuario_id IS DISTINCT FROM $3::int
+    `, [proyectoId, rol, usuarioId]);
+    if (rows.length > 0) throw errorRolOcupado(rol, deInvitacion);
+}
+
+/**
+ * Convierte la violación del índice único de un rol en el mismo 409 de la consulta previa.
+ * Cubre el caso de dos personas que toman el rol al mismo tiempo. Cualquier otro error se devuelve igual.
+ *
+ * @param {Error} error - Error capturado al guardar.
+ * @param {boolean} [deInvitacion=false] - true si el rol se asigna al aceptar una invitación.
+ * @returns {Error}
+ */
+function traducirErrorRol(error, deInvitacion = false) {
+    const rol = error?.code === '23505' ? INDICE_ROL_UNICO[error.constraint] : undefined;
+    return rol ? errorRolOcupado(rol, deInvitacion) : error;
+}
+
+/**
+ * Exige que la persona administre el equipo de una invitación. Quien no tiene ningún vínculo con
+ * el equipo recibe el mismo 404 que si la invitación no existiera.
+ *
+ * @param {Object|undefined} invitacion - Fila de la invitación (con equipo_id), o undefined si no existe.
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @returns {Promise<void>}
+ * @throws {ErrorApp} 404 si no existe o la persona no tiene vínculo con el equipo; 403 si es del equipo pero no lo administra.
+ */
+async function exigirAdminDeInvitacion(invitacion, usuario) {
+    if (!invitacion) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+    if (await esAdminEquipo(usuario, invitacion.equipo_id)) return;
+    if (!(await esMiembroEquipo(usuario, invitacion.equipo_id))) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+    throw new ErrorApp('No tienes permisos para gestionar esta invitación.', 403);
+}
 
 /**
  * Genera un token seguro y su hash (reutiliza patrón de usuarios.service.js).
@@ -155,6 +228,8 @@ export async function altaDirecta(datos, usuario) {
         try {
             await cliente.query('BEGIN');
 
+            if (proyecto_id && rol) await exigirRolLibre(cliente, proyecto_id, null, rol);
+
             const { rows: nuevoUsuario } = await cliente.query(`
                 INSERT INTO usuarios (nombre, correo, activo)
                 VALUES ($1, $2, TRUE) RETURNING id
@@ -196,7 +271,7 @@ export async function altaDirecta(datos, usuario) {
             return { mensaje: 'Cuenta creada y agregada al equipo correctamente.' };
         } catch (error) {
             await cliente.query('ROLLBACK');
-            throw error;
+            throw traducirErrorRol(error);
         } finally {
             cliente.release();
         }
@@ -205,83 +280,116 @@ export async function altaDirecta(datos, usuario) {
 
 /**
  * Acepta una invitación usando el token.
+ * Todo ocurre en una sola transacción: la invitación se bloquea y se valida (token, estado y
+ * expiración) y solo queda aceptada si la persona entra al equipo y, cuando la invitación trae
+ * proyecto y rol, también al proyecto. Si algo falla se revierte todo y la invitación sigue pendiente.
+ *
+ * @param {string} tokenPlano - Token recibido en el enlace.
+ * @param {{id: number}|null} [usuario=null] - Sesión de quien acepta, si la hay; su correo debe ser el de la invitación.
+ * @returns {Promise<{mensaje: string}>}
+ * @throws {ErrorApp} 400 si la invitación no es válida o expiró; 403 si es de otra cuenta o la cuenta está inactiva;
+ * 409 si el rol de Scrum Master o Product Owner ya lo ocupa otra persona en el proyecto.
  */
-export async function aceptarInvitacion(tokenPlano) {
+export async function aceptarInvitacion(tokenPlano, usuario = null) {
+    if (typeof tokenPlano !== 'string' || !tokenPlano) throw new ErrorApp('Invitación inválida o expirada.', 400);
     const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
-    const { rows: invitacion } = await consulta(`
-        SELECT * FROM invitaciones
-        WHERE token_hash = $1 AND estado = 'pendiente' AND expira_en > NOW()
-    `, [tokenHash]);
 
-    if (!invitacion.length) throw new ErrorApp('Invitación inválida o expirada.', 400);
+    const cliente = await pool.connect();
+    try {
+        await cliente.query('BEGIN');
 
-    const inv = invitacion[0];
-    const { rows: usuarioExistente } = await consulta('SELECT id FROM usuarios WHERE correo = $1', [inv.correo]);
+        const { rows: invitacion } = await cliente.query(`
+            SELECT * FROM invitaciones
+            WHERE token_hash = $1 AND estado = 'pendiente' AND expira_en > NOW()
+            FOR UPDATE
+        `, [tokenHash]);
 
-    return pool.connect().then(async (cliente) => {
-        try {
-            await cliente.query('BEGIN');
-            await cliente.query('UPDATE invitaciones SET estado = $1 WHERE id = $2', ['aceptada', inv.id]);
+        if (!invitacion.length) throw new ErrorApp('Invitación inválida o expirada.', 400);
 
-            if (usuarioExistente.length > 0) {
-                const usuarioId = usuarioExistente[0].id;
+        const inv = invitacion[0];
+
+        if (usuario?.id) {
+            const { rows: sesion } = await cliente.query(
+                'SELECT correo FROM usuarios WHERE id = $1 AND activo = TRUE',
+                [usuario.id]
+            );
+            if (!sesion.length || sesion[0].correo.toLowerCase() !== inv.correo.toLowerCase()) {
+                throw new ErrorApp('Esta invitación no corresponde a tu cuenta.', 403);
+            }
+        }
+
+        const { rows: usuarioExistente } = await cliente.query(
+            'SELECT id, activo FROM usuarios WHERE correo = $1',
+            [inv.correo]
+        );
+        if (usuarioExistente.length > 0 && !usuarioExistente[0].activo) {
+            throw new ErrorApp('La cuenta asociada a esta invitación no está activa.', 403);
+        }
+
+        if (inv.proyecto_id && inv.rol) {
+            await exigirRolLibre(cliente, inv.proyecto_id, usuarioExistente[0]?.id ?? null, inv.rol, true);
+        }
+
+        await cliente.query('UPDATE invitaciones SET estado = $1 WHERE id = $2', ['aceptada', inv.id]);
+
+        if (usuarioExistente.length > 0) {
+            const usuarioId = usuarioExistente[0].id;
+            await cliente.query(`
+                INSERT INTO miembros_equipo (equipo_id, usuario_id)
+                VALUES ($1, $2) ON CONFLICT DO NOTHING
+            `, [inv.equipo_id, usuarioId]);
+
+            if (inv.proyecto_id && inv.rol) {
                 await cliente.query(`
-                    INSERT INTO miembros_equipo (equipo_id, usuario_id)
-                    VALUES ($1, $2) ON CONFLICT DO NOTHING
-                `, [inv.equipo_id, usuarioId]);
-
-                if (inv.proyecto_id && inv.rol) {
-                    await cliente.query(`
-                        INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
-                        VALUES ($1, $2, $3)
-                        ON CONFLICT (proyecto_id, usuario_id) DO UPDATE SET rol = EXCLUDED.rol
-                    `, [inv.proyecto_id, usuarioId, inv.rol]);
-                }
-            } else {
-                // Previene que inserciones fallen si el campo nombre es requerido por la base de datos
-                const nombreProvisional = inv.correo.split('@')[0];
-                const { rows: nuevoUsuario } = await cliente.query(`
-                    INSERT INTO usuarios (nombre, correo, activo)
-                    VALUES ($1, $2, TRUE) RETURNING id
-                `, [nombreProvisional, inv.correo]);
-                const usuarioId = nuevoUsuario[0].id;
-
-                await cliente.query(`
-                    INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)
-                `, [inv.equipo_id, usuarioId]);
-
-                if (inv.proyecto_id && inv.rol) {
-                    await cliente.query(`
-                        INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
-                        VALUES ($1, $2, $3)
-                    `, [inv.proyecto_id, usuarioId, inv.rol]);
-                }
-
-                const { tokenPlano: tokenPassword, tokenHash: tokenHashPassword } = generarToken();
-                const expiraEnPassword = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-                await cliente.query(`
-                    INSERT INTO tokens_recuperacion (usuario_id, token_hash, expira_en)
+                    INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
                     VALUES ($1, $2, $3)
-                `, [usuarioId, tokenHashPassword, expiraEnPassword]);
+                    ON CONFLICT (proyecto_id, usuario_id) DO UPDATE SET rol = EXCLUDED.rol
+                `, [inv.proyecto_id, usuarioId, inv.rol]);
+            }
+        } else {
+            // Previene que inserciones fallen si el campo nombre es requerido por la base de datos
+            const nombreProvisional = inv.correo.split('@')[0];
+            const { rows: nuevoUsuario } = await cliente.query(`
+                INSERT INTO usuarios (nombre, correo, activo)
+                VALUES ($1, $2, TRUE) RETURNING id
+            `, [nombreProvisional, inv.correo]);
+            const usuarioId = nuevoUsuario[0].id;
 
-                const enlacePassword = `${env.APP_URL}/pages/definir-password.html?token=${tokenPassword}`;
-                await enviarCorreo({
-                    para: inv.correo,
-                    asunto: 'Define tu contraseña en ScrumFlow',
-                    texto: `Bienvenido a ScrumFlow.\n\nPara definir tu contraseña, haz clic en: ${enlacePassword}\n\nEste enlace expirará en 24 horas.`
-                });
+            await cliente.query(`
+                INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)
+            `, [inv.equipo_id, usuarioId]);
+
+            if (inv.proyecto_id && inv.rol) {
+                await cliente.query(`
+                    INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
+                    VALUES ($1, $2, $3)
+                `, [inv.proyecto_id, usuarioId, inv.rol]);
             }
 
-            await cliente.query('COMMIT');
-            return { mensaje: 'Invitación aceptada. Revisa tu correo si eres nuevo usuario.' };
-        } catch (error) {
-            await cliente.query('ROLLBACK');
-            throw error;
-        } finally {
-            cliente.release();
+            const { tokenPlano: tokenPassword, tokenHash: tokenHashPassword } = generarToken();
+            const expiraEnPassword = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+            await cliente.query(`
+                INSERT INTO tokens_recuperacion (usuario_id, token_hash, expira_en)
+                VALUES ($1, $2, $3)
+            `, [usuarioId, tokenHashPassword, expiraEnPassword]);
+
+            const enlacePassword = `${env.APP_URL}/pages/definir-password.html?token=${tokenPassword}`;
+            await enviarCorreo({
+                para: inv.correo,
+                asunto: 'Define tu contraseña en ScrumFlow',
+                texto: `Bienvenido a ScrumFlow.\n\nPara definir tu contraseña, haz clic en: ${enlacePassword}\n\nEste enlace expirará en 24 horas.`
+            });
         }
-    });
+
+        await cliente.query('COMMIT');
+        return { mensaje: 'Invitación aceptada. Revisa tu correo si eres nuevo usuario.' };
+    } catch (error) {
+        await cliente.query('ROLLBACK');
+        throw traducirErrorRol(error, true);
+    } finally {
+        cliente.release();
+    }
 }
 
 /**
@@ -294,10 +402,9 @@ export async function reenviarInvitacion(invitacionId, usuario) {
         WHERE i.id = $1
     `, [invitacionId]);
 
-    if (!invitacion.length) throw new ErrorApp('Invitación no encontrada.', 404);
-    if (!(await esAdminEquipo(usuario, invitacion[0].equipo_id))) {
-        throw new ErrorApp('No tienes permisos para gestionar esta invitación.', 403);
-    }
+    await exigirAdminDeInvitacion(invitacion[0], usuario);
+
+    if (invitacion[0].estado === 'aceptada') throw new ErrorApp('La invitación ya fue aceptada.', 409);
 
     const { tokenPlano, tokenHash } = generarToken();
     const expiraEn = new Date(Date.now() + EXPIRACION_INVITACION_HORAS * 60 * 60 * 1000);
@@ -328,10 +435,9 @@ export async function cancelarInvitacion(invitacionId, usuario) {
         WHERE i.id = $1
     `, [invitacionId]);
 
-    if (!invitacion.length) throw new ErrorApp('Invitación no encontrada.', 404);
-    if (!(await esAdminEquipo(usuario, invitacion[0].equipo_id))) {
-        throw new ErrorApp('No tienes permisos para gestionar esta invitación.', 403);
-    }
+    await exigirAdminDeInvitacion(invitacion[0], usuario);
+
+    if (invitacion[0].estado === 'aceptada') throw new ErrorApp('La invitación ya fue aceptada.', 409);
 
     await consulta('UPDATE invitaciones SET estado = $1 WHERE id = $2', ['fallida', invitacionId]);
     return { mensaje: 'Invitación cancelada.' };
@@ -393,6 +499,9 @@ export async function agregarUsuarioExistente(datos, usuario) {
     return pool.connect().then(async (cliente) => {
         try {
             await cliente.query('BEGIN');
+
+            if (proyecto_id && rol) await exigirRolLibre(cliente, proyecto_id, usuario_id, rol);
+
             await cliente.query(`
                 INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)
             `, [equipo_id, usuario_id]);
@@ -407,7 +516,7 @@ export async function agregarUsuarioExistente(datos, usuario) {
             await cliente.query('COMMIT');
         } catch (error) {
             await cliente.query('ROLLBACK');
-            throw error;
+            throw traducirErrorRol(error);
         } finally {
             cliente.release();
         }

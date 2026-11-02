@@ -5,6 +5,7 @@
   Responsable: Jetz
 -->
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -13,10 +14,7 @@
   <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <!-- Estilos globales unificados -->
   <link rel="stylesheet" href="/css/base.css" />
@@ -32,10 +30,11 @@
 
   <!-- Estilos propios del backlog -->
   <link rel="stylesheet" href="/css/componentes/backlog.css" />
-  
+
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
 
@@ -57,44 +56,47 @@
     </div>
 
     <!-- Pestañas para navegar entre proyectos -->
-    <nav
-      class="sprints-proyectos"
-      aria-label="Seleccionar proyecto"
-    >
-      <div
-        id="pestanas-proyectos"
-        class="sprints-proyectos__lista"
-      >
+    <nav class="sprints-proyectos" aria-label="Seleccionar proyecto">
+      <div id="pestanas-proyectos" class="sprints-proyectos__lista">
         <!-- Los proyectos se cargarán con JavaScript -->
       </div>
     </nav>
 
-    
+
     <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
     <div id="aviso-borrador" class="alerta alerta--advertencia" role="status" hidden>
       <span id="aviso-borrador-texto"></span>
       <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <button class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;" id="btn-continuar-borrador" type="button">Continuar</button>
-        <button class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;" id="btn-descartar-borrador-pagina" type="button">Descartar</button>
+        <button class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;" id="btn-continuar-borrador"
+          type="button">Continuar</button>
+        <button class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;"
+          id="btn-descartar-borrador-pagina" type="button">Descartar</button>
       </div>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
       <label class="grupo-formulario" style="margin-bottom: 0;">
         <span class="solo-lectores">Buscar historias</span>
-        <input id="buscar" type="search" placeholder="Buscar historias por título o etiqueta…" autocomplete="off" class="entrada-formulario" />
+        <input id="buscar" type="search" placeholder="Buscar historias por título o etiqueta…" autocomplete="off"
+          class="entrada-formulario" />
       </label>
     </div>
 
     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
       <section class="tarjeta" aria-labelledby="titulo-lista">
-        <h2 id="titulo-lista" class="tarjeta__titulo" style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--texto);">Lista priorizada de historias</h2>
+        <h2 id="titulo-lista" class="tarjeta__titulo"
+          style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--texto);">Lista priorizada de
+          historias</h2>
         <p class="eq-ayuda" id="ayuda-orden">
           Arrastra una historia para cambiar su prioridad.
         </p>
-        <ol id="lista" style="list-style: none; padding: 0; margin-top: 16px; display: flex; flex-direction: column; gap: 12px;" aria-describedby="ayuda-orden"></ol>
+        <ol id="lista"
+          style="list-style: none; padding: 0; margin-top: 16px; display: flex; flex-direction: column; gap: 12px;"
+          aria-describedby="ayuda-orden"></ol>
         <div id="estado-lista"></div>
-        <footer id="resumen" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); display: flex; gap: 16px; color: var(--texto-suave); font-size: 13px;" hidden>
+        <footer id="resumen"
+          style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); display: flex; gap: 16px; color: var(--texto-suave); font-size: 13px;"
+          hidden>
           <span>
             <strong id="resumen-historias">0</strong>
             <span id="resumen-historias-texto">historias</span>
@@ -111,96 +113,108 @@
   <p id="anuncio" class="solo-lectores" role="status" aria-live="assertive"></p>
 
   <!-- MODALES: Por defecto cerrados y ocultos en el flujo visual -->
-    <dialog id="dialogo-historia" class="modal-card" aria-labelledby="dialogo-historia-titulo">    
-      <form id="formulario-historia" novalidate>
+  <dialog id="dialogo-historia" class="modal-card" aria-labelledby="dialogo-historia-titulo">
+    <form id="formulario-historia" novalidate>
       <div class="modal-header">
         <h2 id="dialogo-historia-titulo" class="eq-dialogo__titulo">Nueva historia</h2>
-        <button
-          type="button"
-          id="btn-cerrar-historia"
-          class="bl-boton-cerrar"
-          aria-label="Cerrar formulario"
-          title="Cerrar"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round"
-              aria-hidden="true">
-            <path d="M18 6 6 18M6 6l12 12"/>
+        <button type="button" id="btn-cerrar-historia" class="bl-boton-cerrar" aria-label="Cerrar formulario"
+          title="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       <div class="modal-body">
-      <p class="eq-ayuda">Describe qué necesita el usuario y cómo sabremos que está terminado.</p>
+        <p class="eq-ayuda">Describe qué necesita el usuario y cómo sabremos que está terminado.</p>
 
-      <p id="aviso-form" class="alerta alerta--advertencia" role="status" hidden></p>
+        <p id="aviso-form" class="alerta alerta--advertencia" role="status" hidden></p>
 
-      <div class="grupo-formulario">
-        <label for="f-titulo" class="etiqueta-formulario">Título</label>
-        <input id="f-titulo" name="titulo" type="text" maxlength="200" required aria-describedby="error-titulo" class="entrada-formulario" />
-        <p class="eq-error" id="error-titulo" role="alert"></p>
-      </div>
-
-      <fieldset class="eq-bloque" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--borde); border-radius: var(--radio-lg); padding: 16px;">
-        <legend class="eq-bloque__titulo" style="font-weight: 600; padding: 0 6px; color: var(--texto);">Descripción</legend>
         <div class="grupo-formulario">
-          <label for="f-como" class="etiqueta-formulario">Como…</label>
-          <input id="f-como" name="como" type="text" maxlength="300" required placeholder="un product owner" aria-describedby="error-como" class="entrada-formulario" />          <p class="eq-error" id="error-como" role="alert"></p>
+          <label for="f-titulo" class="etiqueta-formulario">Título</label>
+          <input id="f-titulo" name="titulo" type="text" maxlength="200" required aria-describedby="error-titulo"
+            class="entrada-formulario" />
+          <p class="eq-error" id="error-titulo" role="alert"></p>
         </div>
-        <div class="grupo-formulario">
-          <label for="f-quiero" class="etiqueta-formulario">Quiero…</label>
-          <input id="f-quiero" name="quiero" type="text" maxlength="500" required placeholder="reordenar el backlog arrastrando" aria-describedby="error-quiero" class="entrada-formulario" />          <p class="eq-error" id="error-quiero" role="alert"></p>
-        </div>
-        <div class="grupo-formulario">
-          <label for="f-para" class="etiqueta-formulario">Para…</label>
-        <input id="f-para" name="para" type="text" maxlength="500" required placeholder="definir la prioridad del producto" aria-describedby="error-para" class="entrada-formulario" />          <p class="eq-error" id="error-para" role="alert"></p>
-        </div>
-      </fieldset>
 
-      <div class="grupo-formulario">
-        <label for="f-criterios" class="etiqueta-formulario">Criterios de aceptación</label>
-        <textarea id="f-criterios" name="criterios" rows="4" maxlength="4000"
-                  placeholder="Un criterio por línea. Ej.: Dado que… cuando… entonces…" aria-describedby="error-criterios" class="entrada-formulario"></textarea>
-        <p class="eq-error" id="error-criterios" role="alert"></p>
-      </div>
+        <fieldset class="eq-bloque"
+          style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--borde); border-radius: var(--radio-lg); padding: 16px;">
+          <legend class="eq-bloque__titulo" style="font-weight: 600; padding: 0 6px; color: var(--texto);">Descripción
+          </legend>
+          <div class="grupo-formulario">
+            <label for="f-como" class="etiqueta-formulario">Como…</label>
+            <input id="f-como" name="como" type="text" maxlength="300" required placeholder="Un administrador"
+              aria-describedby="error-como" class="entrada-formulario" />
+            <p class="eq-error" id="error-como" role="alert"></p>
+          </div>
+          <div class="grupo-formulario">
+            <label for="f-quiero" class="etiqueta-formulario">Quiero…</label>
+            <input id="f-quiero" name="quiero" type="text" maxlength="500" required
+              placeholder="Reordenar el backlog arrastrando" aria-describedby="error-quiero"
+              class="entrada-formulario" />
+            <p class="eq-error" id="error-quiero" role="alert"></p>
+          </div>
+          <div class="grupo-formulario">
+            <label for="f-para" class="etiqueta-formulario">Para…</label>
+            <input id="f-para" name="para" type="text" maxlength="500" required
+              placeholder="Definir la prioridad del producto" aria-describedby="error-para"
+              class="entrada-formulario" />
+            <p class="eq-error" id="error-para" role="alert"></p>
+          </div>
+        </fieldset>
 
-      <div class="eq-fila" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         <div class="grupo-formulario">
-          <label for="f-puntos" class="etiqueta-formulario">Puntos de historia</label>
-          <select id="f-puntos" name="puntos" aria-describedby="error-puntos" class="eq-select entrada-formulario">
-            <option value="">Sin estimar</option>
-            <option>1</option><option>2</option><option>3</option><option>5</option>
-            <option>8</option><option>13</option><option>21</option>
-          </select>
-          <p class="eq-error" id="error-puntos" role="alert"></p>
+          <label for="f-criterios" class="etiqueta-formulario">Criterios de aceptación</label>
+          <textarea id="f-criterios" name="criterios" rows="4" maxlength="4000"
+            placeholder="Un criterio por línea. Ej.: Dado que… cuando… entonces…" aria-describedby="error-criterios"
+            class="entrada-formulario"></textarea>
+          <p class="eq-error" id="error-criterios" role="alert"></p>
         </div>
-        <div class="grupo-formulario">
-          <label for="f-epica" class="etiqueta-formulario">Épica</label>
-          <select id="f-epica" name="epica_id" aria-describedby="error-epica_id" class="eq-select entrada-formulario"></select>
-          <p class="eq-error" id="error-epica_id" role="alert"></p>
-        </div>
-      </div>
 
-      <div class="grupo-formulario">
-        <label for="f-etiquetas" class="etiqueta-formulario">Etiquetas</label>
-        <input id="f-etiquetas" name="etiquetas" type="text" placeholder="api, seguridad, ui" aria-describedby="ayuda-etiquetas error-etiquetas" class="entrada-formulario" />
-        <p class="eq-ayuda" id="ayuda-etiquetas">Sepáralas con comas (máximo 10).</p>
-        <p class="eq-error" id="error-etiquetas" role="alert"></p>
-      </div>
+        <div class="eq-fila" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="grupo-formulario">
+            <label for="f-puntos" class="etiqueta-formulario">Puntos de historia</label>
+            <select id="f-puntos" name="puntos" aria-describedby="error-puntos" class="eq-select entrada-formulario">
+              <option value="">Sin estimar</option>
+              <option>1</option>
+              <option>2</option>
+              <option>3</option>
+              <option>5</option>
+              <option>8</option>
+              <option>13</option>
+              <option>21</option>
+            </select>
+            <p class="eq-error" id="error-puntos" role="alert"></p>
+          </div>
+          <div class="grupo-formulario">
+            <label for="f-epica" class="etiqueta-formulario">Épica</label>
+            <select id="f-epica" name="epica_id" aria-describedby="error-epica_id"
+              class="eq-select entrada-formulario"></select>
+            <p class="eq-error" id="error-epica_id" role="alert"></p>
+          </div>
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="f-etiquetas" class="etiqueta-formulario">Etiquetas</label>
+          <input id="f-etiquetas" name="etiquetas" type="text" placeholder="api, seguridad, ui"
+            aria-describedby="ayuda-etiquetas error-etiquetas" class="entrada-formulario" />
+          <p class="eq-ayuda" id="ayuda-etiquetas">Sepáralas con comas (máximo 10).</p>
+          <p class="eq-error" id="error-etiquetas" role="alert"></p>
+        </div>
 
       </div> <!-- Fin del contenido desplazable -->
 
       <div class="eq-dialogo__acciones modal-footer">
-        <button class="boton boton--secundario" type="button" id="btn-descartar-borrador" hidden>Descartar borrador</button>
+        <button class="boton boton--secundario" type="button" id="btn-descartar-borrador" hidden>Descartar
+          borrador</button>
         <button class="boton boton--secundario" type="button" id="btn-cancelar-historia">Cancelar</button>
         <button class="boton boton--primario" type="submit" id="btn-guardar-historia">Guardar historia</button>
       </div>
     </form>
   </dialog>
 
-    <dialog id="dialogo-eliminar" class="eq-dialogo modal-card"
-          aria-labelledby="dialogo-eliminar-titulo">
+  <dialog id="dialogo-eliminar" class="eq-dialogo modal-card" aria-labelledby="dialogo-eliminar-titulo">
 
     <div class="bl-confirmacion__contenido">
       <h2 id="dialogo-eliminar-titulo" class="eq-dialogo__titulo">
@@ -214,19 +228,16 @@
     </div>
 
     <div class="eq-dialogo__acciones modal-footer">
-      <button class="boton boton--secundario" type="button"
-              id="btn-cancelar-eliminar">Cancelar</button>
+      <button class="boton boton--secundario" type="button" id="btn-cancelar-eliminar">Cancelar</button>
 
-      <button class="boton boton--primario boton--peligro eq-peligro"
-              type="button" id="btn-confirmar-eliminar">
+      <button class="boton boton--primario boton--peligro eq-peligro" type="button" id="btn-confirmar-eliminar">
         Eliminar historia
       </button>
     </div>
 
   </dialog>
 
-  <dialog id="dialogo-devolver" class="eq-dialogo modal-card"
-          aria-labelledby="dialogo-devolver-titulo">
+  <dialog id="dialogo-devolver" class="eq-dialogo modal-card" aria-labelledby="dialogo-devolver-titulo">
 
     <div class="bl-confirmacion__contenido">
       <h2 id="dialogo-devolver-titulo" class="eq-dialogo__titulo">
@@ -237,18 +248,17 @@
     </div>
 
     <div class="eq-dialogo__acciones modal-footer">
-      <button class="boton boton--secundario" type="button"
-              id="btn-cancelar-devolver">Cerrar</button>
+      <button class="boton boton--secundario" type="button" id="btn-cancelar-devolver">Cerrar</button>
 
-      <button class="boton boton--primario" type="button"
-              id="btn-confirmar-devolver">
+      <button class="boton boton--primario" type="button" id="btn-confirmar-devolver">
         Devolver al backlog
       </button>
     </div>
 
   </dialog>
-  
+
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/js/pages/backlog.js"></script>
 </body>
+
 </html>

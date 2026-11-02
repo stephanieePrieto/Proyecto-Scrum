@@ -3,6 +3,7 @@
  * @description Reglas de negocio de los equipos de trabajo: alta, edición y baja, integrantes,
  * administradores de equipo y salida de integrantes con reasignación de tareas y transferencia
  * de responsabilidades. Las operaciones que tocan varias tablas se ejecutan en una transacción.
+ * 
  * @author Citlaly Morales Viveros
  */
 
@@ -17,6 +18,7 @@ import {
 import crypto from 'crypto';
 import { enviarCorreo } from '../../utils/correo.js';
 import { env } from '../../config/env.js';
+import { retirarDeProyecto } from '../../sockets/emisor.js';
 
 const MIN_INTEGRANTES = 3;
 const MAX_INTEGRANTES = 9;
@@ -236,9 +238,10 @@ async function cargarEquipos(filtro, params, usuario) {
  * @returns {Promise<{equipos: Object[], puede_crear: boolean}>}
  */
 export async function listar(usuario) {
-    /** Ven el equipo quienes son integrantes y quien lo creó, aunque ya no figure como integrante. */
+    /** Ven el equipo solo quienes siguen siendo integrantes activos; haberlo creado ya no basta. */
     const equipos = await cargarEquipos(
-        'WHERE e.id IN (SELECT equipo_id FROM miembros_equipo WHERE usuario_id = $1) OR e.creado_por = $1',
+        `WHERE e.id IN (SELECT m.equipo_id FROM miembros_equipo m JOIN usuarios u ON u.id = m.usuario_id
+                         WHERE m.usuario_id = $1 AND u.activo = TRUE)`,
         [usuario.id],
         usuario,
     );
@@ -320,17 +323,17 @@ export async function crear(datos = {}, usuario) {
                 'INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)',
                 [nuevoId, usuario.id],
             );
-            
+
             // Recopilar invitaciones
             if (ids.length) {
                 for (const uId of ids) {
                     if (uId === usuario.id) continue;
                     const { rows: uRows } = await cliente.query('SELECT id, correo, nombre FROM usuarios WHERE id = $1', [uId]);
                     if (!uRows.length) continue;
-                    
+
                     const { tokenPlano, tokenHash } = generarToken();
                     const expiraEn = new Date(Date.now() + 72 * 60 * 60 * 1000);
-                    
+
                     const { rows: invRows } = await cliente.query(`
                         INSERT INTO invitaciones (correo, equipo_id, token_hash, expira_en, invitado_por)
                         VALUES ($1, $2, $3, $4, $5) RETURNING id
@@ -356,7 +359,7 @@ export async function crear(datos = {}, usuario) {
         const { notificar, TIPOS } = await import('../notificaciones/notificaciones.service.js');
         for (const inv of invitadosData) {
             const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`;
-            
+
             // 1. Notificación in-app
             try {
                 await notificar({
@@ -457,17 +460,17 @@ export async function agregarMiembros(equipoId, datos = {}, usuario) {
     await enTransaccion(async (cliente) => {
         await cliente.query('SELECT id FROM equipos WHERE id = $1 FOR UPDATE', [equipoId]);
         await validarUsuariosActivos(ids, cliente);
-        
+
         for (const uId of ids) {
             const { rows: uRows } = await cliente.query('SELECT id, correo, nombre FROM usuarios WHERE id = $1', [uId]);
             if (!uRows.length) continue;
 
             const { rows: yaEsMiembro } = await cliente.query('SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2', [equipoId, uId]);
             if (yaEsMiembro.length) continue;
-            
+
             const { tokenPlano, tokenHash } = generarToken();
             const expiraEn = new Date(Date.now() + 72 * 60 * 60 * 1000);
-            
+
             const { rows: invRows } = await cliente.query(`
                 INSERT INTO invitaciones (correo, equipo_id, token_hash, expira_en, invitado_por)
                 VALUES ($1, $2, $3, $4, $5) RETURNING id
@@ -488,7 +491,7 @@ export async function agregarMiembros(equipoId, datos = {}, usuario) {
         const { notificar, TIPOS } = await import('../notificaciones/notificaciones.service.js');
         for (const inv of invitadosData) {
             const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`;
-            
+
             // 1. Notificación in-app
             try {
                 await notificar({
@@ -845,6 +848,10 @@ export async function quitarMiembro(equipoId, usuarioId, datos = {}, usuario) {
         if (error?.code === '23505') lanzar(409, 'Otro cambio simultáneo afectó a los proyectos del equipo. Revisa los pendientes e inténtalo de nuevo.', CAMBIO_CONCURRENTE);
         throw error;
     }
+
+    // Sacar a la persona de las salas en tiempo real de los proyectos del equipo
+    const { rows: proyectosDelEquipo } = await query('SELECT id FROM proyectos WHERE equipo_id = $1', [equipoId]);
+    proyectosDelEquipo.forEach(({ id }) => retirarDeProyecto(usuarioId, id));
 
     await notificarReasignaciones(resultado.reasignadas, resultado.saliente);
 

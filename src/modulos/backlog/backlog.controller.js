@@ -3,12 +3,16 @@ import * as servicio from './backlog.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 /**
- * Envolver un controlador asíncrono.
+ * @file backlog.controller.js
+ * @description Envolver un controlador asíncrono.
  * Los errores controlados (ErrorApp: 400, 403, 404, 409...) se responden aquí mismo como
  * { mensaje } o { mensaje, detalles } para que la pantalla pueda marcar el campo o mostrar
  * la acción correcta (errores por campo, "sprint_activo", "version"...). Así el módulo no
  * depende del manejoErrores global (BASE), que solo devuelve { mensaje }.
  * Cualquier otro error (un fallo inesperado, 500) pasa al manejador global.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
  */
 const envolver = (funcion) => asyncHandler(async (req, res) => {
   try {
@@ -50,6 +54,17 @@ export const eliminar = envolver(async (req, res) => {
 export const devolver = envolver(async (req, res) => {
   const historia = await servicio.devolverAlBacklog(req.user, req.params.id);
   res.json({ historia });
+});
+
+/** POST /api/backlog/historias/:id/aceptar → { historia } */
+export const aceptar = envolver(async (req, res) => {
+  const historia = await servicio.aceptarPropuesta(req.user, req.params.id);
+  res.json({ historia });
+});
+
+/** POST /api/backlog/historias/:id/rechazar → { id } */
+export const rechazar = envolver(async (req, res) => {
+  res.json(await servicio.rechazarPropuesta(req.user, req.params.id));
 });
 
 /** PUT /api/backlog/proyecto/:proyectoId/orden  { historia_id, antes_de_id } → { historias } */

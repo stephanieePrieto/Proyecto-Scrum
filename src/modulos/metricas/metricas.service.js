@@ -8,17 +8,23 @@
  *   - Las horas reales se guardan en registros_horas (una fila por registro de tiempo).
  *   - La velocity se calcula con las decisiones de Review (reviews_historias), no con historias.estado,
  *     porque una historia rechazada regresa al backlog y perdería su sprint de origen.
- * @author Dana
+ * 
+ * @author Dana Carmona Santamaria
+ * @author Citlaly Morales Viveros
  */
 
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import { exigirPermiso } from '../../utils/permisos.js';
 
 /**
  * Cantidad de sprints que abarca el promedio móvil de la velocity (HU-30).
  * Cambiar este número ajusta la ventana en toda la aplicación.
  */
 export const VENTANA_PROMEDIO = 3;
+
+/** Valor máximo de una columna INTEGER de PostgreSQL. */
+const ENTERO_MAXIMO = 2147483647;
 
 /**
  * Ejecutar una consulta SQL parametrizada y devolver sus filas.
@@ -49,27 +55,26 @@ const aUnDecimal = (valor) => Math.round(Number(valor) * 10) / 10;
 
 /**
  * Verificar que el usuario autenticado sea un integrante activo del proyecto.
- * Lanzar 403 si no lo es (también cuando el proyecto no existe, para no revelar su existencia).
- * NOTA: cuando HU-42 (requiereRol) y HU-43 (aislamiento por equipo) estén listas,
- * sustituir esta función por sus middlewares.
+ * Lanzar 404 si no lo es (también cuando el proyecto no existe, para no revelar su existencia).
+ * NOTA: el acceso ya se decide con la matriz de permisos (exigirPermiso, clave proyecto.ver),
+ * que exige seguir en el equipo dueño del proyecto.
  *
  * @param {number} usuarioId Identificador del usuario (req.user.id).
  * @param {number} proyectoId Identificador del proyecto.
  * @returns {Promise<string>} Rol del usuario en el proyecto.
- * @throws {ErrorApp} 401 sin sesión válida, 403 si no pertenece al proyecto.
+ * @throws {ErrorApp} 401 sin sesión válida, 404 si no tiene vínculo con el equipo del proyecto o el proyecto no existe.
  */
 export async function exigirIntegranteProyecto(usuarioId, proyectoId) {
   if (!usuarioId) throw new ErrorApp('No has iniciado sesión.', 401);
 
-  const [fila] = await consultar(
-    `SELECT mp.rol
-       FROM miembros_proyecto mp
-       JOIN usuarios u ON u.id = mp.usuario_id AND u.activo = TRUE
-      WHERE mp.proyecto_id = $1 AND mp.usuario_id = $2`,
-    [proyectoId, usuarioId],
-  );
-  if (!fila) throw new ErrorApp('No tienes acceso a este proyecto.', 403);
-  return fila.rol;
+  // Un identificador mal formado se rechaza antes de consultar la base de datos
+  const id = typeof proyectoId === 'string' && !/^\d+$/.test(proyectoId.trim()) ? NaN : Number(proyectoId);
+  if (!Number.isInteger(id) || id <= 0 || id > ENTERO_MAXIMO) {
+    throw new ErrorApp('El identificador del proyecto no es válido.', 400);
+  }
+
+  // Quien no tiene vínculo vigente con el equipo del proyecto recibe 404, igual que si el proyecto no existiera
+  return exigirPermiso({ id: usuarioId }, 'proyecto.ver', id);
 }
 
 /**
@@ -83,12 +88,14 @@ export async function exigirIntegranteProyecto(usuarioId, proyectoId) {
 export async function listarMisProyectos(usuarioId) {
   if (!usuarioId) throw new ErrorApp('No has iniciado sesión.', 401);
 
+  // Los proyectos salen de los equipos de la persona; el rol queda en null si todavía no tiene uno asignado
   return consultar(
     `SELECT p.id, p.nombre, mp.rol
-       FROM miembros_proyecto mp
-       JOIN proyectos p ON p.id = mp.proyecto_id AND p.archivado = FALSE
-       JOIN usuarios u  ON u.id = mp.usuario_id AND u.activo = TRUE
-      WHERE mp.usuario_id = $1
+       FROM miembros_equipo me
+       JOIN usuarios u ON u.id = me.usuario_id AND u.activo = TRUE
+       JOIN proyectos p ON p.equipo_id = me.equipo_id AND p.archivado = FALSE
+       LEFT JOIN miembros_proyecto mp ON mp.proyecto_id = p.id AND mp.usuario_id = me.usuario_id
+      WHERE me.usuario_id = $1
       ORDER BY p.nombre, p.id`,
     [usuarioId],
   );
@@ -380,6 +387,8 @@ export async function obtenerAvance(proyectoId, sprintId = null) {
          FROM tareas t
          JOIN usuarios u ON u.id = t.responsable_id
          LEFT JOIN miembros_proyecto mp ON mp.proyecto_id = t.proyecto_id AND mp.usuario_id = u.id
+              AND EXISTS (SELECT 1 FROM proyectos p JOIN miembros_equipo me ON me.equipo_id = p.equipo_id
+                           WHERE p.id = mp.proyecto_id AND me.usuario_id = mp.usuario_id)
          LEFT JOIN columnas_tablero c   ON c.id = t.columna_id
         WHERE t.proyecto_id = $1 AND ($2::int IS NULL OR t.sprint_id = $2)
         GROUP BY t.responsable_id, u.nombre, u.activo, mp.rol`,
@@ -390,6 +399,8 @@ export async function obtenerAvance(proyectoId, sprintId = null) {
       `SELECT u.id AS usuario_id, u.nombre, mp.rol
          FROM miembros_proyecto mp
          JOIN usuarios u ON u.id = mp.usuario_id AND u.activo = TRUE
+         JOIN proyectos p ON p.id = mp.proyecto_id
+         JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
         WHERE mp.proyecto_id = $1`,
       [proyectoId],
     ),

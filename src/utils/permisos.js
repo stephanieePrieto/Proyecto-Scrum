@@ -5,6 +5,7 @@
  * @description Comprobaciones de permisos centralizadas. Todas consultan la base de datos y no el
  * token, de modo que un cambio de administrador o de estado de la cuenta surte efecto de inmediato.
  * Cada función acepta opcionalmente el cliente de una transacción para consultar dentro de ella.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { pool } from '../config/db.js';
@@ -56,7 +57,7 @@ export async function esMiembroEquipo(usuario, equipoId, cliente = pool) {
 
 /**
  * Indica si el usuario activo puede administrar el equipo: lo creó o es Scrum Master de alguno
- * de sus proyectos no archivados.
+ * de sus proyectos no archivados, y en ambos casos sigue siendo integrante del equipo.
  *
  * @param {{id: number}} usuario - Usuario autenticado.
  * @param {number} equipoId - Identificador del equipo.
@@ -68,6 +69,7 @@ export async function esAdminEquipo(usuario, equipoId, cliente = pool) {
     const { rows } = await cliente.query(
         `SELECT 1 FROM usuarios u
         WHERE u.id = $2 AND u.activo = TRUE
+            AND EXISTS (SELECT 1 FROM miembros_equipo me WHERE me.equipo_id = $1 AND me.usuario_id = u.id)
             AND (EXISTS (SELECT 1 FROM equipos e WHERE e.id = $1 AND e.creado_por = u.id)
             OR EXISTS (SELECT 1 FROM miembros_proyecto mp JOIN proyectos p ON p.id = mp.proyecto_id
                         WHERE p.equipo_id = $1 AND p.archivado = FALSE AND mp.usuario_id = u.id AND mp.rol = 'scrum_master'))`,
@@ -89,7 +91,8 @@ export async function puedeVerEquipo(usuario, equipoId, cliente = pool) {
 }
 
 /**
- * Un usuario gestiona un equipo si lo creó o es Scrum Master de alguno de sus proyectos.
+ * Un usuario gestiona un equipo si lo creó o es Scrum Master de alguno de sus proyectos,
+ * siempre que siga siendo integrante del equipo.
  *
  * @param {{id: number}} usuario - Usuario autenticado.
  * @param {number} equipoId - Identificador del equipo.
@@ -124,8 +127,11 @@ export async function exigirGestionEquipo(usuario, equipoId, cliente = pool) {
  */
 export async function esAdminProyecto(usuario, proyectoId, cliente = pool) {
     if (!usuario?.id) return false;
+    // El rol solo cuenta mientras la persona siga en el equipo dueño del proyecto
     const { rows } = await cliente.query(
         `SELECT 1 FROM miembros_proyecto m JOIN usuarios u ON u.id = m.usuario_id
+        JOIN proyectos p ON p.id = m.proyecto_id
+        JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = m.usuario_id
         WHERE m.proyecto_id = $1 AND m.usuario_id = $2 AND m.rol = 'scrum_master' AND u.activo = TRUE`,
         [proyectoId, usuario.id],
     );
@@ -147,7 +153,8 @@ export async function puedeGestionarProyecto(usuario, proyectoId, cliente = pool
     const { rows } = await cliente.query(
         `SELECT 1 FROM proyectos p JOIN equipos e ON e.id = p.equipo_id
         JOIN usuarios u ON u.id = $2
-        WHERE p.id = $1 AND u.activo = TRUE AND (e.creado_por = u.id OR p.creado_por = u.id)`,
+        WHERE p.id = $1 AND u.activo = TRUE AND (e.creado_por = u.id OR p.creado_por = u.id)
+            AND EXISTS (SELECT 1 FROM miembros_equipo me WHERE me.equipo_id = p.equipo_id AND me.usuario_id = u.id)`,
         [proyectoId, usuario?.id],
     );
     return rows.length > 0;
@@ -210,8 +217,11 @@ export const PERMISOS = Object.freeze({
  */
 export async function obtenerRolProyecto(usuario, proyectoId, cliente = pool) {
     if (!usuario?.id) return null;
+    // El rol solo cuenta mientras la persona siga en el equipo dueño del proyecto
     const { rows } = await cliente.query(
         `SELECT m.rol FROM miembros_proyecto m JOIN usuarios u ON u.id = m.usuario_id
+        JOIN proyectos p ON p.id = m.proyecto_id
+        JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = m.usuario_id
         WHERE m.proyecto_id = $1 AND m.usuario_id = $2 AND u.activo = TRUE`,
         [proyectoId, usuario.id],
     );

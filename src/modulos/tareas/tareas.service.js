@@ -1,8 +1,17 @@
 // Responsable: Jetz - HU-08: reglas, SQL y avisos por socket (tareas de una historia)
 
+/**
+ * @file tareas.service.js
+ * @description Reglas y consultas de las tareas técnicas de una historia: crear, listar, editar y eliminar.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
+ */
+
 import { consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { notificarAsignacion } from '../notificaciones/notificaciones.service.js';
+import { exigirPermiso, ROLES, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 
 // HU-08: Crear una tarea técnica para una historia del Sprint.
 export async function crear(datos = {}, usuario) {
@@ -23,7 +32,7 @@ export async function crear(datos = {}, usuario) {
 
 
   if (!Number.isFinite(horas) || horas <= 0 ||
-      horas > 99999.9 || Math.round(horas * 10) !== horas * 10) {
+    horas > 99999.9 || Math.round(horas * 10) !== horas * 10) {
     throw new ErrorApp(
       'Las horas estimadas deben ser positivas y tener máximo un decimal.',
       400
@@ -33,6 +42,11 @@ export async function crear(datos = {}, usuario) {
   if (!Number.isInteger(responsableId) || responsableId <= 0) {
     throw new ErrorApp('Selecciona un responsable válido.', 400);
   }
+
+  // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la historia no existiera
+  const { rows: ubicacion } = await query('SELECT proyecto_id FROM historias WHERE id = $1', [historiaId]);
+  if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+  const rolActor = await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
 
   // Obtener la historia y comprobar su Sprint.
   const { rows: historias } = await query(
@@ -55,7 +69,7 @@ export async function crear(datos = {}, usuario) {
   }
 
   if (historia.estado !== 'planificado' &&
-      historia.estado !== 'activo') {
+    historia.estado !== 'activo') {
     throw new ErrorApp(
       'No se pueden agregar tareas a un Sprint cerrado.',
       409
@@ -63,15 +77,7 @@ export async function crear(datos = {}, usuario) {
   }
 
   // Solo un Scrum Master del proyecto puede planificar tareas.
-  const { rows: permisos } = await query(
-    `SELECT 1 FROM miembros_proyecto
-     WHERE proyecto_id = $1
-       AND usuario_id = $2
-       AND rol = 'scrum_master'`,
-    [historia.proyecto_id, usuario.id]
-  );
-
-  if (!permisos.length) {
+  if (rolActor !== ROLES.SCRUM_MASTER) {
     throw new ErrorApp(
       'Solo el Scrum Master puede crear tareas durante la planificación.',
       403
@@ -85,6 +91,8 @@ export async function crear(datos = {}, usuario) {
     `SELECT 1
      FROM miembros_proyecto mp
      JOIN usuarios u ON u.id = mp.usuario_id
+     JOIN proyectos p ON p.id = mp.proyecto_id
+     JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
      WHERE mp.proyecto_id = $1
        AND mp.usuario_id = $2
        AND u.activo = TRUE`,
@@ -144,6 +152,11 @@ export async function listarPorHistoria(historiaId, usuario) {
     throw new ErrorApp('Selecciona una historia válida.', 400);
   }
 
+  // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la historia no existiera
+  const { rows: ubicacion } = await query('SELECT proyecto_id FROM historias WHERE id = $1', [id]);
+  if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+  await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
+
   // Comprobar que la historia existe y pertenece
   // a un proyecto activo.
   const { rows: historias } = await query(
@@ -162,20 +175,7 @@ export async function listarPorHistoria(historiaId, usuario) {
   }
 
   // Verificar que el usuario pertenece al proyecto.
-  const { rows: permisos } = await query(
-    `SELECT 1
-     FROM miembros_proyecto
-     WHERE proyecto_id = $1
-       AND usuario_id = $2`,
-    [historia.proyecto_id, usuario.id]
-  );
-
-  if (!permisos.length) {
-    throw new ErrorApp(
-      'No tienes permiso para consultar las tareas de esta historia.',
-      403
-    );
-  }
+  // Ya se comprobó arriba con exigirPermiso: sin vínculo vigente responde 404.
 
   // Consultar las tareas y el nombre del responsable.
   const { rows: tareas } = await query(
@@ -238,6 +238,11 @@ export async function editar(tareaId, datos = {}, usuario) {
     throw new ErrorApp('Selecciona un responsable válido.', 400);
   }
 
+  // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la tarea no existiera
+  const { rows: ubicacion } = await query('SELECT proyecto_id FROM tareas WHERE id = $1', [id]);
+  if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+  const rolActor = await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
+
   // Buscar la tarea y comprobar que pertenece a un Sprint válido.
   const { rows: tareas } = await query(
     `SELECT t.id, t.proyecto_id, s.estado
@@ -267,29 +272,22 @@ export async function editar(tareaId, datos = {}, usuario) {
   }
 
   // Comprobar que el usuario puede planificar tareas.
-  const { rows: permisos } = await query(
-    `SELECT 1
-     FROM miembros_proyecto
-     WHERE proyecto_id = $1
-       AND usuario_id = $2
-       AND rol = 'scrum_master'`,
-    [tarea.proyecto_id, usuario.id]
-  );
-
-  if (!permisos.length) {
+  if (rolActor !== ROLES.SCRUM_MASTER) {
     throw new ErrorApp(
       'No tienes permiso para editar tareas de este proyecto.',
       403
     );
   }
 
-  
+
   // HU-08: Permitir cualquier rol activo del proyecto.
   // TODO: Revisar los permisos definitivos con Stephy.
   const { rows: responsables } = await query(
     `SELECT 1
      FROM miembros_proyecto mp
      JOIN usuarios u ON u.id = mp.usuario_id
+     JOIN proyectos p ON p.id = mp.proyecto_id
+     JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
      WHERE mp.proyecto_id = $1
        AND mp.usuario_id = $2
        AND u.activo = TRUE`,
@@ -344,6 +342,11 @@ export async function eliminar(tareaId, usuario) {
     throw new ErrorApp('Selecciona una tarea válida.', 400);
   }
 
+  // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la tarea no existiera
+  const { rows: ubicacion } = await query('SELECT proyecto_id FROM tareas WHERE id = $1', [id]);
+  if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+  const rolActor = await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
+
   // Buscar la tarea y comprobar que su proyecto está activo.
   const { rows: tareas } = await query(
     `SELECT t.id, t.proyecto_id, s.estado
@@ -371,16 +374,7 @@ export async function eliminar(tareaId, usuario) {
   }
 
   // Verificar permisos del Scrum Master.
-  const { rows: permisos } = await query(
-    `SELECT 1
-     FROM miembros_proyecto
-     WHERE proyecto_id = $1
-       AND usuario_id = $2
-       AND rol = 'scrum_master'`,
-    [tarea.proyecto_id, usuario.id]
-  );
-
-  if (!permisos.length) {
+  if (rolActor !== ROLES.SCRUM_MASTER) {
     throw new ErrorApp(
       'No tienes permiso para eliminar tareas de este proyecto.',
       403

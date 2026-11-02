@@ -1,6 +1,14 @@
 // Responsable: Jetz - HU-06, HU-07: recibe la peticion y responde (crear y planificar sprints); sin logica de negocio
 
+/**
+ * @file sprints.controller.js
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
+ */
+
 import { obtenerCapacidadEquipo } from '../capacidad/capacidad.service.js';
+import { MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 
 import {
   obtenerSprintsProyecto,
@@ -13,7 +21,7 @@ import {
   perteneceAlProyecto
 } from './sprints.service.js';
 
- // Consultar los sprints existentes de un proyecto
+// Consultar los sprints existentes de un proyecto
 export async function listarSprints(req, res) {
   try {
     // Obtener el ID del proyecto desde la URL
@@ -33,9 +41,9 @@ export async function listarSprints(req, res) {
     const tieneAcceso = await perteneceAlProyecto(proyectoId, usuarioId);
 
     if (!tieneAcceso) {
-    return res.status(403).json({
-        mensaje: 'No tienes permiso para consultar los sprints de este proyecto'
-    });
+      return res.status(404).json({
+        mensaje: MENSAJE_NO_ENCONTRADO
+      });
     }
 
     // Consultar los sprints únicamente si tiene permiso
@@ -66,14 +74,15 @@ export async function crearSprint(req, res) {
         mensaje: 'El ID del proyecto no es válido'
       });
     }
-    
+
     // 2. Obtener el equipo del proyecto desde la base de datos
     const equipoId = await obtenerEquipoProyecto(proyectoId);
 
-    if (equipoId === null) {
-    return res.status(404).json({
-        mensaje: 'El proyecto no existe'
-    });
+    // Un proyecto inexistente y uno ajeno responden igual para no revelar que existe
+    if (equipoId === null || !(await perteneceAlProyecto(proyectoId, usuarioId))) {
+      return res.status(404).json({
+        mensaje: MENSAJE_NO_ENCONTRADO
+      });
     }
 
     // 3. Verificar que sea Scrum Master del proyecto
@@ -93,7 +102,7 @@ export async function crearSprint(req, res) {
         mensaje: errorValidacion
       });
     }
-    
+
 
     // Comprobar que el sprint esté dentro del periodo del proyecto
     const fechasProyecto = await obtenerFechasProyecto(proyectoId);
@@ -121,21 +130,21 @@ export async function crearSprint(req, res) {
 
     // 5. Comprobar que no existan sprints con fechas superpuestas
     const existeSolapamiento = await verificarSolapamiento(
-    equipoId,
-    datos.fechaInicio,
-    datos.fechaFin
+      equipoId,
+      datos.fechaInicio,
+      datos.fechaFin
     );
 
     if (existeSolapamiento) {
-    return res.status(409).json({
+      return res.status(409).json({
         mensaje: 'Ya existe un sprint de este equipo que coincide con las fechas seleccionadas'
-    });
+      });
     }
-    
+
     // 6. Calcular la capacidad real del equipo
     const capacidad = await obtenerCapacidadEquipo(equipoId, {
-    inicio: datos.fechaInicio,
-    fin: datos.fechaFin
+      inicio: datos.fechaInicio,
+      fin: datos.fechaFin
     });
 
     // Obtener las horas calculadas por el servidor
@@ -143,13 +152,13 @@ export async function crearSprint(req, res) {
 
     // Comprobar que exista capacidad disponible
     if (!Number.isFinite(capacidadHoras) || capacidadHoras <= 0) {
-    return res.status(400).json({
+      return res.status(400).json({
         mensaje: 'El equipo no tiene capacidad disponible para estas fechas'
-    });
+      });
     }
 
 
-    
+
     // 7. Guardar el sprint con la capacidad calculada
     const resultado = await crearSprintSeguro(
       {
@@ -165,19 +174,19 @@ export async function crearSprint(req, res) {
     );
 
     if (resultado.permisoDenegado) {
-    return res.status(403).json({
+      return res.status(403).json({
         mensaje: 'Ya no tienes permiso para crear sprints en este proyecto'
-    });
+      });
     }
 
     // Comprobar si el proyecto cambió durante la operación
     if (resultado.proyectoInvalido) {
-    return res.status(409).json({
+      return res.status(409).json({
         mensaje: 'El proyecto cambió durante la creación. Inténtalo nuevamente.'
-    });
+      });
     }
 
-    
+
     // Comprobar si las fechas quedaron fuera del periodo del proyecto
     if (resultado.fechasInvalidas) {
       return res.status(409).json({

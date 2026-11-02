@@ -1,8 +1,7 @@
 /**
  * @file velocity.js
  * @description Dibujar la gráfica de velocity por sprint cerrado.
- * Mostrar barras con los puntos de historias aceptadas y una línea con el promedio móvil.
- * La gráfica es un SVG generado aquí (sin librerías); los colores viven en css/componentes/metricas.css.
+ * Modificada para dibujar gráficas de columnas agrupadas.
  * @author Dana
  */
 
@@ -15,7 +14,6 @@ const MARGEN = { izq: 44, der: 16, arriba: 24, abajo: 56 };
 
 /**
  * Calcular un máximo "redondo" para el eje vertical y el paso entre marcas.
- * Ejemplo: 16 puntos -> máximo 20 con marcas cada 5.
  *
  * @param {number} mayor Valor más alto que debe caber en la gráfica.
  * @returns {{maximo: number, paso: number}}
@@ -26,81 +24,71 @@ function escalaVertical(mayor) {
 }
 
 /**
- * Acortar un nombre largo para que quepa bajo su barra (el nombre completo va en <title>).
+ * Acortar un nombre largo para que quepa bajo su barra.
  *
  * @param {string} nombre Nombre del sprint.
- * @param {number} limite Máximo de caracteres visibles (depende del ancho de cada barra).
+ * @param {number} limite Máximo de caracteres visibles.
  * @returns {string}
  */
 const acortar = (nombre, limite) => (nombre.length > limite ? `${nombre.slice(0, limite - 1)}…` : nombre);
 
 /**
- * Construir el SVG con las barras de puntos y la línea de promedio móvil.
+ * Construir el SVG con las barras de puntos y la línea de promedio móvil (agrupadas).
  *
- * @param {Array<Object>} sprints Sprints cerrados, del más antiguo al más reciente.
- * @returns {string} Código SVG listo para insertar.
+ * @param {Array<Object>} sprints Sprints cerrados.
+ * @param {boolean} individual Si es true, representa horas en lugar de puntos de historia.
+ * @returns {string} Código SVG.
  */
-function construirSvg(sprints) {
-  const mayor = Math.max(...sprints.map((s) => Math.max(s.puntos, s.promedioMovil)), 1);
+function construirSvg(sprints, individual) {
+  const mayor = Math.max(...sprints.map(s => Math.max(s.puntos, s.puntosComprometidos, s.promedioMovil)), 1);
   const { maximo, paso } = escalaVertical(mayor);
 
   const anchoUtil = ANCHO - MARGEN.izq - MARGEN.der;
   const altoUtil = ALTO - MARGEN.arriba - MARGEN.abajo;
-  const ranura = anchoUtil / sprints.length; // espacio que le toca a cada sprint
-  const anchoBarra = Math.min(56, ranura * 0.6);
-  // Cuántos caracteres caben bajo cada barra (unos 7 px por letra); con muchos sprints se acorta más
+  const ranura = anchoUtil / sprints.length; 
+  const anchoBarraTotal = Math.min(56, ranura * 0.7);
+  const anchoColumna = anchoBarraTotal / 2; // COLUMNAS AGRUPADAS
+  
   const limiteEtiqueta = Math.max(6, Math.floor(ranura / 7));
 
-  // Convertir un valor de puntos a coordenada vertical (0 abajo, máximo arriba)
   const y = (valor) => MARGEN.arriba + altoUtil - (valor / maximo) * altoUtil;
   const centro = (i) => MARGEN.izq + ranura * i + ranura / 2;
 
-  // Rejilla horizontal con su etiqueta en el eje vertical
   let rejilla = '';
   for (let v = 0; v <= maximo; v += paso) {
     rejilla += `<line class="grafica__rejilla" x1="${MARGEN.izq}" x2="${ANCHO - MARGEN.der}" y1="${y(v)}" y2="${y(v)}" />
       <text class="grafica__texto" x="${MARGEN.izq - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
   }
 
-  // Barras (puntos aceptados), con su valor encima y el nombre del sprint debajo
   const barras = sprints.map((s, i) => {
-    const alto = (s.puntos / maximo) * altoUtil;
+    const altoComp = (s.puntosComprometidos / maximo) * altoUtil;
+    const altoCompletado = (s.puntos / maximo) * altoUtil;
+    const xBase = centro(i) - anchoBarraTotal / 2;
+    
     return `<g>
-      <title>${escaparHtml(s.nombre)}: ${s.puntos} puntos aceptados (promedio móvil ${s.promedioMovil})</title>
-      <rect class="grafica__barra" x="${centro(i) - anchoBarra / 2}" y="${y(s.puntos)}" width="${anchoBarra}" height="${alto}" rx="4" />
-      <text class="grafica__valor" x="${centro(i)}" y="${y(s.puntos) - 6}" text-anchor="middle">${s.puntos}</text>
+      <title>${escaparHtml(s.nombre)}</title>
+      <!-- Barra 1: Comprometidos (Gris Azulado) -->
+      <rect fill="#6A8CA0" x="${xBase}" y="${y(s.puntosComprometidos)}" width="${anchoColumna - 1}" height="${altoComp}" rx="3" />
+      <text class="grafica__valor" x="${xBase + anchoColumna/2}" y="${y(s.puntosComprometidos) - 6}" text-anchor="middle" font-size="10">${s.puntosComprometidos}</text>
+      
+      <!-- Barra 2: Aceptados/Completados (Verde/Primario) -->
+      <rect fill="#282828" x="${xBase + anchoColumna + 1}" y="${y(s.puntos)}" width="${anchoColumna - 1}" height="${altoCompletado}" rx="3" />
+      <text class="grafica__valor" x="${xBase + anchoColumna + 1 + anchoColumna/2}" y="${y(s.puntos) - 6}" text-anchor="middle" font-size="10">${s.puntos}</text>
+      
       <text class="grafica__texto" x="${centro(i)}" y="${ALTO - MARGEN.abajo + 20}" text-anchor="middle">${escaparHtml(acortar(s.nombre, limiteEtiqueta))}</text>
     </g>`;
   }).join('');
 
-  // Línea de promedio móvil con un punto por sprint
   const puntosLinea = sprints.map((s, i) => `${centro(i)},${y(s.promedioMovil)}`).join(' ');
-  const circulos = sprints.map((s, i) =>
-    `<circle class="grafica__punto" cx="${centro(i)}" cy="${y(s.promedioMovil)}" r="5" />`).join('');
+  const circulos = sprints.map((s, i) => `<circle class="grafica__punto" cx="${centro(i)}" cy="${y(s.promedioMovil)}" r="5" />`).join('');
 
-  return `<svg class="grafica" viewBox="0 0 ${ANCHO} ${ALTO}" role="img"
-      aria-label="Velocity de ${sprints.length} ${pluralizar(sprints.length, 'sprint cerrado', 'sprints cerrados')}: barras de puntos aceptados y línea de promedio móvil">
+  return `<svg class="grafica" viewBox="0 0 ${ANCHO} ${ALTO}">
     ${rejilla}
     <line class="grafica__eje" x1="${MARGEN.izq}" x2="${ANCHO - MARGEN.der}" y1="${y(0)}" y2="${y(0)}" />
     ${barras}
     <polyline class="grafica__linea" points="${puntosLinea}" />
     ${circulos}
   </svg>`;
-}
-
-/**
- * Construir el estado vacío cuando todavía no hay sprints cerrados.
- *
- * @returns {string} HTML del aviso.
- */
-function avisoSinDatos() {
-  return `<div class="aviso aviso--vacio">
-    <div class="aviso__icono" aria-hidden="true">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
-    </div>
-    <h3 class="aviso__titulo">Aún no hay datos de velocity</h3>
-    <p class="aviso__texto">Cuando se cierre el primer sprint, aquí aparecerán los puntos aceptados de cada uno.</p>
-  </div>`;
 }
 
 /**
@@ -113,31 +101,18 @@ function avisoSinDatos() {
  * @returns {void}
  */
 export function dibujarVelocity(contenedor, datos) {
-  // Caso: no hay sprints cerrados
   if (datos.vacio) {
-    contenedor.innerHTML = avisoSinDatos();
+    contenedor.innerHTML = `<div class="aviso aviso--vacio">Aún no hay datos de velocity</div>`;
     return;
   }
-
-  // Caso: hay menos sprints que la ventana del promedio -> usar los disponibles e indicarlo
-  const avisoVentana = datos.ventanaIncompleta
-    ? `<p class="alerta alerta--info" role="status">Solo hay ${datos.sprints.length} ${pluralizar(datos.sprints.length, 'sprint cerrado', 'sprints cerrados')}:
-         el promedio móvil usa los disponibles (la ventana completa es de ${datos.ventana}).</p>`
-    : '';
-
-  const detalle = datos.sprints.map((s) => `<li class="grafica__detalle-fila">
-      <strong>${escaparHtml(s.nombre)}</strong>
-      <span>${s.puntos} pts · promedio ${s.promedioMovil}${s.muestras < datos.ventana ? ` (con ${s.muestras} ${pluralizar(s.muestras, 'sprint', 'sprints')})` : ''}</span>
-      <span class="grafica__detalle-dato">${s.aceptadas} ${pluralizar(s.aceptadas, 'aceptada', 'aceptadas')}
-        · ${s.rechazadas} ${pluralizar(s.rechazadas, 'rechazada (no suma)', 'rechazadas (no suman)')}</span>
-    </li>`).join('');
+  const etiquetaComp = datos.individual ? 'Horas comprometidas' : 'Pts comprometidos';
+  const etiquetaCompl = datos.individual ? 'Horas completadas' : 'Pts aceptados';
 
   contenedor.innerHTML = `
-    ${avisoVentana}
     <div class="grafica__leyenda">
-      <span class="leyenda__item"><span class="leyenda__muestra leyenda__muestra--barra"></span>Puntos aceptados</span>
-      <span class="leyenda__item"><span class="leyenda__muestra leyenda__muestra--linea"></span>Promedio móvil (${datos.ventana} sprints)</span>
+      <span class="leyenda__item"><span style="width:14px; height:14px; background:#6A8CA0; display:inline-block;"></span>${etiquetaComp}</span>
+      <span class="leyenda__item"><span style="width:14px; height:14px; background:#282828; display:inline-block;"></span>${etiquetaCompl}</span>
+      <span class="leyenda__item"><span class="leyenda__muestra leyenda__muestra--linea"></span>Promedio móvil</span>
     </div>
-    ${construirSvg(datos.sprints)}
-    <ul class="grafica__detalle">${detalle}</ul>`;
+    ${construirSvg(datos.sprints, datos.individual)}`;
 }

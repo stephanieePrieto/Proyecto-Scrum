@@ -1,1 +1,37 @@
-<!-- Responsable: Dana - HU-35: pantalla con los KPIs del proyecto. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!DOCTYPE html>
+<!-- HU-35: Resumen general de Proyecto.
+     Muestra la información general, visión y Definition of Done (DoD)
+     @author Dana -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Resumen de Proyecto · ScrumFlow</title>
+  
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina" id="rp-titulo">Cargando proyecto...</h1>
+        <p class="subtitulo-pagina" id="rp-fechas"></p>
+      </div>
+    </div>
+    <section class="tarjeta" style="margin-top: 20px;">
+      <h2 style="font-size: 18px; margin-bottom: 12px;">Visión del Proyecto</h2>
+      <p id="rp-vision" style="color: var(--texto-suave);"></p>
+      
+      <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 12px;">Definition of Done (DoD)</h2>
+      <p id="rp-dod" style="background: var(--slate-50); padding: 12px; border-radius: 8px; font-family: monospace;"></p>
+    </section>
+  </main>
+  <script type="module" src="/js/pages/resumen-proyecto.js"></script>
+</body>
+</html>

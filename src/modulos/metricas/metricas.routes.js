@@ -8,7 +8,7 @@
 
 import { Router } from 'express';
 import { autenticar } from '../../middlewares/autenticar.js';
-import { misProyectos, dashboard, velocity, avance } from './metricas.controller.js';
+import { misProyectos, dashboard, velocity, avance, burndown } from './metricas.controller.js';
 
 const router = Router();
 
@@ -28,5 +28,8 @@ router.get('/proyectos/:proyectoId/velocity', autenticar, velocity);
 
 // HU-31: GET /api/metricas/proyectos/:proyectoId/avance?sprintId=N
 router.get('/proyectos/:proyectoId/avance', autenticar, avance);
+
+// HU-29: GET /api/metricas/proyectos/:proyectoId/burndown
+router.get('/proyectos/:proyectoId/burndown', autenticar, burndown);
 
 export default router;

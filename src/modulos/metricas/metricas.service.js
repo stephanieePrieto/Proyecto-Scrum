@@ -140,19 +140,33 @@ async function diasRestantes(proyectoId) {
 
 /**
  * Contar los impedimentos abiertos y cuántos de ellos son críticos (severidad 'alta').
+ * Ahora segmentado por "míos" (los del usuario logueado) y "todos" los del proyecto.
  *
  * @param {number} proyectoId Identificador del proyecto.
- * @returns {Promise<{valor: number, criticos: number}>}
+ * @param {number} usuarioId Identificador del usuario actual.
+ * @returns {Promise<{mios: Object, todos: Object}>}
  */
-async function impedimentosAbiertos(proyectoId) {
-  const [fila] = await consultar(
+async function impedimentosAbiertos(proyectoId, usuarioId) {
+  const [filaMios] = await consultar(
+    `SELECT COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE severidad = 'alta')::int AS criticos
+       FROM impedimentos
+      WHERE proyecto_id = $1 AND estado = 'abierto' AND responsable_id = $2`,
+    [proyectoId, usuarioId],
+  );
+  
+  const [filaTodos] = await consultar(
     `SELECT COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE severidad = 'alta')::int AS criticos
        FROM impedimentos
       WHERE proyecto_id = $1 AND estado = 'abierto'`,
     [proyectoId],
   );
-  return { valor: fila.total, criticos: fila.criticos };
+  
+  return { 
+    mios: { valor: filaMios.total, criticos: filaMios.criticos },
+    todos: { valor: filaTodos.total, criticos: filaTodos.criticos }
+  };
 }
 
 /**
@@ -161,20 +175,28 @@ async function impedimentosAbiertos(proyectoId) {
  * Resolver ambas sumas en una sola consulta para ahorrar un viaje a la base de datos.
  *
  * @param {number} proyectoId Identificador del proyecto.
- * @returns {Promise<{valor: number, estimado: number, real: number}>}
+ * @returns {Promise<{valor: number, estimado: number, real: number, superaUmbral: boolean, umbral: number}>}
  */
 async function desviacionAcumulada(proyectoId) {
   const [fila] = await consultar(
-    `SELECT COALESCE((SELECT SUM(horas_estimadas) FROM tareas WHERE proyecto_id = $1), 0) AS estimado,
+    `SELECT p.umbral_desviacion,
+            COALESCE((SELECT SUM(horas_estimadas) FROM tareas WHERE proyecto_id = $1), 0) AS estimado,
             COALESCE((SELECT SUM(r.horas)
                         FROM registros_horas r
                         JOIN tareas t ON t.id = r.tarea_id
-                       WHERE t.proyecto_id = $1), 0) AS real`,
+                       WHERE t.proyecto_id = $1), 0) AS real
+       FROM proyectos p WHERE p.id = $1`,
     [proyectoId],
   );
   const estimado = aUnDecimal(fila.estimado);
   const real = aUnDecimal(fila.real);
-  return { valor: aUnDecimal(real - estimado), estimado, real };
+  const valor = aUnDecimal(real - estimado);
+  
+  // HU-33: Alertas por desviación (Evaluación contra el umbral)
+  const porcentajeDesviacion = estimado > 0 ? Math.abs((valor / estimado) * 100) : 0;
+  const superaUmbral = porcentajeDesviacion > fila.umbral_desviacion;
+
+  return { valor, estimado, real, superaUmbral, umbral: fila.umbral_desviacion };
 }
 
 /**
@@ -203,23 +225,24 @@ async function proyectoVacio(proyectoId) {
  * devolver { error: true } solo en ese KPI y entregar los demás normalmente.
  *
  * @param {number} proyectoId Identificador del proyecto.
- * @returns {Promise<{vacio: boolean, kpis: Object, tiempoMs: number}>}
+ * @param {number} usuarioId Identificador del usuario.
+ * @returns {Promise<{vacio: boolean, esScrumMaster: boolean, kpis: Object, tiempoMs: number}>}
  */
-export async function obtenerKpisDashboard(proyectoId) {
+export async function obtenerKpisDashboard(proyectoId, usuarioId) {
   const inicio = Date.now();
-  const nombres = ['vacio', 'avance', 'diasRestantes', 'impedimentos', 'desviacion'];
-
+  const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+  
   const resultados = await Promise.allSettled([
     proyectoVacio(proyectoId),
     avanceGlobal(proyectoId),
     diasRestantes(proyectoId),
-    impedimentosAbiertos(proyectoId),
+    impedimentosAbiertos(proyectoId, usuarioId),
     desviacionAcumulada(proyectoId),
   ]);
 
   // Registrar en consola qué indicador falló para poder depurarlo
   resultados.forEach((r, i) => {
-    if (r.status === 'rejected') console.error(`[metricas] Falló el KPI "${nombres[i]}":`, r.reason?.message);
+    if (r.status === 'rejected') console.error(`[metricas] Falló un KPI:`, r.reason?.message);
   });
 
   const elegir = (r) => (r.status === 'fulfilled' ? r.value : { error: true });
@@ -228,6 +251,7 @@ export async function obtenerKpisDashboard(proyectoId) {
   return {
     // Si no se pudo saber si está vacío, mostrar los indicadores (cada uno indicará su propio error)
     vacio: vacio.status === 'fulfilled' ? vacio.value : false,
+    esScrumMaster: rol === 'scrum_master',
     kpis: {
       avance: elegir(avance),
       diasRestantes: elegir(dias),
@@ -264,31 +288,54 @@ export function calcularPromedioMovil(valores, ventana = VENTANA_PROMEDIO) {
  * Obtener la velocity de cada sprint cerrado del proyecto.
  * Sumar solo los puntos de las historias ACEPTADAS en el Review del sprint;
  * las rechazadas no suman (se cuentan aparte solo para informar).
- * Agregar la línea de promedio móvil y los avisos de ventana incompleta.
+ * Modificado para soportar gráfica agrupada (Comprometidos vs Aceptados/Completados) y filtro individual.
  *
  * @param {number} proyectoId Identificador del proyecto.
- * @returns {Promise<{vacio: boolean, ventana: number, ventanaIncompleta: boolean,
+ * @param {number|null} usuarioIdFiltro Identificador del integrante para velocity individual.
+ * @returns {Promise<{vacio: boolean, individual: boolean, ventana: number, ventanaIncompleta: boolean,
  *   promedioActual: number|null, sprints: Array<Object>}>}
  */
-export async function obtenerVelocity(proyectoId) {
-  const filas = await consultar(
-    `SELECT s.id, s.nombre,
-            s.fecha_inicio::text AS fecha_inicio, s.fecha_fin::text AS fecha_fin, -- 'AAAA-MM-DD' sin zona horaria
-            COALESCE(SUM(h.puntos) FILTER (WHERE r.decision = 'aceptada'), 0)::int AS puntos,
-            COUNT(r.id) FILTER (WHERE r.decision = 'aceptada')::int  AS aceptadas,
-            COUNT(r.id) FILTER (WHERE r.decision = 'rechazada')::int AS rechazadas
-       FROM sprints s
-       LEFT JOIN reviews_historias r ON r.sprint_id = s.id
-       LEFT JOIN historias h         ON h.id = r.historia_id
-      WHERE s.proyecto_id = $1 AND s.estado = 'cerrado'
-      GROUP BY s.id
-      ORDER BY s.fecha_fin, s.id`,
-    [proyectoId],
-  );
+export async function obtenerVelocity(proyectoId, usuarioIdFiltro = null) {
+  let filas;
+  
+  if (usuarioIdFiltro) {
+    // Velocity individual en horas (comprometidas vs completadas)
+    filas = await consultar(
+      `SELECT s.id, s.nombre,
+              s.fecha_inicio::text AS fecha_inicio, s.fecha_fin::text AS fecha_fin,
+              COALESCE(SUM(t.horas_estimadas) FILTER (WHERE c.es_final), 0)::int AS puntos,
+              COALESCE(SUM(t.horas_estimadas), 0)::int AS puntos_comprometidos,
+              0 AS aceptadas, 0 AS rechazadas
+         FROM sprints s
+         LEFT JOIN tareas t ON t.sprint_id = s.id AND t.responsable_id = $2
+         LEFT JOIN columnas_tablero c ON c.id = t.columna_id
+        WHERE s.proyecto_id = $1 AND s.estado = 'cerrado'
+        GROUP BY s.id
+        ORDER BY s.fecha_fin, s.id`,
+      [proyectoId, usuarioIdFiltro],
+    );
+  } else {
+    // Velocity del equipo en puntos de historia
+    filas = await consultar(
+      `SELECT s.id, s.nombre,
+              s.fecha_inicio::text AS fecha_inicio, s.fecha_fin::text AS fecha_fin,
+              COALESCE(SUM(h.puntos) FILTER (WHERE r.decision = 'aceptada'), 0)::int AS puntos,
+              COALESCE(SUM(h.puntos), 0)::int AS puntos_comprometidos,
+              COUNT(r.id) FILTER (WHERE r.decision = 'aceptada')::int  AS aceptadas,
+              COUNT(r.id) FILTER (WHERE r.decision = 'rechazada')::int AS rechazadas
+         FROM sprints s
+         LEFT JOIN reviews_historias r ON r.sprint_id = s.id
+         LEFT JOIN historias h         ON h.id = r.historia_id
+        WHERE s.proyecto_id = $1 AND s.estado = 'cerrado'
+        GROUP BY s.id
+        ORDER BY s.fecha_fin, s.id`,
+      [proyectoId],
+    );
+  }
 
   // Sin sprints cerrados no hay nada que graficar: el cliente muestra el mensaje de "sin datos"
   if (filas.length === 0) {
-    return { vacio: true, ventana: VENTANA_PROMEDIO, ventanaIncompleta: false, promedioActual: null, sprints: [] };
+    return { vacio: true, individual: !!usuarioIdFiltro, ventana: VENTANA_PROMEDIO, ventanaIncompleta: false, promedioActual: null, sprints: [] };
   }
 
   const promedios = calcularPromedioMovil(filas.map((f) => f.puntos));
@@ -298,6 +345,7 @@ export async function obtenerVelocity(proyectoId) {
     fechaInicio: f.fecha_inicio,
     fechaFin: f.fecha_fin,
     puntos: f.puntos,
+    puntosComprometidos: f.puntos_comprometidos,
     aceptadas: f.aceptadas,
     rechazadas: f.rechazadas,
     promedioMovil: promedios[i].promedio,
@@ -306,6 +354,7 @@ export async function obtenerVelocity(proyectoId) {
 
   return {
     vacio: false,
+    individual: !!usuarioIdFiltro,
     ventana: VENTANA_PROMEDIO,
     // Hay menos sprints cerrados que la ventana: avisar que el promedio usa los disponibles
     ventanaIncompleta: sprints.length < VENTANA_PROMEDIO,
@@ -333,7 +382,6 @@ export async function obtenerVelocity(proyectoId) {
 function resumirAvance({ tareas, sinEstimar, horasAsignadas, horasHechas }) {
   let estado = 'normal';
   let porcentaje = null;
-
   if (tareas === 0) estado = 'sin_tareas';
   else if (horasAsignadas <= 0) estado = 'sin_estimar';
   else porcentaje = Math.round((horasHechas / horasAsignadas) * 100);
@@ -352,15 +400,18 @@ function resumirAvance({ tareas, sinEstimar, horasAsignadas, horasHechas }) {
  * Obtener el avance por persona y por equipo del proyecto (opcionalmente de un solo sprint).
  * Incluir a los integrantes actuales aunque no tengan tareas, y también a quienes ya fueron
  * dados de baja pero conservan tareas, para no perder el histórico (se marcan con baja: true).
+ * Filtra los datos según el rol: El Scrum Master ve todo, los demás solo ven lo suyo.
  *
  * @param {number} proyectoId Identificador del proyecto.
  * @param {number|null} [sprintId] Sprint a filtrar; null o ausente = todo el proyecto.
- * @returns {Promise<{equipo: Object, personas: Array<Object>, sprints: Array<Object>,
- *   sprintId: number|null, tareasSinResponsable: number}>}
+ * @param {number} usuarioId Usuario solicitando la información.
+ * @returns {Promise<Object>}
  * @throws {ErrorApp} 404 si el sprint no pertenece al proyecto.
  */
-export async function obtenerAvance(proyectoId, sprintId = null) {
+export async function obtenerAvance(proyectoId, sprintId = null, usuarioId) {
   // Validar que el sprint solicitado sea de este proyecto (evita leer datos de otro proyecto)
+  const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+
   const sprints = await consultar(
     `SELECT id, nombre, estado FROM sprints WHERE proyecto_id = $1 ORDER BY fecha_inicio, id`,
     [proyectoId],
@@ -393,17 +444,10 @@ export async function obtenerAvance(proyectoId, sprintId = null) {
         WHERE mp.proyecto_id = $1`,
       [proyectoId],
     ),
-    consultar(
-      `SELECT e.id, e.nombre
-         FROM proyectos p JOIN equipos e ON e.id = p.equipo_id
-        WHERE p.id = $1`,
-      [proyectoId],
-    ),
+    consultar(`SELECT e.id, e.nombre FROM proyectos p JOIN equipos e ON e.id = p.equipo_id WHERE p.id = $1`, [proyectoId]),
     // Tareas sin responsable: no entran al avance por persona, pero se informan
     consultar(
-      `SELECT COUNT(*)::int AS total
-         FROM tareas
-        WHERE proyecto_id = $1 AND responsable_id IS NULL AND ($2::int IS NULL OR sprint_id = $2)`,
+      `SELECT COUNT(*)::int AS total FROM tareas WHERE proyecto_id = $1 AND responsable_id IS NULL AND ($2::int IS NULL OR sprint_id = $2)`,
       [proyectoId, sprintId],
     ),
   ]);
@@ -423,35 +467,78 @@ export async function obtenerAvance(proyectoId, sprintId = null) {
       baja: !f.activo || !f.rol, datos: null,
     };
     persona.datos = {
-      tareas: f.tareas,
-      sinEstimar: f.sin_estimar,
-      horasAsignadas: Number(f.horas_asignadas),
-      horasHechas: Number(f.horas_hechas),
+      tareas: f.tareas, sinEstimar: f.sin_estimar,
+      horasAsignadas: Number(f.horas_asignadas), horasHechas: Number(f.horas_hechas),
     };
     mapa.set(f.usuario_id, persona);
   }
 
-  const personas = [...mapa.values()]
+  let personas = [...mapa.values()]
     .map((p) => ({ usuarioId: p.usuarioId, nombre: p.nombre, rol: p.rol, baja: p.baja, ...resumirAvance(p.datos) }))
     // Primero activos, luego por nombre
     .sort((a, b) => Number(a.baja) - Number(b.baja) || a.nombre.localeCompare(b.nombre, 'es'));
 
+  // REGLA: Si no es Scrum Master, solo ve al equipo completo y a sí mismo
+  const esScrumMaster = rol === 'scrum_master';
+  if (!esScrumMaster) {
+    personas = personas.filter(p => p.usuarioId === usuarioId);
+  }
+
   // El equipo consolida exactamente las mismas tareas asignadas que se muestran por persona
-  const totales = personas.reduce(
+  const totales = porPersona.reduce(
     (acum, p) => ({
       tareas: acum.tareas + p.tareas,
-      sinEstimar: acum.sinEstimar + p.tareasSinEstimar,
-      horasAsignadas: acum.horasAsignadas + p.horasAsignadas,
-      horasHechas: acum.horasHechas + p.horasHechas,
+      sinEstimar: acum.sinEstimar + p.sin_estimar,
+      horasAsignadas: acum.horasAsignadas + Number(p.horas_asignadas),
+      horasHechas: acum.horasHechas + Number(p.horas_hechas),
     }),
     { tareas: 0, sinEstimar: 0, horasAsignadas: 0, horasHechas: 0 },
   );
 
   return {
-    sprintId,
-    sprints,
+    sprintId, sprints,
+    esScrumMaster,
+    integrantesTotales: integrantes, // Para rellenar el filtro en frontend
     equipo: { id: equipoFila?.id ?? null, nombre: equipoFila?.nombre ?? '', ...resumirAvance(totales) },
     personas,
     tareasSinResponsable: sinResp.total,
+  };
+}
+
+// ===========================================================================
+// HU-29: Gráfica Burndown
+// ===========================================================================
+
+/**
+ * Obtener los datos necesarios para dibujar la gráfica de Burndown del sprint activo.
+ * Extrae las horas restantes por día según la foto del servidor (snapshots_burndown).
+ *
+ * @param {number} proyectoId Identificador del proyecto.
+ * @returns {Promise<Object>} Datos del sprint activo y sus snapshots.
+ */
+export async function obtenerBurndown(proyectoId) {
+  const [sprint] = await consultar(
+    `SELECT id, nombre, fecha_inicio, fecha_fin, capacidad_horas FROM sprints 
+      WHERE proyecto_id = $1 AND estado = 'activo' LIMIT 1`, 
+    [proyectoId]
+  );
+  
+  if (!sprint) return { vacio: true };
+
+  const snapshots = await consultar(
+    `SELECT fecha::text, horas_restantes, puntos_restantes, alcance_modificado
+       FROM snapshots_burndown WHERE sprint_id = $1 ORDER BY fecha`,
+    [sprint.id]
+  );
+
+  return {
+    vacio: false,
+    sprint: {
+      nombre: sprint.nombre,
+      fechaInicio: sprint.fecha_inicio,
+      fechaFin: sprint.fecha_fin,
+      capacidadHoras: sprint.capacidad_horas
+    },
+    snapshots
   };
 }

@@ -1,24 +1,13 @@
 -- DATOS DE PRUEBA - HU-30 (velocity), HU-31 (avance) y HU-35 (dashboard).
 -- NO es parte de la base: solo sirve para ver las métricas con información.
--- Ejecutar DESPUES de schema.sql y seed.sql. Es seguro correrlo varias veces (no duplica datos).
---
--- Qué crea en "Proyecto Demo Alfa" (el "Proyecto Demo Beta" se deja vacío a propósito
--- para probar el estado "proyecto nuevo"):
---   * 3 sprints cerrados con historias aceptadas y rechazadas en su Review  -> gráfica Velocity
---   * 1 sprint activo con tareas repartidas entre el equipo                 -> avance y dashboard
---       - Diana: tareas hechas y pendientes, una sin horas estimadas
---       - Luis: una tarea hecha y una en progreso
---       - Marta: sin tareas                                                 -> "Sin tareas"
---       - Ex Miembro: dado de baja, conserva una tarea hecha                -> histórico
---       - una tarea sin responsable
---   * 3 impedimentos (2 abiertos, uno de ellos de severidad alta) y horas reales registradas
+-- Ejecutar DESPUÉS de schema.sql y seed.sql. Es seguro correrlo varias veces (no duplica datos).
 
 DO $$
 DECLARE
   v_proyecto   INTEGER;
   v_po         INTEGER;
-  v_diana      INTEGER;
-  v_luis       INTEGER;
+  v_dana       INTEGER;
+  v_diego      INTEGER;
   v_exmiembro  INTEGER;
   v_c_porhacer INTEGER;
   v_c_progreso INTEGER;
@@ -40,25 +29,23 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT id INTO v_po     FROM usuarios WHERE correo = 'pablo@scrumflow.test';
-  SELECT id INTO v_diana  FROM usuarios WHERE correo = 'diana@scrumflow.test';
-  SELECT id INTO v_luis   FROM usuarios WHERE correo = 'luis@scrumflow.test';
+  -- Usuarios reales tomados de seed.sql
+  SELECT id INTO v_po    FROM usuarios WHERE correo = 'citlipop@gmail.com';
+  SELECT id INTO v_dana  FROM usuarios WHERE correo = 'dana044car@gmail.com';
+  SELECT id INTO v_diego FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com';
 
   SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por hacer';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'En progreso';
   SELECT id INTO v_c_hecho    FROM columnas_tablero WHERE proyecto_id = v_proyecto AND es_final = TRUE;
 
-  -- Persona dada de baja: cuenta inactiva y sin pertenecer al proyecto
+  -- Persona dada de baja
   INSERT INTO usuarios (nombre, correo, activo)
-  VALUES ('Ex Miembro', 'exmiembro@scrumflow.test', FALSE)
+  VALUES ('Marco Reyes (baja)', 'marco.reyes.baja@example.com', FALSE)
   ON CONFLICT DO NOTHING;
-  SELECT id INTO v_exmiembro FROM usuarios WHERE correo = 'exmiembro@scrumflow.test';
+  SELECT id INTO v_exmiembro FROM usuarios WHERE correo = 'marco.reyes.baja@example.com';
 
   -- ---------------------------------------------------------------------
-  -- 3 sprints cerrados (HU-30). Cada uno: 3 historias (2 aceptadas, 1 rechazada)
-  --   Sprint 1: aceptadas 5 + 3 = 8 pts   (rechazada de 8 pts NO suma)
-  --   Sprint 2: aceptadas 8 + 5 = 13 pts  (rechazada de 3 pts NO suma)
-  --   Sprint 3: aceptadas 8 + 8 = 16 pts  (rechazada de 5 pts NO suma)
+  -- 3 sprints cerrados (HU-30: Velocity)
   -- ---------------------------------------------------------------------
   FOR v_i IN 1..3 LOOP
     INSERT INTO sprints (proyecto_id, nombre, objetivo, fecha_inicio, fecha_fin, capacidad_horas, estado, velocity, cerrado_en)
@@ -67,72 +54,88 @@ BEGIN
             NOW() - ((22 - (v_i - 1) * 7) || ' days')::interval)
     RETURNING id INTO v_sprint;
 
-    -- Historia aceptada A
-    INSERT INTO historias (proyecto_id, sprint_id, titulo, puntos, estado, orden, creada_por)
-    VALUES (v_proyecto, v_sprint, 'Demo S' || v_i || ' historia A',
-            CASE v_i WHEN 1 THEN 5 WHEN 2 THEN 8 ELSE 8 END, 'aceptada', 100 + v_i * 10, v_po)
+    -- Historias aceptadas y rechazadas para simular el scope
+    INSERT INTO historias (proyecto_id, numero_hu, sprint_id, titulo, puntos, estado, orden, creada_por)
+    VALUES (v_proyecto, (SELECT COALESCE(MAX(numero_hu), 0) + 1 FROM historias WHERE proyecto_id = v_proyecto),
+            v_sprint, 'Demo S' || v_i || ' historia A', CASE v_i WHEN 1 THEN 5 WHEN 2 THEN 8 ELSE 8 END, 'aceptada', 100 + v_i * 10, v_po)
     RETURNING id INTO v_historia;
     INSERT INTO reviews_historias (sprint_id, historia_id, decision, decidido_por) VALUES (v_sprint, v_historia, 'aceptada', v_po);
 
-    -- Historia aceptada B
-    INSERT INTO historias (proyecto_id, sprint_id, titulo, puntos, estado, orden, creada_por)
-    VALUES (v_proyecto, v_sprint, 'Demo S' || v_i || ' historia B',
-            CASE v_i WHEN 1 THEN 3 WHEN 2 THEN 5 ELSE 8 END, 'aceptada', 101 + v_i * 10, v_po)
+    INSERT INTO historias (proyecto_id, numero_hu, sprint_id, titulo, puntos, estado, orden, creada_por)
+    VALUES (v_proyecto, (SELECT COALESCE(MAX(numero_hu), 0) + 1 FROM historias WHERE proyecto_id = v_proyecto),
+            v_sprint, 'Demo S' || v_i || ' historia B', CASE v_i WHEN 1 THEN 3 WHEN 2 THEN 5 ELSE 8 END, 'aceptada', 101 + v_i * 10, v_po)
     RETURNING id INTO v_historia;
     INSERT INTO reviews_historias (sprint_id, historia_id, decision, decidido_por) VALUES (v_sprint, v_historia, 'aceptada', v_po);
 
-    -- Historia rechazada: vuelve al backlog (sin sprint), pero su Review conserva el sprint de origen
-    INSERT INTO historias (proyecto_id, sprint_id, titulo, puntos, estado, orden, creada_por)
-    VALUES (v_proyecto, NULL, 'Demo S' || v_i || ' historia rechazada',
-            CASE v_i WHEN 1 THEN 8 WHEN 2 THEN 3 ELSE 5 END, 'rechazada', 102 + v_i * 10, v_po)
+    -- Historia rechazada
+    INSERT INTO historias (proyecto_id, numero_hu, sprint_id, titulo, puntos, estado, orden, creada_por)
+    VALUES (v_proyecto, (SELECT COALESCE(MAX(numero_hu), 0) + 1 FROM historias WHERE proyecto_id = v_proyecto),
+            NULL, 'Demo S' || v_i || ' historia rechazada', CASE v_i WHEN 1 THEN 8 WHEN 2 THEN 3 ELSE 5 END, 'rechazada', 102 + v_i * 10, v_po)
     RETURNING id INTO v_historia;
     INSERT INTO reviews_historias (sprint_id, historia_id, decision, comentario, decidido_por)
     VALUES (v_sprint, v_historia, 'rechazada', 'No cumple la definición de terminado', v_po);
   END LOOP;
 
   -- ---------------------------------------------------------------------
-  -- 1 sprint activo con tareas (HU-31 y HU-35)
+  -- 1 sprint activo con tareas (HU-31 Avance, HU-35 Dashboard)
   -- ---------------------------------------------------------------------
+  UPDATE sprints SET estado = 'planificado' WHERE proyecto_id = v_proyecto AND estado = 'activo';
+
   INSERT INTO sprints (proyecto_id, nombre, objetivo, fecha_inicio, fecha_fin, capacidad_horas, estado)
-  VALUES (v_proyecto, 'Demo Sprint 4 (activo)', 'Sprint activo de ejemplo',
-          CURRENT_DATE - 3, CURRENT_DATE + 4, 90, 'activo')
+  VALUES (v_proyecto, 'Demo Sprint 4 (activo)', 'Sprint activo de ejemplo', CURRENT_DATE - 3, CURRENT_DATE + 4, 90, 'activo')
   RETURNING id INTO v_sprint;
 
-  INSERT INTO historias (proyecto_id, sprint_id, titulo, puntos, estado, orden, creada_por)
-  VALUES (v_proyecto, v_sprint, 'Demo S4 historia en curso', 8, 'en_sprint', 200, v_po)
+  INSERT INTO historias (proyecto_id, numero_hu, sprint_id, titulo, puntos, estado, orden, creada_por)
+  VALUES (v_proyecto, (SELECT COALESCE(MAX(numero_hu), 0) + 1 FROM historias WHERE proyecto_id = v_proyecto),
+          v_sprint, 'Demo S4 historia en curso', 8, 'en_sprint', 200, v_po)
   RETURNING id INTO v_historia;
 
-  -- Diana: 3 tareas estimadas (5h y 3h hechas, 2h en progreso) + 1 sin estimar
+  -- Tareas asignadas
   INSERT INTO tareas (historia_id, proyecto_id, sprint_id, columna_id, titulo, responsable_id, horas_estimadas, orden) VALUES
-    (v_historia, v_proyecto, v_sprint, v_c_hecho,    'Demo: diseñar pantalla',     v_diana, 5,    1),
-    (v_historia, v_proyecto, v_sprint, v_c_hecho,    'Demo: maquetar componentes', v_diana, 3,    2),
-    (v_historia, v_proyecto, v_sprint, v_c_progreso, 'Demo: conectar con la API',  v_diana, 2,    3),
-    (v_historia, v_proyecto, v_sprint, v_c_porhacer, 'Demo: tarea sin estimar',    v_diana, NULL, 4);
+    (v_historia, v_proyecto, v_sprint, v_c_hecho,    'Demo: diseñar pantalla',    v_dana, 5,    1),
+    (v_historia, v_proyecto, v_sprint, v_c_hecho,    'Demo: maquetar componentes', v_dana, 3,    2),
+    (v_historia, v_proyecto, v_sprint, v_c_progreso, 'Demo: conectar con la API',  v_dana, 2,    3),
+    (v_historia, v_proyecto, v_sprint, v_c_porhacer, 'Demo: tarea sin estimar',    v_dana, NULL, 4),
+    (v_historia, v_proyecto, v_sprint, v_c_hecho,    'Demo: crear endpoints',      v_diego, 4, 5),
+    (v_historia, v_proyecto, v_sprint, v_c_progreso, 'Demo: validaciones',         v_diego, 6, 6),
+    (v_historia, v_proyecto, v_sprint, v_c_hecho, 'Demo: tarea de ex miembro', v_exmiembro, 3, 7),
+    (v_historia, v_proyecto, v_sprint, v_c_porhacer, 'Demo: tarea sin responsable', NULL, 2, 8);
 
-  -- Luis: 1 tarea hecha (4h) y 1 en progreso (6h)
-  INSERT INTO tareas (historia_id, proyecto_id, sprint_id, columna_id, titulo, responsable_id, horas_estimadas, orden) VALUES
-    (v_historia, v_proyecto, v_sprint, v_c_hecho,    'Demo: crear endpoints',      v_luis, 4, 5),
-    (v_historia, v_proyecto, v_sprint, v_c_progreso, 'Demo: validaciones',         v_luis, 6, 6);
-
-  -- Persona dada de baja: conserva una tarea terminada (3h)
-  INSERT INTO tareas (historia_id, proyecto_id, sprint_id, columna_id, titulo, responsable_id, horas_estimadas, orden)
-  VALUES (v_historia, v_proyecto, v_sprint, v_c_hecho, 'Demo: tarea de ex miembro', v_exmiembro, 3, 7);
-
-  -- Tarea sin responsable
-  INSERT INTO tareas (historia_id, proyecto_id, sprint_id, columna_id, titulo, responsable_id, horas_estimadas, orden)
-  VALUES (v_historia, v_proyecto, v_sprint, v_c_porhacer, 'Demo: tarea sin responsable', NULL, 2, 8);
-
-  -- Horas reales registradas (HU-35: desviación acumulada)
+  -- Horas reales registradas normales
   FOR v_tarea IN SELECT id FROM tareas WHERE proyecto_id = v_proyecto AND titulo IN ('Demo: diseñar pantalla', 'Demo: crear endpoints') LOOP
     INSERT INTO registros_horas (tarea_id, usuario_id, fecha, horas, nota)
     SELECT v_tarea, responsable_id, CURRENT_DATE - 1, 6, 'Horas de ejemplo' FROM tareas WHERE id = v_tarea;
   END LOOP;
 
-  -- Impedimentos: 2 abiertos (1 alta) y 1 resuelto
+  -- ---------------------------------------------------------------------
+  -- HU-33: Datos para forzar alerta por desviación
+  -- ---------------------------------------------------------------------
+  UPDATE proyectos SET umbral_desviacion = 10 WHERE id = v_proyecto;
+
+  FOR v_tarea IN SELECT id FROM tareas WHERE proyecto_id = v_proyecto AND titulo = 'Demo: conectar con la API' LOOP
+    INSERT INTO registros_horas (tarea_id, usuario_id, fecha, horas, nota)
+    VALUES 
+      (v_tarea, v_dana, CURRENT_DATE - 2, 8, 'Problemas de conexión con el proveedor externo'),
+      (v_tarea, v_dana, CURRENT_DATE - 1, 10, 'Reescribiendo los endpoints por completo');
+  END LOOP;
+
+  -- ---------------------------------------------------------------------
+  -- HU-29: Snapshots para la Gráfica Burndown
+  -- ---------------------------------------------------------------------
+  -- Simulamos que el sprint ha estado activo los últimos 3 días.
+  INSERT INTO snapshots_burndown (sprint_id, fecha, horas_restantes, puntos_restantes, alcance_modificado) VALUES
+    (v_sprint, CURRENT_DATE - 3, 90, 24, false),
+    (v_sprint, CURRENT_DATE - 2, 75, 24, false),
+    (v_sprint, CURRENT_DATE - 1, 60, 16, true), 
+    (v_sprint, CURRENT_DATE,     45, 16, false);
+
+  -- Impedimentos
   INSERT INTO impedimentos (proyecto_id, sprint_id, titulo, severidad, estado, creado_por, resuelto_en) VALUES
-    (v_proyecto, v_sprint, 'Demo: servidor de pruebas caído',    'alta',  'abierto',  v_diana, NULL),
-    (v_proyecto, v_sprint, 'Demo: falta acceso al repositorio',  'media', 'abierto',  v_luis,  NULL),
-    (v_proyecto, v_sprint, 'Demo: licencia vencida (resuelto)',  'baja',  'resuelto', v_luis,  NOW());
+    (v_proyecto, v_sprint, 'Demo: servidor de pruebas caído',    'alta',  'abierto',  v_dana, NULL),
+    (v_proyecto, v_sprint, 'Demo: falta acceso al repositorio',  'media', 'abierto',  v_diego, NULL),
+    (v_proyecto, v_sprint, 'Demo: licencia vencida (resuelto)',  'baja',  'resuelto', v_diego, NOW());
+
+  UPDATE proyectos p SET ultimo_numero_hu = GREATEST(p.ultimo_numero_hu, COALESCE((SELECT MAX(h.numero_hu) FROM historias h WHERE h.proyecto_id = p.id), 0)) WHERE p.id = v_proyecto;
 
   RAISE NOTICE 'Datos de métricas creados para Proyecto Demo Alfa (id=%).', v_proyecto;
 END

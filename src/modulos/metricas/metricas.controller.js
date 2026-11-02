@@ -11,6 +11,7 @@ import {
   obtenerKpisDashboard,
   obtenerVelocity,
   obtenerAvance,
+  obtenerBurndown
 } from './metricas.service.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 
@@ -61,15 +62,11 @@ async function validarAcceso(req) {
  * Un KPI que falle viaja como { error: true }; los demás se entregan normalmente.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/dashboard
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- * @returns {Promise<void>}
  */
 export async function dashboard(req, res, next) {
   try {
     const proyectoId = await validarAcceso(req);
-    res.json(await obtenerKpisDashboard(proyectoId));
+    res.json(await obtenerKpisDashboard(proyectoId, req.user.id));
   } catch (error) {
     responderError(error, res, next);
   }
@@ -77,17 +74,15 @@ export async function dashboard(req, res, next) {
 
 /**
  * Responder con la velocity de cada sprint cerrado y su promedio móvil (HU-30).
+ * Puede filtrarse por un integrante específico.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/velocity
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- * @returns {Promise<void>}
  */
 export async function velocity(req, res, next) {
   try {
     const proyectoId = await validarAcceso(req);
-    res.json(await obtenerVelocity(proyectoId));
+    const usuarioFiltro = aEnteroPositivo(req.query.usuarioId);
+    res.json(await obtenerVelocity(proyectoId, usuarioFiltro));
   } catch (error) {
     responderError(error, res, next);
   }
@@ -98,10 +93,6 @@ export async function velocity(req, res, next) {
  * Aceptar ?sprintId=N para limitar el cálculo a un sprint; sin él se usa todo el proyecto.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/avance
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- * @returns {Promise<void>}
  */
 export async function avance(req, res, next) {
   try {
@@ -114,7 +105,21 @@ export async function avance(req, res, next) {
       if (!sprintId) throw new ErrorApp('El identificador del sprint no es válido.', 400);
     }
 
-    res.json(await obtenerAvance(proyectoId, sprintId));
+    res.json(await obtenerAvance(proyectoId, sprintId, req.user.id));
+  } catch (error) {
+    responderError(error, res, next);
+  }
+}
+
+/**
+ * Responder con la información del Burndown del sprint activo (HU-29).
+ *
+ * @route GET /api/metricas/proyectos/:proyectoId/burndown
+ */
+export async function burndown(req, res, next) {
+  try {
+    const proyectoId = await validarAcceso(req);
+    res.json(await obtenerBurndown(proyectoId));
   } catch (error) {
     responderError(error, res, next);
   }
@@ -124,10 +129,6 @@ export async function avance(req, res, next) {
  * Responder con los proyectos del usuario autenticado (para elegir el proyecto en la página de métricas).
  *
  * @route GET /api/metricas/mis-proyectos
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- * @returns {Promise<void>}
  */
 export async function misProyectos(req, res, next) {
   try {

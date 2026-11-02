@@ -1,0 +1,340 @@
+/* Responsable: Alfonso - HU-27: pantalla "Mis horas" (hoja semanal de horas reales).
+ * Las variables llevan valor de respaldo para verse bien aunque falte alguna en base.css. */
+
+.mh {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+  color: var(--slate-800, #1e293b);
+}
+
+/* ---------- Encabezado ---------- */
+.mh__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.mh__titulo {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.mh__subtitulo {
+  margin: 4px 0 0;
+  color: var(--slate-500, #64748b);
+  font-size: 14px;
+}
+
+.mh__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.mh__semana {
+  min-width: 170px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ---------- Resumen semanal ---------- */
+.mh-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--slate-200, #e2e8f0);
+  border-radius: var(--radio-lg, 12px);
+  background: #fff;
+}
+
+.mh-resumen__linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mh-resumen__total {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mh-resumen__meta {
+  color: var(--slate-500, #64748b);
+  font-size: 13px;
+}
+
+.mh-barra {
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--slate-100, #f1f5f9);
+  overflow: hidden;
+}
+
+.mh-barra__relleno {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--indigo-600, #4f46e5);
+  transition: width 0.3s ease;
+}
+
+.mh-barra__relleno--completa {
+  background: var(--emerald-500, #10b981);
+}
+
+/* ---------- Avisos ---------- */
+.mh-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.mh-aviso[hidden] {
+  display: none;
+}
+
+.mh-aviso--exito {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.mh-aviso--error {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+/* ---------- Tabla ---------- */
+.mh-tabla-envoltura {
+  position: relative; /* Contiene el texto oculto (.mh-solo-lectores) para que no ensanche la página */
+  overflow-x: auto;
+  border: 1px solid var(--slate-200, #e2e8f0);
+  border-radius: var(--radio-lg, 12px);
+  background: #fff;
+}
+
+.mh-tabla {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mh-tabla th,
+.mh-tabla td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.mh-tabla thead th {
+  background: #f8fafc;
+  color: var(--slate-500, #64748b);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mh-tabla .mh-col-tarea {
+  min-width: 240px;
+  padding-left: 16px;
+  text-align: left;
+}
+
+.mh-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mh-dia__numero {
+  font-size: 15px;
+  color: var(--slate-800, #1e293b);
+}
+
+.mh-dia--hoy .mh-dia__numero {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--indigo-600, #4f46e5);
+  color: #fff;
+}
+
+.mh-tarea__titulo {
+  display: block;
+  font-weight: 600;
+}
+
+.mh-tarea__meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--slate-500, #64748b);
+  font-size: 12px;
+}
+
+.mh-celda {
+  min-width: 52px;
+  padding: 6px 8px;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.mh-celda:hover:not(:disabled) {
+  border-color: var(--indigo-600, #4f46e5);
+  background: #eef2ff;
+}
+
+.mh-celda:focus-visible {
+  outline: 2px solid var(--indigo-600, #4f46e5);
+  outline-offset: 1px;
+}
+
+.mh-celda--con-horas {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+.mh-celda:disabled {
+  color: var(--slate-300, #cbd5e1);
+  cursor: default;
+}
+
+.mh-celda--con-horas:disabled {
+  color: var(--slate-500, #64748b);
+}
+
+.mh-dato-solo-lectura {
+  color: var(--slate-500, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.mh-comparacion {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mh-tabla tfoot td {
+  background: #f8fafc;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mh-tabla tfoot td:first-child {
+  padding-left: 16px;
+  text-align: left;
+}
+
+.mh-midiendo {
+  color: #047857;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------- Estados vacío y carga ---------- */
+.mh-vacio {
+  padding: 40px 16px;
+  border: 1px dashed var(--slate-300, #cbd5e1);
+  border-radius: var(--radio-lg, 12px);
+  background: #fff;
+  color: var(--slate-500, #64748b);
+  text-align: center;
+}
+
+.mh-vacio[hidden],
+.mh-tabla-envoltura[hidden],
+.mh-esqueleto[hidden] {
+  display: none;
+}
+
+.mh-esqueleto {
+  height: 220px;
+  border-radius: var(--radio-lg, 12px);
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: mh-brillo 1.2s linear infinite;
+}
+
+@keyframes mh-brillo {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* ---------- Registros dentro del diálogo ---------- */
+.mh-registros {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--slate-200, #e2e8f0);
+  border-radius: 10px;
+}
+
+.mh-registros[hidden] {
+  display: none;
+}
+
+.mh-registros li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.mh-registros li + li {
+  border-top: 1px solid #f1f5f9;
+}
+
+.mh-registros__texto {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mh-registros__nota {
+  display: block;
+  color: var(--slate-500, #64748b);
+  font-size: 12px;
+}
+
+.mh-registros__acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.mh-solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-esqueleto { animation: none; }
+  .mh-barra__relleno { transition: none; }
+}

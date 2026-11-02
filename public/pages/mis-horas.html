@@ -1,1 +1,98 @@
 <!-- Responsable: Alfonso - HU-27: pantalla de registro de horas reales. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mis horas · AgileDesk</title>
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/horas-comun.css" />
+  <link rel="stylesheet" href="/css/componentes/temporizador.css" />
+  <link rel="stylesheet" href="/css/componentes/mis-horas.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="mh">
+    <div class="mh__encabezado">
+      <div>
+        <h1 class="mh__titulo">Mis horas</h1>
+        <p class="mh__subtitulo">Registra el tiempo real que dedicas a cada tarea, a mano o con el temporizador.</p>
+      </div>
+      <div class="mh__acciones">
+        <button id="mh-anterior" class="boton boton--secundario boton--pequeno" type="button" aria-label="Semana anterior">‹</button>
+        <span id="mh-semana" class="mh__semana" aria-live="polite"></span>
+        <button id="mh-siguiente" class="boton boton--secundario boton--pequeno" type="button" aria-label="Semana siguiente">›</button>
+        <button id="mh-hoy" class="boton boton--secundario boton--pequeno" type="button">Hoy</button>
+        <button id="mh-registrar" class="boton boton--primario" type="button">+ Registrar horas</button>
+      </div>
+    </div>
+
+    <div id="mh-aviso" class="mh-aviso" role="status" hidden></div>
+
+    <section class="mh-resumen" aria-label="Resumen de la semana">
+      <div class="mh-resumen__linea">
+        <span class="mh-resumen__total"><span id="mh-total">0</span> <span id="mh-meta" class="mh-resumen__meta"></span></span>
+        <span class="mh-resumen__meta">Meta según tu capacidad diaria × 5 días</span>
+      </div>
+      <div class="mh-barra" role="progressbar" aria-label="Avance de la meta semanal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="mh-barra" class="mh-barra__relleno" style="width: 0%"></div>
+      </div>
+    </section>
+
+    <div id="mh-cargando" class="mh-esqueleto" aria-busy="true" aria-label="Cargando tus horas"></div>
+
+    <div id="mh-vacio" class="mh-vacio" hidden>
+      No tienes tareas con horas esta semana ni tareas asignadas en un sprint activo.
+    </div>
+
+    <div id="mh-tabla-envoltura" class="mh-tabla-envoltura" hidden>
+      <table class="mh-tabla" id="mh-tabla">
+        <caption class="mh-solo-lectores">Horas registradas por tarea y por día de la semana</caption>
+        <thead></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+  </main>
+
+  <!-- Registrar / editar horas -->
+  <dialog id="mh-dialogo" class="horas-dialogo" aria-labelledby="mh-dialogo-titulo">
+    <form id="mh-form" novalidate>
+      <h2 id="mh-dialogo-titulo" class="horas-dialogo__titulo">Registrar horas</h2>
+
+      <div class="horas-campo">
+        <label for="mh-tarea">Tarea</label>
+        <select id="mh-tarea" class="horas-entrada" required></select>
+      </div>
+      <div class="horas-campo">
+        <label for="mh-fecha">Fecha</label>
+        <input id="mh-fecha" class="horas-entrada" type="date" required />
+      </div>
+      <div class="horas-campo">
+        <label for="mh-horas">Horas</label>
+        <input id="mh-horas" class="horas-entrada" type="number" min="0.1" max="24" step="0.1" inputmode="decimal" required />
+      </div>
+      <div class="horas-campo">
+        <label for="mh-nota">Nota</label>
+        <textarea id="mh-nota" class="horas-entrada" rows="2" maxlength="500" placeholder="Opcional: ¿qué hiciste?"></textarea>
+      </div>
+
+      <ul id="mh-registros" class="mh-registros" aria-label="Horas ya registradas ese día en esta tarea" hidden></ul>
+
+      <p id="mh-error" class="horas-error" role="alert" hidden></p>
+
+      <div class="horas-acciones">
+        <button id="mh-cancelar-edicion" class="boton boton--secundario" type="button" hidden>Cancelar edición</button>
+        <button id="mh-cerrar" class="boton boton--secundario" type="button">Cerrar</button>
+        <button id="mh-guardar" class="boton boton--primario" type="submit">Registrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="/js/pages/mis-horas.js"></script>
+</body>
+</html>

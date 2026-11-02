@@ -1,0 +1,95 @@
+/* Responsable: Alfonso - HU-27: tarjeta flotante del temporizador de horas.
+ * Va abajo a la izquierda para no chocar con los avisos de notificaciones (abajo a la derecha). */
+
+.temp {
+  position: fixed;
+  left: var(--espacio-4, 16px);
+  bottom: var(--espacio-4, 16px);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(300px, calc(100vw - 32px));
+  padding: 14px 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--slate-200, #e2e8f0);
+  border-radius: var(--radio-lg, 12px);
+  background: #fff;
+  color: var(--slate-800, #1e293b);
+  box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.18), 0 8px 10px -6px rgb(15 23 42 / 0.12);
+  font-size: 14px;
+}
+
+.temp[hidden] {
+  display: none;
+}
+
+.temp__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.temp__titulo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--slate-500, #64748b);
+}
+
+.temp__estado {
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.temp__estado--corriendo {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.temp__estado--pausado {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.temp__tarea {
+  margin: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.temp__reloj {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.temp__acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.temp__descartar {
+  margin-left: auto;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--slate-500, #64748b);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.temp__descartar:hover {
+  color: #be123c;
+}

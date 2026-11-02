@@ -1,6 +1,14 @@
 // Responsable: Jetz - HU-06, HU-07: reglas, SQL y avisos por socket (crear y planificar sprints)
 
 import { consulta, pool } from '../../config/db.js';
+import { tienePermiso } from '../../utils/permisos.js';
+
+/**
+ * @file sprints.service.js
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
+ */
 
 // HU-06: Consultar los sprints existentes de un proyecto
 export async function obtenerSprintsProyecto(proyectoId) {
@@ -18,7 +26,7 @@ export async function obtenerSprintsProyecto(proyectoId) {
 }
 
 
- // Comprobar si las fechas coinciden con otro sprint del equipo
+// Comprobar si las fechas coinciden con otro sprint del equipo
 export async function verificarSolapamiento(equipoId, fechaInicio, fechaFin) {
 
   const resultado = await consulta(
@@ -37,7 +45,7 @@ export async function verificarSolapamiento(equipoId, fechaInicio, fechaFin) {
 }
 
 
- // Guardar un nuevo sprint en PostgreSQL
+// Guardar un nuevo sprint en PostgreSQL
 export async function guardarSprint(datos) {
 
   const resultado = await consulta(
@@ -67,7 +75,7 @@ export async function guardarSprint(datos) {
 }
 
 
- // Validar los datos antes de crear un sprint
+// Validar los datos antes de crear un sprint
 export function validarDatosSprint(datos) {
 
   // El nombre es obligatorio
@@ -85,11 +93,11 @@ export function validarDatosSprint(datos) {
     return 'Debes seleccionar las fechas del sprint';
   }
 
-    // Comprobar que las fechas sean reales
-    if (!esFechaValida(datos.fechaInicio) ||
-        !esFechaValida(datos.fechaFin)) {
+  // Comprobar que las fechas sean reales
+  if (!esFechaValida(datos.fechaInicio) ||
+    !esFechaValida(datos.fechaFin)) {
     return 'Las fechas del sprint no son válidas';
-    }
+  }
 
   // La fecha final debe ser posterior a la inicial
   if (datos.fechaFin <= datos.fechaInicio) {
@@ -101,10 +109,10 @@ export function validarDatosSprint(datos) {
 }
 
 
- //Comprobar que una fecha exista y tenga formato YYYY-MM-DD
+//Comprobar que una fecha exista y tenga formato YYYY-MM-DD
 function esFechaValida(fecha) {
   if (typeof fecha !== 'string' ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
     return false;
   }
 
@@ -115,24 +123,14 @@ function esFechaValida(fecha) {
 }
 
 
- // Verificar si el usuario es Scrum Master del proyecto
+// Verificar si el usuario es Scrum Master del proyecto
 export async function esScrumMaster(proyectoId, usuarioId) {
 
-  const resultado = await consulta(
-    `SELECT 1
-     FROM miembros_proyecto
-     WHERE proyecto_id = $1
-       AND usuario_id = $2
-       AND rol = 'scrum_master'
-     LIMIT 1`,
-    [proyectoId, usuarioId]
-  );
-
-  // true si el usuario tiene el rol Scrum Master
-  return resultado.rows.length > 0;
+  // true si el usuario tiene el rol Scrum Master y sigue en el equipo del proyecto
+  return tienePermiso({ id: usuarioId }, 'sprint.gestionar', proyectoId);
 }
 
- // Obtener el equipo asociado a un proyecto
+// Obtener el equipo asociado a un proyecto
 export async function obtenerEquipoProyecto(proyectoId) {
   const resultado = await consulta(
     `SELECT equipo_id
@@ -149,7 +147,7 @@ export async function obtenerEquipoProyecto(proyectoId) {
   return resultado.rows[0].equipo_id;
 }
 
- // Obtener las fechas permitidas para los sprints del proyecto
+// Obtener las fechas permitidas para los sprints del proyecto
 export async function obtenerFechasProyecto(proyectoId) {
   const resultado = await consulta(
     `SELECT
@@ -168,21 +166,26 @@ export async function obtenerFechasProyecto(proyectoId) {
   return resultado.rows[0];
 }
 
- // Guardar un sprint evitando conflictos de fechas
+// Guardar un sprint evitando conflictos de fechas
 export async function crearSprintSeguro(datos, equipoId, usuarioId) {
   const cliente = await pool.connect();
-    try {
+  try {
     // Iniciar la transacción
     await cliente.query('BEGIN');
     //  Comprobar nuevamente los permisos
     // antes de guardar el sprint
     const permisos = await cliente.query(
       `SELECT 1
-       FROM miembros_proyecto
-       WHERE proyecto_id = $1
-         AND usuario_id = $2
-         AND rol = 'scrum_master'
-       FOR UPDATE`,
+       FROM miembros_proyecto mp
+       WHERE mp.proyecto_id = $1
+         AND mp.usuario_id = $2
+         AND mp.rol = 'scrum_master'
+         AND EXISTS (
+           SELECT 1 FROM proyectos p
+           JOIN miembros_equipo me ON me.equipo_id = p.equipo_id
+           WHERE p.id = mp.proyecto_id AND me.usuario_id = mp.usuario_id
+         )
+       FOR UPDATE OF mp`,
       [datos.proyectoId, usuarioId]
     );
 
@@ -201,19 +204,19 @@ export async function crearSprintSeguro(datos, equipoId, usuarioId) {
       'SELECT pg_advisory_xact_lock($1, $2)',
       [6006, equipoId]
     );
-    
+
     // Verificar y bloquear el proyecto durante el guardado
-    
-        
+
+
     const proyecto = await cliente.query(
-    `SELECT
+      `SELECT
         equipo_id,
         fecha_inicio::text AS fecha_inicio,
         fecha_fin::text AS fecha_fin
     FROM proyectos
     WHERE id = $1
     FOR UPDATE`,
-    [datos.proyectoId]
+      [datos.proyectoId]
     );
 
 
@@ -232,7 +235,7 @@ export async function crearSprintSeguro(datos, equipoId, usuarioId) {
       };
     }
 
-    
+
     // Comprobar nuevamente las fechas del proyecto
     const fechasProyecto = proyecto.rows[0];
 
@@ -315,14 +318,5 @@ export async function crearSprintSeguro(datos, equipoId, usuarioId) {
 }
 
 export async function perteneceAlProyecto(proyectoId, usuarioId) {
-  const resultado = await consulta(
-    `SELECT 1
-     FROM miembros_proyecto
-     WHERE proyecto_id = $1
-       AND usuario_id = $2
-     LIMIT 1`,
-    [proyectoId, usuarioId]
-  );
-
-  return resultado.rows.length > 0;
+  return tienePermiso({ id: usuarioId }, 'proyecto.ver', proyectoId);
 }

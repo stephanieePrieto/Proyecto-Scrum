@@ -13,10 +13,14 @@
  *  - Si el responsable ya no es un integrante activo del proyecto (se dio de baja o lo quitaron),
  *    el impedimento abierto pasa al Scrum Master y se le avisa. Se revisa cada vez que se consulta
  *    la lista y también se puede llamar con reasignarDeBaja(proyectoId) desde otro módulo.
+ * 
+ * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto, emitirAUsuario } from '../../sockets/emisor.js';
+import { exigirPermiso, obtenerRolProyecto, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import {
   SEVERIDADES,
   DIAS_PARA_ALERTA,
@@ -34,6 +38,9 @@ export const EVENTOS = {
 
 const ESTADOS_FILTRO = ['abierto', 'resuelto', 'todos'];
 
+/** Valor máximo de una columna INTEGER de PostgreSQL. */
+const ENTERO_MAXIMO = 2147483647;
+
 /**
  * Lanzar un ErrorApp. `detalles` viaja al navegador (ver impedimentos.controller.js).
  */
@@ -41,6 +48,20 @@ function lanzar(estado, mensaje, detalles) {
   const error = new ErrorApp(mensaje, estado);
   if (detalles) error.detalles = detalles;
   throw error;
+}
+
+/**
+ * Convertir un identificador recibido en la petición a un entero positivo.
+ *
+ * @param {*} valor - Valor sin confiar.
+ * @param {string} mensaje - Mensaje del error 400 cuando el valor no es válido.
+ * @returns {number}
+ * @throws {ErrorApp} 400 si no es un entero positivo válido.
+ */
+function leerId(valor, mensaje) {
+  const numero = typeof valor === 'string' && !/^\d+$/.test(valor.trim()) ? NaN : Number(valor);
+  if (!Number.isInteger(numero) || numero <= 0 || numero > ENTERO_MAXIMO) lanzar(400, mensaje);
+  return numero;
 }
 
 /** Consulta base: un impedimento con los nombres que necesita la pantalla. */
@@ -105,10 +126,14 @@ async function avisar(usuarioId, tipo, titulo, mensaje, enlace) {
  * @returns {Promise<number>} Cuántos impedimentos se reasignaron.
  */
 export async function reasignarDeBaja(proyectoId) {
+  // Tanto el Scrum Master elegido como el responsable deben seguir en el equipo dueño del proyecto
   const { rows } = await consulta(
     `WITH sm AS (
        SELECT mp.usuario_id
-         FROM miembros_proyecto mp JOIN usuarios u ON u.id = mp.usuario_id
+         FROM miembros_proyecto mp
+         JOIN usuarios u ON u.id = mp.usuario_id
+         JOIN proyectos p ON p.id = mp.proyecto_id
+         JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
         WHERE mp.proyecto_id = $1 AND mp.rol = 'scrum_master' AND u.activo = TRUE
         ORDER BY mp.usuario_id LIMIT 1
      ), huerfanos AS (
@@ -117,7 +142,11 @@ export async function reasignarDeBaja(proyectoId) {
         WHERE i.proyecto_id = $1 AND i.estado = 'abierto'
           AND EXISTS (SELECT 1 FROM sm)
           AND NOT EXISTS (
-            SELECT 1 FROM miembros_proyecto mp JOIN usuarios u ON u.id = mp.usuario_id
+            SELECT 1
+              FROM miembros_proyecto mp
+              JOIN usuarios u ON u.id = mp.usuario_id
+              JOIN proyectos p ON p.id = mp.proyecto_id
+              JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
              WHERE mp.proyecto_id = i.proyecto_id AND mp.usuario_id = i.responsable_id AND u.activo = TRUE)
           FOR UPDATE OF i
      )
@@ -154,6 +183,13 @@ export async function reasignarDeBaja(proyectoId) {
  * @returns {Promise<Object>} Ver docs/hu-10-11-daily-impedimentos.md.
  */
 export async function listar(actor, proyectoId, { estado = 'todos', severidad = '' } = {}) {
+  // Sin vínculo vigente con el proyecto responde 404, igual que si no existiera
+  const rolActor = await exigirPermiso(
+    actor,
+    'proyecto.ver',
+    leerId(proyectoId, 'El identificador del proyecto no es válido.'),
+  );
+
   if (!ESTADOS_FILTRO.includes(estado)) lanzar(400, 'El estado no es válido. Usa abierto, resuelto o todos.');
   if (severidad && !SEVERIDADES.includes(severidad)) lanzar(400, 'La severidad no es válida. Usa baja, media o alta.');
 
@@ -193,7 +229,10 @@ export async function listar(actor, proyectoId, { estado = 'todos', severidad = 
     ),
     consulta(
       `SELECT u.id, u.nombre, mp.rol
-         FROM miembros_proyecto mp JOIN usuarios u ON u.id = mp.usuario_id
+         FROM miembros_proyecto mp
+         JOIN usuarios u ON u.id = mp.usuario_id
+         JOIN proyectos p ON p.id = mp.proyecto_id
+         JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
         WHERE mp.proyecto_id = $1 AND u.activo = TRUE ORDER BY u.nombre`,
       [proyectoId],
     ),
@@ -203,11 +242,8 @@ export async function listar(actor, proyectoId, { estado = 'todos', severidad = 
         WHERE t.proyecto_id = $1 AND s.estado = 'activo' ORDER BY t.titulo`,
       [proyectoId],
     ),
-    consulta(
-      `SELECT u.id, u.nombre, (SELECT mp.rol FROM miembros_proyecto mp WHERE mp.proyecto_id = $1 AND mp.usuario_id = u.id) AS rol
-         FROM usuarios u WHERE u.id = $2`,
-      [proyectoId, actor.id],
-    ),
+    // El rol de la persona ya viene validado contra el equipo en exigirPermiso (rolActor)
+    consulta('SELECT u.id, u.nombre FROM usuarios u WHERE u.id = $1', [actor.id]),
   ]);
 
   return {
@@ -215,7 +251,7 @@ export async function listar(actor, proyectoId, { estado = 'todos', severidad = 
     resumen: conteo,
     miembros,
     tareas,
-    yo: yo ?? { id: actor.id, nombre: '', rol: null },
+    yo: { ...(yo ?? { id: actor.id, nombre: '' }), rol: rolActor },
     diasParaAlerta: DIAS_PARA_ALERTA,
   };
 }
@@ -230,15 +266,16 @@ export async function listar(actor, proyectoId, { estado = 'todos', severidad = 
  * @throws {ErrorApp} 400 con `detalles` por campo si falta el título o el responsable, o no son válidos.
  */
 export async function crear(actor, proyectoId, datos) {
+  // Quien no tiene vínculo con el proyecto recibe 404; quien lo tiene pero no su rol alcanza, 403
+  const idProyecto = leerId(proyectoId, 'El identificador del proyecto no es válido.');
+  await exigirPermiso(actor, 'impedimento.gestionar', idProyecto);
+
   const { errores, valores } = validarImpedimento(datos);
 
   if (!errores.responsable_id) {
-    const { rows } = await consulta(
-      `SELECT 1 FROM miembros_proyecto mp JOIN usuarios u ON u.id = mp.usuario_id
-        WHERE mp.proyecto_id = $1 AND mp.usuario_id = $2 AND u.activo = TRUE`,
-      [proyectoId, valores.responsable_id],
-    );
-    if (!rows.length) errores.responsable_id = 'El responsable debe ser un integrante activo del proyecto.';
+    // El responsable debe tener rol en el proyecto y seguir en el equipo dueño del proyecto
+    const rolResponsable = await obtenerRolProyecto({ id: valores.responsable_id }, idProyecto);
+    if (!rolResponsable) errores.responsable_id = 'El responsable debe ser un integrante activo del proyecto.';
   }
   if (valores.tarea_id && !errores.tarea_id) {
     const { rows } = await consulta('SELECT 1 FROM tareas WHERE id = $1 AND proyecto_id = $2', [valores.tarea_id, proyectoId]);
@@ -278,15 +315,22 @@ export async function crear(actor, proyectoId, datos) {
  * @throws {ErrorApp} 404 si no existe; 409 si ya estaba resuelto.
  */
 export async function resolver(actor, id) {
+  const impedimentoId = leerId(id, 'El identificador del impedimento no es válido.');
+
+  // El proyecto se obtiene del propio impedimento: quien no tiene vínculo con él recibe el mismo 404 que si no existiera
+  const { rows: [dueno] } = await consulta('SELECT proyecto_id FROM impedimentos WHERE id = $1', [impedimentoId]);
+  if (!dueno) lanzar(404, MENSAJE_NO_ENCONTRADO);
+  await exigirPermiso(actor, 'impedimento.gestionar', dueno.proyecto_id);
+
   const { rows: [afectado] } = await consulta(
     `UPDATE impedimentos SET estado = 'resuelto', resuelto_por = $2, resuelto_en = NOW()
       WHERE id = $1 AND estado = 'abierto' RETURNING id, proyecto_id`,
-    [id, actor.id],
+    [impedimentoId, actor.id],
   );
 
   if (!afectado) {
-    const existente = await obtenerUno(id);
-    if (!existente) lanzar(404, 'No se encontró el recurso solicitado.');
+    const existente = await obtenerUno(impedimentoId);
+    if (!existente) lanzar(404, MENSAJE_NO_ENCONTRADO);
     lanzar(409, mensajeYaResuelto(existente.resuelto_por_nombre), {
       resuelto_por: existente.resuelto_por_nombre ?? null,
       resuelto_en: existente.resuelto_en,

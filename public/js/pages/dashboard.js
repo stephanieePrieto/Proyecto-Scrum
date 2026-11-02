@@ -6,8 +6,11 @@
  *   - Mostrar el aviso de estado vacío si el proyecto no tiene datos.
  *   - Mostrar "—" en días restantes si no hay sprint activo.
  *   - Mostrar error solo en el KPI que falló y cargar los demás.
- *   - Permitir navegar a cada sección de las métricas/calendario.
- * @author Dana
+ *
+ * @author Dana Carmona Santamaria
+ * @author Jetzaly Josmery Tello Campos
+ * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
 
 import { api } from '../core/api.js';
@@ -66,14 +69,269 @@ let datosKpiActuales = {};
  * Relacionar cada "id" con la clave que devuelve el backend.
  */
 const KPIS = [
-  { id: 'avance',        etiqueta: 'Avance global',        claveIcono: 'avance' },
-  { id: 'diasRestantes', etiqueta: 'Días restantes',        claveIcono: 'dias' },
-  { id: 'impedimentos',  etiqueta: 'Impedimentos abiertos', claveIcono: 'impedimentos' },
-  { id: 'desviacion',    etiqueta: 'Desviación acumulada',  claveIcono: 'desviacion' },
+  { id: 'avance', etiqueta: 'Avance global', claveIcono: 'avance' },
+  { id: 'diasRestantes', etiqueta: 'Días restantes', claveIcono: 'dias' },
+  { id: 'impedimentos', etiqueta: 'Impedimentos abiertos', claveIcono: 'impedimentos' },
+  { id: 'desviacion', etiqueta: 'Desviación acumulada', claveIcono: 'desviacion' },
 ];
 
 /**
  * Obtener los datos del dashboard.
+ * Modal de detalles de los KPI
+ */
+const modalKpi = document.getElementById('dialogo-detalle-kpi');
+const tituloModalKpi = document.getElementById('detalle-kpi-titulo');
+const descripcionModalKpi = document.getElementById('detalle-kpi-descripcion');
+const contenidoModalKpi = document.getElementById('detalle-kpi-contenido');
+const enlaceModalKpi = document.getElementById('detalle-kpi-enlace');
+const cerrarModalKpi = document.getElementById('detalle-kpi-cerrar');
+
+function abrirDetalleKpi(id) {
+  const indicador = KPIS.find(kpi => kpi.id === id);
+
+  if (!indicador || !modalKpi) return;
+
+  tituloModalKpi.textContent = indicador.etiqueta;
+
+  const descripciones = {
+    avance: 'Muestra tu progreso individual y las tareas que tienes pendientes.',
+    diasRestantes: 'Indica cuántos días faltan para finalizar el sprint activo.',
+    impedimentos: 'Muestra los obstáculos pendientes que pueden afectar el trabajo del equipo.',
+    desviacion: 'Compara las horas reales de trabajo con las horas estimadas.'
+  };
+
+  descripcionModalKpi.textContent = descripciones[id] || 'Información del indicador.';
+  contenidoModalKpi.textContent = '';
+  contenidoModalKpi.style.whiteSpace = 'pre-line';
+  contenidoModalKpi.style.lineHeight = '1.8';
+  contenidoModalKpi.style.marginTop = '16px';
+  contenidoModalKpi.style.marginBottom = '16px';
+
+  enlaceModalKpi.hidden = true;
+  enlaceModalKpi.style.display = 'none';
+
+  const destinosKpi = {
+    avance: {
+      texto: 'Ver Backlog',
+      ruta: '/pages/backlog.html'
+    },
+    diasRestantes: {
+      texto: 'Ver Sprints',
+      ruta: '/pages/sprints.html'
+    },
+    impedimentos: {
+      texto: 'Ver impedimentos',
+      ruta: '/pages/impedimentos.html'
+    },
+    desviacion: {
+      texto: 'Ver métricas',
+      ruta: '/pages/metricas.html'
+    }
+  };
+
+  const destino = destinosKpi[id];
+
+  if (destino) {
+    enlaceModalKpi.textContent = destino.texto;
+    enlaceModalKpi.href = destino.ruta;
+    enlaceModalKpi.removeAttribute('hidden');
+    enlaceModalKpi.style.setProperty('display', 'inline-flex', 'important');
+  }
+
+  const k = datosKpiActuales[id];
+
+  if (id === 'avance' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mi avance en el proyecto</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará la gráfica de tu avance individual
+            cuando esté disponible la información del usuario.
+          </p>
+        </div>
+
+        <h3>Tareas pendientes</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerá la lista de tareas que todavía
+            tienes pendientes por completar.
+          </p>
+        </div>
+
+      </div>
+    `;
+  }
+
+  if (id === 'diasRestantes' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
+    if (k.valor === null || k.valor === undefined) {
+      contenidoModalKpi.innerHTML = `
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            No hay un sprint activo en este momento.
+          </p>
+        </div>
+      `;
+    } else {
+      const dias = Number(k.valor);
+
+      contenidoModalKpi.innerHTML = `
+        <div class="detalle-avance">
+          <h3>Tiempo restante del sprint</h3>
+
+          <div class="aviso aviso--vacio">
+            <p class="aviso__texto">
+              Quedan <strong>${Number.isFinite(dias) ? dias : '—'} días</strong>
+              para finalizar el sprint activo.
+            </p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  if (id === 'impedimentos' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mis impedimentos abiertos</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará la cantidad de impedimentos
+            abiertos que tienes asignados.
+          </p>
+        </div>
+
+        <h3>Lista de impedimentos</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerán los impedimentos que tienes
+            pendientes de resolver.
+          </p>
+        </div>
+
+      </div>
+    `;
+  }
+
+  if (id === 'desviacion' && k) {
+    contenidoModalKpi.style.whiteSpace = 'normal';
+    contenidoModalKpi.innerHTML = `
+      <div class="detalle-avance">
+
+        <h3>Mi gráfica burndown</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí se mostrará una gráfica con el trabajo
+            que tienes pendiente durante el sprint,
+            comparando el avance ideal con tu avance real.
+          </p>
+        </div>
+
+        <h3>Seguimiento individual</h3>
+
+        <div class="aviso aviso--vacio">
+          <p class="aviso__texto">
+            Aquí aparecerá el seguimiento de tus tareas
+            pendientes conforme avance el sprint.
+          </p>
+        </div>
+
+      </div>
+    `;
+  }
+
+  enlaceModalKpi.hidden = true;
+
+  modalKpi.showModal();
+}
+
+cerrarModalKpi?.addEventListener('click', () => {
+  modalKpi.close();
+});
+
+
+/* ====================================================================
+ * DATOS SIMULADOS (solo para pruebas)
+ * Activar agregando ?escenario=... a la URL.
+ * Imitar el formato del backend: { vacio, kpis: { ... } }.
+ * Representar un KPI con fallo mediante { error: true }.
+ * ==================================================================== */
+const SIMULACIONES = {
+  // Simular un proyecto con datos y un sprint activo
+  normal: {
+    vacio: false,
+    kpis: {
+      avance: { valor: 74, hechas: 37, total: 50 },
+      diasRestantes: { valor: 4 },
+      impedimentos: { valor: 2, criticos: 1 },
+      desviacion: { valor: -8, estimado: 160, real: 152 },
+    },
+  },
+  // Simular un proyecto sin sprint activo (días restantes en null)
+  sinsprint: {
+    vacio: false,
+    kpis: {
+      avance: { valor: 32, hechas: 8, total: 25 },
+      diasRestantes: { valor: null },
+      impedimentos: { valor: 0, criticos: 0 },
+      desviacion: { valor: 3, estimado: 80, real: 83 },
+    },
+  },
+  // Simular un proyecto nuevo sin información
+  vacio: { vacio: true, kpis: {} },
+  // Simular que falla el cálculo de un solo KPI (impedimentos)
+  parcial: {
+    vacio: false,
+    kpis: {
+      avance: { valor: 74, hechas: 37, total: 50 },
+      diasRestantes: { valor: 4 },
+      impedimentos: { error: true },
+      desviacion: { valor: 14, estimado: 100, real: 114 },
+    },
+  },
+};
+
+/**
+ * Pausar la ejecución durante un tiempo.
+ * @param {number} ms - Milisegundos a esperar.
+ * @returns {Promise<void>}
+ */
+const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Resolver la respuesta simulada de un escenario, con latencia artificial.
+ * Lanzar un error en el escenario "falla" para simular la caída total del servidor.
+ * Retrasar 1.8 s el escenario "lento" para observar los esqueletos.
+ *
+ * @param {string} nombre - Escenario: normal, sinsprint, vacio, parcial, lento o falla.
+ * @returns {Promise<Object>} Respuesta simulada.
+ */
+async function simular(nombre) {
+  if (nombre === 'lento') { await esperar(1800); return SIMULACIONES.normal; }
+  await esperar(450);
+  if (nombre === 'falla') throw new Error('Simulación: servidor no disponible');
+  return SIMULACIONES[nombre] || SIMULACIONES.normal;
+}
+
+/**
+ * Obtener los datos del dashboard:
+ *   - Simular en el navegador si hay ?escenario=... (no usa el servidor).
+ *   - Consultar el servidor en caso contrario; con ?demo=... pedirle un escenario
+ *     de ejemplo (el servidor solo lo respeta en modo demo).
+ *
  * @param {AbortSignal} signal - Señal para cancelar la consulta.
  * @returns {Promise<{vacio: boolean, kpis: Object}>}
  */
@@ -89,26 +347,31 @@ function obtenerDatos(signal) {
  * ==================================================================== */
 const constructores = {
   avance(k, meta) {
-    return tarjetaValor({ ...meta, tono: tonoAvance(k.valor), valor: k.valor, unidad: '%',
-      progreso: k.valor, pista: `${k.hechas} de ${k.total} tareas completadas` });
+    return tarjetaValor({
+      ...meta, tono: tonoAvance(k.valor), valor: k.valor, unidad: '%',
+      progreso: k.valor, pista: `${k.hechas} de ${k.total} tareas completadas`
+    });
   },
 
   diasRestantes(k, meta) {
     if (k.valor === null || k.valor === undefined) {
       return tarjetaValor({ ...meta, tono: 'neutro', valor: '—', pista: 'No hay un sprint activo' });
     }
-    return tarjetaValor({ ...meta, tono: 'info', valor: k.valor,
-      unidad: pluralizar(k.valor, 'día', 'días'), pista: 'Para cerrar el sprint activo' });
+    return tarjetaValor({
+      ...meta, tono: 'info', valor: k.valor,
+      unidad: pluralizar(k.valor, 'día', 'días'), pista: 'Para cerrar el sprint activo'
+    });
   },
 
   impedimentos(k, meta) {
     // k contiene { mios, todos }. Leemos el objeto de todos para el dashboard general
-    const data = k.todos;
+    const data = k.todos || k; // Fallback por si la API aún no envía el formato de { mios, todos }
     const pista = data.valor === 0 ? 'Sin impedimentos abiertos'
       : data.criticos > 0 ? `${data.criticos} ${pluralizar(data.criticos, 'crítico pendiente', 'críticos pendientes')}`
       : 'Ninguno crítico';
     return tarjetaValor({ ...meta, tono: tonoImpedimentos(data.valor, data.criticos), valor: data.valor, pista });
   },
+
 
   desviacion(k, meta) {
     const signo = k.valor > 0 ? '+' : '';
@@ -172,6 +435,7 @@ function pintarDatos(datos) {
     const k = datos.kpis?.[meta.id];
     if (!k || k.error) return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
     
+    // Capturar fallos inesperados al construir la tarjeta para no afectar a las demás
     try {
       const tarjeta = constructores[meta.id](k, meta);
       // Volver la tarjeta clicable y accesible para el ruteo manual
@@ -211,11 +475,39 @@ grilla?.addEventListener('keydown', (evento) => {
 
 function pintarInfoProyecto(proyecto) {
   if (!proyecto) return;
+
+  // Cambiar el título y la visión
   if (tituloPagina) tituloPagina.textContent = proyecto.nombre;
   if (subtituloPagina) subtituloPagina.textContent = proyecto.vision;
+
+  // Mostrar el Definition of Done
   if (infoProyecto && dodTexto && proyecto.definition_of_done) {
     dodTexto.textContent = proyecto.definition_of_done;
     infoProyecto.hidden = false;
+  }
+}
+
+/**
+ * Mostrar el aviso de proyecto no disponible cuando el servidor responde 404: el proyecto no
+ * existe o la persona ya no tiene acceso a él. Se olvida el proyecto guardado en localStorage.
+ * @returns {void}
+ */
+function pintarProyectoNoDisponible() {
+  if (localStorage.getItem('proyectoActivo') === String(proyectoId)) {
+    localStorage.removeItem('proyectoActivo');
+  }
+  if (grilla) {
+    grilla.hidden = true;
+    grilla.innerHTML = '';
+  }
+  if (avisoVacio) {
+    const titulo = avisoVacio.querySelector('.aviso__titulo');
+    const texto = avisoVacio.querySelector('.aviso__texto');
+    const enlace = avisoVacio.querySelector('a');
+    if (titulo) titulo.textContent = 'Proyecto no disponible';
+    if (texto) texto.textContent = 'No se encontró el proyecto solicitado. Elige uno de la lista.';
+    if (enlace) enlace.hidden = true;
+    avisoVacio.hidden = false;
   }
 }
 
@@ -247,7 +539,7 @@ let controlador;
  * @returns {Promise<void>}
  */
 async function cargar() {
-   if (!proyectoId) {
+  if (!proyectoId) {
     pintarDatos({ vacio: true, kpis: {} });
     return;
   }
@@ -258,7 +550,9 @@ async function cargar() {
   try {
     pintarDatos(await obtenerDatos(controlador.signal));
   } catch (e) {
-    if (e.name !== 'AbortError') pintarFalloTotal();
+    // Ignorar las cancelaciones voluntarias; tratar el resto como fallo total
+    if (e.estado === 404) pintarProyectoNoDisponible();
+    else if (e.name !== 'AbortError') pintarFalloTotal();
   } finally {
     if (btnActualizar) btnActualizar.disabled = false;
   }
@@ -270,8 +564,8 @@ if (btnActualizar) {
 
 // Recargar al pulsar "Reintentar" en cualquier tarjeta
 if (grilla) {
-  grilla.addEventListener('click', (e) => { 
-    if (e.target.closest('[data-reintentar]')) cargar(); 
+  grilla.addEventListener('click', (e) => {
+    if (e.target.closest('[data-reintentar]')) cargar();
   });
 }
 
@@ -334,7 +628,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
       p.archivado ? '<span class="insignia insignia--neutro">Archivado</span>' : '',
       p.sprint_activo ? '<span class="insignia insignia--exito">Sprint activo</span>' : '',
     ].join('');
-    
+
     const acciones = [
       `<a class="boton boton--secundario boton--pequeno"
           href="/pages/dashboard.html?proyecto=${id}"
@@ -350,8 +644,8 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
       `<button class="boton boton--secundario boton--pequeno"
           type="button"
           ${p.puede_gestionar && !p.archivado
-            ? `data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}"`
-            : 'disabled title="No puedes archivar este proyecto"'}
+        ? `data-archivar="${id}" data-nombre="${escaparHtml(p.nombre)}"`
+        : 'disabled title="No puedes archivar este proyecto"'}
           >Archivar</button>`
     ].join('');
 
@@ -370,18 +664,26 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     pintarCarga();
     try {
       const datos = await api(`/proyectos${archivados ? '?archivados=true' : ''}`);
+
+      // Permitir que el botón de nuevo proyecto esté visible siempre para que cualquier usuario pueda crear uno
       btnNuevo.hidden = false;
 
       if (!datos.proyectos.length) {
         pintarVacio(archivados);
+
+        // Si no tiene proyectos y no hay uno seleccionado,
+        // mostrar un mensaje apropiado en el Dashboard.
         if (!archivados && !proyectoId && avisoVacio) {
           const titulo = avisoVacio.querySelector('.aviso__titulo');
           const texto = avisoVacio.querySelector('.aviso__texto');
+
           if (titulo) titulo.textContent = 'Aún no tienes proyectos';
-          if (texto) texto.textContent = 'Crea tu primer proyecto para comenzar a consultar sus indicadores.';
+          if (texto) texto.textContent =
+            'Crea tu primer proyecto para comenzar a consultar sus indicadores.';
         }
+
         return;
-      }
+      } 
       lista.innerHTML = datos.proyectos.map(tarjeta).join('');
     } catch {
       lista.innerHTML = '';
@@ -445,8 +747,8 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     } catch (e) {
       mostrarError(e.estado === 409
         ? `«${nombre}» tiene un sprint activo. Ciérralo desde Sprints y vuelve a intentarlo.`
-        : e.estado === 403 ? 'Solo un administrador puede archivar proyectos.'
-        : 'No se pudo archivar el proyecto. Inténtalo de nuevo.');
+        : e.estado === 403 ? 'No tienes permiso para archivar este proyecto.'
+          : 'No se pudo archivar el proyecto. Inténtalo de nuevo.');
     }
   });
 

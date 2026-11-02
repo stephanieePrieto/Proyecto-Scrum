@@ -1,16 +1,19 @@
-// Responsable: Jetz - HU-01: reglas, SQL y avisos por socket (proyectos y Definition of Done)
-
 /**
- * Reglas de negocio: crear, editar, archivar y consultar proyectos.
- *
+ * @file proyectos.service.js
+ * @description Reglas de negocio: crear, editar, archivar y consultar proyectos.
  * Usa las tablas reales de database/schema.sql: proyectos, equipos, miembros_equipo, sprints, usuarios.
- * @author Jetzaly
+ * 
+ * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
  * @author Stephanie Elizdeth Hernández Prieto
  */
 
-import { consulta as query } from '../../config/db.js';
+import { consulta as query, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import crypto from 'crypto';
+import { enviarCorreo } from '../../utils/correo.js';
+import { env } from '../../config/env.js';
+import { tienePermiso } from '../../utils/permisos.js';
 
 // ---------- Utilidades internas ----------
 
@@ -20,21 +23,26 @@ function lanzar(estado, mensaje, detalles) {
   throw error;
 }
 
+function generarToken() {
+  const tokenPlano = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
+  return { tokenPlano, tokenHash };
+}
+
 /**
  * Verifica si un usuario tiene rol de Scrum Master en un proyecto específico.
  */
 export async function puedeGestionar(proyectoId, usuario) {
   if (!usuario?.id) return false;
-  const { rows } = await query(
-    "SELECT 1 FROM miembros_proyecto WHERE proyecto_id = $1 AND usuario_id = $2 AND rol = 'scrum_master'",
-    [proyectoId, usuario.id]
-  );
-  return rows.length > 0;
+  // Scrum Master del proyecto o quien lo creó, para que pueda repartir los roles iniciales
+  return tienePermiso(usuario, 'proyecto.gestionar', Number(proyectoId));
 }
 
 async function exigirGestion(proyectoId, usuario) {
+  // Primero se comprueba que el proyecto sea visible; si no, se responde como si no existiera
+  if (!(await obtener(proyectoId, usuario))) lanzar(404, 'Proyecto no encontrado.');
   if (!(await puedeGestionar(proyectoId, usuario))) {
-    lanzar(403, 'Solo el Scrum Master del proyecto puede realizar esta acción.');
+    lanzar(403, 'Solo el Scrum Master o quien creó el proyecto puede realizar esta acción.');
   }
 }
 
@@ -96,7 +104,30 @@ function validarDatos(datos = {}, { esCreacion }) {
     nombre, vision, fecha_inicio, fecha_fin,
     definition_of_done: dod || DOD_BASE,
     equipo_id: esCreacion ? Number(datos.equipo_id) : undefined,
+    miembros: esCreacion && Array.isArray(datos.miembros) ? datos.miembros : []
   };
+}
+
+/**
+ * Comprueba que entre las personas invitadas al crear el proyecto haya como máximo un Scrum Master
+ * y un Product Owner. Quien crea el proyecto no se cuenta porque no recibe rol automáticamente.
+ *
+ * @param {Array<{usuario_id: number, rol: string}>} miembros - Personas invitadas con su rol.
+ * @param {{id: number}} usuario - Usuario que crea el proyecto.
+ * @returns {void}
+ * @throws {ErrorApp} 400 si algún rol único se repite.
+ */
+function validarRolesUnicos(miembros, usuario) {
+  const vistos = new Set();
+  for (const m of miembros) {
+    if (m.usuario_id === usuario.id || !['scrum_master', 'product_owner'].includes(m.rol)) continue;
+    if (vistos.has(m.rol)) {
+      lanzar(400, 'Revisa los campos marcados.', {
+        campos: { miembros: 'Solo puede haber un Scrum Master y un Product Owner por proyecto.' }
+      });
+    }
+    vistos.add(m.rol);
+  }
 }
 
 const ERROR_NOMBRE = { campos: { nombre: 'Ya existe un proyecto con ese nombre en este equipo.' } };
@@ -118,12 +149,16 @@ function traducirDuplicado(error) {
 export async function listar(usuario, { archivados = false } = {}) {
   const { rows } = await query(
     `SELECT ${COLUMNAS},
-       EXISTS (
-         SELECT 1
-         FROM miembros_proyecto mp
-         WHERE mp.proyecto_id = p.id
-           AND mp.usuario_id = $2
-           AND mp.rol = 'scrum_master'
+       (
+         EXISTS (
+           SELECT 1
+           FROM miembros_proyecto mp
+           WHERE mp.proyecto_id = p.id
+             AND mp.usuario_id = $2
+             AND mp.rol = 'scrum_master'
+         )
+         OR p.creado_por = $2
+         OR e.creado_por = $2
        ) AS puede_gestionar
      ${DESDE}
      WHERE p.archivado = $1
@@ -139,21 +174,19 @@ export async function listar(usuario, { archivados = false } = {}) {
 }
 
 export async function obtener(id, usuario) {
-  // Si no mandan un ID válido (por ejemplo, es undefined, null o 'null' por defecto en el frontend), 
-  // devolvemos null amigablemente en lugar de buscar un ID inválido en la base de datos.
   if (!id || id === 'null' || id === 'undefined') {
-    return null; 
+    return null;
   }
 
   const { rows } = await query(`SELECT ${COLUMNAS} ${DESDE} WHERE p.id = $1`, [id]);
   const proyecto = rows[0];
-  if (!proyecto) return null; // En lugar de lanzar 404 estricto, devolvemos null para que el frontend lo gestione
+  if (!proyecto) return null;
 
   const miembro = await query(
     'SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2',
     [proyecto.equipo_id, usuario.id],
   );
-  if (!miembro.rows.length) return null; // Usuario sin acceso a este proyecto específico
+  if (!miembro.rows.length) return null;
 
   return proyecto;
 }
@@ -174,27 +207,93 @@ export async function crear(datos, usuario) {
   const limpio = validarDatos(datos, { esCreacion: true });
 
   await exigirMiembroEquipo(limpio.equipo_id, usuario);
+  validarRolesUnicos(limpio.miembros, usuario);
 
   if (await existeNombre(limpio.equipo_id, limpio.nombre)) {
     lanzar(409, 'Ya existe un proyecto con ese nombre en el equipo.', ERROR_NOMBRE);
   }
 
+  let proyectoId;
+  let invitadosData = [];
+
+  const cliente = await pool.connect();
   try {
-    const { rows } = await query(
+    await cliente.query('BEGIN');
+
+    const { rows } = await cliente.query(
       `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done, creado_por)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [limpio.equipo_id, limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin, limpio.definition_of_done, usuario.id],
     );
+    proyectoId = rows[0].id;
 
-    await query(
-      `INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol) VALUES ($1, $2, 'scrum_master')`,
-      [rows[0].id, usuario.id]
-    );
+    // Recopilar invitaciones
+    for (const m of limpio.miembros) {
+      if (m.usuario_id === usuario.id || !['scrum_master', 'product_owner', 'developer'].includes(m.rol)) continue;
 
-    return obtener(rows[0].id, usuario);
+      const { rows: uRows } = await cliente.query('SELECT id, correo, nombre FROM usuarios WHERE id = $1', [m.usuario_id]);
+      if (!uRows.length) continue;
+
+      const { tokenPlano, tokenHash } = generarToken();
+      const expiraEn = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+      const { rows: invRows } = await cliente.query(`
+        INSERT INTO invitaciones (correo, equipo_id, proyecto_id, rol, token_hash, expira_en, invitado_por)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
+      `, [uRows[0].correo, limpio.equipo_id, proyectoId, m.rol, tokenHash, expiraEn, usuario.id]);
+
+      invitadosData.push({
+        invitacionId: invRows[0].id,
+        usuarioId: uRows[0].id,
+        correo: uRows[0].correo,
+        nombre: uRows[0].nombre,
+        rol: m.rol,
+        tokenPlano
+      });
+    }
+
+    await cliente.query('COMMIT');
   } catch (error) {
+    await cliente.query('ROLLBACK');
+    cliente.release();
     return traducirDuplicado(error);
   }
+
+  cliente.release();
+
+  // Ejecutar envíos y notificaciones fuera de la transacción
+  if (invitadosData.length > 0) {
+    const { notificar, TIPOS } = await import('../notificaciones/notificaciones.service.js');
+    for (const inv of invitadosData) {
+      const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`;
+
+      // 1. Notificación in-app
+      try {
+        await notificar({
+          usuarioId: inv.usuarioId,
+          tipo: TIPOS.ASIGNACION,
+          titulo: 'Invitación a proyecto',
+          mensaje: `Has sido invitado al proyecto "${limpio.nombre}" con el rol de ${inv.rol}. Revisa tu correo o haz clic aquí para aceptar.`,
+          enlace: `/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`
+        });
+      } catch (e) {
+        console.error('[proyectos] Falló notificar in-app:', e);
+      }
+
+      // 2. Correo electrónico
+      try {
+        await enviarCorreo({
+          para: inv.correo,
+          asunto: `Invitación al proyecto ${limpio.nombre}`,
+          texto: `Hola ${inv.nombre},\n\nHas sido invitado al proyecto "${limpio.nombre}" con el rol de ${inv.rol}.\n\nPara aceptar o rechazar la invitación, ingresa aquí: ${enlace}`
+        });
+      } catch (e) {
+        await query(`UPDATE invitaciones SET estado = 'fallida' WHERE id = $1`, [inv.invitacionId]);
+      }
+    }
+  }
+
+  return obtener(proyectoId, usuario);
 }
 
 export async function actualizar(id, datos, usuario) {

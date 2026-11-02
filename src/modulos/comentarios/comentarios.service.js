@@ -4,9 +4,13 @@
  * @description Persiste comentarios, valida que no esten vacios, detecta menciones `@usuario`
  *              (parte local del correo) y notifica con `notificar()` de la HU-24.
  *              Un fallo al notificar nunca invalida el comentario ya guardado.
+ * 
+ * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import { MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { notificar, TIPOS } from '../notificaciones/notificaciones.service.js';
 import { enTransaccion, registrarHistorial } from '../detalle-tarjeta/detalle-tarjeta.service.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
@@ -93,6 +97,8 @@ export async function listarMencionables(proyectoId, usuarioId) {
     `SELECT u.id, u.nombre, LOWER(SPLIT_PART(u.correo, '@', 1)) AS usuario
        FROM miembros_proyecto mp
        JOIN usuarios u ON u.id = mp.usuario_id
+       JOIN proyectos p ON p.id = mp.proyecto_id
+       JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
       WHERE mp.proyecto_id = $1 AND u.activo = TRUE
       ORDER BY u.nombre`,
     [proyectoId],
@@ -114,6 +120,8 @@ async function notificarMenciones({ tareaId, proyectoId, autor, texto }) {
       `SELECT u.id
          FROM miembros_proyecto mp
          JOIN usuarios u ON u.id = mp.usuario_id
+         JOIN proyectos p ON p.id = mp.proyecto_id
+         JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
         WHERE mp.proyecto_id = $1 AND u.activo = TRUE AND u.id <> $2
           AND LOWER(SPLIT_PART(u.correo, '@', 1)) = ANY($3::text[])`,
       [proyectoId, autor.id, [...tokens]],
@@ -149,6 +157,13 @@ export async function crearComentario({ tareaId, proyectoId, usuarioId, texto })
   const limpio = validarTexto(texto);
 
   const fila = await enTransaccion(async (cliente) => {
+    // La tarjeta debe pertenecer al proyecto indicado: evita comentar o emitir avisos en un proyecto ajeno
+    const { rows: tarjeta } = await cliente.query(
+      'SELECT 1 FROM tareas WHERE id = $1 AND proyecto_id = $2',
+      [tareaId, proyectoId],
+    );
+    if (tarjeta.length === 0) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+
     const { rows } = await cliente.query(
       `INSERT INTO comentarios (tarea_id, usuario_id, texto)
        VALUES ($1, $2, $3)

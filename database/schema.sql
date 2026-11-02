@@ -96,6 +96,9 @@ CREATE INDEX IF NOT EXISTS ix_miembros_proyecto_usuario ON miembros_proyecto (us
 -- Un solo Product Owner por proyecto
 CREATE UNIQUE INDEX IF NOT EXISTS ux_un_product_owner_por_proyecto ON miembros_proyecto (proyecto_id)
 WHERE rol = 'product_owner';
+-- Un solo Scrum Master por proyecto
+CREATE UNIQUE INDEX IF NOT EXISTS ux_un_scrum_master_por_proyecto ON miembros_proyecto (proyecto_id)
+WHERE rol = 'scrum_master';
 -- Invitacion: se invita a una PERSONA al equipo. El rol y el proyecto son opcionales
 -- (si vienen, al aceptar se agrega a la persona a ese proyecto con ese rol).
 CREATE TABLE IF NOT EXISTS invitaciones (
@@ -517,3 +520,7 @@ CREATE TABLE IF NOT EXISTS temporizadores (
   CONSTRAINT temporizadores_estado_coherente CHECK ((estado = 'corriendo') = (reanudado_en IS NOT NULL))
 );
 CREATE INDEX IF NOT EXISTS ix_temporizadores_tarea ON temporizadores (tarea_id);
+
+ALTER TABLE invitaciones DROP CONSTRAINT invitaciones_estado_check;
+ALTER TABLE invitaciones ADD CONSTRAINT invitaciones_estado_check 
+CHECK (estado IN ('pendiente', 'aceptada', 'fallida', 'expirada', 'rechazada'));

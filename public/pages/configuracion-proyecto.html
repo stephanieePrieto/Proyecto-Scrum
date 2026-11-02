@@ -42,6 +42,13 @@
         <p class="eq-error" id="error-equipo_id" role="alert"></p>
       </div>
 
+      <div id="seccion-miembros-proyecto" class="form-group" hidden>
+        <label class="form-label">Asignar roles a integrantes del equipo</label>
+        <p class="eq-ayuda">Se les enviará una invitación a su correo para unirse al proyecto con este rol.</p>
+        <div id="lista-miembros-equipo" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="vision" class="form-label">Visión</label>
         <textarea id="vision" name="vision" rows="3" required aria-describedby="error-vision"

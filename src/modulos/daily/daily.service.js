@@ -13,10 +13,14 @@
  *    si no hay evento ese día, después de HORA_CORTE_DEFECTO. Editarlo luego no cambia la marca.
  *  - Los días anteriores solo se consultan (solo lectura); no se puede registrar en el pasado.
  *  - Quien tiene una ausencia ese día y no registró aparece "ausente", sin penalización.
+ *
+ * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
+import { exigirPermiso } from '../../utils/permisos.js';
 import {
   HORA_CORTE_DEFECTO,
   esFechaValida,
@@ -33,6 +37,9 @@ export const EVENTOS = {
 
 const ZONA_POR_DEFECTO = 'America/Mexico_City';
 
+/** Valor máximo de una columna INTEGER de PostgreSQL. */
+const ENTERO_MAXIMO = 2147483647;
+
 /**
  * Lanzar un ErrorApp. `detalles` viaja al navegador (ver daily.controller.js).
  */
@@ -40,6 +47,21 @@ function lanzar(estado, mensaje, detalles) {
   const error = new ErrorApp(mensaje, estado);
   if (detalles) error.detalles = detalles;
   throw error;
+}
+
+/**
+ * Convertir el identificador del proyecto recibido en la ruta a un entero positivo.
+ *
+ * @param {*} valor - Valor sin confiar.
+ * @returns {number}
+ * @throws {ErrorApp} 400 si no es un entero positivo válido.
+ */
+function leerProyectoId(valor) {
+  const numero = typeof valor === 'string' && !/^\d+$/.test(valor.trim()) ? NaN : Number(valor);
+  if (!Number.isInteger(numero) || numero <= 0 || numero > ENTERO_MAXIMO) {
+    lanzar(400, 'El identificador del proyecto no es válido.');
+  }
+  return numero;
 }
 
 /**
@@ -113,6 +135,8 @@ async function eventoDaily(sprintId, fecha, zona) {
  * @returns {Promise<Object>} Ver docs/hu-10-11-daily-impedimentos.md.
  */
 export async function consultar(actor, proyectoId, fechaTexto) {
+  // Sin vínculo vigente con el proyecto responde 404, igual que si no existiera
+  await exigirPermiso(actor, 'proyecto.ver', leerProyectoId(proyectoId));
   const reloj = await relojDe(actor.id);
   const fecha = fechaTexto || reloj.hoy;
   if (!esFechaValida(fecha)) lanzar(400, 'La fecha no es válida. Usa el formato AAAA-MM-DD.');
@@ -126,7 +150,10 @@ export async function consultar(actor, proyectoId, fechaTexto) {
 
   const { rows: integrantes } = await consulta(
     `SELECT u.id, u.nombre, mp.rol
-       FROM miembros_proyecto mp JOIN usuarios u ON u.id = mp.usuario_id
+       FROM miembros_proyecto mp
+       JOIN usuarios u ON u.id = mp.usuario_id
+       JOIN proyectos p ON p.id = mp.proyecto_id
+       JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
       WHERE mp.proyecto_id = $1 AND u.activo = TRUE
       ORDER BY u.nombre`,
     [proyectoId],
@@ -219,6 +246,7 @@ export async function consultar(actor, proyectoId, fechaTexto) {
  * @throws {ErrorApp} 400 datos inválidos, 409 sin sprint activo.
  */
 export async function guardar(actor, proyectoId, datos) {
+  await exigirPermiso(actor, 'daily.registrar', leerProyectoId(proyectoId));
   const { errores, valores } = validarDaily(datos);
   if (Object.keys(errores).length) lanzar(400, 'Revisa los campos marcados.', errores);
 

@@ -8,11 +8,12 @@
  * bloquea el proyecto, de modo que dos cambios simultáneos no puedan dejar dos Product Owners
  * ni quitar al último Scrum Master sin advertencia. Al confirmarse un cambio se registra en la
  * bitácora, se avisa por socket a quienes siguen el proyecto y se notifica a la persona afectada.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { pool, consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
-import { PERMISOS, obtenerRolProyecto, tienePermiso, puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
+import { PERMISOS, obtenerRolProyecto, tienePermiso, puedeGestionarProyecto, exigirPermiso } from '../../utils/permisos.js';
 import emisor from '../../sockets/emisor.js';
 
 /** Roles válidos dentro de un proyecto, en el orden en que se muestran. */
@@ -114,7 +115,8 @@ function validarRol(rol) {
 }
 
 /**
- * Solo el administrador global puede asignar, cambiar o retirar roles de proyecto.
+ * Solo el Scrum Master del proyecto, o quien creó el equipo mientras siga en él, puede asignar,
+ * cambiar o retirar roles de proyecto.
  *
  * @param {{id: number}} usuario - Usuario autenticado.
  * @param {number} proyectoId - Proyecto cuyos roles se gestionan.
@@ -223,6 +225,29 @@ async function exigirSinOtroProductOwner(proyectoId, usuarioId, cliente) {
 }
 
 /**
+ * Impide que el proyecto tenga dos Scrum Masters: si ya existe otra persona con ese rol, responde 409.
+ *
+ * @param {number} proyectoId - Identificador del proyecto.
+ * @param {number} usuarioId - Persona que recibiría el rol.
+ * @param {import('pg').PoolClient} cliente - Cliente de la transacción.
+ * @returns {Promise<void>}
+ */
+async function exigirSinOtroScrumMaster(proyectoId, usuarioId, cliente) {
+    const { rows } = await cliente.query(
+        `SELECT u.id, u.nombre FROM miembros_proyecto m JOIN usuarios u ON u.id = m.usuario_id
+        WHERE m.proyecto_id = $1 AND m.rol = 'scrum_master' AND m.usuario_id <> $2`,
+        [proyectoId, usuarioId],
+    );
+    if (rows.length) {
+        lanzar(
+            409,
+            `El proyecto ya tiene un Scrum Master (${rows[0].nombre}). Cambia o retira ese rol antes de asignar otro.`,
+            { motivo: 'scrum_master_duplicado', scrum_master: rows[0] },
+        );
+    }
+}
+
+/**
  * Valida que se pueda dejar el rol de Scrum Master. Si la persona es el único Scrum Master, exige
  * confirmación explícita porque el proyecto no podrá iniciar sprints hasta asignar otro.
  *
@@ -323,8 +348,9 @@ async function armarMatriz(proyecto, usuario) {
  */
 export async function listar(proyectoId, usuario) {
     const id = validarProyectoId(proyectoId);
+    // Sin vínculo vigente con el proyecto se responde con el mismo 404 que si no existiera
+    await exigirPermiso(usuario, 'proyecto.ver', id);
     const proyecto = await cargarProyecto(id);
-    if (!(await puedeVerEquipo(usuario, proyecto.equipo_id))) lanzar(404, 'Proyecto no encontrado.');
     return armarMatriz(proyecto, usuario);
 }
 
@@ -381,8 +407,9 @@ async function registrarCambioRol(cliente, actor, { proyecto, usuarioId, rolAnte
 
 /**
  * Avisa por socket del cambio de rol. Va a la sala del proyecto y, si el servidor de sockets lo
- * ofrece, también a la sala personal de la persona afectada; cuando le retiran el rol se le saca
- * de la sala del proyecto. Un fallo aquí nunca deshace el cambio ya guardado.
+ * ofrece, también a la sala personal de la persona afectada. Retirar el rol no la saca de la sala
+ * del proyecto, porque seguir en el equipo basta para ver el proyecto. Un fallo aquí nunca deshace
+ * el cambio ya guardado.
  *
  * @param {{proyecto: Object, usuarioId: number, rolAnterior: string|null, rolNuevo: string|null, sinScrumMaster: boolean}} cambio - Cambio confirmado.
  * @returns {void}
@@ -399,7 +426,6 @@ function propagarCambioRol({ proyecto, usuarioId, rolAnterior, rolNuevo, sinScru
     try {
         emisor.emitirAProyecto(proyecto.id, 'rol_cambiado', datos);
         emisor.emitirAUsuario?.(usuarioId, 'rol_cambiado', datos);
-        if (!rolNuevo) emisor.retirarDeProyecto?.(usuarioId, proyecto.id);
     } catch (error) {
         console.error('[miembros] No se pudo propagar el cambio de rol por socket:', error?.message ?? error);
     }
@@ -486,6 +512,7 @@ export async function asignarRol(proyectoId, usuarioId, datos = {}, usuario) {
             if (rolAnterior === rolNuevo) return { proyecto, usuarioId: ids.usuarioId, rolAnterior, rolNuevo, hayCambio: false };
 
             if (rolNuevo === 'product_owner') await exigirSinOtroProductOwner(ids.proyectoId, ids.usuarioId, cliente);
+            if (rolNuevo === 'scrum_master') await exigirSinOtroScrumMaster(ids.proyectoId, ids.usuarioId, cliente);
             const sinScrumMaster = rolAnterior === 'scrum_master'
                 ? await validarSalidaScrumMaster(ids.proyectoId, ids.usuarioId, confirmar, cliente)
                 : false;
@@ -502,6 +529,9 @@ export async function asignarRol(proyectoId, usuarioId, datos = {}, usuario) {
     } catch (error) {
         if (error?.code === '23505' && error?.constraint === 'ux_un_product_owner_por_proyecto') {
             lanzar(409, 'El proyecto ya tiene un Product Owner. Cambia o retira ese rol antes de asignar otro.', { motivo: 'product_owner_duplicado' });
+        }
+        if (error?.code === '23505' && error?.constraint === 'ux_un_scrum_master_por_proyecto') {
+            lanzar(409, 'El proyecto ya tiene un Scrum Master. Cambia o retira ese rol antes de asignar otro.', { motivo: 'scrum_master_duplicado' });
         }
         throw error;
     }

@@ -12,12 +12,16 @@
  *  5. Avisar por socket a la sala del proyecto (`horas:actualizadas`) para que tablero y métricas se refresquen.
  *
  * Las fechas viajan siempre como texto "AAAA-MM-DD" para evitar corrimientos por zona horaria.
+ *
+ * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
 
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { enTransaccion } from '../detalle-tarjeta/detalle-tarjeta.service.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
+import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 
 /*
  * Constantes
@@ -58,8 +62,10 @@ const SQL_TEMPORIZADOR = `
     FROM temporizadores tm
     JOIN tareas t ON t.id = tm.tarea_id
     JOIN historias h ON h.id = t.historia_id
+    JOIN proyectos p ON p.id = t.proyecto_id
     JOIN usuarios u ON u.id = tm.usuario_id
-   WHERE tm.usuario_id = $1`;
+   WHERE tm.usuario_id = $1
+     AND EXISTS (SELECT 1 FROM miembros_equipo me WHERE me.equipo_id = p.equipo_id AND me.usuario_id = tm.usuario_id)`;
 
 /*
  * Validaciones y utilidades
@@ -210,18 +216,22 @@ async function hoyDelUsuario(cliente, usuarioId) {
  * @param {{query: Function}} cliente Conexión o transacción.
  * @param {number} tareaId Tarea.
  * @param {number} usuarioId Persona que consulta.
- * @returns {Promise<Object|null>} Tarea, o `null` si no existe.
+ * @returns {Promise<Object|null>} Tarea con el rol de la persona, o `null` si no existe.
+ * @throws {ErrorApp} 404 si la persona no tiene vínculo con el equipo del proyecto; 403 si su rol no permite gestionar tareas.
  */
 async function cargarTarea(cliente, tareaId, usuarioId) {
   const { rows } = await cliente.query(
-    `SELECT t.id, t.titulo, t.proyecto_id, t.responsable_id, s.estado AS sprint_estado, mp.rol
+    `SELECT t.id, t.titulo, t.proyecto_id, t.responsable_id, s.estado AS sprint_estado
        FROM tareas t
        LEFT JOIN sprints s ON s.id = t.sprint_id
-       LEFT JOIN miembros_proyecto mp ON mp.proyecto_id = t.proyecto_id AND mp.usuario_id = $2
       WHERE t.id = $1`,
-    [tareaId, usuarioId],
+    [tareaId],
   );
-  return rows[0] ?? null;
+  if (!rows[0]) return null;
+
+  // El rol solo cuenta mientras la persona siga en el equipo dueño del proyecto
+  const rol = await exigirPermiso({ id: usuarioId }, 'tarea.gestionar', rows[0].proyecto_id, cliente);
+  return { ...rows[0], rol };
 }
 
 /**
@@ -239,10 +249,10 @@ function exigirSprintAbierto(tarea) {
  * Comprueba que la persona puede registrar horas (o medir tiempo) en la tarea.
  * @param {Object|null} tarea Tarea cargada.
  * @param {number} usuarioId Persona.
- * @throws {ErrorApp} 404 si no existe o no es del proyecto; 403 si es una tarea ajena de un Developer; 409 si el sprint cerró.
+ * @throws {ErrorApp} 404 si no existe o la persona no tiene vínculo con el equipo del proyecto; 403 si es una tarea ajena de un Developer; 409 si el sprint cerró.
  */
 function exigirPuedeRegistrar(tarea, usuarioId) {
-  if (!tarea || !tarea.rol) throw new ErrorApp('No se encontró la tarea.', 404);
+  if (!tarea || !tarea.rol) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
   if (!ROLES_SIN_RESTRICCION.has(tarea.rol) && tarea.responsable_id !== usuarioId) {
     throw new ErrorApp('Solo puedes registrar horas en tus propias tareas.', 403);
   }
@@ -446,9 +456,10 @@ export async function obtenerSemana(usuarioId, inicio) {
          JOIN historias h ON h.id = t.historia_id
          LEFT JOIN sprints s ON s.id = t.sprint_id
          LEFT JOIN miembros_proyecto mp ON mp.proyecto_id = t.proyecto_id AND mp.usuario_id = $1
-        WHERE t.id IN (SELECT r.tarea_id FROM registros_horas r
-                        WHERE r.usuario_id = $1 AND r.fecha BETWEEN $2::date AND $3::date)
-         OR (t.responsable_id = $1 AND s.estado IS DISTINCT FROM 'cerrado')
+        WHERE (t.id IN (SELECT r.tarea_id FROM registros_horas r
+                         WHERE r.usuario_id = $1 AND r.fecha BETWEEN $2::date AND $3::date)
+          OR (t.responsable_id = $1 AND s.estado IS DISTINCT FROM 'cerrado'))
+          AND EXISTS (SELECT 1 FROM miembros_equipo me WHERE me.equipo_id = p.equipo_id AND me.usuario_id = $1)
         ORDER BY p.nombre, h.titulo, t.id`,
       [usuarioId, dias[0], dias[6]],
     ),
@@ -537,6 +548,15 @@ async function exigirTemporizador(usuarioId) {
 export async function iniciarTemporizador(usuarioId, tareaId) {
   const id = validarId(tareaId, 'tarea');
   exigirPuedeRegistrar(await cargarTarea(SIN_TRANSACCION, id, usuarioId), usuarioId);
+
+  // Un temporizador de un equipo que la persona ya dejó no le impide iniciar otro
+  await consulta(
+    `DELETE FROM temporizadores tm
+      USING tareas t, proyectos p
+      WHERE tm.usuario_id = $1 AND t.id = tm.tarea_id AND p.id = t.proyecto_id
+        AND NOT EXISTS (SELECT 1 FROM miembros_equipo me WHERE me.equipo_id = p.equipo_id AND me.usuario_id = tm.usuario_id)`,
+    [usuarioId],
+  );
 
   const { rowCount } = await consulta(
     `INSERT INTO temporizadores (usuario_id, tarea_id, reanudado_en)

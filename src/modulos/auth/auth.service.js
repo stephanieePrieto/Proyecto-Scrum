@@ -183,9 +183,10 @@ export const evaluarSesion = async (sid, segundosDesdeInteraccion) => {
 
     const { rows } = await consulta(`
         WITH vigente AS (
-            SELECT id, usuario_id FROM sesiones
-            WHERE id = $1 AND cerrada_en IS NULL
-              AND ultima_actividad > NOW() - ($3::int * INTERVAL '1 minute')
+            SELECT s.id, s.usuario_id FROM sesiones s
+            JOIN usuarios u ON u.id = s.usuario_id AND u.activo = TRUE
+            WHERE s.id = $1 AND s.cerrada_en IS NULL
+              AND s.ultima_actividad > NOW() - ($3::int * INTERVAL '1 minute')
         ), avance AS (
             UPDATE sesiones s
             SET ultima_actividad = NOW() - ($2::int * INTERVAL '1 second')
@@ -225,9 +226,10 @@ export const sesionesVigentes = async (sids) => {
     if (validos.length === 0) return new Set();
 
     const { rows } = await consulta(`
-        SELECT id FROM sesiones
-        WHERE id = ANY($1::uuid[]) AND cerrada_en IS NULL
-          AND ultima_actividad > NOW() - ($2::int * INTERVAL '1 minute')
+        SELECT s.id FROM sesiones s
+        JOIN usuarios u ON u.id = s.usuario_id AND u.activo = TRUE
+        WHERE s.id = ANY($1::uuid[]) AND s.cerrada_en IS NULL
+          AND s.ultima_actividad > NOW() - ($2::int * INTERVAL '1 minute')
         `, [validos, env.INACTIVIDAD_MINUTOS]
     );
     return new Set(rows.map((fila) => fila.id));
@@ -354,7 +356,7 @@ export const registrarUsuario = async (nombre, correo, password) => {
 
     const usuarioCreado = rows[0];
 
-// Enviar correo de bienvenida de forma real por SMTP
+    // Enviar correo de bienvenida de forma real por SMTP
     try {
         await enviarCorreo({
             para: correoLimpio, // <-- CAMBIADO: Debe ser 'para' para que correo.js lo lea bien

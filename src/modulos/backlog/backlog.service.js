@@ -11,10 +11,14 @@
  *    (pg_advisory_xact_lock). Así, si dos personas reordenan a la vez, el servidor las atiende
  *    en el orden en que llegan y todos terminan con el MISMO orden, sin posiciones duplicadas.
  *  - Editar usa control de versión (columna `version`): si alguien guardó antes, responde 409.
+ *
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
  */
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
+import { tienePermiso, PERMISOS, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 
 // ---------- Constantes ----------
 
@@ -54,24 +58,17 @@ function aId(valor) {
 }
 
 /**
- * Comprobar que el usuario puede ver el proyecto: es admin, es del equipo o es miembro del proyecto.
+ * Comprobar que el usuario puede ver el proyecto: es integrante del equipo dueño del proyecto, tenga o no rol en él.
  * Si no, responde 404 para no revelar que el proyecto existe (HU-43).
  *
  * @returns {Promise<{id:number, archivado:boolean}>}
  */
 async function exigirAcceso(usuario, proyectoId) {
   const id = aId(proyectoId);
-  if (!id) lanzar(404, 'Proyecto no encontrado.');
-  const { rows } = await consulta(
-    `SELECT p.id, p.archivado,
-            ($2::boolean
-              OR EXISTS (SELECT 1 FROM miembros_equipo me WHERE me.equipo_id = p.equipo_id AND me.usuario_id = $3)
-              OR EXISTS (SELECT 1 FROM miembros_proyecto mp WHERE mp.proyecto_id = p.id AND mp.usuario_id = $3)
-            ) AS tiene_acceso
-       FROM proyectos p WHERE p.id = $1`,
-    [id, usuario?.es_admin === true, usuario?.id ?? 0],
-  );
-  if (!rows[0] || !rows[0].tiene_acceso) lanzar(404, 'Proyecto no encontrado.');
+  if (!id) lanzar(404, MENSAJE_NO_ENCONTRADO);
+  const { rows } = await consulta('SELECT p.id, p.archivado FROM proyectos p WHERE p.id = $1', [id]);
+  // La visibilidad se decide con la matriz de permisos: integrantes del equipo dueño del proyecto
+  if (!rows[0] || !(await tienePermiso(usuario, 'proyecto.ver', id))) lanzar(404, MENSAJE_NO_ENCONTRADO);
   return rows[0];
 }
 
@@ -83,8 +80,11 @@ async function exigirAcceso(usuario, proyectoId) {
  *   - Product Owner y Admin: pueden todo.
  *   - Developer: solo proponer (crear con `propuesta = true`) o comentar; reordenar => 403.
  */
-async function exigirPermisoEscritura(usuario, proyectoId) {
+async function exigirPermisoEscritura(usuario, proyectoId, clave = 'historia.gestionar') {
   const proyecto = await exigirAcceso(usuario, proyectoId);
+  if (!(await tienePermiso(usuario, clave, proyecto.id))) {
+    lanzar(403, `No tienes permiso para ${PERMISOS[clave].descripcion}.`);
+  }
   if (proyecto.archivado) lanzar(409, 'El proyecto está archivado; su backlog ya no se puede modificar.');
   return proyecto;
 }
@@ -136,7 +136,7 @@ function validarDatos(datos = {}) {
   if (!como) campos.como = 'El campo Como es obligatorio.';
   if (!quiero) campos.quiero = 'El campo Quiero es obligatorio.';
   if (!para) campos.para = 'El campo Para es obligatorio.';
-  
+
   if (como && como.length > 300) campos.como = 'Máximo 300 caracteres.';
   if (quiero && quiero.length > 500) campos.quiero = 'Máximo 500 caracteres.';
   if (para && para.length > 500) campos.para = 'Máximo 500 caracteres.';
@@ -204,7 +204,9 @@ export async function listar(usuario, proyectoId) {
 
 /** HU-02: crear una historia al FINAL del backlog y avisar a los usuarios conectados. */
 export async function crear(usuario, proyectoId, datos) {
-  const proyecto = await exigirPermisoEscritura(usuario, proyectoId);
+  const proyecto = await exigirPermisoEscritura(usuario, proyectoId, 'historia.proponer');
+  // Quien no puede gestionar el backlog solo propone la historia
+  const esPropuesta = !(await tienePermiso(usuario, 'historia.gestionar', proyecto.id));
   const d = validarDatos(datos);
   await validarEpica(proyecto.id, d.epicaId);
 
@@ -213,8 +215,8 @@ export async function crear(usuario, proyectoId, datos) {
       'SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente FROM historias WHERE proyecto_id = $1', [proyecto.id],
     );
 
-  const { rows: [{ siguiente_hu }] } = await cliente.query(
-    `SELECT COALESCE(
+    const { rows: [{ siguiente_hu }] } = await cliente.query(
+      `SELECT COALESCE(
       (
         SELECT MIN(candidato)
         FROM generate_series(
@@ -232,12 +234,12 @@ export async function crear(usuario, proyectoId, datos) {
       ),
       1
     )::int AS siguiente_hu`,
-    [proyecto.id],
-  );
+      [proyecto.id],
+    );
 
-  
-  const { rows: [{ id: nuevoId }] } = await cliente.query(
-    `INSERT INTO historias (
+
+    const { rows: [{ id: nuevoId }] } = await cliente.query(
+      `INSERT INTO historias (
       proyecto_id, epica_id, titulo, como, quiero, para,
       criterios, puntos, etiquetas, orden, numero_hu,
       propuesta, creada_por
@@ -247,27 +249,27 @@ export async function crear(usuario, proyectoId, datos) {
       $8, $9, $10, $11, $12, $13
     )
     RETURNING id`,
-    [
-      proyecto.id,
-      d.epicaId,
-      d.titulo,
-      d.como,
-      d.quiero,
-      d.para,
-      d.criterios,
-      d.puntos,
-      d.etiquetas,
-      siguiente,
-      siguiente_hu,
-      false,
-      usuario.id,
-    ],
-  );
+      [
+        proyecto.id,
+        d.epicaId,
+        d.titulo,
+        d.como,
+        d.quiero,
+        d.para,
+        d.criterios,
+        d.puntos,
+        d.etiquetas,
+        siguiente,
+        siguiente_hu,
+        esPropuesta,
+        usuario.id,
+      ],
+    );
 
-  return nuevoId;
-});
+    return nuevoId;
+  });
 
-const historia = await buscarHistoria(id);
+  const historia = await buscarHistoria(id);
   emitirAProyecto(proyecto.id, EVENTOS.creada, { historia });
   return historia;
 }
@@ -276,7 +278,7 @@ const historia = await buscarHistoria(id);
 export async function actualizar(usuario, historiaId, datos = {}) {
   const id = aId(historiaId);
   const actual = id ? await buscarHistoria(id) : null;
-  if (!actual) lanzar(404, 'La historia no existe o ya fue eliminada.');
+  if (!actual) lanzar(404, MENSAJE_NO_ENCONTRADO);
   await exigirPermisoEscritura(usuario, actual.proyecto_id);
 
   const d = validarDatos(datos);
@@ -308,7 +310,7 @@ export async function actualizar(usuario, historiaId, datos = {}) {
 export async function eliminar(usuario, historiaId) {
   const id = aId(historiaId);
   const historia = id ? await buscarHistoria(id) : null;
-  if (!historia) lanzar(404, 'La historia no existe o ya fue eliminada.');
+  if (!historia) lanzar(404, MENSAJE_NO_ENCONTRADO);
   await exigirPermisoEscritura(usuario, historia.proyecto_id);
 
   if (historia.sprint_id && historia.sprint_estado === 'activo') {
@@ -333,7 +335,7 @@ export async function eliminar(usuario, historiaId) {
 export async function devolverAlBacklog(usuario, historiaId) {
   const id = aId(historiaId);
   const historia = id ? await buscarHistoria(id) : null;
-  if (!historia) lanzar(404, 'La historia no existe o ya fue eliminada.');
+  if (!historia) lanzar(404, MENSAJE_NO_ENCONTRADO);
   await exigirPermisoEscritura(usuario, historia.proyecto_id);
   if (!historia.sprint_id) lanzar(409, 'La historia ya está en el backlog.');
 
@@ -355,6 +357,67 @@ export async function devolverAlBacklog(usuario, historiaId) {
   const actualizada = await buscarHistoria(id);
   emitirAProyecto(historia.proyecto_id, EVENTOS.actualizada, { historia: actualizada });
   return actualizada;
+}
+
+/**
+ * Buscar una historia propuesta y comprobar que quien consulta puede resolverla.
+ * Solo la resuelven quienes gestionan el backlog (Scrum Master y Product Owner).
+ *
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @param {number|string} historiaId - Identificador de la historia.
+ * @returns {Promise<Object>} La historia propuesta.
+ * @throws {ErrorApp} 404 si no existe o no es visible, 403 sin permiso, 409 si no es una propuesta.
+ */
+async function buscarPropuesta(usuario, historiaId) {
+  const id = aId(historiaId);
+  const historia = id ? await buscarHistoria(id) : null;
+  if (!historia) lanzar(404, MENSAJE_NO_ENCONTRADO);
+  await exigirPermisoEscritura(usuario, historia.proyecto_id);
+  if (!historia.propuesta || historia.estado !== 'backlog') {
+    lanzar(409, 'La historia no es una propuesta pendiente.', { codigo: 'propuesta_atendida' });
+  }
+  return historia;
+}
+
+/**
+ * Aceptar una propuesta: deja de ser propuesta y queda como historia normal del backlog.
+ *
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @param {number|string} historiaId - Identificador de la historia propuesta.
+ * @returns {Promise<Object>} La historia actualizada.
+ */
+export async function aceptarPropuesta(usuario, historiaId) {
+  const historia = await buscarPropuesta(usuario, historiaId);
+  const { rowCount } = await consulta(
+    `UPDATE historias SET propuesta = FALSE, version = version + 1
+      WHERE id = $1 AND propuesta = TRUE AND estado = 'backlog'`,
+    [historia.id],
+  );
+  if (!rowCount) lanzar(409, 'Otra persona ya resolvió esta propuesta.', { codigo: 'propuesta_atendida' });
+
+  const actualizada = await buscarHistoria(historia.id);
+  emitirAProyecto(historia.proyecto_id, EVENTOS.actualizada, { historia: actualizada });
+  return actualizada;
+}
+
+/**
+ * Rechazar una propuesta: se conserva con estado "rechazada" y sale de la lista del backlog.
+ *
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @param {number|string} historiaId - Identificador de la historia propuesta.
+ * @returns {Promise<{id: number}>} Identificador de la historia rechazada.
+ */
+export async function rechazarPropuesta(usuario, historiaId) {
+  const historia = await buscarPropuesta(usuario, historiaId);
+  const { rowCount } = await consulta(
+    `UPDATE historias SET estado = 'rechazada', version = version + 1
+      WHERE id = $1 AND propuesta = TRUE AND estado = 'backlog'`,
+    [historia.id],
+  );
+  if (!rowCount) lanzar(409, 'Otra persona ya resolvió esta propuesta.', { codigo: 'propuesta_atendida' });
+
+  emitirAProyecto(historia.proyecto_id, EVENTOS.eliminada, { id: historia.id, proyecto_id: historia.proyecto_id });
+  return { id: historia.id };
 }
 
 /**

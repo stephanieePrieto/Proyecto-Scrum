@@ -5,12 +5,14 @@ import { env } from '../config/env.js';
  * @file index.js
  * @description Servidor de Socket.io: autentica las conexiones con el token de sesión y administra
  * las salas por proyecto y por persona.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { consulta } from '../config/db.js';
 import { registrarIO } from './emisor.js';
+import { tienePermiso } from '../utils/permisos.js';
 import { sesionVigente, sesionesVigentes } from '../modulos/auth/auth.service.js';
 
 let io = null;
@@ -44,12 +46,7 @@ function extraerToken(socket) {
  * @returns {Promise<boolean>}
  */
 async function puedeSeguirProyecto(usuarioId, proyectoId) {
-  const { rows } = await consulta(
-    `SELECT 1 FROM miembros_proyecto m JOIN usuarios u ON u.id = m.usuario_id
-      WHERE m.proyecto_id = $1 AND m.usuario_id = $2 AND u.activo = TRUE`,
-    [proyectoId, usuarioId],
-  );
-  return rows.length > 0;
+  return tienePermiso({ id: usuarioId }, 'proyecto.ver', proyectoId);
 }
 
 /**

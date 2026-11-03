@@ -5,6 +5,7 @@
  */
 
 import { evaluarMovimientoBloqueo } from './bloqueo.js';
+import { api } from '../../core/api.js';
 
 let tarjetaArrastrada = null;
 let columnaOrigenId = null;
@@ -51,8 +52,10 @@ function actualizarContadoresYAlertasWip() {
  */
 function guardarMovimientoPendiente(movimiento) {
     const cola = JSON.parse(localStorage.getItem('movimientos_pendientes') || '[]');
-    cola.push(movimiento);
-    localStorage.setItem('movimientos_pendientes', JSON.stringify(cola));
+    // Si la misma tarjeta se movió varias veces sin conexión, solo importa el último movimiento
+    const sinRepetidos = cola.filter((m) => Number(m.tareaId) !== Number(movimiento.tareaId));
+    sinRepetidos.push(movimiento);
+    localStorage.setItem('movimientos_pendientes', JSON.stringify(sinRepetidos));
 }
 
 /**
@@ -159,7 +162,7 @@ export function inicializarDragAndDrop(proyectoId) {
 
         if (!listaDestino) return;
 
-        // Modificación HU-23: Evaluar si el movimiento de una tarjeta bloqueada está permitido[cite: 4]
+        // Modificación HU-23: Evaluar si el movimiento de una tarjeta bloqueada está permitido
         const estaBloqueada = tarjetaArrastrada.dataset.bloqueada === 'true';
         const esColumnaFinal = columnaDestino.dataset.esFinal === 'true';
         const validacionBloqueo = evaluarMovimientoBloqueo(estaBloqueada, esColumnaFinal);
@@ -179,27 +182,24 @@ export function inicializarDragAndDrop(proyectoId) {
             guardarMovimientoPendiente({
                 proyectoId: Number(proyectoId),
                 tareaId: Number(tareaId),
-                nuevaColumnaId: Number(columnaDestinoId)
+                nuevaColumnaId: Number(columnaDestinoId),
+                nuevoOrden: listaDestino.children.length
             });
             alert("Sin conexión. El movimiento se ha marcado como 'pendiente de sincronizar'.");
             return;
         }
 
         try {
-            const respuesta = await fetch('/api/tablero/mover-tarjeta', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            // api() agrega el token CSRF y renueva la sesión; lanza error si la respuesta no es 2xx
+            await api('/tablero/mover-tarjeta', {
+                metodo: 'POST',
+                cuerpo: {
                     proyectoId: Number(proyectoId),
                     tareaId: Number(tareaId),
                     nuevaColumnaId: Number(columnaDestinoId),
                     nuevoOrden: listaDestino.children.length
-                })
+                }
             });
-
-            if (!respuesta.ok) {
-                throw new Error(`Error en el servidor (${respuesta.status})`);
-            }
 
             // Emitir evento por WebSockets para otros usuarios conectados (< 1s)
             if (window.socket) {

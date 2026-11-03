@@ -104,14 +104,20 @@ export const actualizarColumnas = async (proyectoId, columnas) => {
  */
 export const moverTarjeta = async (proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version, usuarioNombre) => {
     // La tarjeta y la columna destino deben pertenecer al mismo proyecto; de lo contrario no se modifica nada
-    const { rowCount } = await consulta(
+    // Si no llega un orden válido (p. ej. movimientos pendientes guardados sin él), va al final de la columna
+    const ordenSolicitado = Number.isInteger(Number(nuevoOrden)) && nuevoOrden !== null && nuevoOrden !== '' ? Number(nuevoOrden) : null;
+
+    const { rowCount, rows } = await consulta(
         `UPDATE tareas 
-         SET columna_id = $1, orden = $2, version = version + 1 
+         SET columna_id = $1,
+             orden = COALESCE($2::int, (SELECT COALESCE(MAX(t2.orden), 0) + 1 FROM tareas t2 WHERE t2.columna_id = $1 AND t2.proyecto_id = $4)),
+             version = version + 1 
          WHERE id = $3 AND proyecto_id = $4
-           AND EXISTS (SELECT 1 FROM columnas_tablero c WHERE c.id = $1 AND c.proyecto_id = $4)`,
-        [nuevaColumnaId, nuevoOrden, tareaId, proyectoId]
+           AND EXISTS (SELECT 1 FROM columnas_tablero c WHERE c.id = $1 AND c.proyecto_id = $4)
+         RETURNING orden`,
+        [nuevaColumnaId, ordenSolicitado, tareaId, proyectoId]
     );
     if (rowCount === 0) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
 
-    return { id: tareaId, columna_id: nuevaColumnaId, orden: nuevoOrden };
+    return { id: tareaId, columna_id: nuevaColumnaId, orden: rows[0].orden };
 };

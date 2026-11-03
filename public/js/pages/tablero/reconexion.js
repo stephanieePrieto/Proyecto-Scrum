@@ -5,6 +5,7 @@
  */
 
 import * as socketModule from '../../core/socket.js';
+import { api } from '../../core/api.js';
 const socket = socketModule.socket || socketModule.default || window.socket;
 
 /**
@@ -15,7 +16,9 @@ const socket = socketModule.socket || socketModule.default || window.socket;
  * @returns {Promise<void>}
  */
 async function sincronizarMovimientosPendientes(proyectoId) {
-    const cola = JSON.parse(localStorage.getItem('movimientos_pendientes') || '[]');
+    const colaGuardada = JSON.parse(localStorage.getItem('movimientos_pendientes') || '[]');
+    // Una sola petición por tarjeta: se conserva el último movimiento de cada una
+    const cola = [...new Map(colaGuardada.map((m) => [Number(m.tareaId), m])).values()];
     if (cola.length === 0) return;
 
     const estadoRed = document.getElementById('sprint-estado');
@@ -28,15 +31,8 @@ async function sincronizarMovimientosPendientes(proyectoId) {
 
     for (const movimiento of cola) {
         try {
-            const respuesta = await fetch('/api/tablero/mover-tarjeta', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(movimiento)
-            });
-
-            if (!respuesta.ok) {
-                pendientesActualizados.push(movimiento);
-            }
+            // api() agrega el token CSRF; lanza error si la respuesta no es 2xx
+            await api('/tablero/mover-tarjeta', { metodo: 'POST', cuerpo: movimiento });
         } catch (error) {
             console.error("Error al sincronizar movimiento pendiente:", error);
             pendientesActualizados.push(movimiento);

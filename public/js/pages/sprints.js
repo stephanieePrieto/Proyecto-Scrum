@@ -499,7 +499,7 @@ async function calcularCapacidadSprint() {
 
   try {
     const datos = await api(
-      `/capacidad/equipos/${equipoConsultado}/capacidad?inicio=${inicio}&fin=${fin}`
+      `/capacidad/equipos/${equipoConsultado}?inicio=${inicio}&fin=${fin}`
     );
 
     // Ignorar respuestas de consultas anteriores

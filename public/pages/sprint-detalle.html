@@ -1,1 +1,91 @@
+<!DOCTYPE html>
 <!-- Responsable: Diego - HU-09: pantalla para iniciar y cerrar un sprint. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ciclo del sprint · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
+
+  <!-- Estilos propios de la pantalla -->
+  <link rel="stylesheet" href="/css/pages/sprint-detalle.css" />
+
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Ciclo del sprint</h1>
+        <p class="subtitulo-pagina">Inicia el sprint cuando esté listo y ciérralo con un resumen.</p>
+      </div>
+      <select class="form-input" id="selector-proyecto" aria-label="Proyecto" hidden></select>
+    </div>
+
+    <div id="aviso" class="ciclo-aviso" role="status" aria-live="polite" hidden></div>
+
+    <section id="seccion-activo" aria-labelledby="titulo-activo" hidden>
+      <h2 class="ciclo__titulo" id="titulo-activo">Sprint activo</h2>
+      <div id="tarjeta-activo"></div>
+    </section>
+
+    <section aria-labelledby="titulo-planificados">
+      <h2 class="ciclo__titulo" id="titulo-planificados">Sprints planificados</h2>
+      <div id="lista-planificados" aria-busy="true"></div>
+    </section>
+  </main>
+
+  <!-- Iniciar -->
+  <dialog class="ciclo-dialogo" id="dialogo-iniciar" aria-labelledby="iniciar-titulo">
+    <form class="ciclo-dialogo__cuerpo" id="form-iniciar" novalidate>
+      <h2 class="ciclo-dialogo__titulo" id="iniciar-titulo">Iniciar sprint</h2>
+      <p class="ciclo__ayuda" id="iniciar-resumen"></p>
+      <div class="form-group">
+        <label class="form-label" for="campo-objetivo">Objetivo del sprint</label>
+        <textarea class="form-input" id="campo-objetivo" name="objetivo" rows="3" maxlength="500"></textarea>
+        <p class="ciclo-error" id="error-objetivo" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-capacidad">Capacidad (horas)</label>
+        <input class="form-input" id="campo-capacidad" name="capacidad_horas" type="number" min="1" step="0.5" />
+        <p class="ciclo-error" id="error-capacidad_horas" hidden></p>
+      </div>
+      <ul class="ciclo-faltantes" id="iniciar-faltantes" hidden></ul>
+      <p class="ciclo-error" id="iniciar-error" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario" id="btn-confirmar-iniciar" type="submit">Iniciar sprint</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Cerrar -->
+  <dialog class="ciclo-dialogo" id="dialogo-cerrar" aria-labelledby="cerrar-titulo">
+    <form class="ciclo-dialogo__cuerpo" id="form-cerrar" novalidate>
+      <h2 class="ciclo-dialogo__titulo" id="cerrar-titulo">Cerrar sprint</h2>
+      <div id="cerrar-contenido"><p class="ciclo__ayuda">Calculando el resumen…</p></div>
+      <p class="ciclo-error" id="cerrar-error" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario" id="btn-confirmar-cerrar" type="submit" disabled>Cerrar sprint</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/js/pages/sprint-detalle.js"></script>
+</body>
+</html>

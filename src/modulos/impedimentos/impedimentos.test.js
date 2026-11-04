@@ -1,8 +1,11 @@
 /**
- * Probar las reglas de impedimentos. Ejecutar con: node --test src/modulos/impedimentos/impedimentos.test.js
+ * @file impedimentos.test.js
+ * @description Suite de pruebas unitarias para el registro e historial de impedimentos.
+ * Compatible con Jest y ES Modules.
+ * @author Stephanie Elizdeth Hernández Prieto
  */
-import test from 'node:test';
-import assert from 'node:assert/strict';
+
+import { describe, test, expect } from '@jest/globals';
 import {
   validarImpedimento,
   horasAbierto,
@@ -11,56 +14,58 @@ import {
   aId,
 } from './impedimentos.reglas.js';
 
-test('indica el campo faltante: título y responsable son obligatorios', () => {
-  const { errores } = validarImpedimento({ titulo: '   ', severidad: 'alta' });
-  assert.ok(errores.titulo);
-  assert.ok(errores.responsable_id);
-  assert.equal(errores.severidad, undefined);
+describe('Módulo de Impedimentos - Pruebas Unitarias', () => {
+  test('indica el campo faltante: título y responsable son obligatorios', () => {
+    const { errores } = validarImpedimento({ titulo: '   ', severidad: 'alta' });
+    expect(errores.titulo).toBeDefined();
+    expect(errores.responsable_id).toBeDefined();
+    expect(errores.severidad).toBeUndefined();
 
-  assert.deepEqual(validarImpedimento({ titulo: 'Falla el servidor', responsable_id: 4 }).errores, {});
-});
+    expect(validarImpedimento({ titulo: 'Falla el servidor', responsable_id: 4 }).errores).toEqual({});
+  });
 
-test('la severidad es "media" por omisión y solo acepta baja, media o alta', () => {
-  assert.equal(validarImpedimento({ titulo: 'x', responsable_id: 1 }).valores.severidad, 'media');
-  assert.equal(validarImpedimento({ titulo: 'x', responsable_id: 1, severidad: 'alta' }).valores.severidad, 'alta');
-  assert.ok(validarImpedimento({ titulo: 'x', responsable_id: 1, severidad: 'critica' }).errores.severidad);
-});
+  test('la severidad es "media" por omisión y solo acepta baja, media o alta', () => {
+    expect(validarImpedimento({ titulo: 'x', responsable_id: 1 }).valores.severidad).toBe('media');
+    expect(validarImpedimento({ titulo: 'x', responsable_id: 1, severidad: 'alta' }).valores.severidad).toBe('alta');
+    expect(validarImpedimento({ titulo: 'x', responsable_id: 1, severidad: 'critica' }).errores.severidad).toBeDefined();
+  });
 
-test('la tarea afectada es opcional pero, si viene, debe ser un id válido', () => {
-  assert.equal(validarImpedimento({ titulo: 'x', responsable_id: 1 }).valores.tarea_id, null);
-  assert.equal(validarImpedimento({ titulo: 'x', responsable_id: 1, tarea_id: '7' }).valores.tarea_id, 7);
-  assert.ok(validarImpedimento({ titulo: 'x', responsable_id: 1, tarea_id: 'abc' }).errores.tarea_id);
-});
+  test('la tarea afectada es opcional pero, si viene, debe ser un id válido', () => {
+    expect(validarImpedimento({ titulo: 'x', responsable_id: 1 }).valores.tarea_id).toBeNull();
+    expect(validarImpedimento({ titulo: 'x', responsable_id: 1, tarea_id: '7' }).valores.tarea_id).toBe(7);
+    expect(validarImpedimento({ titulo: 'x', responsable_id: 1, tarea_id: 'abc' }).errores.tarea_id).toBeDefined();
+  });
 
-test('recorta el título y rechaza uno demasiado largo', () => {
-  assert.equal(validarImpedimento({ titulo: '  Sin acceso  ', responsable_id: 1 }).valores.titulo, 'Sin acceso');
-  assert.ok(validarImpedimento({ titulo: 'x'.repeat(201), responsable_id: 1 }).errores.titulo);
-});
+  test('recorta el título y rechaza uno demasiado largo', () => {
+    expect(validarImpedimento({ titulo: '  Sin acceso  ', responsable_id: 1 }).valores.titulo).toBe('Sin acceso');
+    expect(validarImpedimento({ titulo: 'x'.repeat(201), responsable_id: 1 }).errores.titulo).toBeDefined();
+  });
 
-test('aId solo acepta enteros positivos', () => {
-  assert.equal(aId('12'), 12);
-  assert.equal(aId(0), null);
-  assert.equal(aId('1.5'), null);
-  assert.equal(aId(''), null);
-});
+  test('aId solo acepta enteros positivos', () => {
+    expect(aId('12')).toBe(12);
+    expect(aId(0)).toBeNull();
+    expect(aId('1.5')).toBeNull();
+    expect(aId('')).toBeNull();
+  });
 
-test('resalta en rojo solo lo abierto por MÁS de 3 días', () => {
-  const ahora = new Date('2026-10-26T12:00:00Z');
-  const hace = (dias) => new Date(ahora.getTime() - dias * 24 * 3600 * 1000);
-  assert.equal(estaVencido({ estado: 'abierto', creadoEn: hace(3) }, ahora), false); // exactamente 3 días: aún no
-  assert.equal(estaVencido({ estado: 'abierto', creadoEn: hace(3.01) }, ahora), true);
-  assert.equal(estaVencido({ estado: 'abierto', creadoEn: hace(1) }, ahora), false);
-  assert.equal(estaVencido({ estado: 'resuelto', creadoEn: hace(10) }, ahora), false);
-});
+  test('resalta en rojo solo lo abierto por MÁS de 3 días', () => {
+    const ahora = new Date('2026-10-26T12:00:00Z');
+    const hace = (dias) => new Date(ahora.getTime() - dias * 24 * 3600 * 1000);
+    expect(estaVencido({ estado: 'abierto', creadoEn: hace(3) }, ahora)).toBe(false);
+    expect(estaVencido({ estado: 'abierto', creadoEn: hace(3.01) }, ahora)).toBe(true);
+    expect(estaVencido({ estado: 'abierto', creadoEn: hace(1) }, ahora)).toBe(false);
+    expect(estaVencido({ estado: 'resuelto', creadoEn: hace(10) }, ahora)).toBe(false);
+  });
 
-test('calcula cuánto estuvo abierto un impedimento resuelto', () => {
-  const creado = new Date('2026-10-20T08:00:00Z');
-  const resuelto = new Date('2026-10-21T10:30:00Z');
-  assert.equal(horasAbierto(creado, resuelto), 26.5);
-  assert.equal(horasAbierto(creado, null, new Date('2026-10-20T09:00:00Z')), 1);
-});
+  test('calcula cuánto estuvo abierto un impedimento resuelto', () => {
+    const creado = new Date('2026-10-20T08:00:00Z');
+    const resuelto = new Date('2026-10-21T10:30:00Z');
+    expect(horasAbierto(creado, resuelto)).toBe(26.5);
+    expect(horasAbierto(creado, null, new Date('2026-10-20T09:00:00Z'))).toBe(1);
+  });
 
-test('mensaje cuando otra persona ya lo resolvió', () => {
-  assert.equal(mensajeYaResuelto('Dana Carmona'), 'Ya fue resuelto por Dana Carmona.');
-  assert.equal(mensajeYaResuelto(null), 'Ya fue resuelto por otra persona.');
+  test('mensaje cuando otra persona ya lo resolvió', () => {
+    expect(mensajeYaResuelto('Dana Carmona')).toBe('Ya fue resuelto por Dana Carmona.');
+    expect(mensajeYaResuelto(null)).toBe('Ya fue resuelto por otra persona.');
+  });
 });

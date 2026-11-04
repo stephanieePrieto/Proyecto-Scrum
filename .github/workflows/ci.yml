@@ -1,0 +1,46 @@
+# ==============================================================================
+# PIPELINE DE INTEGRACIÓN CONTINUA (CI) - SCRUMFLOW
+# ==============================================================================
+# Este flujo de trabajo automatizado se ejecuta en GitHub Actions para validar
+# la calidad del código, ejecutar pruebas unitarias y verificar la cobertura.
+# Si alguna prueba falla o la cobertura global es menor al 70%, el proceso falla
+# y se bloquea la integración (Merge / Pull Request).
+# ==============================================================================
+
+name: Integración Continua (CI) - ScrumFlow
+
+# Define los eventos de Git que activarán la ejecución automática de este flujo
+on:
+  push:
+    branches: [ main, dev ]       # Se dispara al hacer push a las ramas de desarrollo o producción
+  pull_request:
+    branches: [ main, dev ]       # Se dispara al abrir o actualizar un Pull Request hacia main o dev
+
+jobs:
+  pruebas-y-cobertura:
+    name: Ejecución de Pruebas Unitarias y Cobertura (70%)
+    runs-on: ubuntu-latest       # Entorno del servidor virtual que ejecutará los comandos
+
+    steps:
+      # Paso 1: Clona el código fuente del repositorio en el entorno virtual
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      # Paso 2: Instala y configura el entorno de Node.js en la versión especificada
+      - name: Configurar Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'           # Acelera la instalación guardando las dependencias en caché
+
+      # Paso 3: Instala exactamente las dependencias declaradas en el archivo package-lock.json
+      - name: Instalar dependencias del proyecto
+        run: npm ci
+
+      # Paso 4: Ejecuta la suite de pruebas automatizadas y la validación de cobertura
+      # Si la cobertura cae del 70% o una prueba falla, 'npm run test:ci' retornará un error
+      # provocando que la acción en GitHub aparezca con una tachadura roja (X) y rechace el PR.
+      - name: Ejecutar pruebas y validar cobertura mínima del 70%
+        run: npm run test:ci
+        env:
+          NODE_ENV: test

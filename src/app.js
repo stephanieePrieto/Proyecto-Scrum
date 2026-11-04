@@ -13,8 +13,10 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { consulta } from './config/db.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { manejoErrores, noEncontrado } from './middlewares/manejoErrores.js';
-import { sanitizarEntrada } from './middlewares/seguridad.js';
+import { sanitizarEntrada, cabecerasSeguridad } from './middlewares/seguridad.js';
 import { proteccionCsrf } from './middlewares/csrf.js';
+import { registrarPeticiones } from './middlewares/registrarPeticiones.js';
+import { configurarSwagger } from './config/swagger.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const carpetaPublica = path.join(aqui, '..', 'public');
@@ -44,7 +46,13 @@ async function importarSiExiste(rutaAbsoluta) {
 export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
+  
+  // Aplicar cabeceras de seguridad HTTP (Helmet, CSP restrictiva, HSTS)
+  app.use(cabecerasSeguridad);
   app.use(cors());
+
+  // Registrar logs estructurados con tiempo de respuesta (Stephanie Elizdeth Hernández Prieto)
+  app.use(registrarPeticiones);
 
   // Leer las cookies antes de validar el token CSRF
   app.use(cookieParser());
@@ -59,9 +67,21 @@ export async function crearApp() {
   // 3. Protección CSRF (Double-Submit Cookie)
   app.use(proteccionCsrf);
 
+  // Servir documentación OpenAPI / Swagger
+  configurarSwagger(app);
+
   // Archivos estáticos del frontend
   app.use(express.static(carpetaPublica));
 
+  /**
+   * @openapi
+   * /api/salud:
+   *   get:
+   *     summary: Comprobar estado del servidor y la base de datos
+   *     responses:
+   *       200:
+   *         description: Servidor y PostgreSQL funcionando correctamente.
+   */
   app.get(
     '/api/salud',
     asyncHandler(async (_req, res) => {

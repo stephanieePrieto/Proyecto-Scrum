@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- HU-30: Gráfica Velocity. HU-31: Porcentaje de avance.
+<!-- HU-30: Gráfica Velocity. HU-31: Porcentaje de avance. HU-29: Burndown.
      Esta página no lleva estilos propios: todo viene de /css (ver componentes/metricas.css).
      El proyecto sale de ?proyecto=ID; si falta, se elige con GET /api/metricas/mis-proyectos. 
      @author Dana -->
@@ -33,7 +33,7 @@
     <div class="encabezado-pagina">
       <div>
         <h1 class="titulo-pagina">Métricas del proyecto</h1>
-        <p class="subtitulo-pagina">Velocity del equipo y avance por persona</p>
+        <p class="subtitulo-pagina">Velocity del equipo, avance y burndown</p>
       </div>
       <div class="encabezado-pagina__acciones">
         <label id="selector-proyecto" class="metricas__filtro" for="filtro-proyecto" hidden>Proyecto
@@ -45,18 +45,12 @@
 
     <p id="metricas-error" class="alerta alerta--error" role="alert" hidden></p>
 
-    <!-- HU-30: velocity por sprint cerrado -->
-    <section id="seccion-velocity" class="tarjeta metricas__seccion" aria-labelledby="velocity-titulo">
-      <div class="metricas__cabecera">
-        <div>
-          <h2 id="velocity-titulo" class="metricas__titulo">Velocity por sprint</h2>
-          <p class="subtitulo-pagina">Puntos de historias aceptadas en cada sprint cerrado</p>
-        </div>
-      </div>
+    <!-- HU-30: Velocity por sprint cerrado -->
+    <section id="seccion-velocity" class="tarjeta metricas__seccion">
       <div id="velocity-contenido" aria-live="polite"></div>
     </section>
 
-    <!-- HU-31: avance por persona y por equipo -->
+    <!-- HU-31: Porcentaje de avance por persona y equipo -->
     <section id="seccion-avance" class="tarjeta metricas__seccion" aria-labelledby="avance-titulo">
       <div class="metricas__cabecera">
         <div>
@@ -72,7 +66,10 @@
       <div id="avance-contenido" aria-live="polite"></div>
     </section>
 
-    <!-- Las demás métricas (burndown, distribución, umbrales, exportar) se agregan aquí en sus sprints -->
+    <!-- HU-29: Gráfica Burndown -->
+    <section id="seccion-burndown" class="tarjeta metricas__seccion">
+      <div id="burndown-contenido" aria-live="polite"></div>
+    </section>
   </main>
 
   <script type="module" src="/js/pages/metricas.js"></script>

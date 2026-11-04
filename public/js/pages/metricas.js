@@ -19,26 +19,33 @@ const selectProyecto = document.getElementById('filtro-proyecto');
 const cajaProyecto = document.getElementById('selector-proyecto');
 const avisoError = document.getElementById('metricas-error');
 
-// 1. Inyección del filtro de Tipo de Gráfica en la cabecera general
+// 1. Inyección del filtro de Tipo de Gráfica en la cabecera general (con validación de existencia)
 const headerAcciones = document.querySelector('.encabezado-pagina__acciones');
-const selectorTipo = document.createElement('label');
-selectorTipo.className = 'metricas__filtro';
-selectorTipo.innerHTML = `Vista <select id="filtro-tipo-grafica" class="metricas__selector">
-  <option value="velocity" selected>Velocity</option>
-  <option value="burndown">Burndown</option>
-</select>`;
-headerAcciones.prepend(selectorTipo);
+if (headerAcciones && !document.getElementById('filtro-tipo-grafica')) {
+  const selectorTipo = document.createElement('label');
+  selectorTipo.className = 'metricas__filtro';
+  selectorTipo.innerHTML = `Vista <select id="filtro-tipo-grafica" class="metricas__selector">
+    <option value="velocity" selected>Velocity</option>
+    <option value="burndown">Burndown</option>
+  </select>`;
+  headerAcciones.prepend(selectorTipo);
+}
 
-// 2. Inyección del filtro de Integrante junto al filtro de Sprint (Sección Avance)
-const contenedorFiltrosAvance = selectSprint.parentElement.parentElement;
-const labelIntegrante = document.createElement('label');
-labelIntegrante.className = 'metricas__filtro';
-labelIntegrante.style.marginLeft = '16px';
-labelIntegrante.innerHTML = `Integrante <select id="filtro-integrante-avance" class="metricas__selector">
-  <option value="equipo">Todo el equipo</option>
-</select>`;
-contenedorFiltrosAvance.appendChild(labelIntegrante);
-const selectIntegranteAvance = document.getElementById('filtro-integrante-avance');
+// 2. Inyección del filtro de Integrante junto al filtro de Sprint (Sección Avance con validación)
+let selectIntegranteAvance = document.getElementById('filtro-integrante-avance');
+if (selectSprint && !selectIntegranteAvance) {
+  const contenedorFiltrosAvance = selectSprint.closest('.metricas__cabecera') || selectSprint.parentElement?.parentElement;
+  if (contenedorFiltrosAvance) {
+    const labelIntegrante = document.createElement('label');
+    labelIntegrante.className = 'metricas__filtro';
+    labelIntegrante.style.marginLeft = '16px';
+    labelIntegrante.innerHTML = `Integrante <select id="filtro-integrante-avance" class="metricas__selector">
+      <option value="equipo">Todo el equipo</option>
+    </select>`;
+    contenedorFiltrosAvance.appendChild(labelIntegrante);
+    selectIntegranteAvance = document.getElementById('filtro-integrante-avance');
+  }
+}
 
 const CLAVE_PROYECTO = 'proyectoActivo';
 let datosAvanceActual = null;
@@ -57,12 +64,13 @@ function recordarProyecto(proyectoId) {
 
 function manejarTabUrl() {
   const hash = window.location.hash;
-  if(hash === '#burndown') {
-    document.getElementById('filtro-tipo-grafica').value = 'burndown';
-    document.getElementById('seccion-velocity').scrollIntoView();
+  const selectTipo = document.getElementById('filtro-tipo-grafica');
+  if (hash === '#burndown') {
+    if (selectTipo) selectTipo.value = 'burndown';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
   }
-  if(hash === '#avance') {
-    document.getElementById('seccion-avance').scrollIntoView();
+  if (hash === '#avance') {
+    document.getElementById('seccion-avance')?.scrollIntoView();
   }
 }
 
@@ -70,13 +78,17 @@ async function elegirProyecto() {
   const proyectos = await api('/metricas/mis-proyectos');
   if (proyectos.length === 0) return null;
 
-  selectProyecto.innerHTML = proyectos.map((p) => `<option value="${p.id}">${escaparHtml(p.nombre)}</option>`).join('');
-  cajaProyecto.hidden = proyectos.length < 2;
+  if (selectProyecto) {
+    selectProyecto.innerHTML = proyectos.map((p) => `<option value="${p.id}">${escaparHtml(p.nombre)}</option>`).join('');
+  }
+  if (cajaProyecto) {
+    cajaProyecto.hidden = proyectos.length < 2;
+  }
 
   let recordado = null;
   try { recordado = Number(window.localStorage.getItem(CLAVE_PROYECTO)); } catch { }
   const elegido = proyectos.find((p) => p.id === (proyectoDeLaUrl() || recordado)) || proyectos[0];
-  selectProyecto.value = String(elegido.id);
+  if (selectProyecto) selectProyecto.value = String(elegido.id);
   return elegido.id;
 }
 
@@ -99,6 +111,7 @@ function mensajeDeError(error) {
 }
 
 function mostrarErrorSeccion(contenedor, error, clave) {
+  if (!contenedor) return;
   contenedor.innerHTML = `<div class="alerta alerta--error metricas__error" role="alert">
       <span>${escaparHtml(mensajeDeError(error))}</span>
       <button class="boton boton--secundario boton--pequeno" type="button" data-reintentar="${clave}">Reintentar</button>
@@ -106,14 +119,26 @@ function mostrarErrorSeccion(contenedor, error, clave) {
 }
 
 function mostrarCarga(contenedor) {
+  if (!contenedor) return;
   contenedor.setAttribute('aria-busy', 'true');
   contenedor.innerHTML = '<span class="esqueleto metricas__esqueleto"></span>';
 }
 
 async function cargarGraficaPrincipal(proyectoId) {
-  const tipo = document.getElementById('filtro-tipo-grafica').value;
+  const selectTipo = document.getElementById('filtro-tipo-grafica');
+  const tipo = selectTipo ? selectTipo.value : 'velocity';
+
   const titulo = document.getElementById('velocity-titulo');
-  titulo.textContent = tipo === 'velocity' ? 'Velocity por sprint' : 'Burndown chart';
+  const subtitulo = titulo?.nextElementSibling;
+
+  if (titulo) {
+    titulo.textContent = tipo === 'velocity' ? 'Velocity por sprint' : 'Burndown chart';
+  }
+  if (subtitulo && subtitulo.classList.contains('subtitulo-pagina')) {
+    subtitulo.textContent = tipo === 'velocity'
+      ? 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado'
+      : 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal';
+  }
 
   mostrarCarga(contVelocity);
   try {
@@ -125,11 +150,12 @@ async function cargarGraficaPrincipal(proyectoId) {
   } catch (error) {
     mostrarErrorSeccion(contVelocity, error, 'grafica');
   } finally {
-    contVelocity.removeAttribute('aria-busy');
+    contVelocity?.removeAttribute('aria-busy');
   }
 }
 
 function llenarSelectorSprints(sprints, elegido) {
+  if (!selectSprint) return;
   selectSprint.innerHTML = '<option value="">Todo el proyecto</option>' + sprints
     .map((s) => `<option value="${s.id}">${escaparHtml(s.nombre)} (${escaparHtml(s.estado)})</option>`).join('');
   selectSprint.value = elegido ? String(elegido) : '';
@@ -144,37 +170,46 @@ async function cargarAvance(proyectoId, sprintId = null) {
     llenarSelectorSprints(datosAvanceActual.sprints, datosAvanceActual.sprintId);
 
     // Poblar el filtro de integrantes basado en los permisos aplicados en el backend
-    const valActual = selectIntegranteAvance.value;
-    const opcionesIntegrantes = datosAvanceActual.personas.map(p => 
-      `<option value="${p.usuarioId}">${escaparHtml(p.nombre)}</option>`
-    ).join('');
-    
-    selectIntegranteAvance.innerHTML = '<option value="equipo">Todo el equipo</option>' + opcionesIntegrantes;
-    
-    // Si el usuario previo existe en la nueva lista, mantenerlo; si no, volver a "equipo"
-    const existe = valActual === 'equipo' || datosAvanceActual.personas.some(p => String(p.usuarioId) === valActual);
-    selectIntegranteAvance.value = existe ? valActual : 'equipo';
-
-    dibujarAvance(contAvance, datosAvanceActual, selectIntegranteAvance.value);
+    const selectInt = document.getElementById('filtro-integrante-avance');
+    if (selectInt) {
+      const valActual = selectInt.value;
+      const opcionesIntegrantes = datosAvanceActual.personas.map(p => 
+        `<option value="${p.usuarioId}">${escaparHtml(p.nombre)}</option>`
+      ).join('');
+      
+      selectInt.innerHTML = '<option value="equipo">Todo el equipo</option>' + opcionesIntegrantes;
+      
+      // Si el usuario previo existe en la nueva lista, mantenerlo; si no, volver a "equipo"
+      const existe = valActual === 'equipo' || datosAvanceActual.personas.some(p => String(p.usuarioId) === valActual);
+      selectInt.value = existe ? valActual : 'equipo';
+      
+      dibujarAvance(contAvance, datosAvanceActual, selectInt.value);
+    } else {
+      dibujarAvance(contAvance, datosAvanceActual, 'equipo');
+    }
   } catch (error) {
     mostrarErrorSeccion(contAvance, error, 'avance');
   } finally {
-    contAvance.removeAttribute('aria-busy');
+    contAvance?.removeAttribute('aria-busy');
   }
 }
 
 function cargarTodo(proyectoId) {
   return Promise.allSettled([
     cargarGraficaPrincipal(proyectoId),
-    cargarAvance(proyectoId, Number(selectSprint.value) || null),
+    cargarAvance(proyectoId, Number(selectSprint?.value) || null),
   ]);
 }
 
 function mostrarAvisoGeneral(texto) {
-  avisoError.textContent = texto;
-  avisoError.hidden = false;
-  document.getElementById('seccion-velocity').hidden = true;
-  document.getElementById('seccion-avance').hidden = true;
+  if (avisoError) {
+    avisoError.textContent = texto;
+    avisoError.hidden = false;
+  }
+  const secVelocity = document.getElementById('seccion-velocity');
+  const secAvance = document.getElementById('seccion-avance');
+  if (secVelocity) secVelocity.hidden = true;
+  if (secAvance) secAvance.hidden = true;
 }
 
 async function iniciar() {
@@ -192,32 +227,34 @@ async function iniciar() {
   recordarProyecto(proyectoId);
   manejarTabUrl();
 
-  if (selectProyecto.options.length === 0) {
+  if (selectProyecto && selectProyecto.options.length === 0) {
     try { await elegirProyecto(); selectProyecto.value = String(proyectoId); } catch { }
   }
 
-  selectProyecto.addEventListener('change', () => {
+  selectProyecto?.addEventListener('change', () => {
     proyectoId = Number(selectProyecto.value);
     recordarProyecto(proyectoId);
-    selectSprint.value = '';
+    if (selectSprint) selectSprint.value = '';
     cargarTodo(proyectoId);
   });
 
-  document.getElementById('filtro-tipo-grafica').addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
+  const selectTipo = document.getElementById('filtro-tipo-grafica');
+  selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
   
   // Al cambiar sprint, consultamos al backend
-  selectSprint.addEventListener('change', () => cargarAvance(proyectoId, Number(selectSprint.value) || null));
+  selectSprint?.addEventListener('change', () => cargarAvance(proyectoId, Number(selectSprint.value) || null));
   
   // Al cambiar integrante, redibujamos localmente (sin request)
-  selectIntegranteAvance.addEventListener('change', () => {
-    if (datosAvanceActual) dibujarAvance(contAvance, datosAvanceActual, selectIntegranteAvance.value);
+  const selectInt = document.getElementById('filtro-integrante-avance');
+  selectInt?.addEventListener('change', () => {
+    if (datosAvanceActual) dibujarAvance(contAvance, datosAvanceActual, selectInt.value);
   });
 
   document.addEventListener('click', (evento) => {
     const boton = evento.target.closest('[data-reintentar]');
     if (!boton) return;
     if (boton.dataset.reintentar === 'grafica') cargarGraficaPrincipal(proyectoId);
-    if (boton.dataset.reintentar === 'avance') cargarAvance(proyectoId, Number(selectSprint.value) || null);
+    if (boton.dataset.reintentar === 'avance') cargarAvance(proyectoId, Number(selectSprint?.value) || null);
   });
 
   await cargarTodo(proyectoId);

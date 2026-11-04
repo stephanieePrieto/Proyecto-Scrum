@@ -1,9 +1,6 @@
 /**
  * @file burndown.js
- * @description Dibujar la gráfica de Burndown chart (HU-29).
- * Compara las horas/puntos restantes del sprint contra una línea ideal matemática, 
- * remarcando eventos como cambios de alcance a mitad de sprint.
- * Ahora incluye títulos de ejes y valores en cada punto para mayor legibilidad.
+ * @description Dibujar la gráfica de Burndown del proyecto por cierre de sprint (HU-29).
  * @author Dana
  */
 
@@ -18,135 +15,142 @@ import { escaparHtml } from '../../core/utils.js';
 export function dibujarBurndown(contenedor, datos) {
   if (datos.vacio) {
     contenedor.innerHTML = `<div class="aviso aviso--vacio">
-      <h3 class="aviso__titulo">Aún no hay un sprint activo</h3>
-      <p class="aviso__texto">El burndown requiere un sprint en curso con capacidad de horas definidas.</p>
+      <h3 class="aviso__titulo">Aún no hay datos de burndown</h3>
+      <p class="aviso__texto">El burndown requiere que el proyecto tenga sprints registrados.</p>
     </div>`;
     return;
   }
 
-  const { sprint, snapshots } = datos;
-  if (!snapshots.length) {
-     contenedor.innerHTML = `<p class="alerta alerta--info">El sprint acaba de iniciar. El burndown se generará cuando existan snapshots diarios.</p>`;
-     return;
+  let puntos = [];
+
+  if (datos.sprints && datos.sprints.length > 0) {
+    puntos = datos.sprints;
+  } else if (datos.snapshots && datos.snapshots.length > 0) {
+    const inicio = datos.sprint?.capacidadHoras || datos.snapshots[0].horas_restantes || 90;
+    puntos = [
+      { nombre: 'Inicio', horasRestantes: inicio },
+      ...datos.snapshots.map((s, i) => ({
+        nombre: `Sprint ${i + 1}`,
+        horasRestantes: s.horas_restantes,
+      }))
+    ];
   }
 
-  // --- Dimensiones y Márgenes del SVG ---
+  if (!puntos.length) {
+    contenedor.innerHTML = `<p class="alerta alerta--info">No hay datos suficientes para generar el burndown.</p>`;
+    return;
+  }
+
   const ANCHO_SVG = 800;
-  const ALTO_SVG = 400;
-  const MARGEN_IZQUIERDO = 70;
-  const MARGEN_DERECHO = 40;
-  const MARGEN_SUPERIOR = 40;
-  const MARGEN_INFERIOR = 60;
+  const ALTO_SVG = 420;
+  const MARGEN = { izq: 70, der: 40, arriba: 50, abajo: 80 };
+
+  const ANCHO_GRAFICA = ANCHO_SVG - MARGEN.izq - MARGEN.der;
+  const ALTO_GRAFICA = ALTO_SVG - MARGEN.arriba - MARGEN.abajo;
+
+  const horasIniciales = datos.horasIniciales || puntos[0]?.horasRestantes || 100;
+  const maxRestantes = Math.max(...puntos.map(p => p.horasRestantes ?? 0), horasIniciales, 10);
   
-  const ANCHO_GRAFICA = ANCHO_SVG - MARGEN_IZQUIERDO - MARGEN_DERECHO;
-  const ALTO_GRAFICA = ALTO_SVG - MARGEN_SUPERIOR - MARGEN_INFERIOR;
+  const pasoY = maxRestantes <= 100 ? 20 : 50;
+  const maxEscala = Math.max(pasoY, Math.ceil(maxRestantes / pasoY) * pasoY);
 
-  // --- Datos Base ---
-  const maxHoras = sprint.capacidadHoras;
-  const numPuntos = snapshots.length;
-  
-  // Ajuste para evitar división por cero si solo hay 1 snapshot (día 1)
-  const divisionesX = Math.max(1, numPuntos - 1); 
-  const espacioX = ANCHO_GRAFICA / divisionesX;
+  const totalSlots = Math.max(6, puntos.length - 1);
+  const espacioX = ANCHO_GRAFICA / totalSlots;
 
-  // Función para mapear valor de horas a coordenada Y
-  const escalarY = (valorHoras) => {
-    // Si el valor es mayor a maxHoras (ej: se agregaron más tareas), lo topeamos visualmente al inicio
-    const valorSeguro = Math.max(0, Math.min(maxHoras, valorHoras));
-    // La Y crece hacia abajo en SVG. Por eso restamos desde el alto de la gráfica.
-    return MARGEN_SUPERIOR + (ALTO_GRAFICA - (valorSeguro / maxHoras) * ALTO_GRAFICA);
-  };
+  const yPos = (valor) => MARGEN.arriba + ALTO_GRAFICA - (valor / maxEscala) * ALTO_GRAFICA;
+  const xPos = (i) => MARGEN.izq + i * espacioX;
 
-  // --- Cálculos de Puntos ---
+  let rejillaY = '';
+  for (let v = 0; v <= maxEscala; v += pasoY) {
+    const y = yPos(v);
+    rejillaY += `<line x1="${MARGEN.izq}" x2="${ANCHO_SVG - MARGEN.der}" y1="${y}" y2="${y}" stroke="#e2e8f0" stroke-width="1" />
+      <text x="${MARGEN.izq - 10}" y="${y + 4}" text-anchor="end" font-size="12" fill="#64748b">${v}</text>`;
+  }
+
+  const puntosIdeal = [];
+  let textosIdeal = '';
+
+  for (let i = 0; i <= totalSlots; i++) {
+    const x = xPos(i);
+    const valIdeal = Math.max(0, horasIniciales - i * (horasIniciales / totalSlots));
+    const y = yPos(valIdeal);
+    puntosIdeal.push(`${x},${y}`);
+
+    const txt = valIdeal % 1 === 0 ? valIdeal.toFixed(0) : valIdeal.toFixed(1);
+    textosIdeal += `<text x="${x}" y="${y + 18}" text-anchor="middle" font-size="11" fill="#64748b">${txt}</text>`;
+  }
+
+  const puntosReal = [];
+  let circulosReal = '';
+  let textosReal = '';
   let etiquetasX = '';
-  let etiquetasYIdeal = '';
-  let etiquetasYReal = '';
 
-  const puntosGraficos = snapshots.map((s, i) => {
-     const x = MARGEN_IZQUIERDO + (i * espacioX);
-     const yReal = escalarY(s.horas_restantes);
-     
-     // La línea ideal va de maxHoras a 0 en una línea recta diagonal.
-     const valorIdeal = maxHoras - (i * (maxHoras / divisionesX));
-     const yIdeal = escalarY(valorIdeal);
-
-     // Etiqueta del eje X (Sprint/Día)
-     etiquetasX += `<text x="${x}" y="${ALTO_SVG - MARGEN_INFERIOR + 20}" text-anchor="middle" font-size="12" fill="#555">Día ${i+1}</text>`;
-     
-     // Etiqueta del valor numérico - Línea Real (arriba del punto)
-     etiquetasYReal += `<text x="${x}" y="${yReal - 12}" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--primario)">${s.horas_restantes}</text>`;
-     
-     // Etiqueta del valor numérico - Línea Ideal (debajo de la línea, en gris)
-     // Mostramos solo un decimal si no es entero
-     const textoIdeal = valorIdeal % 1 === 0 ? valorIdeal : valorIdeal.toFixed(1);
-     etiquetasYIdeal += `<text x="${x}" y="${yIdeal + 16}" text-anchor="middle" font-size="11" fill="#888">${textoIdeal}</text>`;
-
-     return { 
-       x: x, 
-       yR: yReal, 
-       yI: yIdeal, 
-       modificacion: s.alcance_modificado 
-     };
-  });
-
-  const lineaReal = puntosGraficos.map(p => `${p.x},${p.yR}`).join(' ');
-  const lineaIdeal = puntosGraficos.map(p => `${p.x},${p.yI}`).join(' ');
-
-  // Marcadores de puntos (círculos) para la línea real
-  let puntosRealesSVG = '';
-  let notificacionesModificados = '';
-  puntosGraficos.forEach(p => {
-    // Círculo base para el dato real
-    puntosRealesSVG += `<circle cx="${p.x}" cy="${p.yR}" r="4" fill="var(--primario)" />`;
+  for (let i = 0; i <= totalSlots; i++) {
+    const x = xPos(i);
+    const p = puntos[i];
+    const nombreLabel = p ? p.nombre : `Sprint ${i}`;
     
-    // Si hubo cambio de alcance, se resalta con otro color y un borde
-    if (p.modificacion) {
-       notificacionesModificados += `<circle cx="${p.x}" cy="${p.yR}" r="7" fill="var(--ambar-500)" stroke="#fff" stroke-width="2"><title>Alcance modificado en este día</title></circle>`;
+    etiquetasX += `<line x1="${x}" x2="${x}" y1="${yPos(0)}" y2="${yPos(0) + 6}" stroke="#94a3b8" stroke-width="1.5" />
+      <text x="${x}" y="${yPos(0) + 24}" text-anchor="middle" font-size="12" fill="#334155">${escaparHtml(nombreLabel)}</text>`;
+
+    if (p && p.horasRestantes !== null && p.horasRestantes !== undefined) {
+      const valReal = Number(p.horasRestantes);
+      const y = yPos(valReal);
+      puntosReal.push(`${x},${y}`);
+
+      const txtReal = valReal % 1 === 0 ? valReal.toFixed(0) : valReal.toFixed(1);
+      
+      circulosReal += `<circle cx="${x}" cy="${y}" r="5" fill="#1F5A67" stroke="#ffffff" stroke-width="2">
+        <title>${escaparHtml(nombreLabel)}: ${txtReal} h restantes</title>
+      </circle>`;
+
+      textosReal += `<text x="${x}" y="${y - 10}" text-anchor="middle" font-size="11" font-weight="bold" fill="#1F5A67">${txtReal}</text>`;
     }
-  });
+  }
 
-  // --- Ejes de Coordenadas ---
-  // Línea vertical izquierda (Eje Y)
-  const ejeY = `<line x1="${MARGEN_IZQUIERDO}" y1="${MARGEN_SUPERIOR}" x2="${MARGEN_IZQUIERDO}" y2="${ALTO_SVG - MARGEN_INFERIOR}" stroke="#ccc" stroke-width="1"/>`;
-  // Línea horizontal inferior (Eje X)
-  const ejeX = `<line x1="${MARGEN_IZQUIERDO}" y1="${ALTO_SVG - MARGEN_INFERIOR}" x2="${ANCHO_SVG - MARGEN_DERECHO}" y2="${ALTO_SVG - MARGEN_INFERIOR}" stroke="#ccc" stroke-width="1"/>`;
+  const ejeY = `<line x1="${MARGEN.izq}" y1="${MARGEN.arriba}" x2="${MARGEN.izq}" y2="${yPos(0)}" stroke="#94a3b8" stroke-width="1.5"/>`;
+  const ejeX = `<line x1="${MARGEN.izq}" y1="${yPos(0)}" x2="${ANCHO_SVG - MARGEN.der}" y2="${yPos(0)}" stroke="#94a3b8" stroke-width="1.5"/>`;
 
-  // --- Títulos de los Ejes ---
-  // Título del Eje X (Abajo, centrado)
-  const tituloEjeX = `<text x="${MARGEN_IZQUIERDO + (ANCHO_GRAFICA / 2)}" y="${ALTO_SVG - 15}" text-anchor="middle" font-size="14" font-weight="bold" fill="#333">Días del Sprint</text>`;
-  
-  // Título del Eje Y (Izquierda, rotado)
-  const centroY = MARGEN_SUPERIOR + (ALTO_GRAFICA / 2);
-  const tituloEjeY = `<text x="-${centroY}" y="25" transform="rotate(-90)" text-anchor="middle" font-size="14" font-weight="bold" fill="#333">Horas Restantes</text>`;
+  const centroY = MARGEN.arriba + (ALTO_GRAFICA / 2);
+  const tituloEjeY = `<text x="-${centroY}" y="22" transform="rotate(-90)" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Horas restantes</text>`;
+  const tituloEjeX = `<text x="${MARGEN.izq + (ANCHO_GRAFICA / 2)}" y="${ALTO_SVG - 16}" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Cierre de sprint</text>`;
 
-  // --- Renderizado Final ---
   contenedor.innerHTML = `
-    <div class="grafica__leyenda">
-      <span class="leyenda__item"><span style="width:18px;height:4px;background:var(--primario);display:inline-block; vertical-align: middle;"></span> Horas restantes (Real)</span>
-      <span class="leyenda__item"><span style="width:18px;height:4px;background:#aaa;display:inline-block; border-top: 2px dashed; vertical-align: middle;"></span> Línea Ideal</span>
+    <div class="metricas__cabecera" style="margin-bottom: 16px;">
+      <div>
+        <h2 class="metricas__titulo">Burndown chart</h2>
+        <p class="subtitulo-pagina">Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal</p>
+      </div>
     </div>
-    
-    <svg viewBox="0 0 ${ANCHO_SVG} ${ALTO_SVG}" width="100%" height="auto" style="max-width: 700px; display: block; margin: 0 auto; overflow: visible;">
-       <!-- Ejes y Títulos -->
-       ${ejeX}
-       ${ejeY}
-       ${tituloEjeX}
-       ${tituloEjeY}
 
-       <!-- Etiquetas de texto -->
-       ${etiquetasX}
-       ${etiquetasYIdeal}
-       
-       <!-- Líneas de datos -->
-       <polyline points="${lineaIdeal}" stroke="#aaa" stroke-width="2" stroke-dasharray="6,4" fill="none"/>
-       <polyline points="${lineaReal}" stroke="var(--primario)" stroke-width="3" fill="none"/>
-       
-       <!-- Puntos numéricos sobre la línea real -->
-       ${puntosRealesSVG}
-       ${etiquetasYReal}
-       
-       <!-- Resaltado de cambios de alcance -->
-       ${notificacionesModificados}
+    <svg viewBox="0 0 ${ANCHO_SVG} ${ALTO_SVG}" width="100%" height="auto" style="max-width: 750px; display: block; margin: 0 auto; overflow: visible;">
+      ${rejillaY}
+      ${ejeX}
+      ${ejeY}
+      ${tituloEjeX}
+      ${tituloEjeY}
+      ${etiquetasX}
+
+      <polyline points="${puntosIdeal.join(' ')}" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="8,6" fill="none" />
+      ${textosIdeal}
+
+      ${puntosReal.length > 1 ? `<polyline points="${puntosReal.join(' ')}" stroke="#1F5A67" stroke-width="3.5" fill="none" stroke-linejoin="round" />` : ''}
+      ${circulosReal}
+      ${textosReal}
     </svg>
+
+    <div style="display: flex; justify-content: center; align-items: center; gap: 32px; margin-top: 16px; font-size: 13px; color: #334155;">
+      <span style="display: inline-flex; align-items: center; gap: 8px;">
+        <span style="width: 24px; height: 0; border-top: 3px dashed #94a3b8; display: inline-block;"></span>
+        Línea ideal (h)
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 8px;">
+        <span style="width: 24px; height: 12px; display: inline-flex; align-items: center; justify-content: center; position: relative;">
+          <span style="width: 24px; height: 3.5px; background: #1F5A67; position: absolute;"></span>
+          <span style="width: 8px; height: 8px; background: #1F5A67; border-radius: 50%; z-index: 1;"></span>
+        </span>
+        Real restante (h)
+      </span>
+    </div>
   `;
 }

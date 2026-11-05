@@ -89,8 +89,6 @@ export function iniciarSockets(servidorServidorHttp) {
   });
 
   io.on('connection', (socket) => {
-    console.log(`Cliente conectado a Socket.io: ${socket.id}`);
-
     // Sala personal: permite avisar a una persona sin importar en qué proyecto esté
     socket.join(`usuario_${socket.data.usuarioId}`);
 
@@ -109,7 +107,7 @@ export function iniciarSockets(servidorServidorHttp) {
     });
 
     socket.on('disconnect', () => {
-      console.log(`Cliente desconectado: ${socket.id}`);
+      // Se omite el log de desconexión para mantener la terminal limpia
     });
   });
 

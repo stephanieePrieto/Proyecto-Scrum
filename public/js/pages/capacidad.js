@@ -4,13 +4,23 @@
  *   - Cargar y guardar las horas por día, las notas y las ausencias de la persona.
  *   - Validar el formulario antes de enviarlo y mostrar el error junto a cada campo.
  *   - Recalcular y mostrar la capacidad del equipo cada vez que se guarda.
+ *
+ * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { api } from '/js/core/api.js';
 import { montarBarraSuperior } from '/js/core/layout.js';
 import { escaparHtml, iniciales, pluralizar } from '/js/core/utils.js';
+import { cargarPermisos } from '/js/core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
 montarBarraSuperior();
+
+// Permisos del proyecto activo, el mismo que usan el resto de las pantallas
+const proyectoActivo = Number(localStorage.getItem('proyectoActivo')) || null;
+if (proyectoActivo) {
+  cargarPermisos(proyectoActivo).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+}
 
 // Referenciar los elementos de la página
 const formulario = document.getElementById('form-capacidad');
@@ -326,7 +336,7 @@ function pintarResumen(datos) {
     const detalle = !m.configurado
       ? 'Aún no captura sus horas por día'
       : `${m.diasHabiles} ${pluralizar(m.diasHabiles, 'día hábil', 'días hábiles')}`
-        + (m.diasAusente ? ` · ${m.diasAusente} ${pluralizar(m.diasAusente, 'día de ausencia', 'días de ausencia')}` : '');
+      + (m.diasAusente ? ` · ${m.diasAusente} ${pluralizar(m.diasAusente, 'día de ausencia', 'días de ausencia')}` : '');
     const marca = m.configurado ? '' : ' <span class="insignia insignia--advertencia">Sin configurar</span>';
     return `<li class="resumen__miembro">
       <div class="resumen__miembro-fila">

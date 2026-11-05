@@ -1,7 +1,14 @@
 // Responsable: Jetz - HU-06: lógica de la pantalla de sprints
 
+/**
+ * @file sprints.js
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
+ */
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
 
@@ -13,6 +20,11 @@ let proyectoId =
   localStorage.getItem('proyectoActivo');
 
 console.log('Proyecto activo:', proyectoId);
+
+// Permisos del proyecto abierto
+if (proyectoId) {
+  cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+}
 
 // HU-06: Navegación entre proyectos sin recargar la página
 let cambiandoProyecto = false;
@@ -156,6 +168,9 @@ async function cambiarProyecto(nuevoId, guardarHistorial = true) {
     proyectoId = String(nuevoId);
 
     localStorage.setItem('proyectoActivo', proyectoId);
+
+    // Al cambiar de proyecto se recargan los permisos
+    cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 
     // Actualizar la URL sin recargar
     if (guardarHistorial) {

@@ -17,9 +17,6 @@
 import { api } from '../../core/api.js';
 import { pluralizar } from '../../core/utils.js';
 
-/** Hoja de estilos propia; se agrega una sola vez para que la página no tenga que enlazarla. */
-const HOJA_ESTILOS = '/css/pages/desviacion.css';
-
 /** Cliente de Socket.io que sirve el propio servidor. */
 const URL_CLIENTE_SOCKET = '/socket.io/socket.io.js';
 

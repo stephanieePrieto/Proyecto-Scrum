@@ -11,6 +11,59 @@ import { esAdminEquipo, esMiembroEquipo, MENSAJE_NO_ENCONTRADO } from '../../uti
 import { esCorreoValido } from '../../utils/validar.js';
 import crypto from 'crypto';
 import { env } from '../../config/env.js';
+import { registrarAuditoria, enTransaccion, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
+
+/**
+ * Registra en la bitácora que una persona recibió un rol en un proyecto. Consulta el rol que tenía antes
+ * para distinguir una asignación nueva de un cambio; si el rol es el mismo no registra nada.
+ *
+ * @param {import('pg').PoolClient} cliente - Cliente de la transacción. Debe llamarse antes de guardar el rol.
+ * @param {number} actorId - Quien realiza la acción.
+ * @param {number} proyectoId - Proyecto en el que se asigna el rol.
+ * @param {number} usuarioId - Persona que recibe el rol.
+ * @param {string} rol - Rol asignado.
+ * @returns {Promise<void>}
+ */
+async function auditarRolAsignado(cliente, actorId, proyectoId, usuarioId, rol) {
+    const { rows } = await cliente.query(
+        'SELECT rol FROM miembros_proyecto WHERE proyecto_id = $1 AND usuario_id = $2',
+        [proyectoId, usuarioId]
+    );
+    const rolAnterior = rows[0]?.rol ?? null;
+    if (rolAnterior === rol) return;
+    await registrarAuditoria(cliente, {
+        usuarioId: actorId,
+        proyectoId,
+        accion: rolAnterior ? ACCIONES.ROL_PROYECTO_MODIFICADO : ACCIONES.ROL_PROYECTO_ASIGNADO,
+        objeto: OBJETOS.PROYECTO,
+        objetoId: proyectoId,
+        contexto: { usuario_id: usuarioId, rol_anterior: rolAnterior, rol_nuevo: rol },
+    });
+}
+
+/**
+ * Registra en la bitácora la aceptación de una invitación ligada a un proyecto y, si trae rol, la asignación
+ * de ese rol. Las invitaciones que solo corresponden a un equipo no se registran.
+ *
+ * @param {import('pg').PoolClient} cliente - Cliente de la transacción. Debe llamarse antes de guardar el rol.
+ * @param {{id: number, correo: string, proyecto_id: number|null, rol: string|null}} inv - Invitación aceptada.
+ * @param {number} usuarioId - Persona que acepta la invitación.
+ * @returns {Promise<void>}
+ */
+async function auditarAceptacion(cliente, inv, usuarioId) {
+    if (!inv.proyecto_id) return;
+    await registrarAuditoria(cliente, {
+        usuarioId,
+        proyectoId: inv.proyecto_id,
+        accion: ACCIONES.INVITACION_ACEPTADA,
+        objeto: OBJETOS.INVITACION,
+        objetoId: inv.id,
+        antes: { estado: 'pendiente' },
+        despues: { estado: 'aceptada' },
+        contexto: { correo: inv.correo, rol: inv.rol },
+    });
+    if (inv.rol) await auditarRolAsignado(cliente, usuarioId, inv.proyecto_id, usuarioId, inv.rol);
+}
 
 const EXPIRACION_INVITACION_HORAS = 72;
 const ROLES_PERMITIDOS = ['scrum_master', 'product_owner', 'developer'];
@@ -166,11 +219,25 @@ export async function crearInvitacion(datos, usuario) {
     const { tokenPlano, tokenHash } = generarToken();
     const expiraEn = new Date(Date.now() + EXPIRACION_INVITACION_HORAS * 60 * 60 * 1000);
 
-    const { rows } = await consulta(`
+    const rows = await enTransaccion(async (cliente) => {
+        const { rows: creadas } = await cliente.query(`
         INSERT INTO invitaciones (correo, equipo_id, proyecto_id, rol, token_hash, expira_en, invitado_por)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, correo, equipo_id, proyecto_id, rol, estado, expira_en, creado_en
     `, [correoLimpio, equipo_id, proyecto_id, rol, tokenHash, expiraEn, usuario.id]);
+
+        if (proyecto_id) {
+            await registrarAuditoria(cliente, {
+                usuarioId: usuario.id,
+                proyectoId: proyecto_id,
+                accion: ACCIONES.INVITACION_CREADA,
+                objeto: OBJETOS.INVITACION,
+                objetoId: creadas[0].id,
+                despues: { correo: correoLimpio, rol },
+            });
+        }
+        return creadas;
+    });
 
     const invitacionId = rows[0].id;
     const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${tokenPlano}`;
@@ -241,6 +308,7 @@ export async function altaDirecta(datos, usuario) {
             `, [equipo_id, usuarioId]);
 
             if (proyecto_id && rol) {
+                await auditarRolAsignado(cliente, usuario.id, proyecto_id, usuarioId, rol);
                 await cliente.query(`
                     INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
                     VALUES ($1, $2, $3)
@@ -334,6 +402,7 @@ export async function aceptarInvitacion(tokenPlano, usuario = null) {
 
         if (usuarioExistente.length > 0) {
             const usuarioId = usuarioExistente[0].id;
+            await auditarAceptacion(cliente, inv, usuarioId);
             await cliente.query(`
                 INSERT INTO miembros_equipo (equipo_id, usuario_id)
                 VALUES ($1, $2) ON CONFLICT DO NOTHING
@@ -354,6 +423,7 @@ export async function aceptarInvitacion(tokenPlano, usuario = null) {
                 VALUES ($1, $2, TRUE) RETURNING id
             `, [nombreProvisional, inv.correo]);
             const usuarioId = nuevoUsuario[0].id;
+            await auditarAceptacion(cliente, inv, usuarioId);
 
             await cliente.query(`
                 INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)
@@ -409,11 +479,26 @@ export async function reenviarInvitacion(invitacionId, usuario) {
     const { tokenPlano, tokenHash } = generarToken();
     const expiraEn = new Date(Date.now() + EXPIRACION_INVITACION_HORAS * 60 * 60 * 1000);
 
-    await consulta(`
+    await enTransaccion(async (cliente) => {
+        await cliente.query(`
         UPDATE invitaciones
         SET token_hash = $1, expira_en = $2, estado = 'pendiente'
         WHERE id = $3
     `, [tokenHash, expiraEn, invitacionId]);
+
+        if (invitacion[0].proyecto_id) {
+            await registrarAuditoria(cliente, {
+                usuarioId: usuario.id,
+                proyectoId: invitacion[0].proyecto_id,
+                accion: ACCIONES.INVITACION_REENVIADA,
+                objeto: OBJETOS.INVITACION,
+                objetoId: invitacion[0].id,
+                antes: { estado: invitacion[0].estado },
+                despues: { estado: 'pendiente' },
+                contexto: { correo: invitacion[0].correo },
+            });
+        }
+    });
 
     const enlace = `${env.APP_URL}/pages/aceptar-invitacion.html?token=${tokenPlano}`;
     await enviarCorreo({
@@ -439,7 +524,22 @@ export async function cancelarInvitacion(invitacionId, usuario) {
 
     if (invitacion[0].estado === 'aceptada') throw new ErrorApp('La invitación ya fue aceptada.', 409);
 
-    await consulta('UPDATE invitaciones SET estado = $1 WHERE id = $2', ['fallida', invitacionId]);
+    await enTransaccion(async (cliente) => {
+        await cliente.query('UPDATE invitaciones SET estado = $1 WHERE id = $2', ['fallida', invitacionId]);
+
+        if (invitacion[0].proyecto_id) {
+            await registrarAuditoria(cliente, {
+                usuarioId: usuario.id,
+                proyectoId: invitacion[0].proyecto_id,
+                accion: ACCIONES.INVITACION_CANCELADA,
+                objeto: OBJETOS.INVITACION,
+                objetoId: invitacion[0].id,
+                antes: { estado: invitacion[0].estado },
+                despues: { estado: 'cancelada' },
+                contexto: { correo: invitacion[0].correo },
+            });
+        }
+    });
     return { mensaje: 'Invitación cancelada.' };
 }
 
@@ -507,6 +607,7 @@ export async function agregarUsuarioExistente(datos, usuario) {
             `, [equipo_id, usuario_id]);
 
             if (proyecto_id && rol) {
+                await auditarRolAsignado(cliente, usuario.id, proyecto_id, usuario_id, rol);
                 await cliente.query(`
                     INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
                     VALUES ($1, $2, $3)
@@ -531,10 +632,27 @@ export async function agregarUsuarioExistente(datos, usuario) {
  */
 export async function rechazarInvitacion(tokenPlano) {
     const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
-    const { rowCount } = await consulta(`
+    const rechazadas = await enTransaccion(async (cliente) => {
+        const { rows } = await cliente.query(`
         UPDATE invitaciones SET estado = 'rechazada'
         WHERE token_hash = $1 AND estado = 'pendiente' AND expira_en > NOW()
+        RETURNING id, proyecto_id, correo, rol
     `, [tokenHash]);
-    if (rowCount === 0) throw new ErrorApp('Invitación inválida o expirada.', 400);
+
+        if (rows[0]?.proyecto_id) {
+            await registrarAuditoria(cliente, {
+                usuarioId: null,
+                proyectoId: rows[0].proyecto_id,
+                accion: ACCIONES.INVITACION_RECHAZADA,
+                objeto: OBJETOS.INVITACION,
+                objetoId: rows[0].id,
+                antes: { estado: 'pendiente' },
+                despues: { estado: 'rechazada' },
+                contexto: { correo: rows[0].correo, rol: rows[0].rol },
+            });
+        }
+        return rows.length;
+    });
+    if (rechazadas === 0) throw new ErrorApp('Invitación inválida o expirada.', 400);
     return { mensaje: 'Has rechazado la invitación correctamente.' };
 }

@@ -14,6 +14,7 @@ import crypto from 'crypto';
 import { enviarCorreo } from '../../utils/correo.js';
 import { env } from '../../config/env.js';
 import { tienePermiso } from '../../utils/permisos.js';
+import { registrarAuditoria, enTransaccion, extraerCampos, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 // ---------- Utilidades internas ----------
 
@@ -69,6 +70,9 @@ const COLUMNAS = `p.id, p.equipo_id, e.nombre AS equipo_nombre, p.nombre, p.visi
   EXISTS (SELECT 1 FROM sprints s WHERE s.proyecto_id = p.id AND s.estado = 'activo') AS sprint_activo`;
 
 const DESDE = 'FROM proyectos p JOIN equipos e ON e.id = p.equipo_id';
+
+/** Campos del proyecto cuyos valores anteriores y nuevos se guardan en la bitácora al editarlo. */
+const CAMPOS_AUDITADOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
 
 function fechaValida(texto) {
   if (typeof texto !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return false;
@@ -227,6 +231,20 @@ export async function crear(datos, usuario) {
     );
     proyectoId = rows[0].id;
 
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id,
+      proyectoId,
+      accion: ACCIONES.PROYECTO_CREADO,
+      objeto: OBJETOS.PROYECTO,
+      objetoId: proyectoId,
+      despues: {
+        nombre: limpio.nombre,
+        equipo_id: limpio.equipo_id,
+        fecha_inicio: limpio.fecha_inicio,
+        fecha_fin: limpio.fecha_fin,
+      },
+    });
+
     // Recopilar invitaciones
     for (const m of limpio.miembros) {
       if (m.usuario_id === usuario.id || !['scrum_master', 'product_owner', 'developer'].includes(m.rol)) continue;
@@ -241,6 +259,15 @@ export async function crear(datos, usuario) {
         INSERT INTO invitaciones (correo, equipo_id, proyecto_id, rol, token_hash, expira_en, invitado_por)
         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
       `, [uRows[0].correo, limpio.equipo_id, proyectoId, m.rol, tokenHash, expiraEn, usuario.id]);
+
+      await registrarAuditoria(cliente, {
+        usuarioId: usuario.id,
+        proyectoId,
+        accion: ACCIONES.INVITACION_CREADA,
+        objeto: OBJETOS.INVITACION,
+        objetoId: invRows[0].id,
+        despues: { correo: uRows[0].correo, rol: m.rol },
+      });
 
       invitadosData.push({
         invitacionId: invRows[0].id,
@@ -312,17 +339,39 @@ export async function actualizar(id, datos, usuario) {
   }
 
   try {
-    const { rows } = await query(
-      `UPDATE proyectos
+    const actualizado = await enTransaccion(async (cliente) => {
+      const { rows } = await cliente.query(
+        `UPDATE proyectos
           SET nombre = $1, vision = $2, fecha_inicio = $3, fecha_fin = $4,
               definition_of_done = $5, version = version + 1
         WHERE id = $6 AND version = $7 AND archivado = FALSE
         RETURNING id`,
-      [limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin,
-      limpio.definition_of_done, id, versionCliente],
-    );
+        [limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin,
+        limpio.definition_of_done, id, versionCliente],
+      );
+      if (!rows.length) return false;
 
-    if (!rows.length) {
+      const cambios = diferencias(extraerCampos(actual, CAMPOS_AUDITADOS), {
+        nombre: limpio.nombre,
+        vision: limpio.vision,
+        fecha_inicio: limpio.fecha_inicio,
+        fecha_fin: limpio.fecha_fin,
+        definition_of_done: limpio.definition_of_done,
+      });
+      if (cambios) {
+        await registrarAuditoria(cliente, {
+          usuarioId: usuario.id,
+          proyectoId: rows[0].id,
+          accion: ACCIONES.PROYECTO_MODIFICADO,
+          objeto: OBJETOS.PROYECTO,
+          objetoId: rows[0].id,
+          ...cambios,
+        });
+      }
+      return true;
+    });
+
+    if (!actualizado) {
       const masNueva = await obtener(id, usuario);
       lanzar(409, 'Hay una versión más nueva de este proyecto.', { conflicto: true, actual: masNueva });
     }
@@ -337,16 +386,30 @@ export async function archivar(id, usuario) {
   const proyectoActual = await obtener(id, usuario);
   if (!proyectoActual) lanzar(404, 'Proyecto no encontrado.');
 
-  const { rows } = await query(
-    `UPDATE proyectos
+  const archivado = await enTransaccion(async (cliente) => {
+    const { rows } = await cliente.query(
+      `UPDATE proyectos
         SET archivado = TRUE, version = version + 1
       WHERE id = $1 AND archivado = FALSE
         AND NOT EXISTS (SELECT 1 FROM sprints s WHERE s.proyecto_id = $1 AND s.estado = 'activo')
       RETURNING id`,
-    [id],
-  );
+      [id],
+    );
+    if (!rows.length) return false;
 
-  if (!rows.length) {
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id,
+      proyectoId: rows[0].id,
+      accion: ACCIONES.PROYECTO_ARCHIVADO,
+      objeto: OBJETOS.PROYECTO,
+      objetoId: rows[0].id,
+      antes: { archivado: false },
+      despues: { archivado: true },
+    });
+    return true;
+  });
+
+  if (!archivado) {
     const proyecto = await obtener(id, usuario);
     if (proyecto?.archivado) return proyecto;
     lanzar(409, 'El proyecto tiene un sprint activo. Cierra el sprint antes de archivarlo.', { motivo: 'sprint_activo' });

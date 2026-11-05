@@ -2,6 +2,7 @@
 
 import { consulta, pool } from '../../config/db.js';
 import { tienePermiso } from '../../utils/permisos.js';
+import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 /**
  * @file sprints.service.js
@@ -297,6 +298,21 @@ export async function crearSprintSeguro(datos, equipoId, usuarioId) {
         datos.capacidadHoras
       ]
     );
+
+    await registrarAuditoria(cliente, {
+      usuarioId,
+      proyectoId: datos.proyectoId,
+      accion: ACCIONES.SPRINT_CREADO,
+      objeto: OBJETOS.SPRINT,
+      objetoId: resultado.rows[0].id,
+      despues: {
+        nombre: datos.nombre.trim(),
+        objetivo: datos.objetivo.trim(),
+        fecha_inicio: datos.fechaInicio,
+        fecha_fin: datos.fechaFin,
+        capacidad_horas: datos.capacidadHoras
+      }
+    });
 
     // Confirmar los cambios
     await cliente.query('COMMIT');

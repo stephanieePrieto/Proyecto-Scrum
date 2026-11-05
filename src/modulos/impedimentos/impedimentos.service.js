@@ -27,6 +27,7 @@ import {
   validarImpedimento,
   mensajeYaResuelto,
 } from './impedimentos.reglas.js';
+import { registrarAuditoria, enTransaccion, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 /** Nombres de los eventos en tiempo real (el cliente de la pantalla los escucha). */
 export const EVENTOS = {
@@ -284,11 +285,27 @@ export async function crear(actor, proyectoId, datos) {
   if (Object.keys(errores).length) lanzar(400, 'Revisa los campos marcados.', errores);
 
   const { rows: [sprint] } = await consulta("SELECT id FROM sprints WHERE proyecto_id = $1 AND estado = 'activo'", [proyectoId]);
-  const { rows: [nuevo] } = await consulta(
-    `INSERT INTO impedimentos (proyecto_id, sprint_id, tarea_id, titulo, severidad, responsable_id, creado_por)
+  const nuevo = await enTransaccion(async (cliente) => {
+    const { rows: [creado] } = await cliente.query(
+      `INSERT INTO impedimentos (proyecto_id, sprint_id, tarea_id, titulo, severidad, responsable_id, creado_por)
           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-    [proyectoId, sprint?.id ?? null, valores.tarea_id, valores.titulo, valores.severidad, valores.responsable_id, actor.id],
-  );
+      [proyectoId, sprint?.id ?? null, valores.tarea_id, valores.titulo, valores.severidad, valores.responsable_id, actor.id],
+    );
+    await registrarAuditoria(cliente, {
+      usuarioId: actor.id,
+      proyectoId: idProyecto,
+      accion: ACCIONES.IMPEDIMENTO_CREADO,
+      objeto: OBJETOS.IMPEDIMENTO,
+      objetoId: creado.id,
+      despues: {
+        titulo: valores.titulo,
+        severidad: valores.severidad,
+        responsable_id: valores.responsable_id,
+        tarea_id: valores.tarea_id,
+      },
+    });
+    return creado;
+  });
 
   const impedimento = await obtenerUno(nuevo.id);
   emitirAProyecto(Number(proyectoId), EVENTOS.creado, { proyecto_id: Number(proyectoId), impedimento });
@@ -322,11 +339,25 @@ export async function resolver(actor, id) {
   if (!dueno) lanzar(404, MENSAJE_NO_ENCONTRADO);
   await exigirPermiso(actor, 'impedimento.gestionar', dueno.proyecto_id);
 
-  const { rows: [afectado] } = await consulta(
-    `UPDATE impedimentos SET estado = 'resuelto', resuelto_por = $2, resuelto_en = NOW()
+  const afectado = await enTransaccion(async (cliente) => {
+    const { rows: [resuelto] } = await cliente.query(
+      `UPDATE impedimentos SET estado = 'resuelto', resuelto_por = $2, resuelto_en = NOW()
       WHERE id = $1 AND estado = 'abierto' RETURNING id, proyecto_id`,
-    [impedimentoId, actor.id],
-  );
+      [impedimentoId, actor.id],
+    );
+    if (resuelto) {
+      await registrarAuditoria(cliente, {
+        usuarioId: actor.id,
+        proyectoId: resuelto.proyecto_id,
+        accion: ACCIONES.IMPEDIMENTO_RESUELTO,
+        objeto: OBJETOS.IMPEDIMENTO,
+        objetoId: resuelto.id,
+        antes: { estado: 'abierto' },
+        despues: { estado: 'resuelto' },
+      });
+    }
+    return resuelto;
+  });
 
   if (!afectado) {
     const existente = await obtenerUno(impedimentoId);

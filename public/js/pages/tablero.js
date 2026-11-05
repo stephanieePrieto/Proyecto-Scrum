@@ -1,12 +1,18 @@
 /**
+ * @file tablero.js
+ * 
  * @fileoverview Lógica de la pantalla del tablero del sprint (HU-17 a HU-25, HU-58, HU-59).
  * Se arma con los módulos de tablero y maneja la comunicación inicial y filtros.
- * @author Camila
+ * 
+ * @author Camila Marine Crespo Zurita
+ * @author Citlaly Morales Viveros
+ * 
  * @see {@link module:tablero/columnas}
  */
 
 import { inicializarTablero, aplicarFiltrosTablero } from './tablero/columnas.js';
 import { montarBarraSuperior } from '../core/layout.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 import { escucharMovimientosSocket } from './tablero/reconexion.js';
 
 /**
@@ -62,6 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
      * Inicia la carga de las columnas, tarjetas y cálculo de días del sprint activo.
      */
     inicializarTablero(proyectoActivoId);
+
+    /**
+     * Carga los permisos del proyecto activo para mostrar solo las acciones de su rol.
+     */
+    cargarPermisos(Number(proyectoActivoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 
     /**
      * Inicializa la escucha por WebSockets y la sincronización offline (HU-58).

@@ -14,6 +14,9 @@
  *  - Velocity = puntos de las historias terminadas (hecho o aceptada).
  *  - Las historias no terminadas vuelven al backlog o pasan al siguiente sprint (con sus tareas).
  *  - Al iniciar se generan los eventos del calendario (HU-15).
+ *
+ * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
@@ -21,6 +24,7 @@ import { emitirAProyecto } from '../../sockets/emisor.js';
 import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { sincronizarEventos } from '../calendario/calendario.service.js';
 import { faltantesParaIniciar, calcularResumen, validarCierre, ESTADOS_TERMINADA } from './ciclo-sprint.reglas.js';
+import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 /** Nombres de los eventos en tiempo real (el cliente de la pantalla los escucha). */
 export const EVENTOS = { iniciado: 'sprint:iniciado', cerrado: 'sprint:cerrado' };
@@ -270,6 +274,15 @@ export async function iniciar(actor, sprintIdTexto, datos = {}) {
       if (error.code === '23505') lanzar(409, MENSAJE_YA_ACTIVO);
       throw error;
     }
+    await registrarAuditoria(cliente, {
+      usuarioId: actor.id,
+      proyectoId: fila.proyecto_id,
+      accion: ACCIONES.SPRINT_INICIADO,
+      objeto: OBJETOS.SPRINT,
+      objetoId: fila.id,
+      antes: { estado: 'planificado' },
+      despues: { estado: 'activo', objetivo, capacidad_horas: Number(capacidad) },
+    });
     await cliente.query('COMMIT');
     sprint = { ...fila, estado: 'activo', objetivo, capacidad_horas: Number(capacidad) };
   } catch (error) {
@@ -350,10 +363,24 @@ export async function cerrar(actor, sprintIdTexto, decisiones = {}) {
     }
 
     await cliente.query("UPDATE sprints SET estado = 'cerrado', velocity = $2, cerrado_en = NOW() WHERE id = $1", [sprint.id, calculo.velocity]);
+    await registrarAuditoria(cliente, {
+      usuarioId: actor.id,
+      proyectoId: sprint.proyecto_id,
+      accion: ACCIONES.SPRINT_CERRADO,
+      objeto: OBJETOS.SPRINT,
+      objetoId: sprint.id,
+      antes: { estado: 'activo' },
+      despues: { estado: 'cerrado', velocity: calculo.velocity },
+      contexto: {
+        historias_pendientes: pendientes,
+        destino: destino ? destino.nombre : pendientes.length ? 'backlog' : null,
+        historias_marcadas_hecho: decisiones.revision === 'hecho' ? enRevision.map((h) => h.id) : [],
+      },
+    });
     await cliente.query('COMMIT');
     resultado = { yaCerrado: false, sprint: { id: sprint.id, nombre: sprint.nombre, proyecto_id: sprint.proyecto_id }, ...calculo, trasladadas: pendientes.length, destino: destino ? destino.nombre : pendientes.length ? 'backlog' : null };
   } catch (error) {
-    await cliente.query('ROLLBACK').catch(() => {});
+    await cliente.query('ROLLBACK').catch(() => { });
     throw error;
   } finally {
     cliente.release();

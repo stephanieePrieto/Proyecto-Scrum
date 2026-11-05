@@ -1,1 +1,133 @@
-<!-- Responsable: Citlaly - HU-46: pantalla de bitacora de auditoria. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!DOCTYPE html>
+<!-- Responsable: Citlaly - HU-46: pantalla de bitácora de auditoría. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bitácora de auditoría · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="aud-pagina">
+    <div class="aud-encabezado">
+      <div>
+        <h1 class="titulo-pagina">Bitácora de auditoría</h1>
+        <p class="subtitulo-pagina">Registros de acciones sensibles en el proyecto.</p>
+      </div>
+      <div>
+        <select class="form-input aud-selector-proyecto" id="selector-proyecto" aria-label="Proyecto" hidden></select>
+      </div>
+    </div>
+
+    <div id="aviso" class="alerta" role="status" aria-live="polite" hidden></div>
+
+    <!-- Filtros -->
+    <section class="tarjeta aud-filtros">
+      <h2 class="aud-filtros__titulo">Filtros</h2>
+      <div class="aud-filtros__rejilla">
+        <div class="form-group">
+          <label class="form-label" for="filtro-usuario">Usuario</label>
+          <select class="form-input" id="filtro-usuario">
+            <option value="">Todos los usuarios</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="filtro-accion">Acción</label>
+          <select class="form-input" id="filtro-accion">
+            <option value="">Todas las acciones</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="filtro-fecha-desde">Fecha desde</label>
+          <input class="form-input" id="filtro-fecha-desde" type="date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="filtro-fecha-hasta">Fecha hasta</label>
+          <input class="form-input" id="filtro-fecha-hasta" type="date" />
+        </div>
+        <div class="aud-filtros__acciones">
+          <button class="boton boton--primario" id="btn-buscar" type="button">Buscar</button>
+          <button class="boton boton--secundario" id="btn-limpiar" type="button">Limpiar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resultados -->
+    <section class="aud-resultados">
+      <div class="aud-resultados__cabecera">
+        <h2 class="aud-resultados__titulo">Resultados</h2>
+        <span class="aud-resultados__total" id="total-registros">Cargando...</span>
+      </div>
+
+      <!-- Tabla -->
+      <div class="desv-tabla-envoltura">
+        <table class="desv-tabla aud-tabla" id="tabla-auditoria" aria-busy="true">
+          <thead>
+            <tr>
+              <th scope="col">Fecha y hora</th>
+              <th scope="col">Usuario</th>
+              <th scope="col">Acción</th>
+              <th scope="col">Objeto</th>
+              <th scope="col" class="aud-tabla__detalle">Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-cuerpo">
+            <tr>
+              <td colspan="5" class="aud-tabla__carga">
+                <span class="esqueleto aud-esqueleto aud-esqueleto--largo"></span>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="5" class="aud-tabla__carga">
+                <span class="esqueleto aud-esqueleto aud-esqueleto--corto"></span>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="5" class="aud-tabla__carga">
+                <span class="esqueleto aud-esqueleto aud-esqueleto--medio"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div id="mensaje-vacia" hidden class="desv-vacio">
+          <p class="aud-vacio__texto">No se encontraron registros de auditoría que coincidan con los filtros aplicados.
+          </p>
+        </div>
+      </div>
+
+      <!-- Paginación -->
+      <nav class="aud-paginacion" id="paginacion" aria-label="Paginación" hidden>
+        <button class="boton boton--secundario aud-paginacion__boton" id="btn-anterior" type="button"
+          aria-label="Página anterior" disabled>
+          <span>←</span>
+        </button>
+        <span class="aud-paginacion__info" id="paginacion-info">Página 1 de 1</span>
+        <button class="boton boton--secundario aud-paginacion__boton" id="btn-siguiente" type="button"
+          aria-label="Página siguiente" disabled>
+          <span>→</span>
+        </button>
+      </nav>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/js/pages/auditoria.js"></script>
+</body>
+
+</html>

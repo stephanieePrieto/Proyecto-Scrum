@@ -1,12 +1,13 @@
 /**
- * @author Citlaly Morales Viveros
- */
-/**
- * Construir e insertar la barra superior de navegación en <header id="barra-superior">.
+ * @file layout.js
+ * @description Construir e insertar la barra superior de navegación en <header id="barra-superior">.
  * Reutilizar este módulo en todas las páginas para mantener un menú único.
  * Incluye la campana de notificaciones (HU-24) y carga su hoja de estilos de forma global.
+ * 
+ * @author Citlaly Morales Viveros
  */
 import { escaparHtml, iniciales } from './utils.js';
+import './permisos-ui.js';
 
 /** Ruta pública de la hoja de estilos de la campana de notificaciones (HU-24). */
 const RUTA_CSS_NOTIFICACIONES = '/css/componentes/notificaciones.css';
@@ -50,6 +51,7 @@ const ENLACES = [
   { href: '/pages/calendario.html', etiqueta: 'Calendario', icono: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2"/>' },
   { href: '/pages/equipos.html', etiqueta: 'Equipo', icono: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>' },
   { href: '/pages/metricas.html', etiqueta: 'Métricas', icono: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
+  { href: '/pages/auditoria.html', etiqueta: 'Bitácora', permiso: 'auditoria.ver', icono: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>' },
 ];
 
 /** Clase que marca un grupo del menú como desplegado. */
@@ -71,7 +73,7 @@ const GRUPOS = [
   },
   {
     etiqueta: 'Seguimiento',
-    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/calendario.html', '/pages/mis-horas.html'],
+    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html'],
   },
   {
     etiqueta: 'Equipo',
@@ -83,6 +85,18 @@ const GRUPOS = [
 let controladorMenus = null;
 
 /**
+ * Generar el atributo data-permiso de una opción del menú que requiere un permiso del proyecto.
+ * permisos-ui.js mantiene oculta la opción hasta confirmar que el rol de la persona la autoriza.
+ *
+ * @param {{permiso?: string}} enlace Opción del menú; puede incluir la clave del permiso requerido.
+ * @returns {string} Atributo listo para insertar en la etiqueta, o cadena vacía si la opción no requiere permiso.
+ * @author Citlaly Morales Viveros
+ */
+function atributoPermiso(enlace) {
+  return enlace.permiso ? ` data-permiso="${enlace.permiso}"` : '';
+}
+
+/**
  * Generar el HTML de un enlace de navegación.
  * Marcar con aria-current="page" el enlace de la página abierta.
  *
@@ -91,7 +105,7 @@ let controladorMenus = null;
  */
 function crearEnlaceHtml(enlace) {
   const activo = enlace.href === location.pathname ? ' aria-current="page"' : '';
-  return `<a class="barra-superior__enlace" href="${enlace.href}"${activo}>
+  return `<a class="barra-superior__enlace" href="${enlace.href}"${activo}${atributoPermiso(enlace)}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${enlace.icono}</svg>
       ${enlace.etiqueta}</a>`;
 }

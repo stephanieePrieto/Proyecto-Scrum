@@ -6,11 +6,14 @@
  *   - Avisa de los eventos que caen en una ausencia del Scrum Master o del Product Owner.
  *   - Sin sprint activo, muestra un mensaje.
  *   - Se actualiza sola cuando cambian las fechas del sprint (Socket.io).
+ *
+ * @author Citlaly Morales Viveros (Cliente / Programadora XP)
  */
 import { api } from '/js/core/api.js';
 import { montarBarraSuperior } from '/js/core/layout.js';
 import { escaparHtml } from '/js/core/utils.js';
 import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '/js/pages/ceremonias/proyecto.js';
+import { cargarPermisos, escucharCambiosDeRol } from '/js/core/permisos-ui.js';
 
 montarBarraSuperior();
 
@@ -252,9 +255,12 @@ async function iniciar() {
     return;
   }
   ctx.proyectoId = eleccion.id;
+  // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
+  cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
   pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/calendario.html');
   await cargar();
-  conectarTiempoReal(ctx.proyectoId, ['calendario:actualizado', 'sprint:iniciado', 'sprint:cerrado'], cargar);
+  const socket = conectarTiempoReal(ctx.proyectoId, ['calendario:actualizado', 'sprint:iniciado', 'sprint:cerrado'], cargar);
+  if (socket) escucharCambiosDeRol(socket);
 }
 
 iniciar();

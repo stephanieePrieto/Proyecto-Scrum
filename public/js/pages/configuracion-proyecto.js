@@ -8,10 +8,14 @@
  * NOTA: api.js (BASE) descarta el cuerpo de las respuestas con error, y aquí se necesita para
  * mostrar los errores por campo y las diferencias de versión. Por eso esta página usa su propia
  * función "llamar". Propuesta para el equipo: que api.js guarde el cuerpo en error.cuerpo.
+ *
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
  */
 import { montarBarraSuperior } from '../core/layout.js';
 import { obtenerTokenCsrf } from '../core/seguridad.js';
 import { escaparHtml } from '../core/utils.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const CAMPOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
@@ -76,15 +80,15 @@ function mostrarErroresCampos(campos = {}) {
 
 function leerFormulario() {
   const datos = Object.fromEntries(CAMPOS.map((c) => [c, $(c).value]));
-  
+
   if (!editando) {
     datos.equipo_id = $('equipo_id').value;
     datos.miembros = Array.from(document.querySelectorAll('.rol-miembro'))
-        .filter(select => select.value !== "")
-        .map(select => ({
-            usuario_id: parseInt(select.dataset.usuario),
-            rol: select.value
-        }));
+      .filter(select => select.value !== "")
+      .map(select => ({
+        usuario_id: parseInt(select.dataset.usuario),
+        rol: select.value
+      }));
   } else {
     datos.version = versionActual;
   }
@@ -131,7 +135,7 @@ async function cargarProyecto() {
 async function iniciar() {
   montarBarraSuperior();
 
-    // No permitir fechas anteriores a hoy al crear un proyecto.
+  // No permitir fechas anteriores a hoy al crear un proyecto.
   if (!editando) {
     const hoy = new Date();
     const fechaLocal = [
@@ -146,6 +150,8 @@ async function iniciar() {
   try {
     if (editando) {
       $('titulo').textContent = 'Editar proyecto';
+      // Permisos del proyecto que se está editando
+      cargarPermisos(Number(id)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
       const proyecto = await cargarProyecto();
       if (!proyecto) return;
       if (proyecto.archivado) {
@@ -205,21 +211,21 @@ async function guardar(datos) {
 }
 
 $('equipo_id').addEventListener('change', async (e) => {
-    const equipoId = e.target.value;
-    const seccion = $('seccion-miembros-proyecto');
-    const lista = $('lista-miembros-equipo');
-    
-    if (!equipoId || editando) {
-        seccion.hidden = true;
-        return;
-    }
-    
-    lista.innerHTML = '<p>Cargando integrantes...</p>';
-    seccion.hidden = false;
-    
-    const { ok, datos } = await llamar(`/equipos/${equipoId}`);
-    if (ok && datos.equipo && datos.equipo.miembros.length) {
-        lista.innerHTML = datos.equipo.miembros.map(m => `
+  const equipoId = e.target.value;
+  const seccion = $('seccion-miembros-proyecto');
+  const lista = $('lista-miembros-equipo');
+
+  if (!equipoId || editando) {
+    seccion.hidden = true;
+    return;
+  }
+
+  lista.innerHTML = '<p>Cargando integrantes...</p>';
+  seccion.hidden = false;
+
+  const { ok, datos } = await llamar(`/equipos/${equipoId}`);
+  if (ok && datos.equipo && datos.equipo.miembros.length) {
+    lista.innerHTML = datos.equipo.miembros.map(m => `
             <div class="eq-fila" style="padding: 12px; border: 1px solid var(--borde); border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <strong style="display: block; font-size: 0.9rem;">${escaparHtml(m.nombre)}</strong>
@@ -233,9 +239,9 @@ $('equipo_id').addEventListener('change', async (e) => {
                 </select>
             </div>
         `).join('');
-    } else {
-        lista.innerHTML = '<p>No hay otros integrantes en este equipo.</p>';
-    }
+  } else {
+    lista.innerHTML = '<p>No hay otros integrantes en este equipo.</p>';
+  }
 });
 
 

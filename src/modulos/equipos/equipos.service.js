@@ -25,6 +25,9 @@ const MAX_INTEGRANTES = 9;
 const MAX_NOMBRE = 120;
 const MAX_RESULTADOS_USUARIOS = 25;
 
+/** Caracteres mínimos para buscar usuarios; con menos no se devuelve ningún resultado. */
+const MIN_CARACTERES_BUSQUEDA_USUARIOS = 1;
+
 /** Roles de Scrum que no se pueden dejar sin responsable ni pisar en silencio. */
 const ROLES_CLAVE = ['product_owner', 'scrum_master'];
 
@@ -266,6 +269,10 @@ export async function obtener(id, usuario) {
 /**
  * Busca usuarios activos para agregarlos a un equipo. Si se indica un equipo, excluye a sus
  * integrantes y exige que el usuario pueda gestionarlo; si no, excluye al propio usuario.
+ * No lista a todas las personas por defecto: solo devuelve coincidencias cuando el texto de
+ * búsqueda alcanza el mínimo de caracteres. Sin «@» busca en el nombre y en la parte del correo
+ * anterior al «@» (así «gmail» o «com» no coinciden con todos); con «@» busca desde el inicio
+ * del correo completo.
  *
  * @param {{q?: string, equipoId?: number|null}} filtros - Texto a buscar y equipo opcional.
  * @param {{id: number}} usuario - Usuario autenticado.
@@ -276,15 +283,21 @@ export async function usuariosDisponibles({ q = '', equipoId = null } = {}, usua
     if (!(await esUsuarioActivo(usuario))) lanzar(403, 'Tu cuenta no está activa.');
     if (equipoId) await exigirEquipoGestionable(equipoId, usuario);
 
-    const texto = String(q ?? '').trim().replace(/[\\%_]/g, '\\$&');
+    const busqueda = String(q ?? '').trim();
+    if (busqueda.length < MIN_CARACTERES_BUSQUEDA_USUARIOS) return [];
+
+    const texto = busqueda.replace(/[\\%_]/g, '\\$&');
     const { rows } = await query(
         `SELECT u.id, u.nombre, u.correo FROM usuarios u
         WHERE u.activo = TRUE
-        AND ($1 = '' OR u.nombre ILIKE '%' || $1 || '%' OR u.correo ILIKE '%' || $1 || '%')
+        AND (
+            ($4::boolean AND u.correo ILIKE $1::text || '%')
+            OR (NOT $4::boolean AND (u.nombre ILIKE '%' || $1::text || '%' OR SPLIT_PART(u.correo, '@', 1) ILIKE '%' || $1::text || '%'))
+        )
         AND ($2::int IS NULL OR NOT EXISTS (SELECT 1 FROM miembros_equipo m WHERE m.equipo_id = $2 AND m.usuario_id = u.id))
         AND ($2::int IS NOT NULL OR u.id <> $3)
         ORDER BY LOWER(u.nombre) LIMIT ${MAX_RESULTADOS_USUARIOS}`,
-        [texto, equipoId, usuario.id],
+        [texto, equipoId, usuario.id, busqueda.includes('@')],
     );
     return rows;
 }

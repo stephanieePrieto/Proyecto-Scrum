@@ -19,6 +19,7 @@ import { tarjetaCarga, tarjetaError, tarjetaValor } from '../core/ui.js';
 import { tonoAvance, tonoImpedimentos, tonoDesviacion } from '../core/semaforo.js';
 import { pluralizar, escaparHtml } from '../core/utils.js';
 import { inicializarNotificaciones } from '../componentes/notificaciones.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 
 // Insertar la barra superior de navegación. Esto también inyecta <div id="notificaciones-root"></div>
 montarBarraSuperior();
@@ -54,6 +55,11 @@ const btnActualizar = document.getElementById('btn-actualizar');
 // Leer los parámetros de la URL
 const params = new URLSearchParams(location.search);
 const proyectoId = params.get('proyecto') || null;
+
+// Permisos del proyecto abierto, para mostrar solo las acciones que le tocan a su rol
+if (proyectoId && proyectoId !== 'null') {
+  cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+}
 
 const tituloPagina = document.getElementById('dashboard-titulo');
 const subtituloPagina = document.getElementById('dashboard-subtitulo');
@@ -368,7 +374,7 @@ const constructores = {
     const data = k.todos || k; // Fallback por si la API aún no envía el formato de { mios, todos }
     const pista = data.valor === 0 ? 'Sin impedimentos abiertos'
       : data.criticos > 0 ? `${data.criticos} ${pluralizar(data.criticos, 'crítico pendiente', 'críticos pendientes')}`
-      : 'Ninguno crítico';
+        : 'Ninguno crítico';
     return tarjetaValor({ ...meta, tono: tonoImpedimentos(data.valor, data.criticos), valor: data.valor, pista });
   },
 
@@ -378,9 +384,11 @@ const constructores = {
     // HU-33: Si supera umbral, forzamos advertencia o peligro
     const estado = k.superaUmbral ? 'Alerta por desviación' : k.valor < 0 ? 'Bajo presupuesto' : k.valor === 0 ? 'Dentro de lo estimado' : 'Sobre presupuesto';
     const tonoFuerza = k.superaUmbral ? 'peligro' : tonoDesviacion(k.valor, k.estimado);
-    
-    return tarjetaValor({ ...meta, tono: tonoFuerza, valor: `${signo}${k.valor}`,
-      unidad: 'h', pista: `${estado} · ${k.real} h reales de ${k.estimado} h` });
+
+    return tarjetaValor({
+      ...meta, tono: tonoFuerza, valor: `${signo}${k.valor}`,
+      unidad: 'h', pista: `${estado} · ${k.real} h reales de ${k.estimado} h`
+    });
   },
 };
 
@@ -430,11 +438,11 @@ function pintarDatos(datos) {
 
   if (avisoVacio) avisoVacio.hidden = true;
   grilla.hidden = false;
-  
+
   grilla.innerHTML = KPIS.map(meta => {
     const k = datos.kpis?.[meta.id];
     if (!k || k.error) return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
-    
+
     // Capturar fallos inesperados al construir la tarjeta para no afectar a las demás
     try {
       const tarjeta = constructores[meta.id](k, meta);
@@ -455,12 +463,12 @@ grilla?.addEventListener('click', (evento) => {
   if (!tarjeta) return;
   const id = tarjeta.dataset.kpi;
   const rutas = {
-     avance: `/pages/metricas.html?proyecto=${proyectoId}#avance`,
-     diasRestantes: `/pages/calendario.html?proyecto=${proyectoId}`,
-     desviacion: `/pages/metricas.html?proyecto=${proyectoId}#burndown`,
-     impedimentos: `/pages/impedimentos.html?proyecto=${proyectoId}`
+    avance: `/pages/metricas.html?proyecto=${proyectoId}#avance`,
+    diasRestantes: `/pages/calendario.html?proyecto=${proyectoId}`,
+    desviacion: `/pages/metricas.html?proyecto=${proyectoId}#burndown`,
+    impedimentos: `/pages/impedimentos.html?proyecto=${proyectoId}`
   };
-  
+
   if (rutas[id]) window.location.href = rutas[id];
 });
 
@@ -683,7 +691,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
         }
 
         return;
-      } 
+      }
       lista.innerHTML = datos.proyectos.map(tarjeta).join('');
     } catch {
       lista.innerHTML = '';
@@ -713,7 +721,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
   lista.addEventListener('click', (e) => {
     const btnVer = e.target.closest('[data-ver]');
     const tarjeta = e.target.closest('.proyecto');
-    
+
     // Si cliqueó la tarjeta en general (no un botón secundario)
     if (tarjeta && !e.target.closest('button, a')) {
       const enlaceBase = tarjeta.querySelector('[data-ver]');
@@ -724,9 +732,9 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     } else if (btnVer) {
       localStorage.setItem('proyectoActivo', decodeURIComponent(btnVer.dataset.ver));
     }
-    
+
     if (e.target.closest('[data-reintentar-proyectos]')) cargarLista();
-    
+
     const archivar = e.target.closest('[data-archivar]');
     if (archivar) {
       pendienteArchivar = { id: archivar.dataset.archivar, nombre: archivar.dataset.nombre };

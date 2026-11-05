@@ -5,11 +5,15 @@
  *   - Resolverlo; si otra persona lo resolvió antes, mostrar "Ya fue resuelto por X".
  *   - Resaltar en rojo los que llevan más de 3 días abiertos.
  *   - Filtrar por estado y severidad, y actualizarse sola con Socket.io.
+ *
+ * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { api } from '/js/core/api.js';
 import { montarBarraSuperior } from '/js/core/layout.js';
 import { escaparHtml, pluralizar } from '/js/core/utils.js';
 import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '/js/pages/ceremonias/proyecto.js';
+import { cargarPermisos, escucharCambiosDeRol } from '/js/core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
 montarBarraSuperior();
@@ -325,10 +329,13 @@ async function iniciar() {
   }
 
   ctx.proyectoId = eleccion.id;
+  // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
+  cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
   pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/impedimentos.html');
   await cargar();
 
   const socket = conectarTiempoReal(ctx.proyectoId, ['impedimento:creado', 'impedimento:resuelto', 'impedimento:reasignado'], cargar);
+  if (socket) escucharCambiosDeRol(socket);
   // Aviso personal (por ejemplo, "te asignaron" o "quedó a tu cargo por una baja")
   socket?.on('impedimento:aviso', (aviso) => mostrarAviso('advertencia', aviso.mensaje));
 }

@@ -5,10 +5,14 @@
  *              registro manual (crear, editar, eliminar) y temporizador por tarea.
  *              El servidor valida todo; aquí solo se evita viajar con datos obviamente inválidos.
  *              Al volver a la pestaña se recarga la semana por si otra pestaña cambió las horas.
+ *
+ * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
 
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 import { inicializarTemporizador } from '../componentes/temporizador.js';
 import { crear, mensajeDeError, formatearHoras, validarRegistro } from '../componentes/horas-comun.js';
 
@@ -418,6 +422,12 @@ async function enviar(evento) {
  * ====================================================================== */
 
 montarBarraSuperior();
+
+// Permisos del proyecto activo, el mismo que usan el resto de las pantallas
+const proyectoActivo = Number(localStorage.getItem('proyectoActivo')) || null;
+if (proyectoActivo) {
+  cargarPermisos(proyectoActivo).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+}
 
 $('mh-anterior').addEventListener('click', () => datos && cargarConAviso(desplazar(datos.semana.inicio, -7)));
 $('mh-siguiente').addEventListener('click', () => datos && cargarConAviso(desplazar(datos.semana.inicio, 7)));

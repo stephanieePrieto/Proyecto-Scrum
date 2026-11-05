@@ -3,7 +3,8 @@
  * @description Orquestador de la vista de métricas. Controla los selectores y 
  * decide si muestra la Gráfica Velocity o el Burndown.
  * Carga la velocity (HU-30) y el avance (HU-31).
- * @author Dana
+ * @author Dana Carmona Santamaria
+ * @author Citlaly Morales Viveros
  */
 
 import { api } from '../core/api.js';
@@ -11,6 +12,7 @@ import { escaparHtml } from '../core/utils.js';
 import { dibujarVelocity } from './metricas/velocity.js';
 import { dibujarAvance } from './metricas/avance.js';
 import { dibujarBurndown } from './metricas/burndown.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
@@ -166,23 +168,23 @@ async function cargarAvance(proyectoId, sprintId = null) {
   try {
     const consulta = sprintId ? `?sprintId=${sprintId}` : '';
     datosAvanceActual = await api(`/metricas/proyectos/${proyectoId}/avance${consulta}`);
-    
+
     llenarSelectorSprints(datosAvanceActual.sprints, datosAvanceActual.sprintId);
 
     // Poblar el filtro de integrantes basado en los permisos aplicados en el backend
     const selectInt = document.getElementById('filtro-integrante-avance');
     if (selectInt) {
       const valActual = selectInt.value;
-      const opcionesIntegrantes = datosAvanceActual.personas.map(p => 
+      const opcionesIntegrantes = datosAvanceActual.personas.map(p =>
         `<option value="${p.usuarioId}">${escaparHtml(p.nombre)}</option>`
       ).join('');
-      
+
       selectInt.innerHTML = '<option value="equipo">Todo el equipo</option>' + opcionesIntegrantes;
-      
+
       // Si el usuario previo existe en la nueva lista, mantenerlo; si no, volver a "equipo"
       const existe = valActual === 'equipo' || datosAvanceActual.personas.some(p => String(p.usuarioId) === valActual);
       selectInt.value = existe ? valActual : 'equipo';
-      
+
       dibujarAvance(contAvance, datosAvanceActual, selectInt.value);
     } else {
       dibujarAvance(contAvance, datosAvanceActual, 'equipo');
@@ -215,16 +217,18 @@ function mostrarAvisoGeneral(texto) {
 async function iniciar() {
   await montarLayout();
   let proyectoId;
-  
+
   try {
     proyectoId = proyectoDeLaUrl() || await elegirProyecto();
   } catch (error) {
     return mostrarAvisoGeneral(mensajeDeError(error));
   }
-  
+
   if (!proyectoId) return mostrarAvisoGeneral('No perteneces a ningún proyecto todavía.');
-  
+
   recordarProyecto(proyectoId);
+  // Permisos del proyecto elegido
+  cargarPermisos(proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
   manejarTabUrl();
 
   if (selectProyecto && selectProyecto.options.length === 0) {
@@ -234,16 +238,18 @@ async function iniciar() {
   selectProyecto?.addEventListener('change', () => {
     proyectoId = Number(selectProyecto.value);
     recordarProyecto(proyectoId);
+    // Al cambiar de proyecto se recargan los permisos
+    cargarPermisos(proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
     if (selectSprint) selectSprint.value = '';
     cargarTodo(proyectoId);
   });
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
-  
+
   // Al cambiar sprint, consultamos al backend
   selectSprint?.addEventListener('change', () => cargarAvance(proyectoId, Number(selectSprint.value) || null));
-  
+
   // Al cambiar integrante, redibujamos localmente (sin request)
   const selectInt = document.getElementById('filtro-integrante-avance');
   selectInt?.addEventListener('change', () => {

@@ -16,6 +16,9 @@ const $ = (id) => document.getElementById(id);
 const ETIQUETA_ROL = { product_owner: 'Product Owner', scrum_master: 'Scrum Master', developer: 'Developer' };
 const ROLES_CLAVE = ['product_owner', 'scrum_master'];
 
+/** Caracteres mínimos para consultar usuarios; debe coincidir con el mínimo del servicio. */
+const MIN_CARACTERES_BUSQUEDA = 1;
+
 montarBarraSuperior();
 
 /**
@@ -190,8 +193,20 @@ radiosMetodo.forEach(radio => {
     });
 });
 
+/**
+ * Indicar si el campo de búsqueda tiene texto suficiente para consultar usuarios.
+ * @returns {boolean}
+ */
+function hayTextoDeBusqueda() {
+    return $('buscar-usuarios').value.trim().length >= MIN_CARACTERES_BUSQUEDA;
+}
+
 /** Pintar los usuarios encontrados que todavía no se han elegido. */
 function pintarResultados() {
+    if (!hayTextoDeBusqueda()) {
+        $('resultados-usuarios').innerHTML = '<li class="eq-resultados__vacio">Escribe un nombre o correo para buscar.</li>';
+        return;
+    }
     const disponibles = resultados.filter((usuario) => !elegidos.has(usuario.id));
     $('resultados-usuarios').innerHTML = disponibles.length
         ? disponibles.map((usuario) => `<li class="eq-resultado">
@@ -212,6 +227,11 @@ function pintarElegidos() {
 /** Buscar usuarios activos que se puedan agregar; cancela la búsqueda anterior si sigue en curso. */
 async function buscarUsuarios() {
     busqueda?.abort();
+    if (!hayTextoDeBusqueda()) {
+        resultados = [];
+        pintarResultados();
+        return;
+    }
     busqueda = new AbortController();
     const parametros = new URLSearchParams({ q: $('buscar-usuarios').value.trim() });
     if (modo === 'agregar') parametros.set('equipo_id', equipoEnEdicion.id);

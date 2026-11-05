@@ -1,13 +1,17 @@
 // Responsable: Jetz - HU-07, HU-08: logica de la pantalla de planificacion con medidor de capacidad y tareas (llama a la API y escucha sockets)
 
 /**
- * 
+ * @file planificacion-sprint.js
  * HU-08: Planificación del Sprint
  * Navegación entre proyectos.
+ *
+ * @author Jetzaly Josmery Tello Campos
+ * @author Citlaly Morales Viveros
  */
 
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 
 // Barra superior compartida de AgileDesk
 montarBarraSuperior();
@@ -82,12 +86,15 @@ async function cambiarProyecto(nuevoId, guardarHistorial = true) {
   cambiandoProyecto = true;
 
   // Invalidar consultas del proyecto anterior.
-    versionConsultaSprint++;
+  versionConsultaSprint++;
 
   try {
     proyectoId = String(nuevoId);
 
     localStorage.setItem('proyectoActivo', proyectoId);
+
+    // Al cambiar de proyecto se recargan los permisos
+    cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 
     if (guardarHistorial) {
       const url = new URL(window.location.href);
@@ -109,7 +116,7 @@ async function cambiarProyecto(nuevoId, guardarHistorial = true) {
 
 
     const listaHistorias =
-    document.getElementById('lista-historias-sprint');
+      document.getElementById('lista-historias-sprint');
 
     // Limpiar las historias del proyecto anterior
     listaHistorias.replaceChildren();
@@ -120,7 +127,7 @@ async function cambiarProyecto(nuevoId, guardarHistorial = true) {
 
     const mensajeVacio = document.createElement('p');
     mensajeVacio.textContent =
-    'Selecciona un Sprint para consultar sus historias de usuario.';
+      'Selecciona un Sprint para consultar sus historias de usuario.';
 
     tarjetaVacia.appendChild(mensajeVacio);
     listaHistorias.appendChild(tarjetaVacia);
@@ -283,6 +290,8 @@ async function iniciarPlanificacion() {
   await cargarPestanasProyectos();
 
   if (proyectoId) {
+    // Con el proyecto ya validado se cargan sus permisos
+    cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
     await cargarSprintsProyecto();
   }
 }
@@ -338,7 +347,7 @@ async function cargarTareasHistoria(historiaId, contenedor) {
       const insigniaHoras = document.createElement('span');
       insigniaHoras.className =
         'insignia insignia--primario planificacion-tarea__horas';
-      
+
       insigniaHoras.textContent = `${Number(tarea.horas_estimadas).toFixed(1)} h`;
 
       // HU-08: Botón para editar esta tarea técnica.
@@ -367,62 +376,62 @@ async function cargarTareasHistoria(historiaId, contenedor) {
         await cargarResponsables(tarea.responsable_id);
       });
 
-      
-        // HU-08: Botón para eliminar una tarea técnica.
-        const botonEliminar = document.createElement('button');
-        botonEliminar.type = 'button';
-        botonEliminar.className =
-          'boton boton--secundario boton--pequeno';
-        botonEliminar.textContent = 'Eliminar';
 
-        
+      // HU-08: Botón para eliminar una tarea técnica.
+      const botonEliminar = document.createElement('button');
+      botonEliminar.type = 'button';
+      botonEliminar.className =
+        'boton boton--secundario boton--pequeno';
+      botonEliminar.textContent = 'Eliminar';
+
+
       botonEliminar.addEventListener('click', () => {
         // HU-08: Preparar la tarea que se desea eliminar.
         tareaPendienteEliminar = tarea.id;
 
         nombreTareaEliminar.textContent = tarea.titulo;
-        
+
         mensajeEliminarTarea.hidden = true;
         mensajeEliminarTarea.textContent = '';
 
         dialogoEliminarTarea.showModal();
       });
 
-      
-    // HU-08: Confirmar eliminación desde el modal personalizado.
-    botonConfirmarEliminar.addEventListener('click', async () => {
-      if (!tareaPendienteEliminar) return;
 
-      const tareaId = tareaPendienteEliminar;
+      // HU-08: Confirmar eliminación desde el modal personalizado.
+      botonConfirmarEliminar.addEventListener('click', async () => {
+        if (!tareaPendienteEliminar) return;
 
-      botonConfirmarEliminar.disabled = true;
-      botonConfirmarEliminar.textContent = 'Eliminando...';
+        const tareaId = tareaPendienteEliminar;
 
-      try {
-        await api(`/tareas/${tareaId}`, {
-          metodo: 'DELETE'
-        });
+        botonConfirmarEliminar.disabled = true;
+        botonConfirmarEliminar.textContent = 'Eliminando...';
 
-        dialogoEliminarTarea.close();
+        try {
+          await api(`/tareas/${tareaId}`, {
+            metodo: 'DELETE'
+          });
 
-        // Actualizar las tareas y los totales del Sprint.
-        selectorSprint.dispatchEvent(new Event('change'));
+          dialogoEliminarTarea.close();
 
-      } catch (error) {
-        console.error('Error al eliminar tarea técnica:', error);
+          // Actualizar las tareas y los totales del Sprint.
+          selectorSprint.dispatchEvent(new Event('change'));
 
-        mensajeEliminarTarea.textContent =
-          error.cuerpo?.mensaje ||
-          error.message ||
-          'No se pudo eliminar la tarea técnica.';
+        } catch (error) {
+          console.error('Error al eliminar tarea técnica:', error);
 
-        mensajeEliminarTarea.hidden = false;
+          mensajeEliminarTarea.textContent =
+            error.cuerpo?.mensaje ||
+            error.message ||
+            'No se pudo eliminar la tarea técnica.';
 
-      } finally {
-        botonConfirmarEliminar.disabled = false;
-        botonConfirmarEliminar.textContent = 'Eliminar tarea';
-      }
-    });
+          mensajeEliminarTarea.hidden = false;
+
+        } finally {
+          botonConfirmarEliminar.disabled = false;
+          botonConfirmarEliminar.textContent = 'Eliminar tarea';
+        }
+      });
 
 
 
@@ -496,7 +505,7 @@ async function cargarTareasHistoria(historiaId, contenedor) {
  * HU-08: Calcular el total de tareas técnicas
  * y las horas estimadas de un Sprint.
  */
-async function actualizarContadoresTareas(historias, versionActual){
+async function actualizarContadoresTareas(historias, versionActual) {
   const contadorTareas = document.getElementById('total-tareas');
   const contadorHoras = document.getElementById('total-horas');
 
@@ -592,27 +601,27 @@ function mostrarHistoriasSprint(historias) {
 
     // Mostrar los puntos de la historia
     detalle.textContent = historia.puntos != null
-    ? `${historia.puntos} puntos`
-    : 'Sin estimar';
+      ? `${historia.puntos} puntos`
+      : 'Sin estimar';
 
     // Traducir el estado para mostrarlo al usuario
     const nombresEstados = {
-    backlog: 'En Backlog',
-    en_sprint: 'En Sprint',
-    hecho: 'Completada',
-    aceptada: 'Aceptada',
-    rechazada: 'Rechazada'
+      backlog: 'En Backlog',
+      en_sprint: 'En Sprint',
+      hecho: 'Completada',
+      aceptada: 'Aceptada',
+      rechazada: 'Rechazada'
     };
 
     // Crear una insignia para el estado
     const insigniaEstado = document.createElement('span');
     insigniaEstado.className = 'planificacion-estado';
     insigniaEstado.textContent =
-    nombresEstados[historia.estado] || historia.estado;
+      nombresEstados[historia.estado] || historia.estado;
 
     // Agregar la insignia junto a los puntos
     detalle.append(' · ', insigniaEstado);
-    
+
     informacion.append(titulo, detalle);
 
     const indicador = document.createElement('span');
@@ -622,7 +631,7 @@ function mostrarHistoriasSprint(historias) {
     encabezado.append(informacion, indicador);
 
     // Contenido desplegable
-    
+
     const contenido = document.createElement('div');
     contenido.className = 'planificacion-historia__contenido';
     contenido.hidden = true;
@@ -633,7 +642,7 @@ function mostrarHistoriasSprint(historias) {
     listaTareas.className = 'planificacion-historia__tareas';
 
     contenido.appendChild(listaTareas);
-    
+
     // Botón para agregar una tarea técnica a esta historia
     const botonAgregarTarea = document.createElement('button');
 
@@ -642,23 +651,23 @@ function mostrarHistoriasSprint(historias) {
     botonAgregarTarea.textContent = '+ Agregar tarea técnica';
 
 
-  botonAgregarTarea.addEventListener('click', () => {
-    // HU-08: Preparar el formulario en modo creación.
-    prepararFormularioTarea();
+    botonAgregarTarea.addEventListener('click', () => {
+      // HU-08: Preparar el formulario en modo creación.
+      prepararFormularioTarea();
 
-  // Guardar la historia a la que pertenecerá la tarea.
-  document.getElementById('tarea-historia-id').value = historia.id;
+      // Guardar la historia a la que pertenecerá la tarea.
+      document.getElementById('tarea-historia-id').value = historia.id;
 
 
-    // Mostrar el nombre de la historia en el formulario
-    document.getElementById('historia-tarea-nombre').textContent =
+      // Mostrar el nombre de la historia en el formulario
+      document.getElementById('historia-tarea-nombre').textContent =
         `HU-${String(historia.numero_hu).padStart(2, '0')} · ${historia.titulo}`;
 
-    // Abrir el formulario
-    document.getElementById('dialogo-tarea').showModal();
+      // Abrir el formulario
+      document.getElementById('dialogo-tarea').showModal();
 
-    // Cargar los responsables del equipo
-    cargarResponsables();
+      // Cargar los responsables del equipo
+      cargarResponsables();
     });
 
 
@@ -702,7 +711,7 @@ selectorSprint.addEventListener('change', async () => {
   // Consultar las historias del proyecto
   try {
     const datos = await api(`/backlog/proyecto/${proyectoId}`);
-    
+
     // Ignorar respuestas de un Sprint o proyecto anterior.
     if (
       versionActual !== versionConsultaSprint ||
@@ -944,7 +953,7 @@ formularioTarea.addEventListener('submit', async (evento) => {
   botonGuardar.textContent = 'Guardando...';
 
   try {
-    
+
     // HU-08: Distinguir entre crear y editar una tarea.
     const ruta = esEdicion ? `/tareas/${tareaId}` : '/tareas';
     const metodo = esEdicion ? 'PUT' : 'POST';
@@ -970,9 +979,9 @@ formularioTarea.addEventListener('submit', async (evento) => {
     console.error('Error al guardar tarea técnica:', error);
 
     mensaje.textContent =
-    error.cuerpo?.mensaje ||
-    error.message ||
-    'No se pudo guardar la tarea técnica.';
+      error.cuerpo?.mensaje ||
+      error.message ||
+      'No se pudo guardar la tarea técnica.';
     mensaje.hidden = false;
 
   } finally {

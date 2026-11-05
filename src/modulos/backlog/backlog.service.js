@@ -19,6 +19,7 @@ import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 import { tienePermiso, PERMISOS, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { registrarAuditoria, enTransaccion, extraerCampos, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 // ---------- Constantes ----------
 
@@ -38,6 +39,9 @@ export const EVENTOS = {
 
 /** Clase del candado de PostgreSQL: evita chocar con candados de otros módulos. */
 const CANDADO_BACKLOG = 1001;
+
+/** Campos de la historia cuyos valores anteriores y nuevos se guardan en la bitácora al editarla. */
+const CAMPOS_AUDITADOS = ['titulo', 'como', 'quiero', 'para', 'criterios', 'puntos', 'etiquetas', 'epica_id'];
 
 // ---------- Utilidades internas ----------
 
@@ -266,6 +270,21 @@ export async function crear(usuario, proyectoId, datos) {
       ],
     );
 
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id,
+      proyectoId: proyecto.id,
+      accion: ACCIONES.HISTORIA_CREADA,
+      objeto: OBJETOS.HISTORIA,
+      objetoId: nuevoId,
+      despues: {
+        titulo: d.titulo,
+        numero_hu: siguiente_hu,
+        epica_id: d.epicaId,
+        puntos: d.puntos,
+        propuesta: esPropuesta,
+      },
+    });
+
     return nuevoId;
   });
 
@@ -286,14 +305,39 @@ export async function actualizar(usuario, historiaId, datos = {}) {
   const version = aId(datos.version);
   if (!version) lanzar(400, 'Falta la versión de la historia. Recarga la página e inténtalo de nuevo.');
 
-  const { rowCount } = await consulta(
-    `UPDATE historias
+  const guardada = await enTransaccion(async (cliente) => {
+    const { rowCount } = await cliente.query(
+      `UPDATE historias
         SET epica_id = $1, titulo = $2, como = $3, quiero = $4, para = $5, criterios = $6,
             puntos = $7, etiquetas = $8, version = version + 1
       WHERE id = $9 AND version = $10`,
-    [d.epicaId, d.titulo, d.como, d.quiero, d.para, d.criterios, d.puntos, d.etiquetas, id, version],
-  );
-  if (!rowCount) {
+      [d.epicaId, d.titulo, d.como, d.quiero, d.para, d.criterios, d.puntos, d.etiquetas, id, version],
+    );
+    if (!rowCount) return false;
+
+    const cambios = diferencias(extraerCampos(actual, CAMPOS_AUDITADOS), {
+      titulo: d.titulo,
+      como: d.como,
+      quiero: d.quiero,
+      para: d.para,
+      criterios: d.criterios,
+      puntos: d.puntos,
+      etiquetas: d.etiquetas,
+      epica_id: d.epicaId,
+    });
+    if (cambios) {
+      await registrarAuditoria(cliente, {
+        usuarioId: usuario.id,
+        proyectoId: actual.proyecto_id,
+        accion: ACCIONES.HISTORIA_MODIFICADA,
+        objeto: OBJETOS.HISTORIA,
+        objetoId: id,
+        ...cambios,
+      });
+    }
+    return true;
+  });
+  if (!guardada) {
     lanzar(409, 'Otra persona modificó esta historia mientras la editabas. Revisa los cambios y vuelve a guardar.', { codigo: 'version' });
   }
 
@@ -322,7 +366,17 @@ export async function eliminar(usuario, historiaId) {
   }
 
   // Nota: sus tareas se borran en cascada (ON DELETE CASCADE de tareas.historia_id)
-  await consulta('DELETE FROM historias WHERE id = $1', [id]);
+  await enTransaccion(async (cliente) => {
+    await cliente.query('DELETE FROM historias WHERE id = $1', [id]);
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id,
+      proyectoId: historia.proyecto_id,
+      accion: ACCIONES.HISTORIA_ELIMINADA,
+      objeto: OBJETOS.HISTORIA,
+      objetoId: id,
+      antes: { titulo: historia.titulo, numero_hu: historia.numero_hu, estado: historia.estado, sprint_id: historia.sprint_id },
+    });
+  });
   emitirAProyecto(historia.proyecto_id, EVENTOS.eliminada, { id, proyecto_id: historia.proyecto_id });
   return { id };
 }
@@ -346,6 +400,15 @@ export async function devolverAlBacklog(usuario, historiaId) {
       `UPDATE historias SET sprint_id = NULL, estado = 'backlog', version = version + 1 WHERE id = $1`, [id],
     );
     await cliente.query('UPDATE tareas SET sprint_id = NULL, columna_id = NULL WHERE historia_id = $1', [id]);
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id,
+      proyectoId: historia.proyecto_id,
+      accion: ACCIONES.HISTORIA_ESTADO_CAMBIADO,
+      objeto: OBJETOS.HISTORIA,
+      objetoId: id,
+      antes: { estado: historia.estado, sprint_id: historia.sprint_id },
+      despues: { estado: 'backlog', sprint_id: null },
+    });
     await cliente.query('COMMIT');
   } catch (error) {
     await cliente.query('ROLLBACK');
@@ -388,11 +451,25 @@ async function buscarPropuesta(usuario, historiaId) {
  */
 export async function aceptarPropuesta(usuario, historiaId) {
   const historia = await buscarPropuesta(usuario, historiaId);
-  const { rowCount } = await consulta(
-    `UPDATE historias SET propuesta = FALSE, version = version + 1
+  const rowCount = await enTransaccion(async (cliente) => {
+    const resultado = await cliente.query(
+      `UPDATE historias SET propuesta = FALSE, version = version + 1
       WHERE id = $1 AND propuesta = TRUE AND estado = 'backlog'`,
-    [historia.id],
-  );
+      [historia.id],
+    );
+    if (resultado.rowCount) {
+      await registrarAuditoria(cliente, {
+        usuarioId: usuario.id,
+        proyectoId: historia.proyecto_id,
+        accion: ACCIONES.HISTORIA_PROPUESTA_ACEPTADA,
+        objeto: OBJETOS.HISTORIA,
+        objetoId: historia.id,
+        antes: { propuesta: true },
+        despues: { propuesta: false },
+      });
+    }
+    return resultado.rowCount;
+  });
   if (!rowCount) lanzar(409, 'Otra persona ya resolvió esta propuesta.', { codigo: 'propuesta_atendida' });
 
   const actualizada = await buscarHistoria(historia.id);
@@ -409,11 +486,25 @@ export async function aceptarPropuesta(usuario, historiaId) {
  */
 export async function rechazarPropuesta(usuario, historiaId) {
   const historia = await buscarPropuesta(usuario, historiaId);
-  const { rowCount } = await consulta(
-    `UPDATE historias SET estado = 'rechazada', version = version + 1
+  const rowCount = await enTransaccion(async (cliente) => {
+    const resultado = await cliente.query(
+      `UPDATE historias SET estado = 'rechazada', version = version + 1
       WHERE id = $1 AND propuesta = TRUE AND estado = 'backlog'`,
-    [historia.id],
-  );
+      [historia.id],
+    );
+    if (resultado.rowCount) {
+      await registrarAuditoria(cliente, {
+        usuarioId: usuario.id,
+        proyectoId: historia.proyecto_id,
+        accion: ACCIONES.HISTORIA_PROPUESTA_RECHAZADA,
+        objeto: OBJETOS.HISTORIA,
+        objetoId: historia.id,
+        antes: { estado: 'backlog' },
+        despues: { estado: 'rechazada' },
+      });
+    }
+    return resultado.rowCount;
+  });
   if (!rowCount) lanzar(409, 'Otra persona ya resolvió esta propuesta.', { codigo: 'propuesta_atendida' });
 
   emitirAProyecto(historia.proyecto_id, EVENTOS.eliminada, { id: historia.id, proyecto_id: historia.proyecto_id });

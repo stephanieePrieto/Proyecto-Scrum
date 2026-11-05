@@ -6,11 +6,15 @@
  *   - Consultar días anteriores en solo lectura.
  *   - Si falla la conexión al guardar, conservar el texto como borrador local.
  *   - Actualizarse sola cuando otra persona registra su Daily (Socket.io).
+ *
+ * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { api } from '/js/core/api.js';
 import { montarBarraSuperior } from '/js/core/layout.js';
 import { escaparHtml, pluralizar } from '/js/core/utils.js';
 import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '/js/pages/ceremonias/proyecto.js';
+import { cargarPermisos, escucharCambiosDeRol } from '/js/core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
 montarBarraSuperior();
@@ -449,9 +453,12 @@ async function iniciar() {
   }
 
   ctx.proyectoId = eleccion.id;
+  // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
+  cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
   pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/daily.html');
   await cargar();
-  conectarTiempoReal(ctx.proyectoId, ['daily:registrada'], cargar);
+  const socket = conectarTiempoReal(ctx.proyectoId, ['daily:registrada'], cargar);
+  if (socket) escucharCambiosDeRol(socket);
 }
 
 iniciar();

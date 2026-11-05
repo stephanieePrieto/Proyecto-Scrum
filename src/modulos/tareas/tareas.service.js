@@ -12,6 +12,7 @@ import { consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { notificarAsignacion } from '../notificaciones/notificaciones.service.js';
 import { exigirPermiso, ROLES, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { registrarAuditoria, enTransaccion, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 // HU-08: Crear una tarea técnica para una historia del Sprint.
 export async function crear(datos = {}, usuario) {
@@ -108,8 +109,9 @@ export async function crear(datos = {}, usuario) {
 
 
   // Guardar la tarea técnica.
-  const { rows } = await query(
-    `INSERT INTO tareas (
+  const rows = await enTransaccion(async (cliente) => {
+    const { rows: creadas } = await cliente.query(
+      `INSERT INTO tareas (
        historia_id,
        proyecto_id,
        sprint_id,
@@ -120,16 +122,27 @@ export async function crear(datos = {}, usuario) {
      )
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [
-      historia.id,
-      historia.proyecto_id,
-      historia.sprint_id,
-      titulo,
-      descripcion,
-      responsableId,
-      horas
-    ]
-  );
+      [
+        historia.id,
+        historia.proyecto_id,
+        historia.sprint_id,
+        titulo,
+        descripcion,
+        responsableId,
+        horas
+      ]
+    );
+
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id,
+      proyectoId: historia.proyecto_id,
+      accion: ACCIONES.TAREA_CREADA,
+      objeto: OBJETOS.TAREA,
+      objetoId: creadas[0].id,
+      despues: { titulo, historia_id: historia.id, responsable_id: responsableId, horas_estimadas: horas },
+    });
+    return creadas;
+  });
 
   // HU-24: avisar al responsable. No se espera ni puede hacer fallar la creación de la tarea.
   notificarAsignacion({
@@ -309,8 +322,14 @@ export async function editar(tareaId, datos = {}, usuario) {
   }
 
   // Actualizar la tarea sin modificar su historia ni su Sprint.
-  const { rows } = await query(
-    `UPDATE tareas
+  const rows = await enTransaccion(async (cliente) => {
+    const { rows: anteriores } = await cliente.query(
+      'SELECT titulo, descripcion, responsable_id, horas_estimadas FROM tareas WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+
+    const { rows: actualizadas } = await cliente.query(
+      `UPDATE tareas
      SET titulo = $1,
          descripcion = $2,
          responsable_id = $3,
@@ -318,15 +337,34 @@ export async function editar(tareaId, datos = {}, usuario) {
      WHERE id = $5
        AND proyecto_id = $6
      RETURNING *`,
-    [
-      titulo,
-      descripcion,
-      responsableId,
-      horas,
-      id,
-      tarea.proyecto_id
-    ]
-  );
+      [
+        titulo,
+        descripcion,
+        responsableId,
+        horas,
+        id,
+        tarea.proyecto_id
+      ]
+    );
+
+    const cambios = anteriores[0] && actualizadas[0]
+      ? diferencias(
+        { ...anteriores[0], horas_estimadas: Number(anteriores[0].horas_estimadas) },
+        { titulo, descripcion, responsable_id: responsableId, horas_estimadas: horas }
+      )
+      : null;
+    if (cambios) {
+      await registrarAuditoria(cliente, {
+        usuarioId: usuario.id,
+        proyectoId: tarea.proyecto_id,
+        accion: ACCIONES.TAREA_MODIFICADA,
+        objeto: OBJETOS.TAREA,
+        objetoId: id,
+        ...cambios,
+      });
+    }
+    return actualizadas;
+  });
 
   return rows[0];
 }
@@ -398,8 +436,9 @@ export async function eliminar(tareaId, usuario) {
   }
 
   // Eliminar solamente la tarea indicada.
-  const { rows } = await query(
-    `DELETE FROM tareas
+  const rows = await enTransaccion(async (cliente) => {
+    const { rows: eliminadas } = await cliente.query(
+      `DELETE FROM tareas
      WHERE id = $1
        AND proyecto_id = $2
        AND NOT EXISTS (
@@ -407,9 +446,26 @@ export async function eliminar(tareaId, usuario) {
          FROM registros_horas
          WHERE tarea_id = $1
        )
-     RETURNING id`,
-    [id, tarea.proyecto_id]
-  );
+     RETURNING id, titulo, historia_id, responsable_id`,
+      [id, tarea.proyecto_id]
+    );
+
+    if (eliminadas.length) {
+      await registrarAuditoria(cliente, {
+        usuarioId: usuario.id,
+        proyectoId: tarea.proyecto_id,
+        accion: ACCIONES.TAREA_ELIMINADA,
+        objeto: OBJETOS.TAREA,
+        objetoId: id,
+        antes: {
+          titulo: eliminadas[0].titulo,
+          historia_id: eliminadas[0].historia_id,
+          responsable_id: eliminadas[0].responsable_id,
+        },
+      });
+    }
+    return eliminadas;
+  });
 
   if (!rows.length) {
     throw new ErrorApp(

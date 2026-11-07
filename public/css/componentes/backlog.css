@@ -1,4 +1,3 @@
-
 /* ==========================================================
    BACKLOG.CSS — Estilos propios del Product Backlog
    Mantiene la identidad visual de AgileDesk.
@@ -24,6 +23,46 @@
   gap: var(--espacio-4);
 }
 
+/* Encabezado: insignias con los totales */
+.bl-encabezado__insignias {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Aviso de borrador: botones de acción */
+.bl-borrador__acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Buscador de historias */
+.bl-buscador {
+  margin-bottom: 1.5rem;
+}
+
+.bl-buscador .grupo-formulario {
+  margin-bottom: 0;
+}
+
+/* Disposición principal: lista priorizada + detalle */
+.bl-disposicion {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Título de la lista priorizada */
+#titulo-lista {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--texto);
+}
+
 /* Lista priorizada */
 #lista {
   list-style: none;
@@ -31,7 +70,18 @@
   margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+}
+
+/* Resumen al pie de la lista */
+#resumen {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+  display: flex;
+  gap: 16px;
+  color: var(--texto-suave);
+  font-size: 13px;
 }
 
 .bl-historia {
@@ -127,17 +177,13 @@
   border: 1px solid var(--epica, #d9c9fa);
   border-radius: 999px;
 
-  background: color-mix(
-    in srgb,
-    var(--epica, #7854dc) 12%,
-    white
-  );
+  background: color-mix(in srgb,
+      var(--epica, #7854dc) 12%,
+      white);
 
-  color: color-mix(
-    in srgb,
-    var(--epica, #7854dc) 75%,
-    black
-  );
+  color: color-mix(in srgb,
+      var(--epica, #7854dc) 75%,
+      black);
 
   font-size: 12px;
   font-weight: 500;
@@ -351,8 +397,8 @@
     justify-content: flex-end;
   }
 
-  .principal > div[style*="grid-template-columns: 2fr 1fr"] {
-    grid-template-columns: minmax(0, 1fr) !important;
+  .bl-disposicion {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .bl-detalle__acciones {
@@ -362,6 +408,25 @@
 
 #formulario-historia .grupo-formulario {
   margin-bottom: 0;
+}
+
+/* Bloque "Descripción" del formulario de historia */
+.bl-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.bl-bloque__titulo {
+  padding: 0 6px;
+  color: var(--texto);
+}
+
+/* Fila de dos columnas (puntos / prioridad) del formulario */
+.bl-fila-doble {
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 /* Mantener el encabezado y los botones visibles */
@@ -474,10 +539,10 @@
 }
 
 /* Alinear título y descripción */
-#dialogo-eliminar .bl-confirmacion__contenido > h2,
-#dialogo-eliminar .bl-confirmacion__contenido > p,
-#dialogo-devolver .bl-confirmacion__contenido > h2,
-#dialogo-devolver .bl-confirmacion__contenido > p {
+#dialogo-eliminar .bl-confirmacion__contenido>h2,
+#dialogo-eliminar .bl-confirmacion__contenido>p,
+#dialogo-devolver .bl-confirmacion__contenido>h2,
+#dialogo-devolver .bl-confirmacion__contenido>p {
   margin-left: 0;
   margin-right: 0;
 }

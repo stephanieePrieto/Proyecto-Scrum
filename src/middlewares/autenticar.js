@@ -49,6 +49,11 @@ export const autenticar = asyncHandler(async (req, res, next) => {
     return next(new ErrorApp('Token inválido o expirado.', 401));
   }
 
+  // Los tokens de sesión no llevan tipo; el temporal de 2FA sí y solo sirve para completar la verificación
+  if (decodificado.tipo) {
+    return next(new ErrorApp('Token no válido como sesión. Completa la verificación en dos pasos.', 401));
+  }
+
   // Los tokens emitidos antes del control de sesiones no traen sid y ya no se aceptan
   if (!decodificado.sid) {
     return next(errorDeSesion('Sesión no válida. Inicia sesión de nuevo.', 'SESION_INVALIDA'));

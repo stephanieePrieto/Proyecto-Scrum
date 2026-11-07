@@ -4,7 +4,7 @@
  * Siguen la misma convención que backlog y dashboard: ?proyecto=ID, el último proyecto usado
  * (localStorage "proyectoActivo") o el primero disponible.
  */
-import { api } from '/js/core/api.js';
+import { api } from '../../core/api.js';
 
 /**
  * Elegir el proyecto con el que trabaja la pantalla.

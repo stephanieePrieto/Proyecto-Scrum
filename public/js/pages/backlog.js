@@ -1098,7 +1098,7 @@ async function iniciar() {
   const { id, proyecto } = await resolverProyecto();
   if (!id) {
     el.lista.innerHTML = '';
-    el.estadoLista.innerHTML = '<div class="aviso--vacio bl-vacio"><h3 class="aviso__titulo">No hay un proyecto seleccionado</h3><p class="aviso__texto">Elige un proyecto desde el Dashboard.</p><a class="boton boton--primario" href="/pages/dashboard.html">Ir al Dashboard</a></div>';
+    el.estadoLista.innerHTML = '<div class="aviso--vacio bl-vacio"><h3 class="aviso__titulo">No hay un proyecto seleccionado</h3><p class="aviso__texto">Elige un proyecto desde el Dashboard.</p><a class="boton boton--primario" href="pages/dashboard.html">Ir al Dashboard</a></div>';
     $('subtitulo').textContent = 'Sin proyecto';
     return;
   }

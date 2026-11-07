@@ -65,6 +65,54 @@
             </div>
         </main>
     </div>
+
+    <!-- Modal de verificación 2FA -->
+    <div id="modal-2fa" class="verificacion-2fa" role="dialog" aria-labelledby="modal-2fa-titulo" aria-modal="true"
+        hidden>
+        <div class="verificacion-2fa__fondo" id="modal-2fa-fondo"></div>
+        <div class="tarjeta tarjeta-auth verificacion-2fa__contenido" id="modal-2fa-contenido">
+            <div class="auth-encabezado">
+                <h2 id="modal-2fa-titulo" class="titulo-pagina">Verificación en Dos Pasos</h2>
+                <p class="subtitulo-pagina">Ingresa el código generado por tu aplicación de autenticación</p>
+            </div>
+
+            <div id="mensaje-2fa-alerta" class="alerta" role="status" aria-live="polite" hidden></div>
+
+            <div id="metodos-2fa" style="margin-bottom: 1.5rem;">
+                <!-- Los métodos se generan dinámicamente -->
+            </div>
+
+            <form id="form-2fa">
+                <div class="form-group">
+                    <label for="codigo-2fa" class="form-label">Código de verificación</label>
+                    <input type="text" id="codigo-2fa" name="codigo" class="form-input" autocomplete="one-time-code"
+                        inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label class="form-check">
+                        <input type="checkbox" id="confiar-dispositivo" name="confiarDispositivo">
+                        <span>Confiar en este dispositivo durante 14 días</span>
+                    </label>
+                    <div id="nombre-dispositivo-container" style="display: none; margin-top: 0.5rem;">
+                        <input type="text" id="nombre-dispositivo" name="nombreDispositivo" class="form-input"
+                            placeholder="Mi PC, Laptop, etc.">
+                    </div>
+                </div>
+
+                <button type="submit" class="boton boton--primario boton--bloque">Verificar y Acceder</button>
+                <button type="button" class="boton boton--secundario boton--bloque" id="btn-cancelar-2fa"
+                    style="margin-top: 0.5rem;">Cancelar</button>
+            </form>
+
+            <div id="opciones-2fa" style="margin-top: 1rem; text-align: center;">
+                <p style="color: #666;">
+                    <a href="#" id="btn-codigo-respaldo" class="enlace">Usar código de respaldo</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="../js/pages/login.js"></script>
 </body>
 

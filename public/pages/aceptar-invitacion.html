@@ -1,6 +1,7 @@
 <!-- Responsable: Citlaly - HU-39, HU-57: pantalla para aceptar una invitacion, definir contrasena y aceptar el aviso de privacidad. Usa el CSS compartido auth.css -->
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,35 +11,15 @@
     <link rel="stylesheet" href="../css/componentes/tarjetas.css">
     <link rel="stylesheet" href="../css/componentes/botones.css">
     <link rel="stylesheet" href="../css/componentes/avisos.css">
-    <style>
-        .contenedor-centrado {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            background-color: var(--fondo);
-        }
-        .tarjeta-invitacion {
-            max-width: 480px;
-            width: 100%;
-            text-align: center;
-        }
-        .acciones-invitacion {
-            margin-top: 24px;
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
-    </style>
 </head>
+
 <body>
     <div class="contenedor-centrado">
         <main class="tarjeta tarjeta-invitacion">
-            <h1 style="margin-bottom: 16px;">Unirte a ScrumFlow</h1>
+            <h1 class="titulo-invitacion">Unirte a ScrumFlow</h1>
             <div id="mensaje" class="aviso" hidden></div>
             <div id="contenido">
-                <p style="margin-bottom: 24px;">Estás a punto de unirte a un equipo o proyecto en ScrumFlow.</p>
+                <p class="texto-invitacion">Estás a punto de unirte a un equipo o proyecto en ScrumFlow.</p>
                 <div class="acciones-invitacion">
                     <button id="btnRechazar" class="boton boton--secundario">Rechazar</button>
                     <button id="btnAceptar" class="boton boton--primario">Aceptar Invitación</button>
@@ -46,6 +27,7 @@
             </div>
         </main>
     </div>
-    <script type="module" src="/js/pages/aceptar-invitacion.js"></script>
+    <script type="module" src="../js/pages/aceptar-invitacion.js"></script>
 </body>
+
 </html>

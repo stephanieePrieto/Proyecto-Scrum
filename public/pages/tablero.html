@@ -20,66 +20,63 @@
 <body>
     <!-- Contenedor principal del Layout -->
 
-    <!-- Área de trabajo central -->
-    <main class="main-content">
+    <!-- Contenedor para la navbar inyectada por JS -->
+    <header class="barra-superior" id="barra-superior"></header>
 
-        <!-- Contenedor para la navbar inyectada por JS -->
-        <header class="barra-superior" id="barra-superior"></header>
+    <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
 
-        <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);">
+        <!--ESTADO VACÍO (Oculto por defecto) -->
+        <div id="tablero-vacio" class="estado-vacio text-center"
+            style="display: none; padding: 4rem 2rem; margin: auto;">
+            <div class="icono-vacio">
+                <i class="fas fa-columns fa-3x" style="color: #ccc;"></i>
+            </div>
+            <h3 style="margin-top: 1rem; font-size: 1.5rem; font-weight: 600;">Aún no tienes un proyecto activo</h3>
+            <p style="color: var(--texto-suave); margin-top: 0.5rem;">Selecciona o crea un proyecto desde tu
+                Dashboard para empezar a organizar el trabajo.</p>
+            <a href="dashboard.html" class="btn btn--primary" style="margin-top: 1.5rem; display: inline-block;">Ir al
+                Dashboard</a>
+        </div>
 
-            <!--ESTADO VACÍO (Oculto por defecto) -->
-            <div id="tablero-vacio" class="estado-vacio text-center"
-                style="display: none; padding: 4rem 2rem; margin: auto;">
-                <div class="icono-vacio">
-                    <i class="fas fa-columns fa-3x" style="color: #ccc;"></i>
+        <!--CONTENEDOR DEL TABLERO-->
+        <div id="contenedor-tablero" style="display: flex; flex-direction: column; height: 100%;">
+
+            <!-- Encabezado del Sprint -->
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-4);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h1 class="titulo-pagina" id="sprint-nombre">Cargando sprint...</h1>
+                    <span class="insignia insignia--exito" id="sprint-estado">Activo</span>
+                    <span style="font-size: 13px; color: var(--texto-suave);" id="sprint-dias-restantes">Quedan X
+                        días</span>
                 </div>
-                <h3 style="margin-top: 1rem; font-size: 1.5rem; font-weight: 600;">Aún no tienes un proyecto activo</h3>
-                <p style="color: var(--texto-suave); margin-top: 0.5rem;">Selecciona o crea un proyecto desde tu
-                    Dashboard para empezar a organizar el trabajo.</p>
-                <a href="/pages/dashboard.html" class="btn btn--primary"
-                    style="margin-top: 1.5rem; display: inline-block;">Ir al Dashboard</a>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn--primary" id="btn-nueva-tarea">+ Tarea</button>
+                    <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
+                </div>
             </div>
 
-            <!--CONTENEDOR DEL TABLERO-->
-            <div id="contenedor-tablero" style="display: flex; flex-direction: column; height: 100%;">
+            <!-- Barra de Filtros -->
+            <div class="tarjeta"
+                style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
+                <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
+                <select id="filtro-persona" class="form-select" style="width: auto;">
+                    <option value="">Persona: Todos</option>
+                </select>
+                <select id="filtro-epica" class="form-select" style="width: auto;">
+                    <option value="">Épica: Todas</option>
+                </select>
+            </div>
 
-                <!-- Encabezado del Sprint -->
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-4);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <h1 class="titulo-pagina" id="sprint-nombre">Cargando sprint...</h1>
-                        <span class="insignia insignia--exito" id="sprint-estado">Activo</span>
-                        <span style="font-size: 13px; color: var(--texto-suave);" id="sprint-dias-restantes">Quedan X
-                            días</span>
-                    </div>
+            <!-- Contenedor de las Columnas -->
+            <div id="tablero-contenedor"
+                style="flex: 1; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;">
+                <!-- Columnas inyectadas desde JavaScript -->
+            </div>
 
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn--primary" id="btn-nueva-tarea">+ Tarea</button>
-                        <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
-                    </div>
-                </div>
-
-                <!-- Barra de Filtros -->
-                <div class="tarjeta"
-                    style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
-                    <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
-                    <select id="filtro-persona" class="form-select" style="width: auto;">
-                        <option value="">Persona: Todos</option>
-                    </select>
-                    <select id="filtro-epica" class="form-select" style="width: auto;">
-                        <option value="">Épica: Todas</option>
-                    </select>
-                </div>
-
-                <!-- Contenedor de las Columnas -->
-                <div id="tablero-contenedor"
-                    style="flex: 1; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;">
-                    <!-- Columnas inyectadas desde JavaScript -->
-                </div>
-
-            </div> <!-- Fin contenedor-tablero -->
-        </div>
+        </div> <!-- Fin contenedor-tablero -->
+    </div>
     </main>
 
     <!-- Modal de Configuración de Columnas -->
@@ -99,7 +96,6 @@
             </div>
         </div>
     </div>
-    </dialog>
 
     <script type="module" src="../js/pages/tablero.js"></script>
 

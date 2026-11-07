@@ -1,1 +1,294 @@
-<!-- Responsable: Citlaly - HU-45, HU-57: pantalla de perfil: foto, zona horaria, preferencias y eliminar cuenta. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!DOCTYPE html>
+<!-- HU-45, HU-57: Perfil de usuario con seccion de Seguridad y 2FA -->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Perfil · ScrumFlow</title>
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/notificaciones.css">
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/modales.css" />
+  <link rel="stylesheet" href="/css/componentes/2fa.css" />
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="perfil-contenedor">
+      <!-- Columna principal -->
+      <div class="perfil-principal">
+        <!-- Encabezado del perfil -->
+        <div class="perfil-encabezado">
+          <div class="perfil-usuario">
+            <div class="perfil-avatar" id="perfil-avatar">?</div>
+            <div class="perfil-info">
+              <h1 id="perfil-nombre">Cargando...</h1>
+              <p id="perfil-correo">Cargando...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contenido de cada seccion -->
+        <div id="seccion-perfil" class="perfil-seccion activa">
+          <div class="seccion-encabezado">
+            <h2>Información del perfil</h2>
+            <p>Gestiona tu información personal básica</p>
+          </div>
+          <div id="contenido-perfil">
+            <p>Contenido de informacion del perfil...</p>
+          </div>
+        </div>
+
+        <div id="seccion-seguridad" class="perfil-seccion">
+          <div class="seccion-encabezado">
+            <h2>Seguridad</h2>
+            <p>Configura la autenticación en dos pasos y otras opciones de seguridad</p>
+          </div>
+          <div id="contenido-seguridad">
+            <!-- Este contenido se carga desde perfil.js -->
+          </div>
+        </div>
+
+        <div id="seccion-notificaciones" class="perfil-seccion">
+          <div class="seccion-encabezado">
+            <h2>Notificaciones</h2>
+            <p>Configura tus preferencias de notificaciones</p>
+          </div>
+          <div id="contenido-notificaciones">
+            <p>Contenido de notificaciones...</p>
+          </div>
+        </div>
+
+        <div id="seccion-preferencias" class="perfil-seccion">
+          <div class="seccion-encabezado">
+            <h2>Preferencias</h2>
+            <p>Configura tus preferencias de la aplicación</p>
+          </div>
+          <div id="contenido-preferencias">
+            <p>Contenido de preferencias...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra lateral de navegacion -->
+      <aside class="perfil-navegacion">
+        <nav class="perfil-menu" aria-label="Navegacion del perfil">
+          <h2>Configuracion</h2>
+          <ul>
+            <li>
+              <a href="#perfil" class="perfil-enlace activo" data-seccion="perfil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Perfil
+              </a>
+            </li>
+            <li>
+              <a href="#seguridad" class="perfil-enlace" data-seccion="seguridad">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M12 12V5" />
+                  <path d="M12 12v7" />
+                </svg>
+                Seguridad
+              </a>
+            </li>
+            <li>
+              <a href="#notificaciones" class="perfil-enlace" data-seccion="notificaciones">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                Notificaciones
+              </a>
+            </li>
+            <li>
+              <a href="#preferencias" class="perfil-enlace" data-seccion="preferencias">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 21v-7" />
+                  <path d="M4 7V4" />
+                  <path d="M4 4a2 2 0 0 1 2-2h1" />
+                  <path d="M12 21v-7" />
+                  <path d="M12 7V4" />
+                  <path d="M12 4a2 2 0 0 1 2-2h1" />
+                  <path d="M20 21v-7" />
+                  <path d="M20 7V4" />
+                  <path d="M20 4a2 2 0 0 0-2-2h-1" />
+                  <path d="M16 11a2 2 0 0 1 2 2" />
+                  <path d="M12 11a2 2 0 0 1 2 2" />
+                  <path d="M8 11a2 2 0 0 1 2 2" />
+                </svg>
+                Preferencias
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Modal para configuracion de TOTP -->
+  <div class="modal-overlay modal--hidden" id="modal-totp-overlay">
+    <div class="modal-card" id="modal-totp" role="dialog" aria-labelledby="modal-totp-titulo" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modal-totp-titulo" class="modal-2fa__titulo">Configurar Google Authenticator</h2>
+      </div>
+      <div class="modal-body">
+        <p id="modal-totp-descripcion" class="modal-2fa__texto">
+          Escanea este código QR con tu aplicación de autenticación (Google Authenticator, Authy, etc.)
+        </p>
+
+        <div id="modal-totp-qr">
+          <!-- QR se inserta aqui -->
+        </div>
+
+        <p class="modal-2fa__nota">
+          O ingresa manualmente este código secreto:
+        </p>
+
+        <div id="modal-totp-secreto">
+          <!-- Secreto se inserta aqui -->
+        </div>
+
+        <div class="form-group">
+          <label for="codigo-totp-verificar" class="form-label">Ingresa el código de 6 dígitos generado por tu
+            aplicación</label>
+          <input type="text" id="codigo-totp-verificar" class="form-input" autocomplete="one-time-code"
+            inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="boton boton--secundario" type="button" id="btn-cancelar-totp">Cancelar</button>
+        <button class="boton boton--primario" type="button" id="btn-confirmar-totp">Confirmar y activar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para codigos de respaldo -->
+  <div class="modal-overlay modal--hidden" id="modal-respaldo-overlay">
+    <div class="modal-card" id="modal-respaldo" role="dialog" aria-labelledby="modal-respaldo-titulo" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modal-respaldo-titulo" class="modal-2fa__titulo">Códigos de Respaldo</h2>
+      </div>
+      <div class="modal-body">
+        <p class="modal-2fa__texto">
+          Guarda estos códigos en un lugar seguro. Cada código solo puede usarse una vez.
+        </p>
+
+        <div id="modal-respaldo-codigos">
+          <!-- Codigos se insertan aqui -->
+        </div>
+
+        <div class="aviso aviso--advertencia modal-2fa__aviso">
+          <p><strong>Solo los verás ahora:</strong> al cerrar esta ventana no podrás consultarlos
+            de nuevo. Si los pierdes, tendrás que generar códigos nuevos.</p>
+        </div>
+
+        <div class="aviso aviso--advertencia modal-2fa__aviso modal-2fa__aviso--final">
+          <p><strong>Importante:</strong> Si generas nuevos códigos, los anteriores dejarán de
+            funcionar.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="boton boton--secundario" type="button" id="btn-copiar-respaldo">Copiar códigos</button>
+        <button class="boton boton--secundario" type="button" id="btn-descargar-respaldo">Descargar .txt</button>
+        <button class="boton boton--primario" type="button" id="btn-cerrar-respaldo">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para confirmar accion -->
+  <div class="modal-overlay modal--hidden" id="modal-confirmar-overlay">
+    <div class="modal-card" id="modal-confirmar" role="dialog" aria-labelledby="modal-confirmar-titulo"
+      aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modal-confirmar-titulo" class="modal-2fa__titulo">Confirmar acción</h2>
+      </div>
+      <div class="modal-body">
+        <p id="modal-confirmar-mensaje">¿Estás seguro de que quieres
+          realizar esta acción?</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="boton boton--secundario" type="button" id="btn-cancelar-confirmar">Cancelar</button>
+        <button class="boton boton--primario" type="button" id="btn-aceptar-confirmar">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para verificar el codigo enviado por correo -->
+  <div class="modal-overlay modal--hidden" id="modal-correo-overlay">
+    <div class="modal-card" id="modal-correo" role="dialog" aria-labelledby="modal-correo-titulo" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modal-correo-titulo" class="modal-2fa__titulo">Verificar correo</h2>
+      </div>
+      <div class="modal-body">
+        <p class="modal-2fa__texto">
+          Te enviamos un código de 6 dígitos a tu correo. Ingrésalo para terminar de activar este método.
+        </p>
+
+        <div class="form-group">
+          <label for="codigo-correo-verificar" class="form-label">Código recibido por correo</label>
+          <input type="text" id="codigo-correo-verificar" class="form-input" autocomplete="one-time-code"
+            inputmode="numeric" maxlength="6" placeholder="123456">
+        </div>
+
+        <p id="modal-correo-error" role="alert"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="boton boton--secundario" type="button" id="btn-cancelar-correo">Cancelar</button>
+        <button class="boton boton--primario" type="button" id="btn-confirmar-correo">Verificar y activar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para pedir la contrasena -->
+  <div class="modal-overlay modal--hidden" id="modal-password-overlay">
+    <div class="modal-card" id="modal-password" role="dialog" aria-labelledby="modal-password-titulo" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modal-password-titulo" class="modal-2fa__titulo">Confirma tu contraseña</h2>
+      </div>
+      <div class="modal-body">
+        <p id="modal-password-mensaje" class="modal-2fa__texto"></p>
+
+        <div class="form-group">
+          <label for="modal-password-input" class="form-label">Contraseña</label>
+          <input type="password" id="modal-password-input" class="form-input" autocomplete="current-password">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="boton boton--secundario" type="button" id="btn-cancelar-password">Cancelar</button>
+        <button class="boton boton--primario" type="button" id="btn-aceptar-password">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { montarBarraSuperior } from '../js/core/layout.js';
+    montarBarraSuperior();
+  </script>
+  <script type="module" src="../js/pages/perfil.js"></script>
+</body>
+
+</html>

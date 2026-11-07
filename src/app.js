@@ -1,6 +1,7 @@
 /**
  * @file app.js
  * @description Configuración central de Express con ES Modules y middlewares de seguridad integrados (XSS y CSRF).
+ *
  * @author Citlaly Morales Viveros
  */
 
@@ -43,7 +44,6 @@ export function cabecerasSeguridad(req, res, next) {
   // - Google Fonts (fuentes)
   // - Font Awesome (iconos)
   // - Estilos y scripts locales
-  // - Report-only para desarrollo (puedes cambiar a enforce en producción)
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
@@ -59,7 +59,7 @@ export function cabecerasSeguridad(req, res, next) {
     "frame-ancestors 'none'"
   );
 
-  // Otras cabeceras de seguridad
+  // Otras cabeceras de seguridad (Helmet, CSP restrictiva, HSTS)
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -76,7 +76,7 @@ export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
 
-  // Aplicar cabeceras de seguridad HTTP
+  // Aplicar cabeceras de seguridad HTTP (Helmet, CSP restrictiva, HSTS)
   app.use(cabecerasSeguridad);
   app.use(cors());
 
@@ -135,6 +135,18 @@ export async function crearApp() {
   }
 
   app.use('/api', noEncontrado);
+
+  /**
+   * HU-43: Responder con la página 404.html (y estado 404) a cualquier otra ruta GET del frontend.
+   * Se omiten las rutas con extensión distinta de .html (css, js, imágenes) para no devolver HTML
+   * donde el navegador espera otro tipo de archivo.
+   */
+  app.use((req, res, next) => {
+    const extension = path.extname(req.path);
+    if (req.method !== 'GET' || (extension && extension !== '.html')) return next();
+    res.status(404).sendFile(path.join(carpetaPublica, 'pages', '404.html'));
+  });
+
   app.use(manejoErrores);
 
   return app;

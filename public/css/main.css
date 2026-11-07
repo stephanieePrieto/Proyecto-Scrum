@@ -1,16 +1,19 @@
 /* ==========================================================================
-   MAIN.CSS — PUNTO DE ENTRADA ÚNICO (TEMA MORADO)
+   MAIN.CSS — PUNTO DE ENTRADA ÚNICO (PALETA MINIMALISTA)
    ========================================================================== */
 @import url('base.css');
 @import url('layout.css');
+@import url('componentes/equipos.css');
 
-@import url('componentes/accesibilidad.css');
-@import url('componentes/avisos.css');
-@import url('componentes/botones.css');
-@import url('componentes/esqueletos.css');
-@import url('componentes/formularios.css');
-@import url('componentes/insignias.css');
-@import url('componentes/modales.css');
-@import url('componentes/notificaciones.css');
-@import url('componentes/responsive.css');
 @import url('componentes/tarjetas.css');
+@import url('componentes/botones.css');
+@import url('componentes/insignias.css');
+@import url('componentes/esqueletos.css');
+@import url('componentes/avisos.css');
+@import url('componentes/notificaciones.css');
+@import url('componentes/formularios.css');
+@import url('componentes/modales.css');
+
+/* Ajustes responsive y de accesibilidad al final para que prevalezcan */
+@import url('componentes/responsive.css');
+@import url('componentes/accesibilidad.css');

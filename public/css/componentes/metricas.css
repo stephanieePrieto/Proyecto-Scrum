@@ -1,12 +1,9 @@
-/**
- * @author Citlaly Morales Viveros (Cliente / Programadora XP)
- *
- * Dashboard y métricas con la paleta minimalista: barras en carbón, línea dorada y avisos suaves.
- */
 /* 
    METRICAS.CSS — Estilos del dashboard de KPIs, la gráfica Velocity
    y las barras de avance 
-   @author Dana */
+   @author Dana Carmona Santamaria
+   @author Citlaly Morales Viveros
+*/
 .principal {
   width: 100%;
   max-width: var(--ancho-max);
@@ -138,6 +135,14 @@
   padding: var(--espacio-6);
   max-width: 440px;
   width: calc(100% - 32px);
+  display: revert;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .proy-dialogo-dash::backdrop {

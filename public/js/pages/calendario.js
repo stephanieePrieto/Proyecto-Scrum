@@ -9,11 +9,11 @@
  *
  * @author Citlaly Morales Viveros (Cliente / Programadora XP)
  */
-import { api } from '/js/core/api.js';
-import { montarBarraSuperior } from '/js/core/layout.js';
-import { escaparHtml } from '/js/core/utils.js';
-import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '/js/pages/ceremonias/proyecto.js';
-import { cargarPermisos, escucharCambiosDeRol } from '/js/core/permisos-ui.js';
+import { api } from '../core/api.js';
+import { montarBarraSuperior } from '../core/layout.js';
+import { escaparHtml } from '../core/utils.js';
+import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '../pages/ceremonias/proyecto.js';
+import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
 

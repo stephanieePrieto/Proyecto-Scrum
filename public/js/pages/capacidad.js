@@ -8,10 +8,10 @@
  * @author Diego Rafael Jimenez Trujano
  * @author Citlaly Morales Viveros
  */
-import { api } from '/js/core/api.js';
-import { montarBarraSuperior } from '/js/core/layout.js';
-import { escaparHtml, iniciales, pluralizar } from '/js/core/utils.js';
-import { cargarPermisos } from '/js/core/permisos-ui.js';
+import { api } from '../core/api.js';
+import { montarBarraSuperior } from '../core/layout.js';
+import { escaparHtml, iniciales, pluralizar } from '../core/utils.js';
+import { cargarPermisos } from '../core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
 montarBarraSuperior();

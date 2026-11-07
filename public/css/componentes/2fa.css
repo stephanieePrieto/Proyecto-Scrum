@@ -1,0 +1,237 @@
+/**
+ * @file 2fa.css
+ * @description Estilos para la autenticacion en dos pasos (2FA)
+ * @author Citlaly Morales Viveros
+ */
+
+/* Contenedor de la seccion de 2FA */
+.tfa-contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Tarjeta de seguridad */
+.tfa-estado {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Metodos de autenticacion */
+.tfa-metodos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* Contenedor de QR */
+.tfa-qr {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.tfa-qr img {
+  width: 200px;
+  height: 200px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+/* Secreto TOTP */
+.tfa-secreto {
+  background: var(--color-fondo-terciario);
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  word-break: break-all;
+}
+
+/* Codigo de verificacion */
+.tfa-codigo {
+  font-family: monospace;
+  font-size: 1.5rem;
+  letter-spacing: 0.3rem;
+  text-align: center;
+  padding: 1rem;
+  background: var(--color-fondo-terciario);
+  border-radius: 8px;
+}
+
+/* Botones de accion en 2FA */
+.tfa-acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+/* Lista de dispositivos */
+.tfa-dispositivos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tfa-dispositivo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--color-fondo-terciario);
+  border-radius: 6px;
+}
+
+.tfa-dispositivo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tfa-dispositivo-nombre {
+  font-weight: 500;
+  color: var(--color-texto);
+}
+
+.tfa-dispositivo-ip {
+  font-size: 0.8rem;
+  color: var(--color-texto-secundario);
+}
+
+.tfa-dispositivo-expira {
+  font-size: 0.8rem;
+  color: var(--color-texto-secundario);
+}
+
+/* Codigo de respaldo */
+.tfa-respaldo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.tfa-respaldo-codigo {
+  background: var(--color-fondo-terciario);
+  padding: 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+.tfa-respaldo-codigo code {
+  font-size: 1.1rem;
+  letter-spacing: 0.2rem;
+  display: block;
+}
+
+.tfa-respaldo-usado {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Contador de intentos */
+.tfa-intentos {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Bloqueo temporal */
+.tfa-bloqueado {
+  background: var(--color-peligro-suave);
+  border: 1px solid var(--color-peligro);
+  border-radius: 6px;
+  padding: 1rem;
+  color: var(--color-peligro);
+  font-size: 0.9rem;
+}
+
+/* Responsive para 2FA */
+@media (max-width: 768px) {
+  .tfa-metodos {
+    grid-template-columns: 1fr;
+  }
+
+  .tfa-respaldo {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==========================================================================
+   Modales de la página de perfil (TOTP, códigos de respaldo, correo,
+   confirmación y contraseña)
+   ========================================================================== */
+
+/* Título de cada modal */
+.modal-2fa__titulo {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+/* Texto descriptivo de los modales */
+.modal-2fa__texto {
+  color: var(--color-texto-secundario);
+  margin: 0 0 1.5rem 0;
+}
+
+/* Nota previa al secreto manual */
+.modal-2fa__nota {
+  font-size: 0.875rem;
+  color: var(--color-texto-secundario);
+  margin-bottom: 1rem;
+}
+
+/* Avisos de los códigos de respaldo */
+.modal-2fa__aviso {
+  margin-bottom: 1rem;
+}
+
+.modal-2fa__aviso--final {
+  margin-bottom: 0;
+}
+
+.modal-2fa__aviso p {
+  margin: 0;
+}
+
+/* Modal TOTP: código QR y secreto manual */
+#modal-totp-qr {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+#modal-totp-secreto {
+  background: var(--color-fondo-terciario);
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  word-break: break-all;
+}
+
+/* Modal de códigos de respaldo: rejilla de códigos */
+#modal-respaldo-codigos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Modal de confirmación: mensaje */
+#modal-confirmar-mensaje {
+  color: var(--color-texto);
+  margin: 0;
+}
+
+/* Modal de verificación por correo: mensaje de error */
+#modal-correo-error {
+  color: var(--color-error, #b00020);
+  margin: 0.5rem 0 0 0;
+  min-height: 1.25rem;
+}

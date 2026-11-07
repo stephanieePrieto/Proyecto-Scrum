@@ -622,7 +622,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
 
   function pintarVacio(archivados) {
     const crear = !archivados
-      ? '<a class="boton boton--primario" href="/pages/configuracion-proyecto.html">Crear el primer proyecto</a>' : '';
+      ? '<a class="boton boton--primario" href="pages/configuracion-proyecto.html">Crear el primer proyecto</a>' : '';
     lista.innerHTML = `<div class="aviso aviso--vacio proyectos__vacio">
       <h3 class="aviso__titulo">${archivados ? 'No hay proyectos archivados' : 'Aún no hay proyectos'}</h3>
       <p class="aviso__texto">${archivados ? 'Los proyectos que archives aparecerán aquí con todo su historial.'
@@ -639,12 +639,12 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
 
     const acciones = [
       `<a class="boton boton--secundario boton--pequeno"
-          href="/pages/dashboard.html?proyecto=${id}"
+          href="pages/dashboard.html?proyecto=${id}"
           data-ver="${id}">Ver</a>`,
 
       p.puede_gestionar
         ? `<a class="boton boton--secundario boton--pequeno"
-              href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>`
+              href="pages/configuracion-proyecto.html?id=${id}">Editar</a>`
         : `<button class="boton boton--secundario boton--pequeno"
               type="button" disabled
               title="No tienes permiso para editar este proyecto">Editar</button>`,

@@ -1,8 +1,12 @@
 /**
- * @author Citlaly Morales Viveros (Cliente / Programadora XP)
+ * @author Citlaly Morales Viveros
  *
  * Tokens y reseteo global con la paleta minimalista: negro carbón, beige arena y blanco hueso.
  */
+/* Fuente Inter: se carga aquí una sola vez para que todas las páginas usen la misma tipografía.
+   Los @import deben ir antes de cualquier otra regla del archivo. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
 /* ==========================================================================
    01. BASE.CSS — Tokens, variables y reseteo global (Tema Morado)
    ========================================================================== */

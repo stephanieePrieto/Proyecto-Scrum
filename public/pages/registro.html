@@ -18,30 +18,6 @@
     <link rel="stylesheet" href="../css/componentes/formularios.css">
     <link rel="stylesheet" href="../css/componentes/tarjetas.css">
     <link rel="stylesheet" href="../css/componentes/avisos.css">
-    <style>
-        /* Estilos rápidos para la lista de validación de contraseña */
-        .requisitos-password {
-            list-style: none;
-            padding: 0;
-            margin: 6px 0 0 0;
-            font-size: 0.8rem;
-        }
-        .requisitos-password li {
-            color: #d9534f; /* Rojo por defecto */
-            margin-bottom: 2px;
-            transition: color 0.3s ease;
-        }
-        .requisitos-password li.valido {
-            color: #28a745; /* Verde cuando cumple */
-        }
-        .requisitos-password li.valido::before {
-            content: "✓ ";
-            font-weight: bold;
-        }
-        .requisitos-password li:not(.valido)::before {
-            content: "• ";
-        }
-    </style>
 </head>
 
 <body>
@@ -69,7 +45,7 @@
                     <label for="password" class="form-label">Contraseña</label>
                     <input type="password" id="password" name="password" class="form-input" required
                         autocomplete="new-password">
-                    
+
                     <!-- Lista de requisitos visuales -->
                     <ul class="requisitos-password">
                         <li id="req-longitud">Mínimo 8 caracteres</li>

@@ -1,0 +1,123 @@
+/**
+ * @file auth.css
+ * @descripcion  Páginas de autenticación: inicio de sesión, recuperación y restablecimiento de contraseña, aceptar invitación, requisitos de contraseña y verificación en dos pasos.
+ * @author Citlaly Morales Viveros
+ */
+
+/* Páginas de autenticación: inicio de sesión, recuperación y restablecimiento de contraseña */
+.contenedor-auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background-color: var(--fondo-app);
+}
+
+.tarjeta-auth {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-encabezado {
+  text-align: center;
+  margin-bottom: var(--espacio-6);
+}
+
+.enlaces-auth {
+  margin-top: var(--espacio-6);
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.enlace {
+  color: var(--primario);
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}
+
+/* Aceptar invitación: contenedor centrado y tarjeta con las acciones */
+.contenedor-centrado {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: var(--fondo-app);
+}
+
+.tarjeta-invitacion {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.titulo-invitacion {
+  margin-bottom: 16px;
+}
+
+.texto-invitacion {
+  margin-bottom: 24px;
+}
+
+.acciones-invitacion {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Registro: lista de validación de contraseña */
+.requisitos-password {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0 0;
+  font-size: 0.8rem;
+}
+
+.requisitos-password li {
+  color: #d9534f; /* Rojo por defecto */
+  margin-bottom: 2px;
+  transition: color 0.3s ease;
+}
+
+.requisitos-password li.valido {
+  color: #28a745; /* Verde cuando cumple */
+}
+
+.requisitos-password li.valido::before {
+  content: "✓ ";
+  font-weight: bold;
+}
+
+.requisitos-password li:not(.valido)::before {
+  content: "• ";
+}
+
+/**
+ * Ventana de verificación en dos pasos del inicio de sesión: capa a pantalla completa
+ * con el fondo oscurecido y la tarjeta centrada encima. Si la tarjeta no cabe en pantallas
+ * bajas, la capa se desplaza en lugar de recortarla.
+ */
+.verificacion-2fa {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.verificacion-2fa__fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 40, 40, 0.55);
+}
+
+.verificacion-2fa__contenido {
+  position: relative;
+  margin: auto;
+  box-shadow: 0 10px 30px rgba(40, 40, 40, 0.25);
+}

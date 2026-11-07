@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!-- HU-35: Dashboard de KPIs y Proyectos. -->
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -9,30 +10,28 @@
   <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <!-- Estilos globales unificados -->
-  <link rel="stylesheet" href="/css/base.css" />
-  <link rel="stylesheet" href="/css/layout.css" />
-  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
-  <link rel="stylesheet" href="/css/componentes/botones.css" />
-  <link rel="stylesheet" href="/css/componentes/insignias.css" />
-  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
-  <link rel="stylesheet" href="/css/componentes/avisos.css" />
-  <link rel="stylesheet" href="/css/componentes/notificaciones.css">
-  <link rel="stylesheet" href="/css/componentes/formularios.css" />
-  <link rel="stylesheet" href="/css/componentes/modales.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/notificaciones.css">
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/modales.css" />
 
   <!-- Estilos de KPIs del dashboard (tarjetas, barras de progreso y bloque de DoD) -->
-  <link rel="stylesheet" href="/css/componentes/metricas.css" />
-  <link rel="stylesheet" href="/css/componentes/dashboard.css" />
+  <link rel="stylesheet" href="../css/componentes/metricas.css" />
+  <link rel="stylesheet" href="../css/componentes/dashboard.css" />
 
-  <link rel="stylesheet" href="/css/componentes/responsive.css" />
-  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
 
@@ -42,7 +41,8 @@
         <h1 id="proyectos-titulo" class="titulo-pagina">Proyectos</h1>
         <div class="proyectos__acciones">
           <label class="proyectos__archivados"><input type="checkbox" id="ver-archivados" /> Ver archivados</label>
-          <a id="btn-nuevo-proyecto" class="boton boton--primario btn btn--primary" href="/pages/configuracion-proyecto.html" hidden>Nuevo proyecto</a>
+          <a id="btn-nuevo-proyecto" class="boton boton--primario btn btn--primary" href="configuracion-proyecto.html"
+            hidden>Nuevo proyecto</a>
         </div>
       </div>
       <p id="proyectos-error" class="proyectos__error" role="alert" hidden></p>
@@ -59,55 +59,57 @@
 
     <section id="aviso-vacio" class="aviso aviso--vacio" hidden>
       <div class="aviso__icono" aria-hidden="true">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18" />
+          <path d="M7 15l4-4 3 3 5-6" />
+        </svg>
       </div>
       <h2 class="aviso__titulo">Aún no hay datos para mostrar</h2>
       <p class="aviso__texto">Crea tu primer sprint y agrega historias al backlog. Los indicadores aparecerán aquí.</p>
-      <a class="boton boton--primario btn btn--primary" href="/pages/backlog.html">Ir al backlog</a>
+      <a class="boton boton--primario btn btn--primary" href="backlog.html">Ir al backlog</a>
     </section>
 
     <section id="kpi-grilla" class="kpi-grilla" aria-live="polite" aria-label="Indicadores del proyecto"></section>
   </main>
 
-  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash modal-card" aria-labelledby="archivar-proyecto-titulo" style="display: revert; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;">    <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
+  <dialog id="dialogo-archivar-proyecto" class="proy-dialogo-dash modal-card"
+    aria-labelledby="archivar-proyecto-titulo">
+    <h2 id="archivar-proyecto-titulo">¿Archivar este proyecto?</h2>
     <p><span id="archivar-proyecto-nombre"></span> saldrá de la lista pero conservará todo su historial.</p>
     <div class="proy-dialogo-dash__acciones modal-footer">
-      <button class="boton boton--secundario btn btn--secondary" type="button" id="archivar-proyecto-cancelar">Cancelar</button>
-      <button class="boton boton--primario btn btn--primary" type="button" id="archivar-proyecto-confirmar">Archivar proyecto</button>
+      <button class="boton boton--secundario btn btn--secondary" type="button"
+        id="archivar-proyecto-cancelar">Cancelar</button>
+      <button class="boton boton--primario btn btn--primary" type="button" id="archivar-proyecto-confirmar">Archivar
+        proyecto</button>
     </div>
   </dialog>
 
   <!-- Modal de información de las tarjetas KPI -->
-    <dialog id="dialogo-detalle-kpi"
-            class="modal-card modal-kpi"
-            aria-labelledby="detalle-kpi-titulo">
+  <dialog id="dialogo-detalle-kpi" class="modal-card modal-kpi" aria-labelledby="detalle-kpi-titulo">
 
-      <div class="modal-kpi__contenido">
-        <h2 id="detalle-kpi-titulo">Detalle del indicador</h2>
+    <div class="modal-kpi__contenido">
+      <h2 id="detalle-kpi-titulo">Detalle del indicador</h2>
 
-        <p id="detalle-kpi-descripcion"></p>
+      <p id="detalle-kpi-descripcion"></p>
 
-        <!-- Aquí se mostrará información específica de cada KPI -->
-        <div id="detalle-kpi-contenido"></div>
-      </div>
+      <!-- Aquí se mostrará información específica de cada KPI -->
+      <div id="detalle-kpi-contenido"></div>
+    </div>
 
-      <div class="modal-footer">
-        <a id="detalle-kpi-enlace"
-          class="boton boton--primario btn btn--primary"
-          href="#"
-          hidden>
-          Ver más detalles
-        </a>
+    <div class="modal-footer">
+      <a id="detalle-kpi-enlace" class="boton boton--primario btn btn--primary" href="#" hidden>
+        Ver más detalles
+      </a>
 
-        <button id="detalle-kpi-cerrar"
-                class="boton boton--secundario btn btn--secondary"
-                type="button">
-          Cerrar
-        </button>
-      </div>
+      <button id="detalle-kpi-cerrar" class="boton boton--secundario btn btn--secondary" type="button">
+        Cerrar
+      </button>
+    </div>
 
-    </dialog>
+  </dialog>
 
-  <script type="module" src="/js/pages/dashboard.js"></script>
+  <script type="module" src="../js/pages/dashboard.js"></script>
 </body>
+
 </html>

@@ -17,22 +17,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <!-- Estilos globales unificados -->
-  <link rel="stylesheet" href="/css/base.css" />
-  <link rel="stylesheet" href="/css/layout.css" />
-  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
-  <link rel="stylesheet" href="/css/componentes/botones.css" />
-  <link rel="stylesheet" href="/css/componentes/insignias.css" />
-  <link rel="stylesheet" href="/css/componentes/esqueletos.css" />
-  <link rel="stylesheet" href="/css/componentes/avisos.css" />
-  <link rel="stylesheet" href="/css/componentes/notificaciones.css">
-  <link rel="stylesheet" href="/css/componentes/formularios.css" />
-  <link rel="stylesheet" href="/css/componentes/modales.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/notificaciones.css">
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/modales.css" />
 
   <!-- Estilos propios del backlog -->
-  <link rel="stylesheet" href="/css/componentes/backlog.css" />
+  <link rel="stylesheet" href="../css/componentes/backlog.css" />
 
-  <link rel="stylesheet" href="/css/componentes/responsive.css" />
-  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
 </head>
 
 <body>
@@ -44,7 +44,7 @@
         <h1 class="titulo-pagina">Product Backlog</h1>
         <p class="subtitulo-pagina" id="subtitulo">Cargando proyecto…</p>
       </div>
-      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <div class="bl-encabezado__insignias">
         <span class="insignia insignia--neutro" id="total-historias">0 historias</span>
         <span class="insignia insignia--info" id="total-puntos">0 pts</span>
         <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
@@ -66,37 +66,32 @@
     <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
     <div id="aviso-borrador" class="alerta alerta--advertencia" role="status" hidden>
       <span id="aviso-borrador-texto"></span>
-      <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <button class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;" id="btn-continuar-borrador"
+      <div class="bl-borrador__acciones">
+        <button class="boton boton--secundario boton--pequeno" id="btn-continuar-borrador"
           type="button">Continuar</button>
-        <button class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;"
-          id="btn-descartar-borrador-pagina" type="button">Descartar</button>
+        <button class="boton boton--secundario boton--pequeno" id="btn-descartar-borrador-pagina"
+          type="button">Descartar</button>
       </div>
     </div>
 
-    <div style="margin-bottom: 1.5rem;">
-      <label class="grupo-formulario" style="margin-bottom: 0;">
+    <div class="bl-buscador">
+      <label class="grupo-formulario">
         <span class="solo-lectores">Buscar historias</span>
         <input id="buscar" type="search" placeholder="Buscar historias por título o etiqueta…" autocomplete="off"
           class="entrada-formulario" />
       </label>
     </div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    <div class="bl-disposicion">
       <section class="tarjeta" aria-labelledby="titulo-lista">
-        <h2 id="titulo-lista" class="tarjeta__titulo"
-          style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--texto);">Lista priorizada de
+        <h2 id="titulo-lista" class="tarjeta__titulo">Lista priorizada de
           historias</h2>
         <p class="eq-ayuda" id="ayuda-orden">
           Arrastra una historia para cambiar su prioridad.
         </p>
-        <ol id="lista"
-          style="list-style: none; padding: 0; margin-top: 16px; display: flex; flex-direction: column; gap: 12px;"
-          aria-describedby="ayuda-orden"></ol>
+        <ol id="lista" aria-describedby="ayuda-orden"></ol>
         <div id="estado-lista"></div>
-        <footer id="resumen"
-          style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); display: flex; gap: 16px; color: var(--texto-suave); font-size: 13px;"
-          hidden>
+        <footer id="resumen" hidden>
           <span>
             <strong id="resumen-historias">0</strong>
             <span id="resumen-historias-texto">historias</span>
@@ -138,9 +133,8 @@
           <p class="eq-error" id="error-titulo" role="alert"></p>
         </div>
 
-        <fieldset class="eq-bloque"
-          style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--borde); border-radius: var(--radio-lg); padding: 16px;">
-          <legend class="eq-bloque__titulo" style="font-weight: 600; padding: 0 6px; color: var(--texto);">Descripción
+        <fieldset class="eq-bloque bl-bloque">
+          <legend class="eq-bloque__titulo bl-bloque__titulo">Descripción
           </legend>
           <div class="grupo-formulario">
             <label for="f-como" class="etiqueta-formulario">Como…</label>
@@ -172,7 +166,7 @@
           <p class="eq-error" id="error-criterios" role="alert"></p>
         </div>
 
-        <div class="eq-fila" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="eq-fila bl-fila-doble">
           <div class="grupo-formulario">
             <label for="f-puntos" class="etiqueta-formulario">Puntos de historia</label>
             <select id="f-puntos" name="puntos" aria-describedby="error-puntos" class="eq-select entrada-formulario">
@@ -257,8 +251,8 @@
 
   </dialog>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script type="module" src="/js/pages/backlog.js"></script>
+  <script src="../socket.io/socket.io.js"></script>
+  <script type="module" src="../js/pages/backlog.js"></script>
 </body>
 
 </html>

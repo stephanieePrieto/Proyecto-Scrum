@@ -298,11 +298,13 @@ export function montarBarraSuperior() {
       <!-- HU-24: contenedor donde se monta la campana -->
       <div id="notificaciones-root"></div>
 
-      <div class="barra-superior__usuario-texto">
-        <div class="barra-superior__usuario-nombre">${escaparHtml(usuario.nombre)}</div>
-        <div class="barra-superior__usuario-rol">${escaparHtml(usuario.rol)}</div>
-      </div>
-      <div class="barra-superior__avatar" aria-hidden="true">${escaparHtml(iniciales(usuario.nombre))}</div>
+      <a href="/pages/perfil.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;">
+        <div class="barra-superior__usuario-texto">
+          <div class="barra-superior__usuario-nombre">${escaparHtml(usuario.nombre)}</div>
+          <div class="barra-superior__usuario-rol">${escaparHtml(usuario.rol)}</div>
+        </div>
+        <div class="barra-superior__avatar" aria-hidden="true">${escaparHtml(iniciales(usuario.nombre))}</div>
+      </a>
     </div>`;
 
   activarMenus(contenedor);

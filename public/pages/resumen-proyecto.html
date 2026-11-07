@@ -14,14 +14,22 @@
   <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+  <!-- FontAwesome para iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
   <header id="barra-superior" class="barra-superior"></header>
   <main class="principal">
-    <div class="encabezado-pagina">
+    <div class="encabezado-pagina" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
       <div>
         <h1 class="titulo-pagina" id="rp-titulo">Cargando proyecto...</h1>
         <p class="subtitulo-pagina" id="rp-fechas"></p>
+      </div>
+      <!-- Botón de Capacitación Scrum integrado dinámicamente -->
+      <div>
+        <a id="btn-capacitacion-scrum" href="#" class="boton boton--secundario" style="display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fas fa-graduation-cap"></i> Capacitación Scrum
+        </a>
       </div>
     </div>
     <section class="tarjeta" style="margin-top: 20px;">
@@ -29,7 +37,7 @@
       <p id="rp-vision" style="color: var(--texto-suave);"></p>
       
       <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 12px;">Definition of Done (DoD)</h2>
-      <p id="rp-dod" style="background: var(--slate-50); padding: 12px; border-radius: 8px; font-family: monospace;"></p>
+      <p id="rp-dod" style="background: var(--slate-50); padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-line;"></p>
     </section>
   </main>
   <script type="module" src="/js/pages/resumen-proyecto.js"></script>

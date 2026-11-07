@@ -13,7 +13,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { consulta } from './config/db.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { manejoErrores, noEncontrado } from './middlewares/manejoErrores.js';
-import { sanitizarEntrada, cabecerasSeguridad } from './middlewares/seguridad.js';
+import { sanitizarEntrada } from './middlewares/seguridad.js';
 import { proteccionCsrf } from './middlewares/csrf.js';
 import { registrarPeticiones } from './middlewares/registrarPeticiones.js';
 import { configurarSwagger } from './config/swagger.js';
@@ -22,10 +22,7 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 const carpetaPublica = path.join(aqui, '..', 'public');
 
 /**
- * Importa un módulo si el archivo existe. Si la carga falla, registra el error y devuelve un objeto vacío.
- *
- * @param {string} rutaAbsoluta - Ruta absoluta del archivo a importar.
- * @returns {Promise<Object>} Exportaciones del módulo o un objeto vacío.
+ * Importa un módulo si el archivo existe.
  */
 async function importarSiExiste(rutaAbsoluta) {
   if (!fs.existsSync(rutaAbsoluta)) return {};
@@ -38,38 +35,64 @@ async function importarSiExiste(rutaAbsoluta) {
 }
 
 /**
- * Crea y configura la aplicación de Express. Cada carpeta de src/modulos con un archivo
- * <nombre>.routes.js se monta automáticamente en /api/<nombre>.
- *
- * @returns {Promise<import('express').Express>} Aplicación configurada.
+ * Middleware de cabeceras de seguridad con CSP mejorado para el curso
+ * Permite Google Fonts, Font Awesome y recursos externos necesarios
+ */
+export function cabecerasSeguridad(req, res, next) {
+  // Configuración de CSP que permite:
+  // - Google Fonts (fuentes)
+  // - Font Awesome (iconos)
+  // - Estilos y scripts locales
+  // - Report-only para desarrollo (puedes cambiar a enforce en producción)
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+    "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "frame-src 'none'; " +
+    "object-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'none'"
+  );
+
+  // Otras cabeceras de seguridad
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+
+  next();
+}
+
+/**
+ * Crea y configura la aplicación de Express.
  */
 export async function crearApp() {
   const app = express();
   app.disable('x-powered-by');
-  
-  // Aplicar cabeceras de seguridad HTTP (Helmet, CSP restrictiva, HSTS)
+
+  // Aplicar cabeceras de seguridad HTTP
   app.use(cabecerasSeguridad);
   app.use(cors());
 
-  // Registrar logs estructurados solo si se habilita explícitamente mediante una variable de entorno de depuración
+  // Registrar logs solo en modo debug
   if (process.env.DEBUG_PETICIONES === 'true') {
     app.use(registrarPeticiones);
   }
 
-  // Leer las cookies antes de validar el token CSRF
+  // Middlewares
   app.use(cookieParser());
-
-  // 1. Lectura de cuerpos de petición
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
-
-  // 2. Sanitización anti-XSS en el req.body
   app.use(sanitizarEntrada);
-
-  // 3. Protección CSRF (Double-Submit Cookie)
   app.use(proteccionCsrf);
 
-  // Servir documentación OpenAPI / Swagger
+  // Swagger
   configurarSwagger(app);
 
   // Archivos estáticos del frontend
@@ -92,9 +115,12 @@ export async function crearApp() {
     }),
   );
 
+  // Cargar módulos automáticamente
   const carpetaModulos = path.join(aqui, 'modulos');
   const modulos = fs.existsSync(carpetaModulos)
-    ? fs.readdirSync(carpetaModulos, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+    ? fs.readdirSync(carpetaModulos, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
     : [];
 
   for (const nombre of modulos) {
@@ -102,7 +128,6 @@ export async function crearApp() {
       const rutas = await importarSiExiste(path.join(carpetaModulos, nombre, `${nombre}.routes.js`));
       if (typeof rutas.default === 'function') {
         app.use(`/api/${nombre}`, rutas.default);
-        // Se omite el console.log del módulo cargado para mantener la terminal limpia
       }
     } catch (error) {
       console.error(`[Aviso] No se pudo montar /api/${nombre}: ${error.message}`);

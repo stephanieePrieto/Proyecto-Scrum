@@ -1,9 +1,11 @@
 /**
  * @file resumen-proyecto.js
  * @description Lógica para la vista de resumen de proyecto (HU-35).
- * Se encarga de descargar la información básica, visión y Definition of Done (DoD) del proyecto actual.
+ * Se encarga de descargar la información básica, visión y Definition of Done (DoD) del proyecto actual,
+ * además de configurar el enlace dinámico para la Capacitación Scrum.
  * @author Dana Carmona Santamaria
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import { api } from '../core/api.js';
@@ -20,7 +22,15 @@ async function iniciar() {
 
   if (!id) {
     document.getElementById('rp-titulo').textContent = 'Proyecto no encontrado';
+    const btnCapacitacion = document.getElementById('btn-capacitacion-scrum');
+    if (btnCapacitacion) btnCapacitacion.style.display = 'none';
     return;
+  }
+
+  // Configurar el enlace del botón de Capacitación Scrum dinámicamente con el ID del proyecto
+  const btnCapacitacion = document.getElementById('btn-capacitacion-scrum');
+  if (btnCapacitacion) {
+    btnCapacitacion.href = `/pages/curso-scrum.html?proyecto_id=${id}`;
   }
 
   // Permisos del proyecto que se está viendo

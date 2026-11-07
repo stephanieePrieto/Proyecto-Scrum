@@ -344,7 +344,12 @@ export const renovarSesion = async (refreshToken) => {
             : errorDeSesion('Sesión finalizada o token inválido.', 'SESION_CERRADA');
     }
 
-    await revocarToken(refreshToken, env.JWT_REFRESH_MINUTOS);
+    /**
+     * Revocar el token de renovación usado, por los minutos de vigencia que le quedan según su propio exp.
+     * (Antes se usaba env.JWT_REFRESH_MINUTOS, que no existe y dejaba expira_en en null.)
+     */
+    const minutosRestantes = Math.max(1, Math.ceil((payload.exp - Math.floor(Date.now() / 1000)) / 60));
+    await revocarToken(refreshToken, minutosRestantes);
 
     const nuevoPayload = { id: payload.id, sid: payload.sid };
     const nuevoAccessToken = jwt.sign(nuevoPayload, env.JWT_SECRET, { expiresIn: `${env.JWT_ACCESO_MINUTOS}m` });

@@ -167,7 +167,71 @@ function obtenerNombreObjeto(objeto) {
 }
 
 /**
+ * Nombres legibles para las claves más comunes del detalle de auditoría.
+ * Si una clave no está aquí se "humaniza" (guion bajo a espacio y mayúscula inicial).
+ */
+const ETIQUETAS_DETALLE = {
+    antes: 'Antes',
+    despues: 'Después',
+    titulo: 'Título',
+    puntos: 'Puntos',
+    epica_id: 'Épica',
+    numero_hu: 'N.º HU',
+    propuesta: 'Propuesta',
+    nota: 'Nota',
+    campo: 'Campo',
+    nuevo_valor: 'Nuevo valor',
+    valor_anterior: 'Valor anterior',
+    nombre: 'Nombre',
+    estado: 'Estado',
+    prioridad: 'Prioridad',
+    descripcion: 'Descripción',
+    fecha_inicio: 'Fecha de inicio',
+    fecha_fin: 'Fecha de fin',
+};
+
+/**
+ * Convertir una clave del detalle en una etiqueta legible.
+ *
+ * @param {string} clave - Clave original (por ejemplo "epica_id").
+ * @returns {string} Etiqueta para mostrar (por ejemplo "Épica").
+ */
+function etiquetaDetalle(clave) {
+    if (ETIQUETAS_DETALLE[clave]) return ETIQUETAS_DETALLE[clave];
+    const texto = String(clave).replace(/_/g, ' ');
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+/**
+ * Convertir un valor del detalle en texto legible.
+ * null/vacío se muestra como "—", los booleanos como "Sí"/"No",
+ * los arreglos separados por coma y los objetos anidados entre paréntesis.
+ *
+ * @param {*} valor - Valor a formatear.
+ * @returns {string} Texto plano (sin escapar).
+ */
+function formatearValorDetalle(valor) {
+    if (valor === null || valor === undefined || valor === '') return '—';
+    if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
+    if (Array.isArray(valor)) {
+        return valor.length ? valor.map(formatearValorDetalle).join(', ') : '—';
+    }
+    if (typeof valor === 'object') {
+        const partes = Object.entries(valor)
+            .map(([clave, v]) => `${etiquetaDetalle(clave)}: ${formatearValorDetalle(v)}`);
+        return partes.length ? partes.join(', ') : '—';
+    }
+    return String(valor);
+}
+
+/**
  * Formatear el detalle JSON para mostrarlo de forma legible.
+ * Devuelve texto plano (sin escapar): el escape HTML se aplica una sola vez
+ * en pintarResultados, para evitar mostrar entidades como &quot; en pantalla.
+ * Si hay "antes" y "después" se muestran ambos; si solo hay "después" (una creación),
+ * sus datos se muestran directamente, sin la etiqueta "Después".
+ * Ejemplo (creación): Puntos: 8 · Título: sdsf · Épica: — · N.º HU: 20 · Propuesta: No
+ * Ejemplo (cambio): Antes (Propuesta: Sí) · Después (Propuesta: No)
  *
  * @param {Object|null} detalle
  * @returns {string}
@@ -176,14 +240,23 @@ function formatearDetalle(detalle) {
     if (!detalle) return '—';
     try {
         const obj = typeof detalle === 'string' ? JSON.parse(detalle) : detalle;
-        const entries = Object.entries(obj);
+        // Si no hay "antes", los datos de "después" se muestran sin esa etiqueta
+        const esObjetoPlano = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+        const sinAntes = obj.antes === undefined || obj.antes === null;
+        const entries = Object.entries(obj).flatMap(([key, value]) =>
+            key === 'despues' && sinAntes && esObjetoPlano(value) ? Object.entries(value) : [[key, value]]
+        );
         if (entries.length === 0) return '—';
         return entries.map(([key, value]) => {
-            const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-            return `${escaparHtml(key)}: ${escaparHtml(formattedValue)}`;
-        }).join(', ');
+            // Los objetos anidados (antes/después) se muestran entre paréntesis
+            const esObjeto = value !== null && typeof value === 'object' && !Array.isArray(value);
+            const formattedValue = formatearValorDetalle(value);
+            return esObjeto
+                ? `${etiquetaDetalle(key)} (${formattedValue})`
+                : `${etiquetaDetalle(key)}: ${formattedValue}`;
+        }).join(' · ');
     } catch {
-        return escaparHtml(String(detalle));
+        return String(detalle);
     }
 }
 

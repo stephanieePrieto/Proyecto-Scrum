@@ -409,6 +409,20 @@ function pintarCarga() {
 }
 
 /**
+ * Volver clicable y accesible una tarjeta de KPI.
+ * Funciona aunque después de "<article" haya un espacio o un salto de línea.
+ * @param {string} html - HTML de la tarjeta generado por ui.js.
+ * @param {string} id - Id del KPI (avance, diasRestantes, etc.).
+ * @returns {string} HTML con data-kpi, cursor y rol de enlace.
+ */
+function volverClicable(html, id) {
+  return html.replace(
+    /<article\b/,
+    `<article data-kpi="${id}" style="cursor:pointer;" tabindex="0" role="link"`
+  );
+}
+
+/**
  * Pintar la respuesta del servidor.
  * Mostrar el aviso de estado vacío cuando datos.vacio es true.
  * @param {{vacio: boolean, kpis: Object, esScrumMaster: boolean}} datos - Respuesta del backend.
@@ -447,10 +461,7 @@ function pintarDatos(datos) {
     try {
       const tarjeta = constructores[meta.id](k, meta);
       // Volver la tarjeta clicable y accesible para el ruteo manual
-      return tarjeta.replace(
-        '<article ',
-        `<article data-kpi="${meta.id}" style="cursor:pointer;" tabindex="0" role="link" `
-      );
+      return volverClicable(tarjeta, meta.id);
     } catch {
       return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
     }
@@ -622,7 +633,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
 
   function pintarVacio(archivados) {
     const crear = !archivados
-      ? '<a class="boton boton--primario" href="pages/configuracion-proyecto.html">Crear el primer proyecto</a>' : '';
+      ? '<a class="boton boton--primario" href="/pages/configuracion-proyecto.html">Crear el primer proyecto</a>' : '';
     lista.innerHTML = `<div class="aviso aviso--vacio proyectos__vacio">
       <h3 class="aviso__titulo">${archivados ? 'No hay proyectos archivados' : 'Aún no hay proyectos'}</h3>
       <p class="aviso__texto">${archivados ? 'Los proyectos que archives aparecerán aquí con todo su historial.'
@@ -639,12 +650,12 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
 
     const acciones = [
       `<a class="boton boton--secundario boton--pequeno"
-          href="pages/dashboard.html?proyecto=${id}"
+          href="/pages/dashboard.html?proyecto=${id}"
           data-ver="${id}">Ver</a>`,
 
       p.puede_gestionar
         ? `<a class="boton boton--secundario boton--pequeno"
-              href="pages/configuracion-proyecto.html?id=${id}">Editar</a>`
+              href="/pages/configuracion-proyecto.html?id=${id}">Editar</a>`
         : `<button class="boton boton--secundario boton--pequeno"
               type="button" disabled
               title="No tienes permiso para editar este proyecto">Editar</button>`,

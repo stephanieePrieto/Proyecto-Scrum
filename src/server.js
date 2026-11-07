@@ -19,7 +19,6 @@ try {
   process.exit(1);
 }
 
-console.log('Cargando módulos...');
 const app = await crearApp();
 
 // Configuración de certificados SSL para HTTPS y TLS 1.2+
@@ -28,7 +27,6 @@ try {
   opcionesHttps = {
     key: fs.readFileSync(env.SSL_KEY_PATH || './certs/localhost-key.pem'),
     cert: fs.readFileSync(env.SSL_CERT_PATH || './certs/localhost.pem'),
-    // Exigir estrictamente TLS 1.2 o superior según requerimiento de seguridad
     minVersion: 'TLSv1.2',
   };
 } catch (error) {
@@ -43,7 +41,6 @@ const puertoHttps = env.HTTPS_PUERTO || env.PORT || 3000;
 
 servidor.listen(puertoHttps, () => {
   console.log(`ScrumFlow seguro listo en https://localhost:${puertoHttps} (TLS 1.2+)`);
-  console.log(`Prueba de salud: https://localhost:${puertoHttps}/api/salud`);
 });
 
 // Servidor HTTP opcional para redirección automática a HTTPS (si está habilitado)

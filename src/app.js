@@ -51,8 +51,10 @@ export async function crearApp() {
   app.use(cabecerasSeguridad);
   app.use(cors());
 
-  // Registrar logs estructurados con tiempo de respuesta (Stephanie Elizdeth Hernández Prieto)
-  app.use(registrarPeticiones);
+  // Registrar logs estructurados solo si se habilita explícitamente mediante una variable de entorno de depuración
+  if (process.env.DEBUG_PETICIONES === 'true') {
+    app.use(registrarPeticiones);
+  }
 
   // Leer las cookies antes de validar el token CSRF
   app.use(cookieParser());
@@ -100,7 +102,7 @@ export async function crearApp() {
       const rutas = await importarSiExiste(path.join(carpetaModulos, nombre, `${nombre}.routes.js`));
       if (typeof rutas.default === 'function') {
         app.use(`/api/${nombre}`, rutas.default);
-        console.log(`Módulo cargado: /api/${nombre}`);
+        // Se omite el console.log del módulo cargado para mantener la terminal limpia
       }
     } catch (error) {
       console.error(`[Aviso] No se pudo montar /api/${nombre}: ${error.message}`);

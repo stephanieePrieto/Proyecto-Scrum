@@ -13,11 +13,13 @@ Este documento describe la implementación de autenticación en dos pasos (2FA) 
 ## Decisiones Implementadas
 
 ### Métodos de Autenticación
+
 - **Correo electrónico:** Código OTP de 6 dígitos, válido por 3 minutos
 - **Google Authenticator:** TOTP con secreto compartido via código QR
 - **Códigos de respaldo:** 10 códigos de un solo uso
 
 ### Características
+
 - Múltiples métodos activos simultáneamente
 - Opcional para todos los usuarios (no obligatorio)
 - Dispositivos de confianza (14 días de validez)
@@ -35,43 +37,59 @@ Este documento describe la implementación de autenticación en dos pasos (2FA) 
 Se crearon las siguientes tablas (ver `database/migraciones/autenticacion_2fa.sql`):
 
 #### 1. `autenticacion_2fa`
+
 Almacena la configuración general de 2FA por usuario:
+
 - `secreto_totp_cifrado`: Secreto TOTP cifrado (AES-256-GCM)
 - `totp_activado`: Si TOTP está configurado
 - `correo_2fa_activado`: Si el método por correo está activo
 - `habilitado`: Si el 2FA está habilitado globalmente
 
 #### 2. `codigos_respaldo`
+
 Almacena los 10 códigos de respaldo:
+
 - `codigo_hash`: Hash SHA-256 del código
 - `usado`: Si el código ya fue utilizado
 - `grupo_id`: Para invalidar todos los códigos al regenerar
 
 #### 3. `dispositivos_confianza`
+
 Registra dispositivos que pueden omitir el 2FA:
+
 - `token_confianza`: Token para validar el dispositivo
 - `dispositivo_hash`: Hash identificador del dispositivo
 - `expira_en`: 14 días después de la creación
 - `revocado`: Si fue revocado manualmente
 
 #### 4. `otp_correo`
+
 Códigos OTP enviados por correo:
+
 - `codigo_hash`: Hash SHA-256 del código
 - `expira_en`: 3 minutos después de la creación
 - `usado`: Si ya fue utilizado
 
 #### 5. `intentos_2fa`
+
 Control de intentos fallidos:
+
 - `intentos`: Contador de intentos fallidos
 - `bloqueado_hasta`: Fecha de desbloqueo
 
----
+#### 6. `intentos_2fa_usuario` (migración `autenticacion_2fa_intentos.sql`)
+
+Contador de intentos de verificación 2FA por usuario (tabla usada por la aplicación):
+
+- `usuario_id`: Clave primaria, una fila por usuario
+- `intentos`: Intentos contados desde el último reinicio
+- `ultimo_intento`: Momento del último intento permitido; el bloqueo vence `BLOQUEO_MINUTOS` después
 
 ### Backend
 
 #### Nueva estructura de archivos
 
-```
+```text
 src/modulos/auth/
 ├── auth.controller.js    # Modificado: login, logout, renovarToken
 ├── auth.service.js       # Modificado: autenticarUsuario, funciones de sesión
@@ -99,13 +117,11 @@ src/modulos/auth/
 4. **`src/middlewares/autenticar.js`:**
    - Modificar para manejar tokens temporales
 
----
-
 ### Frontend
 
 #### Nuevos archivos
 
-```
+```text
 public/js/pages/
 ├── login-2fa.js          # Lógica de verificación 2FA en login
 
@@ -140,13 +156,11 @@ public/css/componentes/
 5. **`api.js`:**
    - Añadir soporte para tokens temporales
 
----
-
 ## Variables de Entorno
 
 Añadir al archivo `.env`:
 
-```
+```env
 # Autenticacion en Dos Pasos (2FA)
 
 # Clave de cifrado para secretos TOTP (32 bytes, base64)
@@ -154,7 +168,7 @@ Añadir al archivo `.env`:
 TOTP_ENCRYPTION_KEY=
 
 # Duracion del token temporal de 2FA (minutos)
-TOKEN_2FA_TEMPORAL_MINUTOS=15
+TOKEN_2FA_TEMPORAL_MINUTOS=5
 
 # Duracion de codigos OTP por correo (minutos)
 OTP_CORREO_MINUTOS=3
@@ -170,6 +184,7 @@ Actualizar `.env.example` con estos mismos valores (con valores de ejemplo).
 ## Dependencias
 
 No se requieren nuevas dependencias. Se utilizarán:
+
 - `bcryptjs` (ya existe): Para hashing de códigos de respaldo
 - `crypto` (Node.js nativo): Para generación de secretos TOTP y cifrado AES
 - `nodemailer` (ya existe): Para envío de códigos por correo
@@ -187,17 +202,18 @@ Para la generación y verificación de códigos TOTP, se implementará una funci
 // Generar código TOTP
 function generarTotp(secreto, tiempo = null) {
   const step = 30; // 30 segundos
-  const t = Math.floor((tiempo || Date.now()) / (step * 1000));
-  const buffer = Buffer.from(t.toString(), 'utf8');
-  const hmac = crypto.createHmac('sha1', secreto);
+  const t = Math.floor((tiempo | Date.now()) / (step * 1000));
+  const buffer = Buffer.from(t.toString(), "utf8");
+  const hmac = crypto.createHmac("sha1", secreto);
   hmac.update(buffer);
   const hash = hmac.digest();
-  const offset = hash[hash.length - 1] & 0x0F;
-  const binary = ((hash[offset] & 0x7F) << 24) |
-    ((hash[offset + 1] & 0xFF) << 16) |
-    ((hash[offset + 2] & 0xFF) << 8) |
-    (hash[offset + 3] & 0xFF);
-  return (binary % 1_000_000).toString().padStart(6, '0');
+  const offset = hash[hash.length - 1] & 0x0f;
+  const binary =
+    ((hash[offset] & 0x7f) << 24) |
+    ((hash[offset + 1] & 0xff) << 16) |
+    ((hash[offset + 2] & 0xff) << 8) |
+    (hash[offset + 3] & 0xff);
+  return (binary % 1_000_000).toString().padStart(6, "0");
 }
 ```
 
@@ -208,27 +224,27 @@ function generarTotp(secreto, tiempo = null) {
 El secreto TOTP se cifrará con AES-256-GCM antes de guardarse en la base de datos:
 
 ```javascript
-import crypto from 'crypto';
+import crypto from "crypto";
 
-const ALGORITMO = 'aes-256-gcm';
+const ALGORITMO = "aes-256-gcm";
 
 function cifrar(texto, clave) {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITMO, clave, iv);
-  let cifrado = cipher.update(texto, 'utf8', 'hex');
-  cifrado += cipher.final('hex');
+  let cifrado = cipher.update(texto, "utf8", "hex");
+  cifrado += cipher.final("hex");
   const authTag = cipher.getAuthTag();
-  return `${iv.toString('hex')}:${cifrado}:${authTag.toString('hex')}`;
+  return `${iv.toString("hex")}:${cifrado}:${authTag.toString("hex")}`;
 }
 
 function descifrar(textoCifrado, clave) {
-  const [ivHex, cifrado, authTagHex] = textoCifrado.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
+  const [ivHex, cifrado, authTagHex] = textoCifrado.split(":");
+  const iv = Buffer.from(ivHex, "hex");
+  const authTag = Buffer.from(authTagHex, "hex");
   const decipher = crypto.createDecipheriv(ALGORITMO, clave, iv);
   decipher.setAuthTag(authTag);
-  let texto = decipher.update(cifrado, 'hex', 'utf8');
-  texto += decipher.final('utf8');
+  let texto = decipher.update(cifrado, "hex", "utf8");
+  texto += decipher.final("utf8");
   return texto;
 }
 ```
@@ -237,7 +253,7 @@ function descifrar(textoCifrado, clave) {
 
 ## Flujo de Login con 2FA
 
-```
+```text
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Cliente       │     │   Servidor       │     │   Base de        │
 │                 │     │                 │     │   Datos         │
@@ -281,7 +297,7 @@ function descifrar(textoCifrado, clave) {
 
 ## Flujo de Configuración de TOTP
 
-```
+```text
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Cliente       │     │   Servidor       │     │   Base de        │
 └─────────┬───────┘     └─────────┬───────┘     └─────────┬───────┘
@@ -317,7 +333,7 @@ function descifrar(textoCifrado, clave) {
 
 ## Flujo de Recuperación de 2FA
 
-```
+```text
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Cliente       │     │   Servidor       │     │   Base de        │
 └─────────┬───────┘     └─────────┬───────┘     └─────────┬───────┘
@@ -372,18 +388,24 @@ function descifrar(textoCifrado, clave) {
      - Si es válido y no ha expirado: omitir 2FA
      - De lo contrario: solicitar 2FA normalmente
 
+5. **Al deshabilitar el 2FA:**
+   - Se revocan todos los dispositivos de confianza de la persona
+   - Al volver a habilitar el 2FA no se recuperan: hay que registrarlos de nuevo
+
 ---
 
 ## Manejo de Intentos Fallidos
 
 El sistema implementa protección contra fuerza bruta para la verificación de 2FA:
 
-1. **Contador por IP + Usuario:**
-   - Cada intento fallido incrementa el contador en `intentos_2fa`
+1. **Contador por usuario:**
+   - Cada intento de verificación incrementa el contador en `intentos_2fa_usuario` (una fila por usuario)
    - Después de 5 intentos fallidos (configurable via `MAX_INTENTOS_2FA`):
-     - Bloquear por 15 minutos (usando el valor de `BLOQUEO_MINUTOS`)
+     - Bloquear por 15 minutos (usando el valor de `BLOQUEO_MINUTOS`), contados desde el último intento permitido
+     - La respuesta 429 indica los minutos restantes para volver a intentar
+   - Un código correcto limpia el contador
 
-2. **Contador por IP:**
+2. **Contador por IP (paso de contraseña del inicio de sesión):**
    - Usar la tabla `intentos_ip` existente
    - Después de 30 intentos (configurable via `MAX_INTENTOS_IP`):
      - Bloquear por 15 minutos
@@ -393,40 +415,57 @@ El sistema implementa protección contra fuerza bruta para la verificación de 2
 ## Consideraciones de Seguridad
 
 ### 1. Prevención de Replay Attacks
+
 - Los tokens temporales (`token2faTemporal`) son de un solo uso
-- Expiran después de 15 minutos (configurable)
-- Se invalidan después de usar o al cerrar sesión
+- Expiran después de 5 minutos (configurable con `TOKEN_2FA_TEMPORAL_MINUTOS`)
+- Se invalidan al completar el inicio de sesión: el token se registra en `tokens_revocados` y ya no sirve para otra verificación
 
 ### 2. Prevención de Enumeración de Usuarios
+
 - Siempre devolver el mismo mensaje de error para códigos inválidos
 - No revelar si un código parcial es correcto
 - Usar el mismo tiempo de respuesta para códigos válidos e inválidos
 
 ### 3. Protección de Secretos
+
 - El secreto TOTP siempre se almacena cifrado
 - La clave de cifrado NUNCA se almacena en el código fuente
 - Usar variable de entorno `TOTP_ENCRYPTION_KEY` de 32 bytes
 
 ### 4. Hash de Códigos
+
 - Todos los códigos (OTP, respaldo) se almacenan como hashes SHA-256
 - Nunca en texto plano
 
 ### 5. Códigos de Respaldo
+
 - Generar 10 códigos alfanuméricos únicos
 - Cada código solo puede usarse una vez
 - Al regenerar, invalidar todos los códigos del grupo anterior
 
 ### 6. No Debilitar Seguridad Existente
+
 - El 2FA es un complemento, no un reemplazo
 - Las políticas de contraseñas siguen vigentes
 - Las políticas de bloqueo por intentos fallidos siguen vigentes
 - Las cookies httpOnly y secure siguen vigentes
+
+### 7. Acciones Sensibles de Configuración
+
+- Iniciar la configuración de TOTP, activar el código por correo, generar o regenerar códigos de respaldo y registrar un dispositivo de confianza exigen la contraseña actual, además de la sesión
+- Una contraseña incorrecta responde 403 (no 401, para que el cliente no lo trate como sesión caducada)
+
+### 8. Prevención de Condiciones de Carrera (Race Conditions)
+
+- El consumo de códigos de un solo uso (OTP, respaldo, tokens temporales) se realiza mediante operaciones SQL atómicas (`UPDATE ... RETURNING`).
+- Se elimina el patrón inseguro de consulta (`SELECT`) seguida de actualización (`UPDATE`), garantizando que solicitudes simultáneas no puedan consumir el mismo código más de una vez.
 
 ---
 
 ## Migración de Datos
 
 No se requiere migración de datos existentes. Las nuevas tablas se crean vacías y:
+
 - Los usuarios existentes NO tienen 2FA activado por defecto
 - Los usuarios deben activarlo manualmente a través de la interfaz
 - No se afecta la autenticación actual de usuarios sin 2FA
@@ -436,11 +475,13 @@ No se requiere migración de datos existentes. Las nuevas tablas se crean vacía
 Para implementar la base de datos correctamente:
 
 1. **Ejecuta la migración como scrumflow_admin:**
+
    ```bash
    psql -U postgres -d scrumflow -v ON_ERROR_STOP=1 -c "SET ROLE scrumflow_admin" -f "./database/migraciones/autenticacion_2fa.sql"
    ```
 
 2. **Otorga permisos a scrumflow_app:**
+
    ```bash
    psql -U postgres -d scrumflow -v ON_ERROR_STOP=1 -c "SET ROLE scrumflow_admin" -f "./database/permisos_2fa.sql"
    ```
@@ -457,6 +498,7 @@ Para implementar la base de datos correctamente:
 ## Pruebas Recomendadas
 
 ### Backend
+
 1. Login sin 2FA (usuario existente)
 2. Login con 2FA activado (debe devolver token temporal)
 3. Verificación de código TOTP correcto
@@ -464,7 +506,7 @@ Para implementar la base de datos correctamente:
 5. Verificación de código TOTP expirado
 6. Verificación de código OTP por correo correcto
 7. Verificación de código de respaldo correcto
-8. Bloqueo después de 5 intentos fallidos
+8. Bloqueo después de 5 intentos fallidos (la respuesta 429 indica los minutos restantes)
 9. Desbloqueo después del tiempo configurado
 10. Configuración de TOTP
 11. Desactivación de TOTP
@@ -474,6 +516,7 @@ Para implementar la base de datos correctamente:
 15. Flujo de recuperación de 2FA
 
 ### Frontend
+
 1. Mostrar opciones de 2FA después de login
 2. Navegación entre métodos de verificación
 3. Mensajes de error claros
@@ -488,16 +531,19 @@ Para implementar la base de datos correctamente:
 ## Integración con el Sistema Existente
 
 ### Bitácora
+
 - **No se registran** eventos de 2FA en la bitácora por proyecto
 - El 2FA es una característica de la cuenta, no del proyecto
 - No se modifican los permisos de bitácora existentes
 
 ### Roles
+
 - Ningún rol tiene autoridad sobre la configuración 2FA de otros usuarios
 - El Scrum Master NO puede activar/desactivar 2FA de otros
 - Cada usuario gestiona su propio 2FA
 
 ### Notificaciones
+
 - Se pueden enviar notificaciones por correo para:
   - Código OTP para verificación
   - Enlace de recuperación de 2FA
@@ -509,40 +555,41 @@ Para implementar la base de datos correctamente:
 
 ### Nuevos Archivos
 
-| Ruta | Descripción |
-|------|-------------|
-| `database/migraciones/autenticacion_2fa.sql` | Migración de base de datos |
-| `database/migraciones/autenticacion_2fa_revertir.sql` | Script de reversión |
-| `database/permisos_2fa.sql` | Permisos de scrumflow_app sobre tablas 2FA |
-| `database/permisos_2fa_revertir.sql` | Reversión de permisos 2FA |
-| `src/modulos/auth/2fa/2fa.service.js` | Servicio de lógica de 2FA |
-| `src/modulos/auth/2fa/2fa.controller.js` | Controladores de 2FA |
-| `src/modulos/auth/2fa/2fa.routes.js` | Rutas de 2FA |
-| `src/modulos/auth/2fa/2fa.utils.js` | Utilidades (TOTP, cifrado) |
-| `public/js/pages/login-2fa.js` | Lógica frontend de verificación |
-| `public/css/componentes/2fa.css` | Estilos de 2FA |
+| Ruta                                                  | Descripción                                |
+| ----------------------------------------------------- | ------------------------------------------ |
+| `database/migraciones/autenticacion_2fa.sql`          | Migración de base de datos                 |
+| `database/migraciones/autenticacion_2fa_revertir.sql` | Script de reversión                        |
+| `database/permisos_2fa.sql`                           | Permisos de scrumflow_app sobre tablas 2FA |
+| `database/permisos_2fa_revertir.sql`                  | Reversión de permisos 2FA                  |
+| `src/modulos/auth/2fa/2fa.service.js`                 | Servicio de lógica de 2FA                  |
+| `src/modulos/auth/2fa/2fa.controller.js`              | Controladores de 2FA                       |
+| `src/modulos/auth/2fa/2fa.routes.js`                  | Rutas de 2FA                               |
+| `src/modulos/auth/2fa/2fa.utils.js`                   | Utilidades (TOTP, cifrado)                 |
+| `public/js/pages/login-2fa.js`                        | Lógica frontend de verificación            |
+| `public/css/componentes/2fa.css`                      | Estilos de 2FA                             |
 
 ### Archivos a Modificar
 
-| Ruta | Modificaciones |
-|------|---------------|
-| `src/modulos/auth/auth.controller.js` | Manejar respuesta 202 con token temporal |
-| `src/modulos/auth/auth.service.js` | Generar tokens temporales, verificar 2FA |
-| `src/config/env.js` | Añadir variables de entorno para 2FA |
-| `src/middlewares/autenticar.js` | Manejar tokens temporales |
-| `src/modulos/usuarios/usuarios.routes.js` | Endpoints de configuración 2FA |
-| `public/pages/login.html` | Añadir interfaz de verificación 2FA |
-| `public/js/pages/login.js` | Manejar flujo de 2FA |
-| `public/pages/perfil.html` | Diseño completo con barra lateral y sección de Seguridad |
-| `public/js/pages/perfil.js` | Lógica completa de perfil y configuración 2FA |
-| `.env.example` | Añadir variables de entorno |
-| `.env` | Configurar TOTP_ENCRYPTION_KEY |
+| Ruta                                      | Modificaciones                                           |
+| ----------------------------------------- | -------------------------------------------------------- |
+| `src/modulos/auth/auth.controller.js`     | Manejar respuesta 202 con token temporal                 |
+| `src/modulos/auth/auth.service.js`        | Generar tokens temporales, verificar 2FA                 |
+| `src/config/env.js`                       | Añadir variables de entorno para 2FA                     |
+| `src/middlewares/autenticar.js`           | Manejar tokens temporales                                |
+| `src/modulos/usuarios/usuarios.routes.js` | Endpoints de configuración 2FA                           |
+| `public/pages/login.html`                 | Añadir interfaz de verificación 2FA                      |
+| `public/js/pages/login.js`                | Manejar flujo de 2FA                                     |
+| `public/pages/perfil.html`                | Diseño completo con barra lateral y sección de Seguridad |
+| `public/js/pages/perfil.js`               | Lógica completa de perfil y configuración 2FA            |
+| `.env.example`                            | Añadir variables de entorno                              |
+| `.env`                                    | Configurar TOTP_ENCRYPTION_KEY                           |
 
 ---
 
 ## Cronograma de Implementación
 
-### Etapa 1: Base de Datos (ENTREGADA) 
+### Etapa 1: Base de Datos (ENTREGADA)
+
 - [x] Crear migración SQL
 - [x] Crear script de reversión
 - [x] Documentación de esquema
@@ -550,6 +597,7 @@ Para implementar la base de datos correctamente:
 - [x] Script de reversión de permisos
 
 ### Etapa 2: Backend (ENTREGADO)
+
 - [x] Crear servicio de 2FA
 - [x] Crear controladores de 2FA
 - [x] Crear rutas de 2FA
@@ -558,6 +606,7 @@ Para implementar la base de datos correctamente:
 - [x] Añadir variables de entorno
 
 ### Etapa 3: Frontend (ENTREGADO)
+
 - [x] Modificar login.html
 - [x] Modificar login.js
 - [x] Crear/Modificar perfil.html

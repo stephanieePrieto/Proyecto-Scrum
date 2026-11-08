@@ -62,7 +62,7 @@ export const env = {
   SMTP_CLAVE: process.env.SMTP_CLAVE || '',
   // --- Autenticacion en Dos Pasos (2FA) ---
   TOTP_ENCRYPTION_KEY: process.env.TOTP_ENCRYPTION_KEY || '',
-  TOKEN_2FA_TEMPORAL_MINUTOS: parseInt(process.env.TOKEN_2FA_TEMPORAL_MINUTOS, 10) || 15,
+  TOKEN_2FA_TEMPORAL_MINUTOS: parseInt(process.env.TOKEN_2FA_TEMPORAL_MINUTOS, 10) || 5,
   OTP_CORREO_MINUTOS: parseInt(process.env.OTP_CORREO_MINUTOS, 10) || 3,
   MAX_INTENTOS_2FA: parseInt(process.env.MAX_INTENTOS_2FA, 10) || 5
 };

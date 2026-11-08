@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { consulta } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
-import { randomUUID, createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import { randomUUID, randomInt, createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { enviarCorreo } from '../../utils/correo.js'; // Utilidad de correo existente en el proyecto
 
 /**
@@ -16,7 +16,7 @@ import { enviarCorreo } from '../../utils/correo.js'; // Utilidad de correo exis
 /**
  * Comprueba si la IP está bloqueada temporalmente por intentos fallidos.
  *
- * @param {string} ip - Dirección IP de la petición.
+ * @param {string} ip Dirección IP de la petición.
  * @returns {Promise<Object|undefined>} Registro de intentos de la IP, si existe.
  * @throws {ErrorApp} 429 si la IP sigue bloqueada.
  */
@@ -34,8 +34,8 @@ const verificarBloqueoIp = async (ip) => {
  * Registra un intento fallido de inicio de sesión. Bloquea la IP al llegar al máximo de intentos
  * y, si se indica el correo, cuenta el intento en la cuenta y la bloquea al llegar a su máximo.
  *
- * @param {string} ip - Dirección IP de la petición.
- * @param {string|null} correo - Correo de la cuenta afectada; null si la cuenta no existe o está inactiva.
+ * @param {string} ip Dirección IP de la petición.
+ * @param {string|null} correo Correo de la cuenta afectada; null si la cuenta no existe o está inactiva.
  * @returns {Promise<void>}
  */
 const registrarIntentoFallido = async (ip, correo) => {
@@ -74,14 +74,14 @@ const registrarIntentoFallido = async (ip, correo) => {
 /**
  * Valida las credenciales, controla los bloqueos por IP y por cuenta y genera los tokens de sesión.
  *
- * @param {string} correo - Correo de la cuenta.
- * @param {string} password - Contraseña en texto plano.
- * @param {string} ip - Dirección IP de la petición.
- * @param {string} [userAgent] - User-Agent del navegador (para dispositivos de confianza).
+ * @param {string} correo Correo de la cuenta.
+ * @param {string} password Contraseña en texto plano.
+ * @param {string} ip Dirección IP de la petición.
+ * @param {string} [tokenConfianza] Valor de la cookie tokenConfianza, si el navegador la envió (para dispositivos de confianza).
  * @returns {Promise<{accessToken: string, refreshToken: string, usuario: {id: number, nombre: string, correo: string}, requiere2fa: boolean, metodos2fa: string[]}>}
  * @throws {ErrorApp} 401 si las credenciales son incorrectas, 429 si la IP o la cuenta están bloqueadas.
  */
-export const autenticarUsuario = async (correo, password, ip, userAgent = null) => {
+export const autenticarUsuario = async (correo, password, ip, tokenConfianza = null) => {
     await verificarBloqueoIp(ip);
 
     const { rows } = await consulta('SELECT * FROM usuarios WHERE correo = $1', [correo.trim().toLowerCase()]);
@@ -122,8 +122,8 @@ export const autenticarUsuario = async (correo, password, ip, userAgent = null) 
 
     // Verificar si es un dispositivo de confianza
     let esDispositivoConfianza = false;
-    if (config2FA.habilitado && userAgent) {
-        esDispositivoConfianza = await esDispositivoDeConfianza(usuario.id, ip, userAgent);
+    if (config2FA.habilitado && tokenConfianza) {
+        esDispositivoConfianza = await esDispositivoDeConfianza(usuario.id, tokenConfianza);
     }
 
     // Si no tiene 2FA habilitado o es dispositivo de confianza, crear sesión normal
@@ -160,23 +160,26 @@ export const autenticarUsuario = async (correo, password, ip, userAgent = null) 
 /**
  * Guarda un token en la lista de revocados hasta que expire.
  *
- * @param {string} token - Token a revocar.
- * @param {number} minutosExpiracion - Minutos de vigencia restantes del token.
- * @returns {Promise<void>}
+ * @param {string} token Token a revocar.
+ * @param {number} minutosExpiracion Minutos de vigencia restantes del token.
+ * @returns {Promise<boolean>} True si el token se revocó en esta llamada, false si ya estaba revocado.
  */
 export const revocarToken = async (token, minutosExpiracion) => {
-    await consulta(`
+    const { rows } = await consulta(`
     INSERT INTO tokens_revocados (token, expira_en) 
     VALUES ($1, NOW() + ($2::int * INTERVAL '1 minute'))
     ON CONFLICT (token) DO NOTHING
+    RETURNING token
     `, [token, minutosExpiracion]);
+
+    return rows.length > 0;
 };
 
 /**
  * Registra la sesión de la persona que acaba de iniciar sesión. Cada inicio de sesión es una sesión
  * distinta, así que cada dispositivo lleva su propio tiempo de inactividad.
  *
- * @param {number} usuarioId - Identificador de la cuenta.
+ * @param {number} usuarioId Identificador de la cuenta.
  * @returns {Promise<string>} Identificador de la sesión (sid) que viaja dentro de los tokens.
  */
 export const abrirSesion = async (usuarioId) => {
@@ -190,8 +193,8 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /**
  * Crea un error 401 con un código que el frontend puede leer en "detalles.codigo".
  *
- * @param {string} mensaje - Texto para la persona usuaria.
- * @param {string} codigo - SESION_INACTIVA, SESION_CERRADA o SESION_INVALIDA.
+ * @param {string} mensaje Texto para la persona usuaria.
+ * @param {string} codigo SESION_INACTIVA, SESION_CERRADA o SESION_INVALIDA.
  * @returns {ErrorApp}
  */
 export const errorDeSesion = (mensaje, codigo) => {
@@ -207,8 +210,8 @@ export const errorDeSesion = (mensaje, codigo) => {
  * Evaluar y adelantar ocurre en una sola sentencia, y la fecha nunca retrocede ni se escribe
  * más de una vez cada 10 segundos.
  *
- * @param {string} sid - Identificador de la sesión.
- * @param {number|null} segundosDesdeInteraccion - Segundos desde la última interacción humana, según el navegador.
+ * @param {string} sid Identificador de la sesión.
+ * @param {number|null} segundosDesdeInteraccion Segundos desde la última interacción humana, según el navegador.
  * @returns {Promise<{activa: true, usuarioId: number}|{activa: false, motivo: 'inactiva'|'cerrada'}>}
  */
 export const evaluarSesion = async (sid, segundosDesdeInteraccion) => {
@@ -240,7 +243,7 @@ export const evaluarSesion = async (sid, segundosDesdeInteraccion) => {
 /**
  * Indica, sin modificar nada, si una sesión sigue vigente.
  *
- * @param {string} sid - Identificador de la sesión.
+ * @param {string} sid Identificador de la sesión.
  * @returns {Promise<boolean>}
  */
 export const sesionVigente = async (sid) => {
@@ -251,7 +254,7 @@ export const sesionVigente = async (sid) => {
 /**
  * Indica, sin modificar nada, cuáles de las sesiones recibidas siguen vigentes.
  *
- * @param {string[]} sids - Identificadores de sesión.
+ * @param {string[]} sids Identificadores de sesión.
  * @returns {Promise<Set<string>>} Identificadores que siguen vigentes.
  */
 export const sesionesVigentes = async (sids) => {
@@ -273,8 +276,8 @@ export const sesionesVigentes = async (sids) => {
  * verificar para poder leer el contenido de un token vencido, pero uno vencido no se guarda
  * porque ya no sirve, y uno falsificado se descarta sin tocar la base de datos.
  *
- * @param {string|undefined} token - Token recibido del cliente.
- * @param {string} secreto - Secreto con el que se firmó ese tipo de token.
+ * @param {string|undefined} token Token recibido del cliente.
+ * @param {string} secreto Secreto con el que se firmó ese tipo de token.
  * @returns {Promise<Object|null>} Contenido del token si la firma es válida; null en otro caso.
  */
 const revocarSiEsValido = async (token, secreto) => {
@@ -296,8 +299,8 @@ const revocarSiEsValido = async (token, secreto) => {
  * Cierra las sesiones a las que pertenecen los tokens recibidos y revoca los que sigan vigentes.
  * Funciona aunque el token de acceso ya haya expirado y no hace nada con tokens falsificados.
  *
- * @param {string|undefined} accessToken - Token de acceso recibido del cliente.
- * @param {string|undefined} refreshToken - Token de renovación recibido del cliente.
+ * @param {string|undefined} accessToken Token de acceso recibido del cliente.
+ * @param {string|undefined} refreshToken Token de renovación recibido del cliente.
  * @returns {Promise<string[]>} Identificadores de las sesiones cerradas.
  */
 export const cerrarSesionPorTokens = async (accessToken, refreshToken) => {
@@ -318,7 +321,7 @@ export const cerrarSesionPorTokens = async (accessToken, refreshToken) => {
 /**
  * Renueva la sesión a partir de un token de renovación válido y revoca el anterior.
  *
- * @param {string|undefined} refreshToken - Token de renovación recibido en la cookie.
+ * @param {string|undefined} refreshToken Token de renovación recibido en la cookie.
  * @returns {Promise<{nuevoAccessToken: string, nuevoRefreshToken: string}>}
  * @throws {ErrorApp} 401 si no hay token, está revocado o es inválido o expiró.
  */
@@ -361,9 +364,9 @@ export const renovarSesion = async (refreshToken) => {
 /**
  * Registra un nuevo usuario en la base de datos con contraseña hasheada y envía correo de bienvenida.
  *
- * @param {string} nombre - Nombre del usuario.
- * @param {string} correo - Correo electrónico único.
- * @param {string} password - Contraseña en texto plano.
+ * @param {string} nombre Nombre del usuario.
+ * @param {string} correo Correo electrónico único.
+ * @param {string} password Contraseña en texto plano.
  * @returns {Promise<Object>} Datos básicos del usuario creado.
  */
 export const registrarUsuario = async (nombre, correo, password) => {
@@ -426,8 +429,8 @@ const ALGORITMO_CIFRADO = 'aes-256-gcm';
 /**
  * Cifra un texto usando AES-256-GCM.
  *
- * @param {string} texto - Texto a cifrar.
- * @param {string} claveBase64 - Clave de cifrado en base64 (32 bytes).
+ * @param {string} texto Texto a cifrar.
+ * @param {string} claveBase64 Clave de cifrado en base64 (32 bytes).
  * @returns {string} Texto cifrado en formato IV:cifrado:authTag (todo en hex).
  */
 const cifrarTexto = (texto, claveBase64) => {
@@ -446,8 +449,8 @@ const cifrarTexto = (texto, claveBase64) => {
 /**
  * Descifra un texto cifrado con AES-256-GCM.
  *
- * @param {string} textoCifrado - Texto cifrado en formato IV:cifrado:authTag.
- * @param {string} claveBase64 - Clave de cifrado en base64 (32 bytes).
+ * @param {string} textoCifrado Texto cifrado en formato IV:cifrado:authTag.
+ * @param {string} claveBase64 Clave de cifrado en base64 (32 bytes).
  * @returns {string} Texto descifrado.
  * @throws {Error} Si el descifrado falla.
  */
@@ -487,7 +490,7 @@ const generarSecretoTotp = () => {
  * Ignora espacios, guiones, relleno '=' y diferencias de mayúsculas; los bits
  * sobrantes al final se descartan, igual que hacen las apps autenticadoras.
  *
- * @param {string} cadena - Texto en Base32.
+ * @param {string} cadena Texto en Base32.
  * @returns {Buffer} Bytes decodificados.
  * @throws {Error} Si la cadena contiene caracteres fuera del alfabeto Base32.
  */
@@ -519,8 +522,8 @@ const decodificarBase32 = (cadena) => {
  * Genera un código TOTP de 6 dígitos usando HMAC-SHA1.
  * Implementación del estándar RFC 6238.
  *
- * @param {string} secreto - Secreto TOTP en Base32.
- * @param {number} [epoch] - Timestamp en segundos (para pruebas). Si no se proporciona, usa Date.now().
+ * @param {string} secreto Secreto TOTP en Base32.
+ * @param {number} [epoch] Timestamp en segundos (para pruebas). Si no se proporciona, usa Date.now().
  * @returns {string} Código TOTP de 6 dígitos.
  */
 const generarCodigototp = (secreto, epoch = null) => {
@@ -549,9 +552,9 @@ const generarCodigototp = (secreto, epoch = null) => {
 /**
  * Verifica un código TOTP.
  *
- * @param {string} secreto - Secreto TOTP en Base32.
- * @param {string} codigo - Código de 6 dígitos a verificar.
- * @param {number} [tolerance] - Tolerancia en segundos (para permitir códigos anteriores/Posteriores).
+ * @param {string} secreto Secreto TOTP en Base32.
+ * @param {string} codigo Código de 6 dígitos a verificar.
+ * @param {number} [tolerance] Tolerancia en segundos (para permitir códigos anteriores/Posteriores).
  * @returns {boolean} True si el código es válido.
  */
 const verificarCodigototp = (secreto, codigo, tolerance = 60) => {
@@ -567,7 +570,7 @@ const verificarCodigototp = (secreto, codigo, tolerance = 60) => {
 /**
  * Hash de un código usando SHA-256.
  *
- * @param {string} codigo - Código en texto plano.
+ * @param {string} codigo Código en texto plano.
  * @returns {string} Hash SHA-256 en hexadecimal.
  */
 const hashearCodigo = (codigo) => {
@@ -577,7 +580,7 @@ const hashearCodigo = (codigo) => {
 /**
  * Verifica si un usuario tiene el 2FA activado.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<boolean>} True si el 2FA está habilitado.
  */
 export const tiene2FAHabilitado = async (usuarioId) => {
@@ -591,7 +594,7 @@ export const tiene2FAHabilitado = async (usuarioId) => {
 /**
  * Obtiene la configuración de 2FA de un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<Object>} Configuración de 2FA.
  */
 export const obtenerConfiguracion2FA = async (usuarioId) => {
@@ -625,7 +628,7 @@ export const obtenerConfiguracion2FA = async (usuarioId) => {
 /**
  * Inicia el proceso de configuración de TOTP generando un nuevo secreto.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<{secreto: string, uri: string}>} Secreto y URI para código QR.
  */
 export const iniciarConfiguracionTotp = async (usuarioId) => {
@@ -670,7 +673,7 @@ export const iniciarConfiguracionTotp = async (usuarioId) => {
  * Si la generación falla no se revierte la activación: la persona puede generarlos
  * después desde su perfil, por eso se devuelve null y el error queda en el registro.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<string[]|null>} Los códigos en claro (solo se muestran una vez) o null si no se pudieron generar.
  */
 const generarCodigosRespaldoIniciales = async (usuarioId) => {
@@ -686,8 +689,8 @@ const generarCodigosRespaldoIniciales = async (usuarioId) => {
 /**
  * Confirma y activa la configuración de TOTP con un código generado.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} codigo - Código TOTP de 6 dígitos.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} codigo Código TOTP de 6 dígitos.
  * @returns {Promise<{mensaje: string, totpActivado: boolean, activadoAutomaticamente: boolean, codigos: string[]|null}>}
  *          Si era el primer método activo, el 2FA queda habilitado y se devuelven los códigos de respaldo recién generados.
  */
@@ -735,26 +738,13 @@ export const confirmarConfiguracionTotp = async (usuarioId, codigo) => {
 /**
  * Desactiva TOTP para un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} password - Contraseña actual para verificación.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} password Contraseña actual para verificación.
  * @returns {Promise<{mensaje: string, totpActivado: boolean}>}
  */
 export const desactivarTotp = async (usuarioId, password) => {
     // Verificar contraseña
-    const { rows } = await consulta(
-        'SELECT password_hash FROM usuarios WHERE id = $1',
-        [usuarioId]
-    );
-
-    if (rows.length === 0 || !rows[0].password_hash) {
-        throw new ErrorApp('Usuario no encontrado.', 404);
-    }
-
-    const claveValida = await verificarPassword(password, rows[0].password_hash);
-    if (!claveValida) {
-        await gastarTiempoDeHash(password);
-        throw new ErrorApp('Contraseña incorrecta.', 401);
-    }
+    await exigirPasswordVigente(usuarioId, password);
 
     // Verificar que no sea el único método activo
     const config = await obtenerConfiguracion2FA(usuarioId);
@@ -790,11 +780,11 @@ export const desactivarTotp = async (usuarioId, password) => {
 /**
  * Activa o desactiva 2FA por correo electrónico.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {boolean} activar - True para activar, false para desactivar.
- * @param {string} [password] - Contraseña actual (requerida para desactivar).
- * @param {string} [ip] - Dirección IP de la solicitud (se registra al enviar el código de activación).
- * @param {string} [userAgent] - User-Agent del navegador (se registra al enviar el código de activación).
+ * @param {number} usuarioId ID del usuario.
+ * @param {boolean} activar True para activar, false para desactivar.
+ * @param {string} [password] Contraseña actual (requerida para desactivar).
+ * @param {string} [ip] Dirección IP de la solicitud (se registra al enviar el código de activación).
+ * @param {string} [userAgent] User-Agent del navegador (se registra al enviar el código de activación).
  * @returns {Promise<{mensaje: string, correoActivado: boolean, pendienteVerificacion?: boolean}>}
  *          Al activar, el método queda pendiente hasta confirmar el código enviado (ver confirmarActivacionCorreo).
  */
@@ -829,20 +819,7 @@ export const configurar2FAPorCorreo = async (usuarioId, activar, password = null
         }
 
         // Verificar contraseña
-        const { rows } = await consulta(
-            'SELECT password_hash FROM usuarios WHERE id = $1',
-            [usuarioId]
-        );
-
-        if (rows.length === 0 || !rows[0].password_hash) {
-            throw new ErrorApp('Usuario no encontrado.', 404);
-        }
-
-        const claveValida = await verificarPassword(password, rows[0].password_hash);
-        if (!claveValida) {
-            await gastarTiempoDeHash(password);
-            throw new ErrorApp('Contraseña incorrecta.', 401);
-        }
+        await exigirPasswordVigente(usuarioId, password);
 
         // Verificar que no sea el único método activo
         const config = await obtenerConfiguracion2FA(usuarioId);
@@ -864,14 +841,6 @@ export const configurar2FAPorCorreo = async (usuarioId, activar, password = null
             [usuarioId]
         );
 
-        // Si era el único método, deshabilitar 2FA completamente
-        if (config.habilitado && metodosActivos <= 1) {
-            await consulta(
-                'UPDATE autenticacion_2fa SET habilitado = false, actualizado_en = NOW() WHERE usuario_id = $1',
-                [usuarioId]
-            );
-        }
-
         return { mensaje: 'Autenticación por correo desactivada', correoActivado: false };
     }
 };
@@ -881,12 +850,12 @@ export const configurar2FAPorCorreo = async (usuarioId, activar, password = null
  * Una contraseña incorrecta responde 403 y no 401, porque el cliente trata un 401
  * como sesión caducada y cerraría la sesión de la persona.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} password - Contraseña ingresada.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} password Contraseña ingresada.
  * @returns {Promise<void>}
  * @throws {ErrorApp} 404 si el usuario no existe, 403 si la contraseña es incorrecta.
  */
-const exigirPasswordVigente = async (usuarioId, password) => {
+export const exigirPasswordVigente = async (usuarioId, password) => {
     const { rows } = await consulta(
         'SELECT password_hash FROM usuarios WHERE id = $1',
         [usuarioId]
@@ -906,9 +875,9 @@ const exigirPasswordVigente = async (usuarioId, password) => {
 /**
  * Habilita o deshabilita el 2FA global para un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {boolean} habilitar - True para habilitar, false para deshabilitar.
- * @param {string} [password] - Contraseña actual (requerida para deshabilitar).
+ * @param {number} usuarioId ID del usuario.
+ * @param {boolean} habilitar True para habilitar, false para deshabilitar.
+ * @param {string} [password] Contraseña actual (requerida para deshabilitar).
  * @returns {Promise<{mensaje: string, habilitado: boolean}>}
  */
 export const configurar2FAHabilitado = async (usuarioId, habilitar, password = null) => {
@@ -944,20 +913,10 @@ export const configurar2FAHabilitado = async (usuarioId, habilitar, password = n
         }
 
         // Verificar contraseña
-        const { rows } = await consulta(
-            'SELECT password_hash FROM usuarios WHERE id = $1',
-            [usuarioId]
-        );
+        await exigirPasswordVigente(usuarioId, password);
 
-        if (rows.length === 0 || !rows[0].password_hash) {
-            throw new ErrorApp('Usuario no encontrado.', 404);
-        }
-
-        const claveValida = await verificarPassword(password, rows[0].password_hash);
-        if (!claveValida) {
-            await gastarTiempoDeHash(password);
-            throw new ErrorApp('Contraseña incorrecta.', 401);
-        }
+        // Los dispositivos de confianza no deben revivir al volver a habilitar el 2FA
+        await revocarTodosDispositivosConfianza(usuarioId);
 
         // Deshabilitar 2FA
         await consulta(
@@ -972,10 +931,10 @@ export const configurar2FAHabilitado = async (usuarioId, habilitar, password = n
 /**
  * Genera y envía un código OTP por correo.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} ip - Dirección IP de la solicitud.
- * @param {string} userAgent - User-Agent del navegador.
- * @param {boolean} [paraActivacion=false] - True cuando el código sirve para activar el método, que aún no está activo.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} ip Dirección IP de la solicitud.
+ * @param {string} userAgent User-Agent del navegador.
+ * @param {boolean} [paraActivacion=false] True cuando el código sirve para activar el método, que aún no está activo.
  * @returns {Promise<{mensaje: string}>}
  */
 export const enviarCodigoOtpCorreo = async (usuarioId, ip, userAgent, paraActivacion = false) => {
@@ -989,7 +948,7 @@ export const enviarCodigoOtpCorreo = async (usuarioId, ip, userAgent, paraActiva
     await consulta('DELETE FROM otp_correo WHERE usuario_id = $1', [usuarioId]);
 
     // Generar código OTP de 6 dígitos
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    const codigo = randomInt(100000, 1000000).toString();
     const codigoHash = hashearCodigo(codigo);
 
     // Guardar OTP en BD
@@ -1033,37 +992,33 @@ export const enviarCodigoOtpCorreo = async (usuarioId, ip, userAgent, paraActiva
 /**
  * Verifica un código OTP recibido por correo.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} codigo - Código de 6 dígitos.
- * @param {string} ip - Dirección IP de la verificación.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} codigo Código de 6 dígitos.
+ * @param {string} ip Dirección IP de la verificación.
  * @returns {Promise<boolean>} True si el código es válido.
  */
 export const verificarCodigoOtpCorreo = async (usuarioId, codigo, ip) => {
     // Verificar intentos fallidos
-    await verificarBloqueo2FA(usuarioId, ip);
+    await contarIntento2FA(usuarioId);
 
     const codigoHash = hashearCodigo(codigo);
 
-    // Obtener OTP válido no usado
-    const { rows } = await consulta(
-        `SELECT id FROM otp_correo 
-         WHERE usuario_id = $1 AND codigo_hash = $2 AND usado = FALSE AND expira_en > NOW()`,
+    // Actualización y validación atómica (Race Condition mitigation)
+    const { rows: consumido } = await consulta(
+        `UPDATE otp_correo 
+         SET usado = true, usado_en = NOW() 
+         WHERE usuario_id = $1 AND codigo_hash = $2 AND usado = FALSE AND expira_en > NOW() 
+         RETURNING id`,
         [usuarioId, codigoHash]
     );
 
-    if (rows.length === 0) {
-        await registrarIntentoFallido2FA(usuarioId, ip);
+    // Si no se afectó ninguna fila, el código no existía, estaba expirado, o ya se usó.
+    if (consumido.length === 0) {
         return false;
     }
 
-    // Marcar como usado
-    await consulta(
-        `UPDATE otp_correo SET usado = true, usado_en = NOW() WHERE id = $1`,
-        [rows[0].id]
-    );
-
     // Limpiar intentos fallidos
-    await consulta('DELETE FROM intentos_2fa WHERE usuario_id = $1', [usuarioId]);
+    await consulta('DELETE FROM intentos_2fa_usuario WHERE usuario_id = $1', [usuarioId]);
 
     return true;
 };
@@ -1073,9 +1028,9 @@ export const verificarCodigoOtpCorreo = async (usuarioId, codigo, ip) => {
  * El método no cuenta como activo, ni sirve para iniciar sesión, hasta que esta verificación sea correcta.
  * Si no había otro método activo, también habilita el 2FA y genera los códigos de respaldo.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} codigo - Código de 6 dígitos recibido por correo.
- * @param {string} ip - Dirección IP de la verificación.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} codigo Código de 6 dígitos recibido por correo.
+ * @param {string} ip Dirección IP de la verificación.
  * @returns {Promise<{mensaje: string, correoActivado: boolean, activadoAutomaticamente: boolean, codigos: string[]|null}>}
  * @throws {ErrorApp} 400 si el código es inválido o no hay una activación en curso.
  */
@@ -1114,7 +1069,7 @@ export const confirmarActivacionCorreo = async (usuarioId, codigo, ip) => {
 /**
  * Genera códigos de respaldo para un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<{codigos: string[], grupoId: string}>} Array de 10 códigos de respaldo.
  */
 export const generarCodigosRespaldo = async (usuarioId) => {
@@ -1165,7 +1120,7 @@ const generarCodigoRespaldo = () => {
         if (i === 3 || i === 7) {
             codigo += '-';
         } else {
-            const randomIndex = Math.floor(Math.random() * caracteres.length);
+            const randomIndex = randomInt(0, caracteres.length);
             codigo += caracteres[randomIndex];
         }
     }
@@ -1175,37 +1130,33 @@ const generarCodigoRespaldo = () => {
 /**
  * Verifica un código de respaldo.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} codigo - Código de respaldo.
- * @param {string} ip - Dirección IP de la verificación.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} codigo Código de respaldo.
+ * @param {string} ip Dirección IP de la verificación.
  * @returns {Promise<{valido: boolean, codigosRestantes: number}>}
  */
 export const verificarCodigoRespaldo = async (usuarioId, codigo, ip) => {
     // Verificar intentos fallidos
-    await verificarBloqueo2FA(usuarioId, ip);
+    await contarIntento2FA(usuarioId);
 
     const codigoHash = hashearCodigo(codigo);
 
-    // Obtener código no usado
-    const { rows } = await consulta(
-        `SELECT id FROM codigos_respaldo 
-         WHERE usuario_id = $1 AND codigo_hash = $2 AND usado = FALSE`,
+    // Actualización y validación atómica (Race Condition mitigation)
+    const { rows: consumido } = await consulta(
+        `UPDATE codigos_respaldo 
+         SET usado = true, usado_en = NOW() 
+         WHERE usuario_id = $1 AND codigo_hash = $2 AND usado = FALSE 
+         RETURNING id`,
         [usuarioId, codigoHash]
     );
 
-    if (rows.length === 0) {
-        await registrarIntentoFallido2FA(usuarioId, ip);
+    // Si no se afectó ninguna fila, el código no existía o ya se usó.
+    if (consumido.length === 0) {
         return { valido: false, codigosRestantes: 0 };
     }
 
-    // Marcar como usado
-    await consulta(
-        `UPDATE codigos_respaldo SET usado = true, usado_en = NOW() WHERE id = $1`,
-        [rows[0].id]
-    );
-
     // Limpiar intentos fallidos
-    await consulta('DELETE FROM intentos_2fa WHERE usuario_id = $1', [usuarioId]);
+    await consulta('DELETE FROM intentos_2fa_usuario WHERE usuario_id = $1', [usuarioId]);
 
     // Contar códigos restantes
     const { rows: restantes } = await consulta(
@@ -1219,7 +1170,7 @@ export const verificarCodigoRespaldo = async (usuarioId, codigo, ip) => {
 /**
  * Obtiene información sobre los códigos de respaldo de un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<Object>} Información sobre códigos de respaldo.
  */
 export const obtenerInfoCodigosRespaldo = async (usuarioId) => {
@@ -1243,7 +1194,7 @@ export const obtenerInfoCodigosRespaldo = async (usuarioId) => {
 /**
  * Genera un token temporal para 2FA.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<{token: string, expiraEn: Date}>}
  */
 export const generarTokenTemporal2FA = async (usuarioId) => {
@@ -1262,7 +1213,7 @@ export const generarTokenTemporal2FA = async (usuarioId) => {
 /**
  * Verifica un token temporal de 2FA y devuelve el usuario.
  *
- * @param {string} token - Token temporal.
+ * @param {string} token Token temporal.
  * @returns {Promise<number>} ID del usuario.
  * @throws {ErrorApp} Si el token es inválido o ha expirado.
  */
@@ -1282,20 +1233,42 @@ export const verificarTokenTemporal2FA = async (token) => {
         throw new ErrorApp('Token no válido para verificación 2FA.', 401);
     }
 
+    const { rows } = await consulta('SELECT 1 FROM tokens_revocados WHERE token = $1', [token]);
+    if (rows.length > 0) {
+        throw new ErrorApp('Token temporal inválido o expirado.', 401);
+    }
+
     return payload.id;
+};
+
+/**
+ * Consume un token temporal de 2FA al completar el inicio de sesión, de modo que no pueda
+ * volver a usarse. La operación es atómica: si dos peticiones intentan consumir el mismo
+ * token a la vez, solo una lo consigue.
+ *
+ * @author Citlaly Morales Viveros
+ * @param {string} token Token temporal ya verificado.
+ * @returns {Promise<void>}
+ * @throws {ErrorApp} 401 si el token ya había sido consumido.
+ */
+export const consumirTokenTemporal2FA = async (token) => {
+    const consumido = await revocarToken(token, env.TOKEN_2FA_TEMPORAL_MINUTOS);
+    if (!consumido) {
+        throw new ErrorApp('Token temporal inválido o expirado.', 401);
+    }
 };
 
 /**
  * Verifica un código TOTP para un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} codigo - Código de 6 dígitos.
- * @param {string} ip - Dirección IP de la verificación.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} codigo Código de 6 dígitos.
+ * @param {string} ip Dirección IP de la verificación.
  * @returns {Promise<boolean>} True si el código es válido.
  */
 export const verificarCodigoTotp = async (usuarioId, codigo, ip) => {
     // Verificar intentos fallidos
-    await verificarBloqueo2FA(usuarioId, ip);
+    await contarIntento2FA(usuarioId);
 
     // Obtener secreto TOTP
     const { rows } = await consulta(
@@ -1304,7 +1277,6 @@ export const verificarCodigoTotp = async (usuarioId, codigo, ip) => {
     );
 
     if (rows.length === 0 || !rows[0].secreto_totp_cifrado) {
-        await registrarIntentoFallido2FA(usuarioId, ip);
         return false;
     }
 
@@ -1315,79 +1287,52 @@ export const verificarCodigoTotp = async (usuarioId, codigo, ip) => {
     const valido = verificarCodigototp(secreto, codigo);
 
     if (!valido) {
-        await registrarIntentoFallido2FA(usuarioId, ip);
         return false;
     }
 
     // Limpiar intentos fallidos
-    await consulta('DELETE FROM intentos_2fa WHERE usuario_id = $1', [usuarioId]);
+    await consulta('DELETE FROM intentos_2fa_usuario WHERE usuario_id = $1', [usuarioId]);
 
     return true;
 };
 
 /**
- * Verifica el bloqueo por intentos fallidos de 2FA.
+ * Cuenta un intento de verificación 2FA para la cuenta y corta el paso cuando ya se agotaron.
+ * El intento se cuenta antes de comprobar el código, en una sola sentencia, para que varias
+ * peticiones en paralelo no puedan adivinar más veces de las permitidas. Si el código resulta
+ * correcto, quien llama borra el contador. El bloqueo dura BLOQUEO_MINUTOS desde el último
+ * intento permitido, y pasado ese tiempo el conteo empieza de nuevo.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} ip - Dirección IP.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<void>}
- * @throws {ErrorApp} 429 si está bloqueado.
+ * @throws {ErrorApp} 429 si la cuenta ya agotó sus intentos de verificación.
  */
-const verificarBloqueo2FA = async (usuarioId, ip) => {
-    // Verificar bloqueo por usuario
-    const { rows: bloqueoUsuario } = await consulta(
-        'SELECT bloqueado_hasta FROM intentos_2fa WHERE usuario_id = $1',
-        [usuarioId]
-    );
-
-    if (bloqueoUsuario.length > 0 && bloqueoUsuario[0].bloqueado_hasta &&
-        new Date() < new Date(bloqueoUsuario[0].bloqueado_hasta)) {
-        throw new ErrorApp('Demasiados intentos fallidos de verificación 2FA. Inténtalo más tarde.', 429);
-    }
-
-    // Verificar bloqueo por IP
-    const { rows: bloqueoIp } = await consulta(
-        'SELECT bloqueado_hasta FROM intentos_2fa WHERE ip = $1 AND usuario_id IS NULL',
-        [ip]
-    );
-
-    if (bloqueoIp.length > 0 && bloqueoIp[0].bloqueado_hasta &&
-        new Date() < new Date(bloqueoIp[0].bloqueado_hasta)) {
-        throw new ErrorApp('Demasiados intentos fallidos de verificación 2FA. Inténtalo más tarde.', 429);
-    }
-};
-
-/**
- * Registra un intento fallido de verificación 2FA.
- *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} ip - Dirección IP.
- * @returns {Promise<void>}
- */
-const registrarIntentoFallido2FA = async (usuarioId, ip) => {
-    // Contador por usuario + IP
-    await consulta(
-        `INSERT INTO intentos_2fa (ip, usuario_id, intentos, ultimo_intento)
-         VALUES ($1, $2, 1, NOW())
-         ON CONFLICT (ip) DO UPDATE SET 
-            intentos = intentos_2fa.intentos + 1,
-            usuario_id = EXCLUDED.usuario_id,
-            ultimo_intento = NOW()`,
-        [ip, usuarioId]
-    );
-
-    // Verificar si se alcanzó el límite
+const contarIntento2FA = async (usuarioId) => {
     const { rows } = await consulta(
-        'SELECT intentos FROM intentos_2fa WHERE ip = $1 AND usuario_id = $2',
-        [ip, usuarioId]
+        `INSERT INTO intentos_2fa_usuario (usuario_id, intentos, ultimo_intento)
+         VALUES ($1, 1, NOW())
+         ON CONFLICT (usuario_id) DO UPDATE SET
+            intentos = CASE
+                WHEN intentos_2fa_usuario.ultimo_intento < NOW() - ($3::int * INTERVAL '1 minute') THEN 1
+                ELSE intentos_2fa_usuario.intentos + 1
+            END,
+            ultimo_intento = CASE
+                WHEN intentos_2fa_usuario.intentos >= $2::int
+                     AND intentos_2fa_usuario.ultimo_intento >= NOW() - ($3::int * INTERVAL '1 minute')
+                THEN intentos_2fa_usuario.ultimo_intento
+                ELSE NOW()
+            END
+         RETURNING intentos, CEIL(EXTRACT(EPOCH FROM (
+             ultimo_intento + ($3::int * INTERVAL '1 minute') - NOW()
+         )))::int AS reintento_segundos`,
+        [usuarioId, env.MAX_INTENTOS_2FA, env.BLOQUEO_MINUTOS]
     );
 
-    if (rows.length > 0 && rows[0].intentos >= env.MAX_INTENTOS_2FA) {
-        await consulta(
-            `UPDATE intentos_2fa 
-             SET bloqueado_hasta = NOW() + ($1::int * INTERVAL '1 minute')
-             WHERE ip = $2 AND usuario_id = $3`,
-            [env.BLOQUEO_MINUTOS, ip, usuarioId]
+    if (rows[0].intentos > env.MAX_INTENTOS_2FA) {
+        const minutos = Math.max(1, Math.ceil(rows[0].reintento_segundos / 60));
+        throw new ErrorApp(
+            `Demasiados intentos fallidos de verificación 2FA. Podrás reintentar en ${minutos} minuto${minutos === 1 ? '' : 's'}.`,
+            429
         );
     }
 };
@@ -1395,8 +1340,8 @@ const registrarIntentoFallido2FA = async (usuarioId, ip) => {
 /**
  * Genera un hash único para identificar un dispositivo.
  *
- * @param {string} ip - Dirección IP.
- * @param {string} userAgent - User-Agent del navegador.
+ * @param {string} ip Dirección IP.
+ * @param {string} userAgent User-Agent del navegador.
  * @returns {string} Hash del dispositivo.
  */
 const generarDispositivoHash = (ip, userAgent) => {
@@ -1416,67 +1361,61 @@ const generarTokenConfianza = () => {
 /**
  * Registra un dispositivo de confianza.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} ip - Dirección IP.
- * @param {string} userAgent - User-Agent del navegador.
- * @param {string} [nombre] - Nombre opcional del dispositivo.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} ip Dirección IP.
+ * @param {string} userAgent User-Agent del navegador.
+ * @param {string} [nombre] Nombre opcional del dispositivo.
  * @returns {Promise<{tokenConfianza: string, expiraEn: Date}>}
  */
 export const registrarDispositivoConfianza = async (usuarioId, ip, userAgent, nombre = null) => {
     const dispositivoHash = generarDispositivoHash(ip, userAgent);
     const tokenConfianza = generarTokenConfianza();
+    const expiraEn = new Date(Date.now() + 14 * 24 * 60 * 60000); // 14 días
 
+    // En la base solo se guarda el hash del token; el valor en claro viaja únicamente en la cookie
     await consulta(
         `INSERT INTO dispositivos_confianza 
-         (id, usuario_id, dispositivo_hash, token_confianza, ip_registro, user_agent, nombre, creado_en)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-        [randomUUID(), usuarioId, dispositivoHash, tokenConfianza, ip, userAgent, nombre]
+         (id, usuario_id, dispositivo_hash, token_confianza, ip_registro, user_agent, nombre, expira_en, creado_en)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+        [randomUUID(), usuarioId, dispositivoHash, hashearCodigo(tokenConfianza), ip, userAgent, nombre, expiraEn]
     );
 
     return {
         tokenConfianza,
-        expiraEn: new Date(Date.now() + 14 * 24 * 60 * 60000) // 14 días
+        expiraEn
     };
 };
 
+// Los tokens salen de 32 bytes en hexadecimal; cualquier otro formato se descarta sin consultar la base
+const FORMATO_TOKEN_CONFIANZA = /^[0-9a-f]{64}$/;
+
 /**
- * Verifica si un dispositivo es de confianza.
+ * Verifica si un dispositivo es de confianza a partir del token de su cookie. La IP y el
+ * navegador ya no cuentan: solo vale el token que se entregó al registrar el dispositivo.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} ip - Dirección IP.
- * @param {string} userAgent - User-Agent del navegador.
- * @param {string} tokenConfianza - Token de confianza (opcional, de cookie).
- * @returns {Promise<boolean>} True si el dispositivo es de confianza y válido.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} tokenConfianza Token de confianza recibido en la cookie tokenConfianza.
+ * @returns {Promise<boolean>} True si el token pertenece a ese usuario, no está revocado y no ha expirado.
  */
-export const esDispositivoDeConfianza = async (usuarioId, ip, userAgent, tokenConfianza = null) => {
-    // Si tenemos token de confianza, verificar directamente
-    if (tokenConfianza) {
-        const { rows } = await consulta(
-            `SELECT 1 FROM dispositivos_confianza 
-             WHERE usuario_id = $1 AND token_confianza = $2 
-             AND revocado = false AND expira_en > NOW()`,
-            [usuarioId, tokenConfianza]
-        );
-        return rows.length > 0;
+export const esDispositivoDeConfianza = async (usuarioId, tokenConfianza) => {
+    if (typeof tokenConfianza !== 'string' || !FORMATO_TOKEN_CONFIANZA.test(tokenConfianza)) {
+        return false;
     }
 
-    // De lo contrario, verificar por hash de dispositivo
-    const dispositivoHash = generarDispositivoHash(ip, userAgent);
-
+    // Si tenemos token de confianza, verificar directamente
     const { rows } = await consulta(
         `SELECT 1 FROM dispositivos_confianza 
-         WHERE usuario_id = $1 AND dispositivo_hash = $2 
+         WHERE usuario_id = $1 AND token_confianza = $2 
          AND revocado = false AND expira_en > NOW()`,
-        [usuarioId, dispositivoHash]
+        [usuarioId, hashearCodigo(tokenConfianza)]
     );
-
     return rows.length > 0;
 };
 
 /**
  * Obtiene la lista de dispositivos de confianza de un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<Array>} Lista de dispositivos.
  */
 export const listarDispositivosConfianza = async (usuarioId) => {
@@ -1503,8 +1442,8 @@ export const listarDispositivosConfianza = async (usuarioId) => {
 /**
  * Revoca un dispositivo de confianza.
  *
- * @param {number} usuarioId - ID del usuario.
- * @param {string} dispositivoId - ID del dispositivo.
+ * @param {number} usuarioId ID del usuario.
+ * @param {string} dispositivoId ID del dispositivo.
  * @returns {Promise<void>}
  */
 export const revocarDispositivoConfianza = async (usuarioId, dispositivoId) => {
@@ -1519,7 +1458,7 @@ export const revocarDispositivoConfianza = async (usuarioId, dispositivoId) => {
 /**
  * Revoca todos los dispositivos de confianza de un usuario.
  *
- * @param {number} usuarioId - ID del usuario.
+ * @param {number} usuarioId ID del usuario.
  * @returns {Promise<{dispositivosRevocados: number}>}
  */
 export const revocarTodosDispositivosConfianza = async (usuarioId) => {

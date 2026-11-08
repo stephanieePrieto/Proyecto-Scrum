@@ -205,6 +205,13 @@
   margin: 1.5rem 0;
 }
 
+#modal-totp-qr svg {
+  width: 200px;
+  height: 200px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
 #modal-totp-secreto {
   background: var(--color-fondo-terciario);
   padding: 0.75rem;

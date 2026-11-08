@@ -127,6 +127,8 @@ export function renderizarColumnas(columnas) {
         const columnaElemento = document.createElement('div');
         columnaElemento.classList.add('w-80', 'flex-shrink-0', 'bg-slate-100', 'rounded-xl', 'p-3', 'flex', 'flex-col', 'max-h-full', 'overflow-hidden');
         columnaElemento.dataset.columnaId = col.id;
+        //mantener el límite WIP en el dataset para referencia futura pero sin mostrarlo en el html
+        columnaElemento.dataset.limiteWip = col.limite_wip || '∞';
 
         const encabezado = document.createElement('div');
         encabezado.classList.add('flex', 'justify-between', 'items-center', 'mb-3', 'px-1');
@@ -138,7 +140,7 @@ export function renderizarColumnas(columnas) {
         const contadorWip = document.createElement('span');
         contadorWip.id = `wip-col-${col.id}`;
         contadorWip.classList.add('text-xs', 'font-semibold', 'text-slate-500', 'bg-slate-200', 'px-2', 'py-0.5', 'rounded-full');
-        contadorWip.textContent = `0 / ${col.limite_wip || '∞'}`;
+        contadorWip.textContent = `0 `;
 
         encabezado.appendChild(titulo);
         encabezado.appendChild(contadorWip);

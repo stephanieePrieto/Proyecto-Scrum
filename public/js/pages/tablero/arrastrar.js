@@ -25,12 +25,14 @@ function actualizarContadoresYAlertasWip() {
 
         if (lista && elWip) {
             const cantidad = lista.children.length;
-            const limiteTexto = elWip.textContent.split('/')[1]?.trim() || '∞';
+            // Leer el límite del atributo oculto de la columna
+            const limiteTexto = columnaEl.dataset.limiteWip || '∞';
             const limiteNum = limiteTexto === '∞' ? Infinity : Number(limiteTexto);
 
-            elWip.textContent = `${cantidad} / ${limiteTexto}`;
+            // Mostrar solo la cantidad real de tarjetas (ej: "3")
+            elWip.textContent = cantidad;
 
-            // Criterio HU-22: Alerta visual si se supera el límite WIP
+            //Alerta visual si se supera el límite WIP
             if (cantidad > limiteNum) {
                 elWip.classList.remove('bg-slate-200', 'text-slate-500');
                 elWip.classList.add('bg-rose-100', 'text-rose-700', 'font-bold', 'animate-pulse');

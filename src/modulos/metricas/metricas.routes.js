@@ -8,10 +8,9 @@
 
 import { Router } from 'express';
 import { autenticar } from '../../middlewares/autenticar.js';
-import { misProyectos, dashboard, velocity, avance, burndown } from './metricas.controller.js';
+import { misProyectos, dashboard, velocity, avance, burndown, distribucion, solicitarExportacion, estadoExportacion, descargarArchivo } from './metricas.controller.js';
 
 const router = Router();
-
 /**
  * Registrar las rutas.
  *   1. autenticar: verificar la sesión y llenar req.user.
@@ -31,5 +30,20 @@ router.get('/proyectos/:proyectoId/avance', autenticar, avance);
 
 // HU-29: GET /api/metricas/proyectos/:proyectoId/burndown
 router.get('/proyectos/:proyectoId/burndown', autenticar, burndown);
+
+// HU-32: GET /api/metricas/proyectos/:proyectoId/distribucion
+router.get('/proyectos/:proyectoId/distribucion', autenticar, distribucion);
+
+/**
+ * HU-36: Rutas para la exportación asíncrona de reportes (Polling)
+ */
+// Iniciar el trabajo de generación en segundo plano
+router.post('/proyectos/:proyectoId/exportar', autenticar, solicitarExportacion);
+
+// Consultar el estado y avance de la barra de progreso
+router.get('/proyectos/:proyectoId/exportar/:jobId', autenticar, estadoExportacion);
+
+// Descargar el archivo final una vez llegue al 100%
+router.get('/proyectos/:proyectoId/exportar/:jobId/descargar', autenticar, descargarArchivo);
 
 export default router;

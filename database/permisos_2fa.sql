@@ -2,7 +2,7 @@
 -- Ejecutar DESPUES de autenticacion_2fa.sql como superusuario o scrumflow_admin
 --
 -- @author Citlaly Morales Viveros
-set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 
 -- Transferir propiedad de tablas 2FA a scrumflow_admin
 ALTER TABLE IF EXISTS autenticacion_2fa OWNER TO scrumflow_admin;

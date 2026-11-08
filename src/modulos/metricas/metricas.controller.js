@@ -11,7 +11,11 @@ import {
   obtenerKpisDashboard,
   obtenerVelocity,
   obtenerAvance,
-  obtenerBurndown
+  obtenerBurndown,
+  obtenerDistribucionTiempo,
+  iniciarExportacion,
+  consultarEstadoExportacion,
+  obtenerArchivoExportado
 } from './metricas.service.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 
@@ -133,6 +137,68 @@ export async function burndown(req, res, next) {
 export async function misProyectos(req, res, next) {
   try {
     res.json(await listarMisProyectos(req.user?.id));
+  } catch (error) {
+    responderError(error, res, next);
+  }
+}
+
+/**
+   * Responder con el desglose de horas registradas para la gráfica de distribución (HU-32).
+   *
+   * @route GET /api/metricas/proyectos/:proyectoId/distribucion
+   */
+  export async function distribucion(req, res, next) {
+    try {
+      const proyectoId = await validarAcceso(req);
+      res.json(await obtenerDistribucionTiempo(proyectoId, req.user.id));
+    } catch (error) {
+      responderError(error, res, next);
+    }
+  }
+
+/**
+ * HU-36: Solicitar la creación de un reporte asíncrono.
+ * Recibe en el cuerpo { formato: 'csv'|'pdf', alcance: 'avance'|'distribucion'|'todo' }.
+ *
+ * @route POST /api/metricas/proyectos/:proyectoId/exportar
+ */
+export async function solicitarExportacion(req, res, next) {
+  try {
+    const proyectoId = await validarAcceso(req);
+    const { formato = 'csv', alcance = 'todo' } = req.body || {};
+    res.json(await iniciarExportacion(proyectoId, req.user.id, formato, alcance));
+  } catch (error) {
+    responderError(error, res, next);
+  }
+}
+
+/**
+ * HU-36: Consultar el progreso de generación del reporte.
+ * Valida acceso al proyecto y que el trabajo sea del usuario autenticado.
+ *
+ * @route GET /api/metricas/proyectos/:proyectoId/exportar/:jobId
+ */
+export async function estadoExportacion(req, res, next) {
+  try {
+    const proyectoId = await validarAcceso(req);
+    res.json(consultarEstadoExportacion(req.params.jobId, proyectoId, req.user.id));
+  } catch (error) {
+    responderError(error, res, next);
+  }
+}
+
+/**
+ * HU-36: Descargar el archivo generado una vez que alcanza el 100%.
+ *
+ * @route GET /api/metricas/proyectos/:proyectoId/exportar/:jobId/descargar
+ */
+export async function descargarArchivo(req, res, next) {
+  try {
+    const proyectoId = await validarAcceso(req);
+    const archivo = obtenerArchivoExportado(req.params.jobId, proyectoId, req.user.id);
+    res.setHeader('Content-Type', archivo.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${archivo.nombre}"`);
+    res.send(archivo.contenido);
   } catch (error) {
     responderError(error, res, next);
   }

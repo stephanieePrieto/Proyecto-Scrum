@@ -8,180 +8,246 @@ export const DATOS_CURSO = {
   secciones: [
     {
       id: 1,
-      titulo: "📚 Módulo 1: Fundamentos de Scrum",
-      color: "#055651",
+      titulo: "Módulo 1: Fundamentos de Scrum",
+      color: "#6E9376",
       contenido: `
         <p>Scrum es un marco de trabajo ágil para gestionar proyectos complejos, especialmente cuando los requisitos cambian con frecuencia.</p>
 
-        <h4 style="margin-top: 16px; color: #055651;">🏛️ Los 3 Pilares de Scrum:</h4>
+        <h4 style="margin-top: 16px; color: #6E9376;">
+          <i class="fas fa-mountain"></i> Los 3 Pilares de Scrum:
+        </h4>
         <div style="display: grid; gap: 12px; margin-top: 12px;">
-          <div style="background: #e6f4f2; padding: 12px; border-radius: 8px; border-left: 4px solid #055651;">
-            <strong>Transparencia:</strong> Todos los aspectos del proceso deben ser visibles para quienes toman decisiones.
+          <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; border-left: 4px solid #6E9376;">
+            <strong><i class="fas fa-eye"></i> Transparencia:</strong> Todos los aspectos del proceso deben ser visibles para quienes toman decisiones.
           </div>
-          <div style="background: #e0f2fe; padding: 12px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-            <strong>Inspección:</strong> Los artefactos y el progreso deben inspeccionarse con frecuencia para detectar desviaciones.
+          <div style="background: #f0f7ff; padding: 12px; border-radius: 8px; border-left: 4px solid #6A8CA0;">
+            <strong><i class="fas fa-search"></i> Inspección:</strong> Los artefactos y el progreso deben inspeccionarse con frecuencia para detectar desviaciones.
           </div>
-          <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; border-left: 4px solid #10b981;">
-            <strong>Adaptación:</strong> Si algo se desvía, el proceso debe ajustarse rápidamente.
+          <div style="background: #fef9f0; padding: 12px; border-radius: 8px; border-left: 4px solid #D6B98C;">
+            <strong><i class="fas fa-sync-alt"></i> Adaptación:</strong> Si algo se desvía, el proceso debe ajustarse rápidamente.
           </div>
         </div>
 
-        <h4 style="margin-top: 20px; color: #055651;">🎯 Valores de Scrum:</h4>
+        <h4 style="margin-top: 20px; color: #6E9376;">
+          <i class="fas fa-star"></i> Valores de Scrum:
+        </h4>
         <ul style="padding-left: 20px; margin-top: 8px;">
-          <li><strong>Compromiso</strong>: Todos se comprometen con los objetivos del equipo.</li>
-          <li><strong>Coraje</strong>: Para tomar decisiones difíciles.</li>
-          <li><strong>Enfoque</strong>: Mantener la concentración en el trabajo del Sprint.</li>
-          <li><strong>Apertura</strong>: Ser transparentes sobre el trabajo y los desafíos.</li>
-          <li><strong>Respeto</strong>: Mutuo entre todos los miembros del equipo.</li>
+          <li><strong><i class="fas fa-handshake"></i> Compromiso</strong>: Todos se comprometen con los objetivos del equipo.</li>
+          <li><strong><i class="fas fa-shield-alt"></i> Coraje</strong>: Para tomar decisiones difíciles.</li>
+          <li><strong><i class="fas fa-target"></i> Enfoque</strong>: Mantener la concentración en el trabajo del Sprint.</li>
+          <li><strong><i class="fas fa-door-open"></i> Apertura</strong>: Ser transparentes sobre el trabajo y los desafíos.</li>
+          <li><strong><i class="fas fa-heart"></i> Respeto</strong>: Mutuo entre todos los miembros del equipo.</li>
         </ul>
       `
     },
     {
       id: 2,
-      titulo: "👥 Módulo 2: Roles en el Equipo Scrum",
-      color: "#3b82f6",
+      titulo: "Módulo 2: Roles en el Equipo Scrum",
+      color: "#6A8CA0",
       contenido: `
         <p>En Scrum, cada rol tiene responsabilidades específicas y complementarias.</p>
 
         <div style="display: grid; gap: 16px; margin-top: 16px;">
-          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #055651; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h5 style="margin: 0 0 8px 0; color: #055651; font-size: 1rem;">
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #6E9376; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h5 style="margin: 0 0 8px 0; color: #6E9376; font-size: 1rem;">
               <i class="fas fa-crown"></i> Product Owner (PO)
             </h5>
-            <p style="margin: 0; color: #1e293b; font-size: 0.95rem;">
-              <strong>Responsabilidad:</strong> Maximizar el valor del producto. Gestiona el Product Backlog, prioriza historias de usuario y define criterios de aceptación.
+            <p style="margin: 0; color: #282828;">
+              <strong>Responsabilidades:</strong> Gestionar el Product Backlog, maximizar el valor del producto y priorizar el trabajo.
             </p>
           </div>
 
-          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #3b82f6; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h5 style="margin: 0 0 8px 0; color: #3b82f6; font-size: 1rem;">
-              <i class="fas fa-user-shield"></i> Scrum Master (SM)
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #D6B98C; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h5 style="margin: 0 0 8px 0; color: #D6B98C; font-size: 1rem;">
+              <i class="fas fa-user-shield"></i> Scrum Master
             </h5>
-            <p style="margin: 0; color: #1e293b; font-size: 0.95rem;">
-              <strong>Responsabilidad:</strong> Eliminar impedimentos, facilitar ceremonias y promover la mejora continua. Es un líder servidor.
+            <p style="margin: 0; color: #282828;">
+              <strong>Responsabilidades:</strong> Asegurar que el equipo Scrum entienda y aplique correctamente el marco de trabajo, eliminar impedimentos y facilitar eventos.
             </p>
           </div>
 
-          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #10b981; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h5 style="margin: 0 0 8px 0; color: #10b981; font-size: 1rem;">
-              <i class="fas fa-code"></i> Developers
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #6A8CA0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h5 style="margin: 0 0 8px 0; color: #6A8CA0; font-size: 1rem;">
+              <i class="fas fa-users"></i> Developers
             </h5>
-            <p style="margin: 0; color: #1e293b; font-size: 0.95rem;">
-              <strong>Responsabilidad:</strong> Construir incrementos de producto utilizables. Se auto-organizan para cumplir el Sprint Goal.
+            <p style="margin: 0; color: #282828;">
+              <strong>Responsabilidades:</strong> Crear el incremento del producto en cada Sprint, auto-organizarse y colaborar con el PO.
             </p>
           </div>
+        </div>
+
+        <div style="background: #F3F0E9; padding: 16px; border-radius: 12px; margin-top: 16px; border-left: 4px solid #282828;">
+          <h5 style="margin: 0 0 8px 0; color: #282828; font-size: 1rem;">
+            <i class="fas fa-info-circle"></i> Importante:
+          </h5>
+          <p style="margin: 0; color: #282828;">
+            En ScrumFlow, los roles se asignan por proyecto en la tabla <code>miembros_proyecto</code>.
+            Una misma persona puede tener diferentes roles en proyectos distintos.
+          </p>
         </div>
       `
     },
     {
       id: 3,
-      titulo: "📋 Módulo 3: El Product Backlog",
-      color: "#7c3aed",
+      titulo: "Módulo 3: Artefactos de Scrum",
+      color: "#C99A45",
       contenido: `
-        <p>El <strong>Product Backlog</strong> es la lista emergente y ordenada de todo lo necesario en el producto.</p>
+        <p>Los artefactos de Scrum representan el trabajo o el valor en diferentes formas, diseñados para maximizar la transparencia.</p>
 
-        <div style="background: #f5f3ff; padding: 16px; border-radius: 12px; border: 1px solid #7c3aed; margin-top: 16px;">
-          <h4 style="margin: 0 0 12px 0; color: #7c3aed;">Características:</h4>
-          <ul style="padding-left: 20px; margin: 0; color: #475569;">
-            <li><strong>Dinámico:</strong> Evoluciona constantemente.</li>
-            <li><strong>Priorizado:</strong> Los elementos más valiosos están arriba.</li>
-            <li><strong>Detallado:</strong> Los elementos de mayor prioridad tienen más detalle.</li>
-            <li><strong>Estimado:</strong> Cada elemento tiene una estimación de esfuerzo.</li>
-          </ul>
+        <div style="display: grid; gap: 16px; margin-top: 16px;">
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #C99A45;">
+            <h5 style="margin: 0 0 8px 0; color: #C99A45; font-size: 1rem;">
+              <i class="fas fa-list"></i> Product Backlog
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              Lista ordenada de todo lo que se necesita en el producto. Es la única fuente de requisitos.
+            </p>
+          </div>
+
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #6E9376;">
+            <h5 style="margin: 0 0 8px 0; color: #6E9376; font-size: 1rem;">
+              <i class="fas fa-tasks"></i> Sprint Backlog
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              Conjunto de elementos del Product Backlog seleccionados para el Sprint, más el plan para entregar el incremento.
+            </p>
+          </div>
+
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #6A8CA0;">
+            <h5 style="margin: 0 0 8px 0; color: #6A8CA0; font-size: 1rem;">
+              <i class="fas fa-box"></i> Incremento
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              La suma de todos los elementos del Product Backlog completados durante un Sprint y el valor de los incrementos de todos los Sprints anteriores.
+            </p>
+          </div>
         </div>
 
-        <h4 style="margin-top: 20px; color: #7c3aed;">Historias de Usuario:</h4>
-        <blockquote style="background: white; padding: 16px; border-left: 4px solid #7c3aed; border-radius: 8px; margin: 16px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-          <p style="margin: 0; font-style: italic; color: #1e293b;">
-            "Como <span style="color: #7c3aed; font-weight: 600;">[usuario]</span>, quiero <span style="color: #7c3aed; font-weight: 600;">[funcionalidad]</span> para <span style="color: #7c3aed; font-weight: 600;">[beneficio]</span>."
+        <div style="background: #F3F0E9; padding: 16px; border-radius: 12px; margin-top: 16px; border-left: 4px solid #282828;">
+          <h5 style="margin: 0 0 8px 0; color: #282828; font-size: 1rem;">
+            <i class="fas fa-lightbulb"></i> En ScrumFlow:
+          </h5>
+          <p style="margin: 0; color: #282828;">
+            El <code>Product Backlog</code> se gestiona en el módulo <strong>Backlog</strong> (<code>/pages/backlog.html</code>).
           </p>
-        </blockquote>
+        </div>
       `
     },
     {
       id: 4,
-      titulo: "⚡ Módulo 4: Sprints y Ceremonias",
-      color: "#f59e0b",
+      titulo: "Módulo 4: Eventos de Scrum",
+      color: "#B85C50",
       contenido: `
-        <p>Los <strong>Sprints</strong> son el corazón de Scrum: iteraciones de tiempo fijo (1-4 semanas) para entregar valor.</p>
+        <p>Los eventos de Scrum son oportunidades formales para inspeccionar y adaptar los artefactos. Todos son limitados en el tiempo (time-boxed).</p>
 
-        <h4 style="margin-top: 20px; color: #f59e0b;">📅 Ceremonias:</h4>
+        <div style="display: grid; gap: 16px; margin-top: 16px;">
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #B85C50;">
+            <h5 style="margin: 0 0 8px 0; color: #B85C50; font-size: 1rem;">
+              <i class="fas fa-calendar-alt"></i> Sprint
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              Contenedor de un mes o menos que crea un incremento de producto "Hecho" utilizable y potencialmente entregable.
+            </p>
+          </div>
 
-        <div style="display: grid; gap: 12px; margin-top: 12px;">
-          <div style="background: #fef3c7; padding: 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <strong>Sprint Planning:</strong> Seleccionar trabajo para el Sprint (máx. 8 horas).
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #6E9376;">
+            <h5 style="margin: 0 0 8px 0; color: #6E9376; font-size: 1rem;">
+              <i class="fas fa-calendar-check"></i> Sprint Planning
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              Inicia el Sprint definiendo qué se entregará y cómo se logrará el trabajo.
+            </p>
           </div>
-          <div style="background: #fef3c7; padding: 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <strong>Daily Scrum:</strong> Sincronización diaria de 15 minutos.
+
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #6A8CA0;">
+            <h5 style="margin: 0 0 8px 0; color: #6A8CA0; font-size: 1rem;">
+              <i class="fas fa-comments"></i> Daily Scrum
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              Evento diario de 15 minutos para que el equipo sincronice actividades y cree un plan para las próximas 24 horas.
+            </p>
           </div>
-          <div style="background: #fef3c7; padding: 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <strong>Sprint Review:</strong> Demostrar el incremento (máx. 4 horas).
+
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #C99A45;">
+            <h5 style="margin: 0 0 8px 0; color: #C99A45; font-size: 1rem;">
+              <i class="fas fa-clipboard-check"></i> Sprint Review
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              Inspecciona el incremento y adapta el Product Backlog según sea necesario.
+            </p>
           </div>
-          <div style="background: #fef3c7; padding: 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <strong>Sprint Retrospective:</strong> Mejorar el proceso (máx. 3 horas).
+
+          <div style="background: white; padding: 16px; border-radius: 12px; border: 2px solid #D6B98C;">
+            <h5 style="margin: 0 0 8px 0; color: #D6B98C; font-size: 1rem;">
+              <i class="fas fa-undo"></i> Sprint Retrospective
+            </h5>
+            <p style="margin: 0; color: #282828;">
+              El equipo Scrum identifica qué salió bien, qué podría mejorarse y crea un plan de acción.
+            </p>
           </div>
         </div>
 
-        <h4 style="margin-top: 20px; color: #f59e0b;">Tablero Kanban:</h4>
-        <p>Herramienta visual para gestionar el flujo de trabajo con columnas como: <strong>Por hacer</strong>, <strong>En progreso</strong>, <strong>Hecho</strong>.</p>
+        <div style="background: #F3F0E9; padding: 16px; border-radius: 12px; margin-top: 16px; border-left: 4px solid #282828;">
+          <h5 style="margin: 0 0 8px 0; color: #282828; font-size: 1rem;">
+            <i class="fas fa-lightbulb"></i> En ScrumFlow:
+          </h5>
+          <p style="margin: 0; color: #282828;">
+            Las ceremonias se gestionan en sus respectivos módulos:
+            <code>/pages/daily.html</code>, <code>/pages/review.html</code>, <code>/pages/retro.html</code>.
+          </p>
+        </div>
       `
     }
   ],
+
   quizzes: [
     {
       id: 1,
-      pregunta: "¿Cuáles son los 3 pilares de Scrum?",
+      leccion_id: 1,
+      pregunta: "¿Cuál de los siguientes NO es un pilar de Scrum?",
       opciones: [
-        "Velocidad, Costo, Alcance",
-        "Transparencia, Inspección, Adaptación",
-        "Planificación, Ejecución, Control",
-        "Jerarquía, Burocracia, Reportes"
+        "Transparencia",
+        "Inspección",
+        "Adaptación",
+        "Documentación"
       ],
-      respuesta_correcta: 1
+      respuesta_correcta: 3
     },
     {
       id: 2,
-      pregunta: "¿Quién gestiona el Product Backlog?",
+      leccion_id: 2,
+      pregunta: "¿Quién es responsable de maximizar el valor del producto en Scrum?",
       opciones: [
         "Scrum Master",
         "Product Owner",
-        "Developer",
-        "Administrador"
+        "Developers",
+        "Stakeholders"
       ],
       respuesta_correcta: 1
     },
     {
       id: 3,
-      pregunta: "¿Qué formato usa una Historia de Usuario?",
+      leccion_id: 3,
+      pregunta: "¿Cuál de estos NO es un artefacto de Scrum?",
       opciones: [
-        "Título, Descripción, Prioridad",
-        "Como [usuario], quiero [funcionalidad] para [beneficio]",
-        "Código, Nombre, Fecha",
-        "Problema, Solución, Costo"
+        "Product Backlog",
+        "Sprint Backlog",
+        "Incremento",
+        "Diagrama de Gantt"
       ],
-      respuesta_correcta: 1
+      respuesta_correcta: 3
     },
     {
       id: 4,
-      pregunta: "¿Cuánto dura un Daily Scrum?",
+      leccion_id: 4,
+      pregunta: "¿Qué evento de Scrum tiene una duración máxima de 15 minutos?",
       opciones: [
-        "1 hora",
-        "15 minutos",
-        "30 minutos",
-        "2 horas"
+        "Sprint Planning",
+        "Sprint Review",
+        "Sprint Retrospective",
+        "Daily Scrum"
       ],
-      respuesta_correcta: 1
-    },
-    {
-      id: 5,
-      pregunta: "¿Qué NO es responsabilidad del Scrum Master?",
-      opciones: [
-        "Eliminar impedimentos",
-        "Facilitar ceremonias",
-        "Asignar tareas individuales",
-        "Promover la mejora continua"
-      ],
-      respuesta_correcta: 2
+      respuesta_correcta: 3
     }
   ]
 };

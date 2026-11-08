@@ -72,13 +72,9 @@ router.post('/2fa/totp/iniciar', autenticar, asyncHandler(async (req, res) => {
     await authService.exigirPasswordVigente(usuarioId, password);
 
     const { secreto, uri } = await authService.iniciarConfiguracionTotp(usuarioId);
-    const { secreto, uri, qrDataUrl } = await authService.iniciarConfiguracionTotp(usuarioId);
-
 
     const qr = await QRCode.toString(uri, { type: 'svg', margin: 1, width: 200 });
     res.json({ secreto, uri, qr });
-    // Generar URI para código QR
-    res.json({ secreto, uri, qrDataUrl });
 }));
 
 /**

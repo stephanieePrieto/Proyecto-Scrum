@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avance del Curso · ScrumFlow</title>
+
+  <!-- Autor: Stephanie Elizdeth Hernández Prieto -->
+  <!-- Descripción: Página para que el Scrum Master visualice el progreso del curso de todos los integrantes del equipo. -->
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Estilos de la aplicación -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/modales.css" />
+
+  <!-- Estilos específicos del avance -->
+  <style>
+    :root {
+      --color-primario: #282828;
+      --color-acento: #D6B98C;
+      --color-fondo: #F3F0E9;
+      --color-exito: #6E9376;
+      --color-advertencia: #C99A45;
+      --color-error: #B85C50;
+      --color-info: #6A8CA0;
+    }
+
+    .avance-contenedor {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Encabezado */
+    .encabezado-avance {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .encabezado-avance h1 {
+      margin: 0;
+      color: var(--color-primario);
+      font-size: 1.8rem;
+    }
+
+    .encabezado-avance .subtitulo {
+      color: #64748b;
+      margin: 5px 0 0 0;
+      font-size: 0.95rem;
+    }
+
+    /* Resumen del equipo */
+    .resumen-avance {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .resumen-avance h2 {
+      color: var(--color-primario);
+      margin: 0 0 20px 0;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .resumen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .resumen-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .resumen-item:last-child {
+      border-bottom: none;
+    }
+
+    .resumen-label {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .resumen-valor {
+      font-weight: 600;
+      color: var(--color-primario);
+    }
+
+    /* Filtros */
+    .filtros-avance {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .filtros-avance .form-select {
+      width: 200px;
+    }
+
+    /* Lista de integrantes */
+    .lista-integrantes h2 {
+      color: var(--color-primario);
+      margin: 0 0 20px 0;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Tarjeta de integrante */
+    .tarjeta-integrante {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .tarjeta-integrante:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .integrante-info {
+      flex: 1;
+    }
+
+    .integrante-nombre {
+      font-weight: 600;
+      color: var(--color-primario);
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+
+    .integrante-rol {
+      font-size: 0.875rem;
+      color: var(--color-info);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .integrante-correo {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .integrante-progreso {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 200px;
+    }
+
+    .barra-progreso-integrante {
+      width: 120px;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .barra-progreso-relleno {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-exito), var(--color-acento));
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .porcentaje-progreso {
+      font-weight: 600;
+      color: var(--color-primario);
+      min-width: 40px;
+    }
+
+    .estado-certificado {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .certificado-icono {
+      font-size: 1.2rem;
+      color: var(--color-exito);
+    }
+
+    .sin-certificado {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    /* Botones de acción */
+    .acciones-integrante {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-ver-detalle {
+      padding: 6px 12px;
+      background: var(--color-info);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+
+    .btn-ver-detalle:hover {
+      background: #5a7485;
+    }
+
+    /* Mensaje de acceso denegado */
+    .acceso-denegado {
+      text-align: center;
+      padding: 40px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .acceso-denegado i {
+      font-size: 3rem;
+      color: var(--color-error);
+      margin-bottom: 15px;
+    }
+
+    .acceso-denegado h2 {
+      color: var(--color-primario);
+      margin: 0 0 10px 0;
+    }
+
+    .acceso-denegado p {
+      color: #64748b;
+      margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .tarjeta-integrante {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .integrante-progreso {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .barra-progreso-integrante {
+        width: 100%;
+      }
+
+      .filtros-avance {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .filtros-avance .form-select {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Barra superior de la aplicación -->
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal avance-contenedor">
+    <!-- Encabezado -->
+    <div class="encabezado-avance">
+      <div>
+        <h1><i class="fas fa-clipboard-list"></i> Avance del Curso Scrum</h1>
+        <p class="subtitulo">Visualiza el progreso de todos los integrantes de tu equipo</p>
+      </div>
+      <a href="./dashboard.html" class="boton boton--secundario">
+        <i class="fas fa-arrow-left"></i> Regresar al Dashboard
+      </a>
+    </div>
+
+    <!-- Contenido principal -->
+    <div id="contenido-principal">
+      <!-- Este div se reemplaza con el contenido real o el mensaje de acceso denegado -->
+    </div>
+  </main>
+
+  <script type="module">
+    /**
+     * Autor: Stephanie Elizdeth Hernández Prieto
+     * Descripción: Lógica para cargar y mostrar el avance del curso de los integrantes.
+     *              Solo accesible para Scrum Master y Product Owner.
+     */
+
+    import { montarBarraSuperior } from '../js/core/layout.js';
+
+    // Estado
+    let datosIntegrantes = [];
+    let proyectoId = null;
+    let rolEnProyecto = null;
+
+    // ===========================================================================
+    // INICIALIZACIÓN
+    // ===========================================================================
+    async function inicializar() {
+      montarBarraSuperior();
+      proyectoId = window.proyectoActual?.id || 1;
+
+      // Verificar permisos
+      await verificarPermisos();
+
+      // Cargar datos
+      await cargarDatosAvance();
+
+      // Configurar eventos
+      configurarEventos();
+    }
+
+    // ===========================================================================
+    // VERIFICAR PERMISOS
+    // ===========================================================================
+    async function verificarPermisos() {
+      try {
+        const respuesta = await fetch(`/api/curso-scrum/${proyectoId}`);
+        if (!respuesta.ok) throw new Error('No autorizado');
+
+        const datos = await respuesta.json();
+        rolEnProyecto = datos.rolEnProyecto;
+
+        // Si no es Scrum Master ni Product Owner, mostrar mensaje de acceso denegado
+        if (rolEnProyecto !== 'scrum_master' && rolEnProyecto !== 'product_owner') {
+          mostrarAccesoDenegado();
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        mostrarAccesoDenegado();
+        return false;
+      }
+    }
+
+    // ===========================================================================
+    // MOSTRAR ACCESO DENEGADO
+    // ===========================================================================
+    function mostrarAccesoDenegado() {
+      const contenido = document.getElementById('contenido-principal');
+      contenido.innerHTML = `
+        <div class="acceso-denegado">
+          <i class="fas fa-lock"></i>
+          <h2>Acceso Denegado</h2>
+          <p>Solo el Scrum Master o Product Owner pueden ver el avance del equipo.</p>
+        </div>
+      `;
+    }
+
+    // ===========================================================================
+    // CARGAR DATOS DE AVANCE
+    // ===========================================================================
+    async function cargarDatosAvance() {
+      try {
+        const respuesta = await fetch(`/api/curso-scrum/${proyectoId}`);
+        if (!respuesta.ok) throw new Error('Error al cargar datos');
+
+        const datos = await respuesta.json();
+        datosIntegrantes = datos.progresoEquipo || [];
+
+        // Actualizar UI
+        actualizarResumen();
+        actualizarListaIntegrantes();
+      } catch (error) {
+        console.error('[avance-curso] Error:', error);
+        alert('Error al cargar los datos de avance.');
+      }
+    }
+
+    // ===========================================================================
+    // ACTUALIZAR RESUMEN
+    // ===========================================================================
+    function actualizarResumen() {
+      const total = datosIntegrantes.length;
+      const completado = datosIntegrantes.filter(i =>
+        i.lecciones_completadas === i.total_lecciones && i.quizzes_aprobados === i.total_lecciones
+      ).length;
+
+      const enProgreso = datosIntegrantes.filter(i =>
+        i.lecciones_completadas > 0 || i.quizzes_aprobados > 0
+      ).length - completado;
+
+      const noIniciado = total - completado - enProgreso;
+
+      const promedio = total > 0
+        ? Math.round(datosIntegrantes.reduce((sum, i) => {
+            const porcentaje = Math.round(
+              ((i.lecciones_completadas + i.quizzes_aprobados) / (i.total_lecciones * 2)) * 100
+            );
+            return sum + porcentaje;
+          }, 0) / total)
+        : 0;
+
+      const contenido = document.getElementById('contenido-principal');
+
+      // Crear HTML del resumen
+      const resumenHTML = `
+        <div class="resumen-avance">
+          <h2><i class="fas fa-chart-bar"></i> Resumen del Equipo</h2>
+          <div class="resumen-grid">
+            <div class="resumen-item">
+              <span class="resumen-label">Total de integrantes</span>
+              <span class="resumen-valor">${total}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">Curso completado</span>
+              <span class="resumen-valor">${completado}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">En progreso</span>
+              <span class="resumen-valor">${enProgreso}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">No iniciado</span>
+              <span class="resumen-valor">${noIniciado}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">Promedio de avance</span>
+              <span class="resumen-valor">${promedio}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Insertar resumen antes de la lista
+      contenido.innerHTML = resumenHTML + `
+        <!-- Filtros -->
+        <div class="filtros-avance">
+          <select id="filtro-rol" class="form-select">
+            <option value="todos">Todos los roles</option>
+            <option value="scrum_master">Scrum Master</option>
+            <option value="product_owner">Product Owner</option>
+            <option value="developer">Developer</option>
+          </select>
+          <select id="filtro-estado" class="form-select">
+            <option value="todos">Todos los estados</option>
+            <option value="completado">Curso completado</option>
+            <option value="en-progreso">En progreso</option>
+            <option value="no-iniciado">No iniciado</option>
+          </select>
+          <button id="btn-actualizar-avance" class="boton boton--primario" type="button">
+            <i class="fas fa-sync-alt"></i> Actualizar
+          </button>
+        </div>
+
+        <!-- Lista de integrantes -->
+        <h2><i class="fas fa-users"></i> Integrantes del Equipo</h2>
+        <div id="lista-integrantes"></div>
+      `;
+    }
+
+    // ===========================================================================
+    // ACTUALIZAR LISTA DE INTEGRANTES
+    // ===========================================================================
+    function actualizarListaIntegrantes(filtroRol = 'todos', filtroEstado = 'todos') {
+      const lista = document.getElementById('lista-integrantes');
+      if (!lista) return;
+
+      let datosFiltrados = [...datosIntegrantes];
+
+      // Filtrar por rol
+      if (filtroRol !== 'todos') {
+        datosFiltrados = datosFiltrados.filter(i => i.rol === filtroRol);
+      }
+
+      // Filtrar por estado
+      if (filtroEstado !== 'todos') {
+        datosFiltrados = datosFiltrados.filter(i => {
+          const completado = i.lecciones_completadas === i.total_lecciones && i.quizzes_aprobados === i.total_lecciones;
+          const enProgreso = (i.lecciones_completadas > 0 || i.quizzes_aprobados > 0) && !completado;
+          const noIniciado = i.lecciones_completadas === 0 && i.quizzes_aprobados === 0;
+
+          if (filtroEstado === 'completado') return completado;
+          if (filtroEstado === 'en-progreso') return enProgreso;
+          if (filtroEstado === 'no-iniciado') return noIniciado;
+          return true;
+        });
+      }
+
+      // Si no hay resultados
+      if (datosFiltrados.length === 0) {
+        lista.innerHTML = `
+          <div class="aviso avisos--info">
+            <i class="fas fa-info-circle"></i>
+            No hay integrantes que coincidan con los filtros seleccionados.
+          </div>
+        `;
+        return;
+      }
+
+      // Generar HTML
+      lista.innerHTML = datosFiltrados.map(integrante => {
+        const totalLecciones = integrante.total_lecciones || 4;
+        const leccionesCompletadas = integrante.lecciones_completadas || 0;
+        const quizzesAprobados = integrante.quizzes_aprobados || 0;
+        const tieneCertificado = integrante.tiene_certificado || false;
+        const porcentaje = Math.round(((leccionesCompletadas + quizzesAprobados) / (totalLecciones * 2)) * 100);
+
+        return `
+          <div class="tarjeta-integrante">
+            <div class="integrante-info">
+              <div class="integrante-nombre">${integrante.nombre}</div>
+              <div class="integrante-rol">
+                <i class="fas fa-user-tag"></i> ${obtenerNombreRol(integrante.rol)}
+              </div>
+              <div class="integrante-correo">
+                <i class="fas fa-envelope"></i> ${integrante.correo}
+              </div>
+            </div>
+            <div class="integrante-progreso">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="barra-progreso-integrante">
+                  <div class="barra-progreso-relleno" style="width: ${porcentaje}%;"></div>
+                </div>
+                <span class="porcentaje-progreso">${porcentaje}%</span>
+              </div>
+              <div class="estado-certificado">
+                ${tieneCertificado ? `
+                  <span class="certificado-icono" title="Certificado obtenido">
+                    <i class="fas fa-trophy"></i>
+                  </span>
+                ` : `
+                  <span class="sin-certificado">Sin certificado</span>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===========================================================================
+    // OBTENER NOMBRE DEL ROL
+    // ===========================================================================
+    function obtenerNombreRol(rol) {
+      const roles = {
+        scrum_master: 'Scrum Master',
+        product_owner: 'Product Owner',
+        developer: 'Developer',
+        admin: 'Administrador'
+      };
+      return roles[rol] || rol;
+    }
+
+    // ===========================================================================
+    // CONFIGURAR EVENTOS
+    // ===========================================================================
+    function configurarEventos() {
+      // Filtro por rol
+      const filtroRol = document.getElementById('filtro-rol');
+      if (filtroRol) {
+        filtroRol.addEventListener('change', () => {
+          const filtroEstado = document.getElementById('filtro-estado')?.value || 'todos';
+          actualizarListaIntegrantes(filtroRol.value, filtroEstado);
+        });
+      }
+
+      // Filtro por estado
+      const filtroEstado = document.getElementById('filtro-estado');
+      if (filtroEstado) {
+        filtroEstado.addEventListener('change', () => {
+          const filtroRol = document.getElementById('filtro-rol')?.value || 'todos';
+          actualizarListaIntegrantes(filtroRol, filtroEstado.value);
+        });
+      }
+
+      // Botón actualizar
+      const btnActualizar = document.getElementById('btn-actualizar-avance');
+      if (btnActualizar) {
+        btnActualizar.addEventListener('click', async () => {
+          await cargarDatosAvance();
+        });
+      }
+    }
+
+    // ===========================================================================
+    // INICIAR
+    // ===========================================================================
+    document.addEventListener('DOMContentLoaded', inicializar);
+  </script>
+</body>
+</html>

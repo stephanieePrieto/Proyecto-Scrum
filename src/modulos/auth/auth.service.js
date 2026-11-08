@@ -5,6 +5,7 @@ import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { randomUUID, createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { enviarCorreo } from '../../utils/correo.js'; // Utilidad de correo existente en el proyecto
+import qrcode from 'qrcode';
 
 /**
  * @file auth.service.js
@@ -659,10 +660,12 @@ export const iniciarConfiguracionTotp = async (usuarioId) => {
     );
     const usuario = usuarioRow[0];
     const issuername = 'ScrumFlow';
-    const label = `${issuername}:${usuario.correo}`;
-    const uri = `otpauth://totp/${label}?secret=${secreto}&issuer=${issuername}`;
+    const label = encodeURIComponent(`${issuername}:${usuario.correo}`);  // Codifica @ como %40
+    const issuerEncoded = encodeURIComponent(issuername);
+    const uri = `otpauth://totp/${label}?secret=${secreto}&issuer=${issuerEncoded}`;
+    const qrDataUrl = await qrcode.toDataURL(uri);
 
-    return { secreto, uri };
+    return { secreto, uri, qrDataUrl };
 };
 
 /**

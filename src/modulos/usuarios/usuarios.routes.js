@@ -51,10 +51,11 @@ router.get('/2fa/estado', autenticar, asyncHandler(async (req, res) => {
  */
 router.post('/2fa/totp/iniciar', autenticar, asyncHandler(async (req, res) => {
     const usuarioId = req.user.id;
-    const { secreto, uri } = await authService.iniciarConfiguracionTotp(usuarioId);
+    const { secreto, uri, qrDataUrl } = await authService.iniciarConfiguracionTotp(usuarioId);
+
 
     // Generar URI para código QR
-    res.json({ secreto, uri });
+    res.json({ secreto, uri, qrDataUrl });
 }));
 
 /**

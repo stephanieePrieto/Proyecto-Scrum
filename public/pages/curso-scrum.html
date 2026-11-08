@@ -2,73 +2,775 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Capacitación Scrum · ScrumFlow</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curso de Scrum · ScrumFlow</title>
 
-  <!-- Fuentes (CSP se solucionará en app.js) -->
+  <!-- Autor: Stephanie Elizdeth Hernández Prieto -->
+  <!-- Descripción: Página del curso Scrum para usuarios. Incluye lecciones, quizzes y barra de progreso. -->
+
+  <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-  <!-- Estilos -->
-  <link rel="stylesheet" href="/css/base.css" />
-  <link rel="stylesheet" href="/css/layout.css" />
-  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
-  <link rel="stylesheet" href="/css/componentes/botones.css" />
-  <link rel="stylesheet" href="/css/componentes/insignias.css" />
-  <link rel="stylesheet" href="/css/componentes/avisos.css" />
-  <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
-  <link rel="stylesheet" href="/css/componentes/formularios.css" />
-  <link rel="stylesheet" href="/css/componentes/modales.css" />
-  <link rel="stylesheet" href="/css/componentes/responsive.css" />
-  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
-  <link rel="stylesheet" href="/css/componentes/curso.css" />
+  <!-- Estilos de la aplicación -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+
+  <!-- Estilos específicos del curso -->
+  <style>
+    :root {
+      --color-primario: #282828;
+      --color-acento: #D6B98C;
+      --color-fondo: #F3F0E9;
+      --color-exito: #6E9376;
+      --color-advertencia: #C99A45;
+      --color-error: #B85C50;
+    }
+
+    /* Contenedor principal */
+    .curso-contenedor {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Encabezado del curso */
+    .encabezado-curso {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .encabezado-curso h1 {
+      margin: 0;
+      color: var(--color-primario);
+      font-size: 1.8rem;
+    }
+
+    .encabezado-curso .subtitulo {
+      color: #64748b;
+      margin: 5px 0 0 0;
+      font-size: 0.95rem;
+    }
+
+    /* Barra de progreso principal */
+    .barra-progreso-principal {
+      background: #e2e8f0;
+      height: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .barra-progreso-relleno {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-exito), var(--color-acento));
+      transition: width 0.5s ease;
+      border-radius: 6px;
+    }
+
+    .porcentaje-avance {
+      text-align: right;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: var(--color-primario);
+      font-weight: 600;
+    }
+
+    /* Botón de regresar - CORREGIDO: SIN 0% AL LADO */
+    .boton-regresar {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Secciones y lecciones */
+    .seccion {
+      margin-bottom: 40px;
+    }
+
+    .seccion-titulo {
+      font-size: 1.3rem;
+      color: var(--color-primario);
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--color-acento);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .leccion {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .leccion:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .leccion-completada {
+      border-left: 4px solid var(--color-exito);
+    }
+
+    .leccion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .leccion-titulo {
+      font-weight: 600;
+      color: var(--color-primario);
+      font-size: 1.1rem;
+    }
+
+    .leccion-estado {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icono-completado {
+      color: var(--color-exito);
+      font-size: 1.1rem;
+    }
+
+    .icono-pendiente {
+      color: #94a3b8;
+      font-size: 1.1rem;
+    }
+
+    .leccion-contenido {
+      color: #475569;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    .leccion-acciones {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Quiz */
+    .quiz-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .quiz-titulo {
+      font-weight: 600;
+      color: var(--color-primario);
+      margin-bottom: 15px;
+    }
+
+    .quiz-pregunta {
+      margin-bottom: 15px;
+      color: var(--color-primario);
+      font-weight: 500;
+    }
+
+    .quiz-opciones {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .quiz-opcion {
+      background: #f8fafc;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quiz-opcion:hover {
+      background: #f1f5f9;
+      border-color: var(--color-acento);
+    }
+
+    .quiz-opcion.seleccionada {
+      background: var(--color-acento);
+      color: white;
+      border-color: var(--color-acento);
+    }
+
+    .quiz-opcion.correcta {
+      background: var(--color-exito);
+      color: white;
+      border-color: var(--color-exito);
+    }
+
+    .quiz-opcion.incorrecta {
+      background: var(--color-error);
+      color: white;
+      border-color: var(--color-error);
+    }
+
+    /* Botones de acción */
+    .btn-curso {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-curso--primario {
+      background: var(--color-primario);
+      color: white;
+    }
+
+    .btn-curso--primario:hover {
+      background: #1a1a1a;
+    }
+
+    .btn-curso--secundario {
+      background: var(--color-acento);
+      color: white;
+    }
+
+    .btn-curso--secundario:hover {
+      background: #c1a06f;
+    }
+
+    .btn-curso--exito {
+      background: var(--color-exito);
+      color: white;
+    }
+
+    /* Certificado */
+    .certificado-alerta {
+      background: linear-gradient(135deg, var(--color-exito), #5a7c65);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      display: none;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .certificado-alerta.visible {
+      display: flex;
+    }
+
+    .certificado-icono {
+      font-size: 2rem;
+    }
+
+    .certificado-mensaje h3 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .certificado-mensaje p {
+      margin: 5px 0 0 0;
+      opacity: 0.9;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .encabezado-curso {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .boton-regresar {
+        width: 100%;
+        justify-content: center;
+        margin-top: 15px;
+      }
+
+      .leccion-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <!-- Barra superior de la aplicación -->
   <header id="barra-superior" class="barra-superior"></header>
 
-  <!-- Barra de progreso -->
-  <div class="barra-progreso-flotante" aria-hidden="true">
-    <div id="progreso-lectura" class="barra-progreso-relleno"></div>
-  </div>
-
   <main class="principal curso-contenedor">
-    <div class="encabezado-pagina" style="margin-bottom: 24px;">
+    <!-- Encabezado del curso -->
+    <div class="encabezado-curso">
       <div>
-        <h1 class="titulo-pagina">Capacitación y Guía de ScrumFlow</h1>
-        <p class="subtitulo-pagina">Aprende los fundamentos de Scrum. Tu avance se guarda automáticamente.</p>
+        <h1><i class="fas fa-graduation-cap"></i> Curso de Scrum</h1>
+        <p class="subtitulo">Aprende los fundamentos de Scrum y cómo aplicarlos en ScrumFlow</p>
       </div>
-      <a href="/pages/dashboard.html" class="boton boton--secundario btn btn--secondary">Regresar al Dashboard</a>
+      <!-- Botón de regresar CORREGIDO: SIN 0% AL LADO -->
+      <a href="./dashboard.html" class="boton boton--secundario boton-regresar">
+        <i class="fas fa-arrow-left"></i> Regresar
+      </a>
     </div>
 
-    <!-- Aviso de guardado -->
-    <div id="aviso-guardado" class="aviso aviso--exito" hidden>
-      <div class="aviso__icono" aria-hidden="true"><i class="fas fa-check-circle"></i></div>
-      <p class="aviso__texto" style="margin: 0; font-size: 0.9rem; font-weight: 500;">✓ Progreso guardado</p>
+    <!-- Barra de progreso principal -->
+    <div class="barra-progreso-principal">
+      <div class="barra-progreso-relleno" id="barra-progreso" style="width: 0%;"></div>
+    </div>
+    <div class="porcentaje-avance" id="porcentaje-avance">Avance: 0%</div>
+
+    <!-- Alertas de certificado -->
+    <div class="certificado-alerta" id="certificado-alerta">
+      <div class="certificado-icono">
+        <i class="fas fa-trophy"></i>
+      </div>
+      <div class="certificado-mensaje">
+        <h3>¡Felicidades!</h3>
+        <p>Has completado el curso de Scrum. <a href="/api/curso-scrum/certificado/download" id="btn-descargar-certificado" style="color: white; text-decoration: underline;">Descarga tu certificado aquí</a>.</p>
+      </div>
     </div>
 
-    <!-- Contenedor de módulos -->
-    <div id="modulos-curso-lista"></div>
-
-    <!-- Evaluación -->
-    <section class="curso-tarjeta-modulo" id="seccion-evaluacion">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="color: #055651; margin: 0; font-size: 1.25rem;">📝 Evaluación Scrum</h2>
-        <span id="estado-quiz" style="font-size: 0.875rem; color: #64748b;">No completado</span>
-      </div>
-      <p style="margin-bottom: 20px; color: #475569;">Pon a prueba lo aprendido:</p>
-      <div id="cuestionario-contenedor"></div>
-      <div style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <button id="btn-enviar-quiz" class="boton boton--primario btn btn--primary" type="button">
-          <i class="fas fa-paper-plane"></i> Calificar
-        </button>
-        <span id="resultado-quiz" style="font-weight: 600; font-size: 1rem;"></span>
-      </div>
-    </section>
+    <!-- Contenido del curso -->
+    <div id="contenido-curso">
+      <!-- Las secciones y lecciones se cargan dinámicamente -->
+    </div>
   </main>
 
-  <!-- ⚡ RUTA CORREGIDA: ../js/pages/curso-scrum.js -->
-  <script type="module" src="../js/pages/curso-scrum.js"></script>
+  <!-- Modal para quiz -->
+  <div id="modal-quiz" class="modal" style="display: none;">
+    <div class="modal-contenido">
+      <div class="modal-encabezado">
+        <h2 id="modal-quiz-titulo">Quiz: <span id="quiz-leccion-titulo"></span></h2>
+        <button class="modal-cerrar" id="btn-cerrar-quiz">&times;</button>
+      </div>
+      <div id="quiz-contenido">
+        <!-- El quiz se carga dinámicamente -->
+      </div>
+      <div class="modal-pie">
+        <button class="boton boton--primario" id="btn-enviar-quiz" style="display: none;">
+          <i class="fas fa-paper-plane"></i> Enviar Respuestas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    /**
+     * Autor: Stephanie Elizdeth Hernández Prieto
+     * Descripción: Lógica para cargar el curso, manejar progreso y quizzes.
+     */
+
+    import { montarBarraSuperior } from '../js/core/layout.js';
+
+    // Estado global
+    let lecciones = [];
+    let quizzes = [];
+    let proyectoId = null;
+    let usuarioId = null;
+
+    // ===========================================================================
+    // INICIALIZACIÓN
+    // ===========================================================================
+    async function inicializar() {
+      montarBarraSuperior();
+      proyectoId = window.proyectoActual?.id || 1;
+
+      // Obtener datos del curso
+      await cargarCurso();
+
+      // Configurar eventos
+      configurarEventos();
+    }
+
+        // Función para decodificar HTML escapado
+    function decodeHtmlEntities(text) {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = text;
+      return textarea.value;
+    }
+
+    // ===========================================================================
+    // CARGAR DATOS DEL CURSO
+    // ===========================================================================
+    async function cargarCurso() {
+      try {
+        const respuesta = await fetch(`/api/curso-scrum/${proyectoId}`);
+        if (!respuesta.ok) throw new Error('Error al cargar el curso');
+
+        const datos = await respuesta.json();
+        lecciones = datos.lecciones || [];
+        quizzes = datos.quizzes || [];
+        usuarioId = window.usuarioActual?.id;
+
+        // Actualizar UI
+        actualizarBarraProgreso(datos.porcentajeAvance);
+        renderizarContenido();
+        verificarCertificado(datos.certificado.tieneCertificado);
+      } catch (error) {
+        console.error('[curso-scrum] Error:', error);
+        alert('Error al cargar el curso. Intenta nuevamente.');
+      }
+    }
+
+    // ===========================================================================
+    // RENDERIZAR CONTENIDO
+    // ===========================================================================
+    function renderizarContenido() {
+      const contenidoCurso = document.getElementById('contenido-curso');
+      if (!contenidoCurso) return;
+
+      // Agrupar lecciones por sección
+      const secciones = {};
+      lecciones.forEach(leccion => {
+        if (!secciones[leccion.seccion]) {
+          secciones[leccion.seccion] = [];
+        }
+        secciones[leccion.seccion].push(leccion);
+      });
+
+      // Generar HTML
+      let html = '';
+      for (const [seccion, leccionesSeccion] of Object.entries(secciones)) {
+        html += `
+          <div class="seccion">
+            <div class="seccion-titulo">
+              <i class="fas fa-folder-open"></i>
+              ${seccion}
+            </div>
+            ${leccionesSeccion.map(renderizarLeccion).join('')}
+          </div>
+        `;
+      }
+
+      contenidoCurso.innerHTML = html;
+    }
+
+    function renderizarLeccion(leccion) {
+      const esCompletada = leccion.completada;
+      const quizAprobado = leccion.quiz_aprobado;
+      const tieneQuiz = quizzes.some(q => q.leccion_id === leccion.id);
+
+      return `
+        <div class="leccion ${esCompletada ? 'leccion-completada' : ''}" data-leccion-id="${leccion.id}">
+          <div class="leccion-header">
+            <div class="leccion-titulo">${leccion.orden}. ${leccion.titulo}</div>
+            <div class="leccion-estado">
+              ${esCompletada ? `
+                <i class="fas fa-check-circle icono-completado" title="Lección completada"></i>
+              ` : `
+                <i class="fas fa-circle icono-pendiente" title="Pendiente"></i>
+              `}
+              ${tieneQuiz && quizAprobado ? `
+                <i class="fas fa-star" style="color: gold;" title="Quiz aprobado"></i>
+              ` : ''}
+            </div>
+          </div>
+          <div class="leccion-contenido">
+            ${decodeHtmlEntities(leccion.contenido).substring(0, 200)}${
+              decodeHtmlEntities(leccion.contenido).length > 200 ? '...' : ''
+            }
+          </div>
+          <div class="leccion-acciones">
+            <button class="btn-curso btn-curso--primario btn-ver-leccion" data-leccion-id="${leccion.id}">
+              ${esCompletada ? 'Revisar' : 'Estudiar'} Lección
+            </button>
+            ${tieneQuiz ? `
+              <button class="btn-curso btn-curso--secundario btn-hacer-quiz" data-leccion-id="${leccion.id}">
+                ${quizAprobado ? 'Reintentar' : 'Hacer'} Quiz
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // ===========================================================================
+    // ACTUALIZAR BARRA DE PROGRESO
+    // ===========================================================================
+    function actualizarBarraProgreso(porcentaje) {
+      const barra = document.getElementById('barra-progreso');
+      const texto = document.getElementById('porcentaje-avance');
+
+      if (barra) {
+        barra.style.width = `${porcentaje}%`;
+      }
+      if (texto) {
+        texto.textContent = `Avance: ${porcentaje}%`;
+      }
+    }
+
+    // ===========================================================================
+    // VERIFICAR CERTIFICADO
+    // ===========================================================================
+    function verificarCertificado(tieneCertificado) {
+      const alerta = document.getElementById('certificado-alerta');
+      if (tieneCertificado && alerta) {
+        alerta.classList.add('visible');
+      }
+    }
+
+    // ===========================================================================
+    // CONFIGURAR EVENTOS
+    // ===========================================================================
+    function configurarEventos() {
+      // Botón de regresar (ya no muestra 0%)
+      const btnRegresar = document.querySelector('.boton-regresar');
+      if (btnRegresar) {
+        btnRegresar.addEventListener('click', (e) => {
+          // Guardar posición de scroll antes de salir
+          const scrollPos = window.scrollY;
+          localStorage.setItem('curso-scrum-scroll', scrollPos);
+        });
+      }
+
+      // Ver lección
+      document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-ver-leccion') || e.target.closest('.btn-ver-leccion')) {
+          const btn = e.target.classList.contains('btn-ver-leccion') ? e.target : e.target.closest('.btn-ver-leccion');
+          const leccionId = parseInt(btn.dataset.leccionId);
+          await marcarLeccionComoCompletada(leccionId);
+        }
+      });
+
+      // Hacer quiz
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-hacer-quiz') || e.target.closest('.btn-hacer-quiz')) {
+          const btn = e.target.classList.contains('btn-hacer-quiz') ? e.target : e.target.closest('.btn-hacer-quiz');
+          const leccionId = parseInt(btn.dataset.leccionId);
+          mostrarQuiz(leccionId);
+        }
+      });
+
+      // Cerrar modal de quiz
+      const btnCerrarQuiz = document.getElementById('btn-cerrar-quiz');
+      if (btnCerrarQuiz) {
+        btnCerrarQuiz.addEventListener('click', () => {
+          document.getElementById('modal-quiz').style.display = 'none';
+        });
+      }
+
+      // Enviar quiz
+      const btnEnviarQuiz = document.getElementById('btn-enviar-quiz');
+      if (btnEnviarQuiz) {
+        btnEnviarQuiz.addEventListener('click', async () => {
+          const leccionId = parseInt(btnEnviarQuiz.dataset.leccionId);
+          await enviarQuiz(leccionId);
+        });
+      }
+
+      // Cerrar modal al hacer clic fuera
+      window.addEventListener('click', (e) => {
+        const modal = document.getElementById('modal-quiz');
+        if (e.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+
+      // Restaurar scroll al cargar
+      const savedScroll = localStorage.getItem('curso-scrum-scroll');
+      if (savedScroll) {
+        window.scrollTo(0, parseInt(savedScroll));
+        localStorage.removeItem('curso-scrum-scroll');
+      }
+    }
+
+    // ===========================================================================
+    // MARCAR LECCIÓN COMO COMPLETADA
+    // ===========================================================================
+    async function marcarLeccionComoCompletada(leccionId) {
+      try {
+        // Buscar la lección en el array
+        const leccion = lecciones.find(l => l.id === leccionId);
+        if (!leccion) return;
+
+        // Mostrar contenido completo en un modal o div
+        const contenidoCompleto = decodeHtmlEntities(leccion.contenido);
+
+        // Opción 1: Mostrar en un modal (recomendado)
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+          <div class="modal-leccion" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+          ">
+            <div style="
+              background: white;
+              padding: 25px;
+              border-radius: 12px;
+              max-width: 800px;
+              max-height: 80vh;
+              overflow: auto;
+              position: relative;
+            ">
+              <button onclick="this.closest('.modal-leccion').remove()" style="
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+              ">×</button>
+              <h2>${leccion.titulo}</h2>
+              <div style="margin-top: 15px;">${contenidoCompleto}</div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Marcar como completada
+        await fetch('/api/curso-scrum/progreso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leccionId,
+            completada: true,
+            posicionScroll: window.scrollY
+          })
+        });
+
+        await cargarCurso();
+      } catch (error) {
+        console.error('[curso-scrum] Error al marcar lección:', error);
+        alert('Error al guardar el progreso.');
+      }
+    }
+
+    // ===========================================================================
+    // MOSTRAR QUIZ
+    // ===========================================================================
+    function mostrarQuiz(leccionId) {
+      const modal = document.getElementById('modal-quiz');
+      const quizContenido = document.getElementById('quiz-contenido');
+      const btnEnviar = document.getElementById('btn-enviar-quiz');
+
+      // Obtener lección
+      const leccion = lecciones.find(l => l.id === leccionId);
+      if (!leccion) return;
+
+      // Obtener quizzes de esta lección
+      const quizzesLeccion = quizzes.filter(q => q.leccion_id === leccionId);
+
+      // Configurar modal
+      document.getElementById('quiz-leccion-titulo').textContent = leccion.titulo;
+      btnEnviar.dataset.leccionId = leccionId;
+
+      // Generar HTML del quiz
+      let html = '<div class="quiz-pregunta">Responde las siguientes preguntas:</div>';
+
+      quizzesLeccion.forEach((quiz, index) => {
+        html += `
+          <div class="quiz-pregunta" style="margin-top: 20px;">
+            ${index + 1}. ${quiz.pregunta}
+          </div>
+          <div class="quiz-opciones" data-quiz-id="${quiz.id}">
+            ${Object.entries(quiz.opciones).map(([key, valor]) => `
+              <div class="quiz-opcion" data-opcion="${key}" data-quiz-id="${quiz.id}">
+                ${String.fromCharCode(65 + parseInt(key))}. ${valor}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      });
+
+      quizContenido.innerHTML = html;
+      btnEnviar.style.display = 'inline-flex';
+      modal.style.display = 'block';
+
+      // Configurar selección de opciones
+      const opciones = document.querySelectorAll('.quiz-opcion');
+      opciones.forEach(opcion => {
+        opcion.addEventListener('click', () => {
+          // Remover selección anterior en el mismo quiz
+          const quizId = opcion.dataset.quizId;
+          const opcionesQuiz = document.querySelectorAll(`.quiz-opcion[data-quiz-id="${quizId}"]`);
+          opcionesQuiz.forEach(o => o.classList.remove('seleccionada'));
+          opcion.classList.add('seleccionada');
+        });
+      });
+    }
+
+    // ===========================================================================
+    // ENVIAR QUIZ
+    // ===========================================================================
+    async function enviarQuiz(leccionId) {
+      const opcionesSeleccionadas = {};
+      const opciones = document.querySelectorAll('.quiz-opcion.seleccionada');
+
+      // Validar que todas las preguntas tengan respuesta
+      const quizzesLeccion = quizzes.filter(q => q.leccion_id === leccionId);
+      if (opciones.length !== quizzesLeccion.length) {
+        alert('Por favor, responde todas las preguntas antes de enviar.');
+        return;
+      }
+
+      // Recoger respuestas
+      opciones.forEach(opcion => {
+        const quizId = parseInt(opcion.dataset.quizId);
+        const respuesta = parseInt(opcion.dataset.opcion);
+        opcionesSeleccionadas[quizId] = respuesta;
+      });
+
+      try {
+        const respuesta = await fetch('/api/curso-scrum/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leccionId,
+            respuestas: opcionesSeleccionadas
+          })
+        });
+
+        const resultado = await respuesta.json();
+
+        if (resultado.aprobado) {
+          alert('¡Quiz aprobado! Tu progreso ha sido actualizado.');
+        } else {
+          alert(`Quiz no aprobado. Calificación: ${resultado.calificacion}%. Puedes reintentarlo.`);
+        }
+
+        // Cerrar modal y recargar
+        document.getElementById('modal-quiz').style.display = 'none';
+        await cargarCurso();
+      } catch (error) {
+        console.error('[curso-scrum] Error al enviar quiz:', error);
+        alert('Error al enviar el quiz.');
+      }
+    }
+
+    // ===========================================================================
+    // INICIAR
+    // ===========================================================================
+    document.addEventListener('DOMContentLoaded', inicializar);
+  </script>
 </body>
 </html>

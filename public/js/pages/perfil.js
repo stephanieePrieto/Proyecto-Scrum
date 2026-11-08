@@ -758,7 +758,7 @@ async function iniciarConfiguracionTotp() {
       metodo: 'POST'
     });
 
-    const { secreto, uri } = respuesta;
+    const { secreto, uri, qrDataUrl } = respuesta;
 
     // Mostrar modal con QR
     const modal = document.getElementById('modal-totp');
@@ -773,11 +773,11 @@ async function iniciarConfiguracionTotp() {
       modalDescripcion.textContent = 'Escanea este código QR con tu aplicación de autenticación (Google Authenticator, Authy, etc.)';
 
       // Generar imagen QR (usando API externa o biblioteca)
-      modalQr.innerHTML = `
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uri)}" 
-             alt="Código QR para Google Authenticator" 
-             style="width: 200px; height: 200px; border: 1px solid var(--color-borde); border-radius: 8px;">
-      `;
+    modalQr.innerHTML = `
+      <img src="${qrDataUrl}"
+          alt="Código QR para Google Authenticator"
+          style="width: 200px; height: 200px; border: 1px solid var(--color-borde); border-radius: 8px;">
+    `;
 
       modalSecreto.textContent = secreto;
 

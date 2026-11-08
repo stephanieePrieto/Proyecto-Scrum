@@ -17,7 +17,7 @@ let posicionOrigen = null;
  * @function actualizarContadoresYAlertasWip
  * @returns {void}
  */
-function actualizarContadoresYAlertasWip() {
+export function actualizarContadoresYAlertasWip() {
     document.querySelectorAll('[data-columna-id]').forEach(columnaEl => {
         const idCol = columnaEl.dataset.columnaId;
         const lista = columnaEl.querySelector('[id^="lista-tarjetas-"]');
@@ -36,7 +36,7 @@ function actualizarContadoresYAlertasWip() {
             if (cantidad > limiteNum) {
                 elWip.classList.remove('bg-slate-200', 'text-slate-500');
                 elWip.classList.add('bg-rose-100', 'text-rose-700', 'font-bold', 'animate-pulse');
-                columnaEl.classList.add('ring-2', 'ring-rose-400');
+                columnaEl.classList.add('ring-2', 'ring-inset', 'ring-rose-400');
             } else {
                 elWip.classList.remove('bg-rose-100', 'text-rose-700', 'font-bold', 'animate-pulse');
                 elWip.classList.add('bg-slate-200', 'text-slate-500');

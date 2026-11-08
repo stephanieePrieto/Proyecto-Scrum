@@ -5,7 +5,7 @@
  */
 
 import { renderizarTarjetasEnTablero } from './tarjeta.js';
-import { inicializarDragAndDrop } from './arrastrar.js';
+import { inicializarDragAndDrop, actualizarContadoresYAlertasWip } from './arrastrar.js';
 
 /**
  * Cliente HTTP aislado para realizar peticiones.
@@ -309,6 +309,7 @@ export function aplicarFiltrosTablero() {
     });
 
     renderizarTarjetasEnTablero(tareasFiltradas);
+    actualizarContadoresYAlertasWip();
 }
 
 /**

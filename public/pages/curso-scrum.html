@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Capacitación Scrum · ScrumFlow</title>
+
+  <!-- Fuentes (CSP se solucionará en app.js) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="/css/componentes/botones.css" />
+  <link rel="stylesheet" href="/css/componentes/insignias.css" />
+  <link rel="stylesheet" href="/css/componentes/avisos.css" />
+  <link rel="stylesheet" href="/css/componentes/notificaciones.css" />
+  <link rel="stylesheet" href="/css/componentes/formularios.css" />
+  <link rel="stylesheet" href="/css/componentes/modales.css" />
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
+  <link rel="stylesheet" href="/css/componentes/curso.css" />
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <!-- Barra de progreso -->
+  <div class="barra-progreso-flotante" aria-hidden="true">
+    <div id="progreso-lectura" class="barra-progreso-relleno"></div>
+  </div>
+
+  <main class="principal curso-contenedor">
+    <div class="encabezado-pagina" style="margin-bottom: 24px;">
+      <div>
+        <h1 class="titulo-pagina">Capacitación y Guía de ScrumFlow</h1>
+        <p class="subtitulo-pagina">Aprende los fundamentos de Scrum. Tu avance se guarda automáticamente.</p>
+      </div>
+      <a href="/pages/dashboard.html" class="boton boton--secundario btn btn--secondary">Regresar al Dashboard</a>
+    </div>
+
+    <!-- Aviso de guardado -->
+    <div id="aviso-guardado" class="aviso aviso--exito" hidden>
+      <div class="aviso__icono" aria-hidden="true"><i class="fas fa-check-circle"></i></div>
+      <p class="aviso__texto" style="margin: 0; font-size: 0.9rem; font-weight: 500;">✓ Progreso guardado</p>
+    </div>
+
+    <!-- Contenedor de módulos -->
+    <div id="modulos-curso-lista"></div>
+
+    <!-- Evaluación -->
+    <section class="curso-tarjeta-modulo" id="seccion-evaluacion">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="color: #055651; margin: 0; font-size: 1.25rem;">📝 Evaluación Scrum</h2>
+        <span id="estado-quiz" style="font-size: 0.875rem; color: #64748b;">No completado</span>
+      </div>
+      <p style="margin-bottom: 20px; color: #475569;">Pon a prueba lo aprendido:</p>
+      <div id="cuestionario-contenedor"></div>
+      <div style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <button id="btn-enviar-quiz" class="boton boton--primario btn btn--primary" type="button">
+          <i class="fas fa-paper-plane"></i> Calificar
+        </button>
+        <span id="resultado-quiz" style="font-weight: 600; font-size: 1rem;"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ⚡ RUTA CORREGIDA: ../js/pages/curso-scrum.js -->
+  <script type="module" src="../js/pages/curso-scrum.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import { mostrarAlerta } from '../core/auth.js';
 
 /**
  * @file login.js
- * @description Lógica del lado del cliente para la página de inicio de sesión.
+ * @description Lógica del lado del cliente para la página de inicio de sesión y recuperación 2FA.
  * @author Citlaly Morales Viveros
  */
 
@@ -15,14 +15,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnTogglePassword = document.getElementById('btn-toggle-password');
     const iconoOjo = document.getElementById('icono-ojo');
 
-    // Lógica para alternar la visibilidad de la contraseña con el icono SVG estilo minimalista
+    const btnIniciarRecuperacion = document.getElementById('btn-iniciar-recuperacion');
+    const btnVolver2fa = document.getElementById('btn-volver-2fa');
+    const vistaRecuperacion = document.getElementById('vista-recuperacion');
+    const formulario2fa = document.getElementById('form-2fa');
+    const contenedorMetodos = document.getElementById('metodos-2fa');
+    const form2faYMetodos = [formulario2fa, contenedorMetodos, document.getElementById('opciones-2fa')];
+    const btnAccionRecuperacion = document.getElementById('btn-accion-recuperacion');
+    const textoRecuperacion = document.getElementById('texto-recuperacion');
+    const alerta2fa = document.getElementById('mensaje-2fa-alerta');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const accionRecovery = urlParams.get('accion');
+    const tokenRecovery = urlParams.get('token');
+
+    if (accionRecovery && tokenRecovery) {
+        const esConfirmacion = accionRecovery === 'confirmar_recuperacion';
+        const endpoint = esConfirmacion ? '/recuperacion/confirmar' : '/recuperacion/cancelar';
+
+        api(endpoint, { metodo: 'POST', cuerpo: { token: tokenRecovery } })
+            .then(res => {
+                mostrarAlerta(alerta, 'exito', res.mensaje);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            })
+            .catch(err => {
+                mostrarAlerta(alerta, 'error', mensajeError2fa(err, 'El enlace es inválido o expiró.'));
+            });
+    }
+
     if (btnTogglePassword && inputPassword && iconoOjo) {
         btnTogglePassword.addEventListener('click', () => {
             const tipoActual = inputPassword.getAttribute('type');
 
             if (tipoActual === 'password') {
                 inputPassword.setAttribute('type', 'text');
-                // Cambiar a SVG de ojo abierto
+
                 iconoOjo.innerHTML = `
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
@@ -30,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnTogglePassword.setAttribute('aria-label', 'Ocultar contraseña');
             } else {
                 inputPassword.setAttribute('type', 'password');
-                // Cambiar a SVG de ojo tachado
+
                 iconoOjo.innerHTML = `
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                     <line x1="1" y1="1" x2="23" y2="23"></line>
@@ -42,9 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const modal2fa = document.getElementById('modal-2fa');
     const fondoModal2fa = document.getElementById('modal-2fa-fondo');
-    const formulario2fa = document.getElementById('form-2fa');
-    const alerta2fa = document.getElementById('mensaje-2fa-alerta');
-    const contenedorMetodos = document.getElementById('metodos-2fa');
+
     const inputCodigo = document.getElementById('codigo-2fa');
     const casillaConfiar = document.getElementById('confiar-dispositivo');
     const contenedorNombre = document.getElementById('nombre-dispositivo-container');
@@ -60,18 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let metodosDisponibles = [];
     let metodoActual = null;
 
-    /**
-     * Traduce un error de las rutas de 2FA a un mensaje para la persona usuaria.
-     *
-     * @param {{estado?: number}} error - Error lanzado por la petición.
-     * @param {string} predeterminado - Mensaje para los casos no contemplados.
-     * @returns {string} Mensaje a mostrar.
-     */
-    const mensajeError2fa = (error, predeterminado) => {
+    function mensajeError2fa(error, predeterminado) {
         if (error.estado === 401) return 'Código inválido o expirado. Si el problema continúa, inicia sesión de nuevo.';
-        if (error.estado === 429) return 'Demasiados intentos fallidos. Inténtalo de nuevo más tarde.';
+        if (error.estado === 429) return error.cuerpo?.mensaje || 'Demasiados intentos fallidos. Inténtalo de nuevo más tarde.';
         return predeterminado;
-    };
+    }
 
     /**
      * Dibuja los botones para elegir el método de verificación cuando hay más de uno.
@@ -168,6 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
         inputNombre.value = '';
 
         modal2fa.hidden = false;
+
+        // Reset vistas de recuperación por si estaban abiertas
+        vistaRecuperacion.style.display = 'none';
+        form2faYMetodos.forEach(el => el && (el.style.display = ''));
+
         seleccionarMetodo(metodosDisponibles[0] || 'respaldo');
     };
 
@@ -184,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await api('/auth/logout', { metodo: 'POST', cuerpo: {} });
         } catch (error) {
-            // El token temporal expira por sí solo si no se pudo limpiar ahora
+            // El token temporal expira por sí solo
         }
     };
 
@@ -204,6 +227,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnCancelar2fa.addEventListener('click', cancelarVerificacion2fa);
     fondoModal2fa.addEventListener('click', cancelarVerificacion2fa);
+
+    // Eventos de Recuperación
+    if (btnIniciarRecuperacion) {
+        btnIniciarRecuperacion.addEventListener('click', async (e) => {
+            e.preventDefault();
+            form2faYMetodos.forEach(el => el && (el.style.display = 'none'));
+            vistaRecuperacion.style.display = 'block';
+            btnAccionRecuperacion.style.display = 'none';
+            textoRecuperacion.textContent = 'Consultando estado...';
+
+            try {
+                const estado = await api('/recuperacion/estado', { metodo: 'GET' });
+
+                if (!estado) {
+                    textoRecuperacion.textContent = 'Al solicitar la recuperación, iniciará un periodo de espera de 24 horas por seguridad. Tras esto, se te enviará un enlace.';
+                    btnAccionRecuperacion.textContent = 'Solicitar Recuperación';
+                    btnAccionRecuperacion.style.display = 'block';
+                    btnAccionRecuperacion.onclick = () => procesarRecuperacion('/recuperacion/solicitar');
+                } else {
+                    const esperaHasta = new Date(estado.espera_hasta);
+                    if (new Date() < esperaHasta) {
+                        textoRecuperacion.innerHTML = `Tienes una solicitud pendiente.<br>Podrás solicitar el enlace a partir del: <strong>${esperaHasta.toLocaleString()}</strong>`;
+                        btnAccionRecuperacion.textContent = 'Reenviar aviso (60s)';
+                        btnAccionRecuperacion.style.display = 'block';
+                        btnAccionRecuperacion.onclick = () => procesarRecuperacion('/recuperacion/reenviar-aviso');
+                    } else {
+                        textoRecuperacion.textContent = 'El periodo de espera terminó. Haz clic abajo para recibir el enlace definitivo por correo.';
+                        btnAccionRecuperacion.textContent = 'Enviar Enlace';
+                        btnAccionRecuperacion.style.display = 'block';
+                        btnAccionRecuperacion.onclick = () => procesarRecuperacion('/recuperacion/enviar-enlace');
+                    }
+                }
+            } catch (err) {
+                textoRecuperacion.textContent = 'Error al consultar estado. Inicia sesión de nuevo.';
+            }
+        });
+    }
+
+    if (btnVolver2fa) {
+        btnVolver2fa.addEventListener('click', () => {
+            vistaRecuperacion.style.display = 'none';
+            form2faYMetodos.forEach(el => el && (el.style.display = ''));
+        });
+    }
+
+    async function procesarRecuperacion(ruta) {
+        btnAccionRecuperacion.disabled = true;
+        try {
+            const res = await api(ruta, { metodo: 'POST' });
+            mostrarAlerta(alerta2fa, 'exito', res.mensaje);
+            setTimeout(() => cancelarVerificacion2fa(), 3500);
+        } catch (error) {
+            mostrarAlerta(alerta2fa, 'error', mensajeError2fa(error, 'Ocurrió un error. Revisa el enfriamiento (60s) o vuelve a iniciar sesión.'));
+            btnAccionRecuperacion.disabled = false;
+        }
+    }
 
     formulario2fa.addEventListener('submit', async (evento) => {
         evento.preventDefault();
@@ -227,10 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const respuesta = await api(ruta, { metodo: 'POST', cuerpo });
 
             mostrarAlerta(alerta2fa, 'exito', respuesta.mensaje || 'Verificación exitosa');
-
-            setTimeout(() => {
-                window.location.href = '/pages/dashboard.html';
-            }, 1000);
+            setTimeout(() => window.location.href = '/pages/dashboard.html', 1000);
         } catch (error) {
             mostrarAlerta(alerta2fa, 'error', mensajeError2fa(error, 'Error al verificar el código. Inténtalo más tarde.'));
         }
@@ -255,10 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 mostrarAlerta(alerta, 'exito', respuesta.mensaje || 'Inicio de sesión exitoso');
-
-                setTimeout(() => {
-                    window.location.href = '/pages/dashboard.html';
-                }, 1000);
+                setTimeout(() => window.location.href = '/pages/dashboard.html', 1000);
             } catch (error) {
                 let texto = 'Error al iniciar sesión. Inténtalo más tarde.';
                 if (error.estado === 401) texto = 'Credenciales incorrectas o cuenta bloqueada.';

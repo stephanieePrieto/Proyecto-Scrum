@@ -3,10 +3,10 @@ import { solicitarRecuperacion, restablecerPassword, definirPasswordController }
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { autenticar } from '../../middlewares/autenticar.js';
 import * as authService from '../auth/auth.service.js';
-import { verificarPassword } from '../../utils/hash.js';
-import { consulta } from '../../config/db.js';
+import * as recuperacionService from '../recuperacion/recuperacion.service.js'; // <-- AÑADIDO
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import QRCode from 'qrcode';
 
 /**
  * @file usuarios.routes.js
@@ -28,6 +28,7 @@ router.get('/2fa/estado', autenticar, asyncHandler(async (req, res) => {
     const config = await authService.obtenerConfiguracion2FA(usuarioId);
     const infoRespaldo = await authService.obtenerInfoCodigosRespaldo(usuarioId);
     const dispositivos = await authService.listarDispositivosConfianza(usuarioId);
+    const estadoRecuperacion = await recuperacionService.obtenerEstado(usuarioId); // <-- AÑADIDO
 
     res.json({
         habilitado: config.habilitado,
@@ -42,18 +43,40 @@ router.get('/2fa/estado', autenticar, asyncHandler(async (req, res) => {
             }
         },
         codigosRespaldo: infoRespaldo,
-        dispositivosConfianza: dispositivos.length
+        dispositivosConfianza: dispositivos.length,
+        recuperacion: estadoRecuperacion // <-- AÑADIDO
     });
 }));
 
+/**
+ * Cancela la recuperación de 2FA desde la sesión autenticada (Perfil)
+ */
+router.post('/2fa/recuperar/cancelar', autenticar, asyncHandler(async (req, res) => {
+    await recuperacionService.cancelarRecuperacion(null, req.user.id);
+    res.json({ mensaje: 'Has cancelado la recuperación desde tu perfil.' });
+}));
+
+// (Las demás rutas de TOTP, correo y respaldo se mantienen intactas a partir de aquí)
+// ...
 /**
  * Inicia la configuración de TOTP.
  */
 router.post('/2fa/totp/iniciar', autenticar, asyncHandler(async (req, res) => {
     const usuarioId = req.user.id;
+    const { password } = req.body;
+
+    if (typeof password !== 'string') {
+        throw new ErrorApp('Contraseña es obligatoria.', 400);
+    }
+
+    await authService.exigirPasswordVigente(usuarioId, password);
+
+    const { secreto, uri } = await authService.iniciarConfiguracionTotp(usuarioId);
     const { secreto, uri, qrDataUrl } = await authService.iniciarConfiguracionTotp(usuarioId);
 
 
+    const qr = await QRCode.toString(uri, { type: 'svg', margin: 1, width: 200 });
+    res.json({ secreto, uri, qr });
     // Generar URI para código QR
     res.json({ secreto, uri, qrDataUrl });
 }));
@@ -93,6 +116,14 @@ router.post('/2fa/totp/desactivar', autenticar, asyncHandler(async (req, res) =>
  */
 router.post('/2fa/correo/activar', autenticar, asyncHandler(async (req, res) => {
     const usuarioId = req.user.id;
+    const { password } = req.body;
+
+    if (typeof password !== 'string') {
+        throw new ErrorApp('Contraseña es obligatoria.', 400);
+    }
+
+    await authService.exigirPasswordVigente(usuarioId, password);
+
     const ip = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || '';
     const resultado = await authService.configurar2FAPorCorreo(usuarioId, true, null, ip, userAgent);
@@ -162,6 +193,14 @@ router.post('/2fa/deshabilitar', autenticar, asyncHandler(async (req, res) => {
  */
 router.post('/2fa/respaldo/generar', autenticar, asyncHandler(async (req, res) => {
     const usuarioId = req.user.id;
+    const { password } = req.body;
+
+    if (typeof password !== 'string') {
+        throw new ErrorApp('Contraseña es obligatoria.', 400);
+    }
+
+    await authService.exigirPasswordVigente(usuarioId, password);
+
     const { codigos, grupoId } = await authService.generarCodigosRespaldo(usuarioId);
 
     res.json({
@@ -196,13 +235,18 @@ router.post('/2fa/dispositivos/confiar', autenticar, asyncHandler(async (req, re
     const usuarioId = req.user.id;
     const ip = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || '';
-    const { nombre } = req.body;
+    const { nombre, password } = req.body;
+
+    if (typeof password !== 'string') {
+        throw new ErrorApp('Contraseña es obligatoria.', 400);
+    }
+
+    await authService.exigirPasswordVigente(usuarioId, password);
 
     const { tokenConfianza, expiraEn } = await authService.registrarDispositivoConfianza(
         usuarioId, ip, userAgent, nombre || null
     );
 
-    // Devolver token como cookie
     res.cookie('tokenConfianza', tokenConfianza, {
         httpOnly: true,
         secure: env.ES_PRODUCCION || env.HTTPS_ACTIVO,
@@ -242,16 +286,7 @@ router.post('/2fa/dispositivos/revocar-todos', autenticar, asyncHandler(async (r
         throw new ErrorApp('Contraseña es obligatoria.', 400);
     }
 
-    // Verificar contraseña
-    const { rows } = await consulta(
-        'SELECT password_hash FROM usuarios WHERE id = $1',
-        [usuarioId]
-    );
-
-    const claveValida = await verificarPassword(password, rows[0].password_hash);
-    if (!claveValida) {
-        throw new ErrorApp('Contraseña incorrecta.', 401);
-    }
+    await authService.exigirPasswordVigente(usuarioId, password);
 
     const resultado = await authService.revocarTodosDispositivosConfianza(usuarioId);
     res.json(resultado);

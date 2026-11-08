@@ -10,6 +10,7 @@ REVOKE ALL ON TABLE codigos_respaldo FROM scrumflow_app;
 REVOKE ALL ON TABLE dispositivos_confianza FROM scrumflow_app;
 REVOKE ALL ON TABLE otp_correo FROM scrumflow_app;
 REVOKE ALL ON TABLE intentos_2fa FROM scrumflow_app;
+REVOKE ALL ON TABLE intentos_2fa_usuario FROM scrumflow_app;
 
 -- Revocar permisos sobre secuencias
 REVOKE ALL ON SEQUENCE codigos_respaldo_id_seq FROM scrumflow_app;

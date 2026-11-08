@@ -30,7 +30,7 @@ const configurarCookies = (res, accessToken, refreshToken) => {
  * Configura la cookie del token temporal de 2FA.
  *
  * @param {import('express').Response} res
- * @param {string} token - Token temporal de 2FA.
+ * @param {string} token Token temporal de 2FA.
  */
 const configurarCookieTokenTemporal = (res, token) => {
     const opciones = opcionesCookies();
@@ -38,6 +38,43 @@ const configurarCookieTokenTemporal = (res, token) => {
         ...opciones,
         maxAge: env.TOKEN_2FA_TEMPORAL_MINUTOS * 60 * 1000
     });
+};
+
+/**
+ * Configura la cookie del dispositivo de confianza. No se borra al cerrar sesión: tiene que
+ * sobrevivir hasta que el dispositivo expire o se revoque.
+ *
+ * @param {import('express').Response} res
+ * @param {string} token Token de confianza en claro (en la base solo queda su hash).
+ * @param {Date} expiraEn Fecha en que vence la confianza del dispositivo.
+ */
+const configurarCookieDispositivoConfianza = (res, token, expiraEn) => {
+    res.cookie('tokenConfianza', token, { ...opcionesCookies(), expires: expiraEn });
+};
+
+/**
+ * Si la persona marcó "Confiar en este dispositivo", registra el dispositivo y entrega su cookie.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {number} usuarioId ID del usuario que acaba de verificar su segundo paso.
+ * @param {string} ip Dirección IP de la petición.
+ * @returns {Promise<void>}
+ */
+const confiarEnDispositivoSiSePidio = async (req, res, usuarioId, ip) => {
+    if (req.body.confiarDispositivo !== true) return;
+
+    const nombre = typeof req.body.nombreDispositivo === 'string'
+        ? req.body.nombreDispositivo.trim().slice(0, 60)
+        : '';
+
+    const { tokenConfianza, expiraEn } = await authService.registrarDispositivoConfianza(
+        usuarioId,
+        ip,
+        req.headers['user-agent'] || '',
+        nombre || null
+    );
+    configurarCookieDispositivoConfianza(res, tokenConfianza, expiraEn);
 };
 
 /**
@@ -82,9 +119,9 @@ const limpiarCookieTokenTemporal = (res) => {
  * Los tokens se verifican por firma, así que uno falsificado no cierra nada.
  *
  * @param {import('express').Response} res
- * @param {string|undefined} accessToken - Token de acceso recibido, aunque ya haya expirado.
- * @param {string|undefined} refreshToken - Token de renovación recibido.
- * @param {string|undefined} token2faTemporal - Token temporal de 2FA (opcional).
+ * @param {string|undefined} accessToken Token de acceso recibido, aunque ya haya expirado.
+ * @param {string|undefined} refreshToken Token de renovación recibido.
+ * @param {string|undefined} token2faTemporal Token temporal de 2FA (opcional).
  * @returns {Promise<void>}
  */
 export const terminarSesion = async (res, accessToken, refreshToken, token2faTemporal) => {
@@ -96,7 +133,7 @@ export const terminarSesion = async (res, accessToken, refreshToken, token2faTem
 
 export const login = async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers['user-agent'] || null;
+    const { tokenConfianza } = leerCookies(req);
     const { correo, password } = req.body ?? {};
 
     // Evita errores 500 (y entradas raras) si llegan objetos o arreglos en vez de texto
@@ -104,7 +141,7 @@ export const login = async (req, res) => {
         throw new ErrorApp('Correo y contraseña son obligatorios.', 400);
     }
 
-    const resultado = await authService.autenticarUsuario(correo, password, ip, userAgent);
+    const resultado = await authService.autenticarUsuario(correo, password, ip, tokenConfianza);
 
     if (resultado.requiere2fa) {
         // 2FA requerido - devolver token temporal
@@ -229,16 +266,10 @@ export const verificar2FA = async (req, res) => {
         throw new ErrorApp('Código inválido o expirado.', 401);
     }
 
+    await authService.consumirTokenTemporal2FA(tokenTemporal);
+
     // Código válido - registrar dispositivo de confianza si se solicita
-    const confiarDispositivo = req.body.confiarDispositivo === true;
-    if (confiarDispositivo) {
-        await authService.registrarDispositivoConfianza(
-            usuarioId,
-            ip,
-            req.headers['user-agent'] || '',
-            req.body.nombreDispositivo || null
-        );
-    }
+    await confiarEnDispositivoSiSePidio(req, res, usuarioId, ip);
 
     // Generar tokens de sesión completos
     const sid = await authService.abrirSesion(usuarioId);
@@ -311,16 +342,10 @@ export const verificarCodigoOtp = async (req, res) => {
         throw new ErrorApp('Código inválido o expirado.', 401);
     }
 
+    await authService.consumirTokenTemporal2FA(tokenTemporal);
+
     // Código válido - registrar dispositivo de confianza si se solicita
-    const confiarDispositivo = req.body.confiarDispositivo === true;
-    if (confiarDispositivo) {
-        await authService.registrarDispositivoConfianza(
-            usuarioId,
-            ip,
-            req.headers['user-agent'] || '',
-            req.body.nombreDispositivo || null
-        );
-    }
+    await confiarEnDispositivoSiSePidio(req, res, usuarioId, ip);
 
     // Generar tokens de sesión completos
     const sid = await authService.abrirSesion(usuarioId);

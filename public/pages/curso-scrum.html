@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="../css/componentes/insignias.css" />
   <link rel="stylesheet" href="../css/componentes/avisos.css" />
   <link rel="stylesheet" href="../css/componentes/curso-scrum.css" />
-  <link rel="stylesheet" href="/css/componentes/responsive.css">
+  <link rel="stylesheet" href="/css/componentes/responsive.css" />
 </head>
 <body>
   <header id="barra-superior" class="barra-superior"></header>
@@ -29,12 +29,12 @@
     <!-- Encabezado del curso -->
     <div class="encabezado-curso">
       <div>
-        <h1><i class="fas fa-graduation-cap"></i> Curso de Scrum</h1>
-        <p class="subtitulo">Aprende los fundamentos de Scrum y cómo aplicarlos en ScrumFlow</p>
+        <h1><i class="fas fa-graduation-cap"></i> Curso de Capacitación Scrum</h1>
+        <p class="subtitulo">Aprende los fundamentos de la metodología ágil, los roles y su aplicación en ScrumFlow</p>
       </div>
       
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <!-- Botón exclusivo para Scrum Master / Product Owner (se muestra vía JS) -->
+        <!-- Botón exclusivo para Scrum Master / Product Owner -->
         <a href="./avance-curso.html" id="btn-avance-equipo" class="boton boton--primario" style="display: none;">
           <i class="fas fa-chart-line"></i> Avance del Equipo
         </a>
@@ -50,16 +50,16 @@
     <div class="barra-progreso-principal">
       <div class="barra-progreso-relleno" id="barra-progreso" style="width: 0%;"></div>
     </div>
-    <div class="porcentaje-avance" id="porcentaje-avance">Avance: 0%</div>
+    <div class="porcentaje-avance" id="porcentaje-avance">Avance Global: 0%</div>
 
-    <!-- Alerta de certificado con botón de acción dinámico -->
+    <!-- Banner Alerta de Certificado Obtención (Requiere >= 9.5 en Quiz Final) -->
     <div class="certificado-alerta" id="certificado-alerta">
       <div class="certificado-icono">
         <i class="fas fa-trophy"></i>
       </div>
       <div class="certificado-mensaje" style="flex: 1;">
-        <h3>¡Felicidades!</h3>
-        <p>Has completado satisfactoriamente el curso de Scrum.</p>
+        <h3>¡Felicidades por tu Certificación!</h3>
+        <p>Has aprobado el Quiz Final con la calificación requerida (mínimo 9.5/10) y completado la capacitación en ScrumFlow.</p>
       </div>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <button id="btn-descargar-certificado" type="button" class="boton btn-curso--secundario">
@@ -68,15 +68,160 @@
       </div>
     </div>
 
-    <!-- Contenido dinámico del curso -->
-    <div id="contenido-curso"></div>
+    <!-- Navegación por Pestañas del Curso -->
+    <div class="pestanas-curso">
+      <button class="pestana-btn activa" data-pestana="modulos">
+        <i class="fas fa-book-open"></i> Módulos de Estudio
+      </button>
+      <button class="pestana-btn" data-pestana="roles">
+        <i class="fas fa-users-cog"></i> Roles: ¿Qué hace cada quién?
+      </button>
+      <button class="pestana-btn" data-pestana="quiz-final">
+        <i class="fas fa-award"></i> Quiz Final Integrador
+      </button>
+    </div>
+
+    <!-- SECCIÓN 1: Módulos de Aprendizaje -->
+    <div id="seccion-modulos" class="contenido-pestana activa">
+      <div id="contenido-curso"></div>
+    </div>
+
+    <!-- SECCIÓN 2: Pestaña Interactiva "Qué hace cada quién" -->
+    <div id="seccion-roles" class="contenido-pestana">
+      <div class="tarjeta-roles-intro">
+        <h2><i class="fas fa-users"></i> El Equipo Scrum</h2>
+        <p>Un equipo de Scrum es autoorganizado y multifuncional. Consta de tres roles principales sin jerarquías tradicionales:</p>
+      </div>
+
+      <div class="contenedor-roles-tabs">
+        <div class="menu-roles">
+          <button class="rol-tab-btn activo" data-rol="po">
+            <i class="fas fa-user-tie"></i> Product Owner
+          </button>
+          <button class="rol-tab-btn" data-rol="sm">
+            <i class="fas fa-user-shield"></i> Scrum Master
+          </button>
+
+          <button class="rol-tab-btn" data-rol="dev">
+            <i class="fas fa-code"></i> Developers
+          </button>
+        </div>
+
+        <div class="detalle-rol-panel">
+          <!-- Detalles Product Owner -->
+          <div id="panel-po" class="panel-rol activo">
+            <div class="rol-header">
+              <span class="badge-rol">Maximizador del Valor</span>
+              <h3>Product Owner (PO)</h3>
+            </div>
+            <p class="rol-descripcion">
+              Es la voz del cliente y del negocio. Se encarga de maximizar el valor del producto resultante del trabajo del Equipo Scrum.
+            </p>
+            <div class="rol-grid-funciones">
+              <div class="funcion-box">
+                <h4><i class="fas fa-tasks"></i> Responsabilidades Clave</h4>
+                <ul>
+                  <li>Crear, mantener y priorizar el <strong>Product Backlog</strong>.</li>
+                  <li>Definir los Criterios de Aceptación de las historias de usuario.</li>
+                  <li>Asegurar que el equipo comprenda los elementos del Backlog.</li>
+                  <li>Aceptar o rechazar los incrementos completados en el Sprint.</li>
+                </ul>
+              </div>
+              <div class="funcion-box">
+                <h4><i class="fas fa-box"></i> Artefacto Principal</h4>
+                <p><strong>Product Backlog:</strong> Lista ordenada de todo lo que se conoce que es necesario en el producto.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalles Scrum Master -->
+          <div id="panel-sm" class="panel-rol">
+            <div class="rol-header">
+              <span class="badge-rol">Líder que Sirve</span>
+              <h3>Scrum Master (SM)</h3>
+            </div>
+            <p class="rol-descripcion">
+              Es el responsable de promover y apoyar Scrum como se define en la Guía de Scrum. Ayuda a todos a comprender la teoría y la práctica.
+            </p>
+            <div class="rol-grid-funciones">
+              <div class="funcion-box">
+                <h4><i class="fas fa-hand-holding-heart"></i> Responsabilidades Clave</h4>
+                <ul>
+                  <li>Remover <strong>impedimentos y bloqueos</strong> que frenan al equipo.</li>
+                  <li>Facilitar los eventos de Scrum (Daily, Planning, Review, Retrospective).</li>
+                  <li>Coachear al equipo en autoorganización y transversalidad.</li>
+                  <li>Proteger al equipo de interrupciones externas durante el Sprint.</li>
+                </ul>
+              </div>
+              <div class="funcion-box">
+                <h4><i class="fas fa-bullhorn"></i> Métrica y Foco</h4>
+                <p><strong>Velocidad y Salud del Equipo:</strong> Garantiza un ritmo sostenible de trabajo y mejora continua.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalles Developers -->
+          <div id="panel-dev" class="panel-rol">
+            <div class="rol-header">
+              <span class="badge-rol">Creadores del Incremento</span>
+              <h3>Developers (Equipo de Desarrollo)</h3>
+            </div>
+            <p class="rol-descripcion">
+              Son los profesionales que realizan el trabajo de entregar un incremento de producto "Terminado" (Done) utilizable al final de cada Sprint.
+            </p>
+            <div class="rol-grid-funciones">
+              <div class="funcion-box">
+                <h4><i class="fas fa-laptop-code"></i> Responsabilidades Clave</h4>
+                <ul>
+                  <li>Planificar el trabajo del Sprint durante el <strong>Sprint Planning</strong>.</li>
+                  <li>Inspeccionar el avance diario hacia el objetivo en el <strong>Daily Scrum</strong>.</li>
+                  <li>Garantizar la calidad aplicando la <strong>Definición de Terminado (DoD)</strong>.</li>
+                  <li>Estimarse y autogestionarse para convertir ítems en incrementos.</li>
+                </ul>
+              </div>
+              <div class="funcion-box">
+                <h4><i class="fas fa-cubes"></i> Artefacto Principal</h4>
+                <p><strong>Incremento & Sprint Backlog:</strong> El conjunto de ítems seleccionados para el Sprint más el plan de entrega.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: Quiz Final Integrador -->
+    <div id="seccion-quiz-final" class="contenido-pestana">
+      <div class="tarjeta-quiz-final-info">
+        <div class="quiz-final-header">
+          <i class="fas fa-award icono-quiz-final"></i>
+          <div>
+            <h2>Evaluación Final de Certificación</h2>
+            <p>Demuestra tus conocimientos integrales sobre la metodología Scrum en ScrumFlow.</p>
+          </div>
+        </div>
+        <div class="requisitos-quiz-final">
+          <div class="requisito-item">
+            <i class="fas fa-check-circle"></i>
+            <span><strong>Requisito de Aprobación:</strong> Puntuación mínima de <strong>9.5 / 10 (95%)</strong>.</span>
+          </div>
+          <div class="requisito-item">
+            <i class="fas fa-redo"></i>
+            <span><strong>Intentos:</strong> Ilimitados (se registra el intento con mayor calificación).</span>
+          </div>
+        </div>
+
+        <button id="btn-iniciar-quiz-final" class="boton boton--primario boton--lg">
+          <i class="fas fa-play-circle"></i> Iniciar Quiz Final Integrador
+        </button>
+      </div>
+    </div>
   </main>
 
-  <!-- Modal para Quiz -->
+  <!-- Modal para Quizzes de Lección y Quiz Final -->
   <div id="modal-quiz" class="modal" style="display: none;">
-    <div class="modal-contenido">
+    <div class="modal-contenido modal-contenido--ancho">
       <div class="modal-encabezado">
-        <h2 id="modal-quiz-titulo">Quiz: <span id="quiz-leccion-titulo"></span></h2>
+        <h2 id="modal-quiz-titulo">Evaluación: <span id="quiz-leccion-titulo"></span></h2>
         <button class="modal-cerrar" id="btn-cerrar-quiz">&times;</button>
       </div>
       <div id="quiz-contenido"></div>

@@ -1,6 +1,6 @@
 /**
  * @file curso-scrum.css
- * @description Estilos de la página del curso Scrum.
+ * @description Estilos de la página del curso Scrum con soporte para pestañas y roles.
  * @author Stephanie Elizdeth Hernández Prieto
  */
 
@@ -39,7 +39,7 @@
   height: 12px;
   border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 25px;
+  margin-bottom: 8px;
   box-shadow: var(--sombra-sm);
 }
 
@@ -52,7 +52,8 @@
 
 .porcentaje-avance {
   text-align: right;
-  margin-top: 8px;
+  margin-top: 4px;
+  margin-bottom: 20px;
   font-size: 0.9rem;
   color: var(--primario);
   font-weight: 600;
@@ -64,6 +65,234 @@
   gap: 8px;
 }
 
+/* ===========================================================================
+   ESTILOS PARA PESTAÑAS (TABS)
+   ========================================================================== */
+.pestanas-curso {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0 25px 0;
+  border-bottom: 2px solid var(--borde, #e2e8f0);
+  padding-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.pestana-btn {
+  background: transparent;
+  border: none;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--texto-suave, #64748b);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px 6px 0 0;
+}
+
+.pestana-btn:hover {
+  color: var(--primario, #1e293b);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.pestana-btn.activa {
+  color: var(--primario, #1e293b);
+  border-bottom-color: var(--primario, #1e293b);
+  background: var(--blanco, #ffffff);
+}
+
+.contenido-pestana {
+  display: none;
+}
+
+.contenido-pestana.activa {
+  display: block;
+}
+
+/* ===========================================================================
+   SECCIÓN DE ROLES (¿Qué hace cada quién?)
+   ========================================================================== */
+.tarjeta-roles-intro {
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--borde, #e2e8f0);
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.05));
+}
+
+.tarjeta-roles-intro h2 {
+  margin: 0 0 8px 0;
+  color: var(--primario, #1e293b);
+}
+
+.contenedor-roles-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.menu-roles {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rol-tab-btn {
+  background: var(--blanco, #ffffff);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texto-suave, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.rol-tab-btn:hover {
+  border-color: var(--primario, #1e293b);
+  color: var(--primario, #1e293b);
+}
+
+.rol-tab-btn.activo {
+  background: var(--primario, #1e293b);
+  color: #ffffff;
+  border-color: var(--primario, #1e293b);
+}
+
+.detalle-rol-panel {
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  padding: 25px;
+  border: 1px solid var(--borde, #e2e8f0);
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.05));
+}
+
+.panel-rol {
+  display: none;
+}
+
+.panel-rol.activo {
+  display: block;
+}
+
+.rol-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.badge-rol {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.rol-descripcion {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--texto-suave, #475569);
+  margin-bottom: 20px;
+}
+
+.rol-grid-funciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.funcion-box {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.funcion-box h4 {
+  margin: 0 0 10px 0;
+  color: var(--primario, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.funcion-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.funcion-box li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+/* ===========================================================================
+   SECCIÓN DE QUIZ FINAL INTEGRADOR
+   ========================================================================== */
+.tarjeta-quiz-final-info {
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  padding: 30px;
+  border: 1px solid var(--borde, #e2e8f0);
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.05));
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.quiz-final-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.icono-quiz-final {
+  font-size: 3rem;
+  color: var(--ambar-500, #d97706);
+}
+
+.requisitos-quiz-final {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0 25px 0;
+  text-align: left;
+  background: #f8fafc;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ambar-500, #d97706);
+}
+
+.requisito-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.boton--lg {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+/* ===========================================================================
+   ESTILOS DE MÓDULOS Y LECCIONES
+   ========================================================================== */
 .seccion {
   margin-bottom: 40px;
 }
@@ -149,12 +378,6 @@
   border: 1px solid var(--borde);
 }
 
-.quiz-titulo {
-  font-weight: 600;
-  color: var(--primario);
-  margin-bottom: 15px;
-}
-
 .quiz-pregunta {
   margin-bottom: 15px;
   color: var(--primario);
@@ -188,18 +411,6 @@
   font-weight: 600;
 }
 
-.quiz-opcion.correcta {
-  background: var(--esmeralda-500);
-  color: var(--blanco);
-  border-color: var(--esmeralda-500);
-}
-
-.quiz-opcion.incorrecta {
-  background: var(--rosa-500);
-  color: var(--blanco);
-  border-color: var(--rosa-500);
-}
-
 .btn-curso {
   padding: 8px 16px;
   border-radius: 6px;
@@ -226,11 +437,6 @@
 
 .btn-curso--secundario:hover {
   background: var(--acento-hover);
-}
-
-.btn-curso--exito {
-  background: var(--esmeralda-500);
-  color: var(--blanco);
 }
 
 .certificado-alerta {
@@ -264,7 +470,7 @@
 }
 
 /* ===========================================================================
-   MODAL DE QUIZ (Ventana emergente centrada)
+   MODAL DE QUIZ
    ========================================================================== */
 .modal {
   position: fixed !important;
@@ -293,6 +499,10 @@
   border: 1px solid var(--borde, #e2e8f0);
   animation: modalEntrada 0.2s ease-out;
   margin: auto;
+}
+
+.modal-contenido--ancho {
+  max-width: 800px;
 }
 
 @keyframes modalEntrada {

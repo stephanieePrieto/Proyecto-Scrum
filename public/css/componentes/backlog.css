@@ -23,12 +23,32 @@
   gap: var(--espacio-4);
 }
 
-/* Encabezado: insignias con los totales */
-.bl-encabezado__insignias {
+/* Encabezado: separar los totales de las acciones, sin alterar los botones globales */
+.bl-encabezado__herramientas {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
   flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.bl-encabezado__insignias,
+.bl-encabezado__acciones {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bl-encabezado__acciones > .boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .bl-encabezado__herramientas { justify-content: flex-start; }
 }
 
 /* Aviso de borrador: botones de acción */

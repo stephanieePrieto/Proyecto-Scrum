@@ -1,1 +1,128 @@
-<!-- Responsable: Jetz - HU-05 (OPCIONAL): pantalla de Planning Poker. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Planning Poker · ScrumFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/componentes/tarjetas.css">
+  <link rel="stylesheet" href="/css/componentes/botones.css">
+  <link rel="stylesheet" href="/css/componentes/formularios.css">
+  <link rel="stylesheet" href="/css/componentes/avisos.css">
+  <link rel="stylesheet" href="/css/componentes/responsive.css">
+  <link rel="stylesheet" href="/css/componentes/accesibilidad.css">
+  <link rel="stylesheet" href="/css/componentes/planning-poker.css">
+</head>
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Estimación de historias</h1>
+        <p class="subtitulo-pagina">HU-05 · Story Points Fibonacci y Planning Poker</p>
+      </div>
+      <a id="volver-backlog" href="/pages/backlog.html" class="boton boton--secundario">Volver al Backlog</a>
+    </div>
+
+    <div id="mensaje-poker" class="alerta" role="status" aria-live="polite" hidden></div>
+
+    <div class="pp-disposicion">
+      <section class="tarjeta" aria-labelledby="pp-historias-titulo">
+        <h2 id="pp-historias-titulo">Historias del proyecto</h2>
+        <p class="pp-ayuda">Selecciona una historia sin estimación. Las que ya tienen puntos aparecen solo para consulta.</p>
+        <label class="grupo-formulario">
+          <span class="etiqueta-formulario">Historia</span>
+          <select id="pp-historia" class="entrada-formulario" disabled>
+            <option value="">Cargando historias…</option>
+          </select>
+        </label>
+        <p id="pp-detalle" class="pp-ayuda" role="status"></p>
+        <button id="pp-actualizar" class="boton boton--secundario" type="button">Actualizar historias</button>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="pp-puntos-titulo">
+        <h2 id="pp-puntos-titulo">Puntos Fibonacci</h2>
+        <p class="pp-ayuda">Elige el esfuerzo de la historia. Solo se permite 1, 2, 3, 5, 8, 13 o 21.</p>
+        <div id="pp-escala" class="pp-escala" role="group" aria-label="Seleccionar puntos Fibonacci">
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="1" aria-pressed="false">1</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="2" aria-pressed="false">2</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="3" aria-pressed="false">3</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="5" aria-pressed="false">5</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="8" aria-pressed="false">8</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="13" aria-pressed="false">13</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-puntos="21" aria-pressed="false">21</button>
+        </div>
+        <div class="pp-acciones">
+          <span id="pp-seleccion" class="pp-ayuda">Sin puntos seleccionados</span>
+          <button id="pp-guardar" class="boton boton--primario" type="button" disabled>Guardar estimación</button>
+        </div>
+        <p class="pp-ayuda">Para estimar en equipo, utiliza la sección Planning Poker. Los votos se mantienen ocultos hasta que todos participen.</p>
+      </section>
+    </div>
+
+    <section class="tarjeta pp-ronda" aria-labelledby="pp-ronda-titulo">
+      <div class="pp-cabecera-ronda">
+        <div>
+          <h2 id="pp-ronda-titulo">Planning Poker en equipo</h2>
+          <p class="pp-ayuda">Selecciona una historia sin estimación. SM o PO inicia la ronda y cada integrante vota con una carta Fibonacci.</p>
+        </div>
+        <button id="pp-iniciar" type="button" class="boton boton--primario" disabled>Iniciar ronda</button>
+      </div>
+      <p id="pp-estado-ronda" class="pp-ayuda" role="status">Selecciona una historia para comenzar.</p>
+      <div id="pp-panel-ronda" hidden>
+        <div class="pp-resumen-ronda">
+          <strong id="pp-numero-ronda">Ronda 1</strong>
+          <span id="pp-conteo">0 de 0 votos recibidos</span>
+        </div>
+        <p id="pp-diagnostico" class="pp-ayuda" role="status"></p>
+        <button id="pp-revelar" type="button" class="boton boton--secundario" hidden>Revelar votos</button>
+        <div id="pp-participantes" class="pp-participantes" aria-live="polite"></div>
+        <h3 class="pp-subtitulo">Tu voto</h3>
+        <div id="pp-cartas-voto" class="pp-escala" role="group" aria-label="Tu carta de Planning Poker">
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="1">1</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="2">2</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="3">3</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="5">5</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="8">8</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="13">13</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="21">21</button>
+        </div>
+        <p id="pp-aviso-voto" class="pp-ayuda">Los demás participantes no podrán ver tu carta antes de revelar.</p>
+        <div id="pp-final-panel" class="pp-final" hidden>
+          <label for="pp-valor-final" class="etiqueta-formulario">Estimación final (SM o PO)</label>
+          <select id="pp-valor-final" class="entrada-formulario">
+            <option value="">Seleccionar puntos finales</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="5">5</option><option value="8">8</option><option value="13">13</option><option value="21">21</option>
+          </select>
+          <div class="pp-acciones-ronda">
+            <button id="pp-otra-ronda" type="button" class="boton boton--secundario">Votar de nuevo</button>
+            <button id="pp-fijar" type="button" class="boton boton--primario">Guardar puntos finales</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <!-- HU-05: modal propio para confirmar revelación anticipada, sin alertas nativas. -->
+  <div id="pp-modal-revelar" class="pp-modal-fondo" hidden>
+    <section class="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-modal-titulo" aria-describedby="pp-modal-descripcion">
+      <div class="pp-modal-cabecera">
+        <h2 id="pp-modal-titulo">Revelar votos</h2>
+        <button id="pp-modal-cerrar" type="button" class="pp-modal-x" aria-label="Cerrar">×</button>
+      </div>
+      <p id="pp-modal-descripcion" class="pp-ayuda">¿Deseas revelar los votos de esta ronda? Los participantes pendientes aparecerán como <strong>Sin voto</strong> y ya no podrán votar en esta ronda.</p>
+      <div class="pp-modal-acciones">
+        <button id="pp-modal-cancelar" type="button" class="boton boton--secundario">Cancelar</button>
+        <button id="pp-modal-confirmar" type="button" class="boton boton--primario">Revelar votos</button>
+      </div>
+    </section>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/js/pages/planning-poker.js"></script>
+</body>
+</html>

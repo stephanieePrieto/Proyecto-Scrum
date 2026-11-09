@@ -45,11 +45,16 @@
         <h1 class="titulo-pagina">Product Backlog</h1>
         <p class="subtitulo-pagina" id="subtitulo">Cargando proyecto…</p>
       </div>
-      <div class="bl-encabezado__insignias">
-        <span class="insignia insignia--neutro" id="total-historias">0 historias</span>
-        <span class="insignia insignia--info" id="total-puntos">0 pts</span>
-        <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="historia.gestionar" disabled>Gestionar épicas</button>
-        <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
+      <div class="bl-encabezado__herramientas">
+        <div class="bl-encabezado__insignias" aria-label="Resumen del backlog">
+          <span class="insignia insignia--neutro" id="total-historias">0 historias</span>
+          <span class="insignia insignia--info" id="total-puntos">0 pts</span>
+        </div>
+        <div class="bl-encabezado__acciones" aria-label="Acciones del backlog">
+          <a class="boton boton--secundario" href="/pages/planning-poker.html">Estimar historias</a>
+          <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="historia.gestionar" disabled>Gestionar épicas</button>
+          <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
+        </div>
       </div>
     </div>
 

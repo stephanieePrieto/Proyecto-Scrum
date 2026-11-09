@@ -1,0 +1,69 @@
+/* HU-05: solo disposición y cartas de estimación; botones, tarjetas y avisos usan estilos existentes. */
+.pp-disposicion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; align-items: start; }
+.pp-disposicion > .tarjeta { padding: 20px; min-width: 0; }
+.pp-disposicion h2 { font-size: 19px; margin: 0 0 10px; }
+.pp-ayuda { color: var(--texto-suave); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+.pp-escala { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 22px; }
+.pp-carta { min-width: 58px; min-height: 74px; font-size: 21px; }
+.pp-carta[aria-pressed="true"] { border-color: var(--primario); background: var(--acento-claro); box-shadow: 0 0 0 2px var(--acento); }
+.pp-acciones { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.pp-acciones .pp-ayuda { margin: 0; }
+@media (max-width: 760px) { .pp-disposicion { grid-template-columns: 1fr; } }
+/* HU-05 · Ronda grupal. Se reutilizan tarjetas, botones y avisos globales. */
+.pp-ronda { padding: 20px; margin-top: 18px; }
+.pp-cabecera-ronda { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.pp-cabecera-ronda h2 { font-size: 19px; margin: 0 0 8px; }
+.pp-cabecera-ronda .pp-ayuda { max-width: 680px; }
+.pp-resumen-ronda { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.pp-participantes { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 10px; }
+.pp-participante { border: 1px solid var(--borde, #ddd); border-radius: 9px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pp-participante small { color: var(--texto-suave); }
+.pp-subtitulo { font-size: 16px; margin: 22px 0 0; }
+.pp-final { border-top: 1px solid var(--borde, #ddd); padding-top: 16px; margin-top: 18px; }
+.pp-final select { max-width: 320px; margin-top: 8px; }
+.pp-acciones-ronda { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+/* HU-05 · Ajustes locales: nombres largos, pantallas pequeñas y confirmación coherente con ScrumFlow. */
+.pp-ronda, .pp-ronda > div, .pp-participantes { min-width: 0; }
+.pp-participantes { grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr)); }
+.pp-participante { min-width: 0; }
+.pp-participante span { min-width: 0; overflow-wrap: anywhere; }
+.pp-participante small { flex-shrink: 0; white-space: nowrap; }
+.pp-modal-fondo:not([hidden]) { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(30, 27, 24, .48); }
+.pp-modal-fondo[hidden] { display: none !important; }
+.pp-modal { width: min(100%, 440px); max-height: 90vh; overflow: auto; padding: 24px; border-radius: 14px; background: var(--fondo-tarjeta, #fffdfa); border: 1px solid var(--borde, #e3ddd3); box-shadow: 0 20px 55px rgba(0,0,0,.16); }
+.pp-modal-cabecera { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.pp-modal-cabecera h2 { margin: 0; font-size: 20px; }
+.pp-modal-x { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 27px; line-height: 1; }
+.pp-modal-acciones { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 520px) { .pp-modal { padding: 18px; } .pp-participantes { grid-template-columns: 1fr; } }
+
+/* HU-05 · Espaciado del control de revelación respecto a las tarjetas de participantes. */
+#pp-revelar:not([hidden]) { display: inline-flex; margin: 0 0 16px; }
+
+/* HU-05 · Encabezado responsive: acción alineada, sin saltos incómodos ni solapamientos. */
+.pp-cabecera-ronda {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 24px;
+  row-gap: 16px;
+  margin-bottom: 20px;
+}
+.pp-cabecera-ronda > div { min-width: 0; }
+.pp-cabecera-ronda .pp-ayuda { margin: 0; max-width: 680px; }
+#pp-iniciar {
+  justify-self: end;
+  align-self: start;
+  white-space: nowrap;
+  min-height: 38px;
+}
+/* Separación estable entre el encabezado y el aviso de estado. */
+.pp-cabecera-ronda + #pp-estado-ronda { margin-top: 0; }
+@media (max-width: 650px) {
+  .pp-cabecera-ronda { grid-template-columns: minmax(0, 1fr); row-gap: 18px; }
+  #pp-iniciar { justify-self: start; }
+}
+@media (max-width: 390px) {
+  #pp-iniciar { width: 100%; justify-content: center; }
+}

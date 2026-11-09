@@ -109,6 +109,8 @@ export function renderizarCarriles(contenedor, carriles, columnas, modo) {
       const celda = crear('div', 'carril__celda');
       celda.dataset.columnaId = columna.id;
       celda.dataset.carril = carril.clave;
+      // arrastrar.js (HU-23) lee esto de la columna destino para decidir si una tarjeta bloqueada puede entrar
+      celda.dataset.esFinal = columna.es_final ? 'true' : 'false';
 
       const lista = crear('div', 'carril__lista');
       lista.id = `lista-tarjetas-${columna.id}-carril-${fragmentoId(carril.clave)}`;

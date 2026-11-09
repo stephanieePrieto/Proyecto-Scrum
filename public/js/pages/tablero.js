@@ -15,6 +15,7 @@ import { inicializarFiltros } from './tablero/filtros.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { escucharMovimientosSocket } from './tablero/reconexion.js';
+import { iniciarControlConcurrencia, sincronizarEdicionesPendientes } from './tablero/concurrencia.js';
 
 /**
  * Carga diferida del detalle de tarjeta (HU-20).
@@ -31,7 +32,7 @@ function cargarDetalleTarjeta() {
  * Listener principal que se ejecuta una vez que el DOM ha sido completamente cargado.
  * @listens DOMContentLoaded
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async() => {
     /**
      * Carga el detalle antes de validar el proyecto activo: el enlace ?tarea=ID de las
      * notificaciones debe abrir la tarjeta aunque no haya proyecto seleccionado.
@@ -65,6 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tableroVacio) tableroVacio.style.display = 'none';
     }
 
+    // Inicializar controles de concurrencia y sincronizar cambios offline pendientes
+    iniciarControlConcurrencia();
+    await sincronizarEdicionesPendientes();
     /**
      * Inicia la carga de las columnas, tarjetas y cálculo de días del sprint activo.
      */

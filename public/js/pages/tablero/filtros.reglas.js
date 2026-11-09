@@ -348,6 +348,8 @@ export function aplicarCambioEnVivo(tarea, datos = {}) {
   const copia = { ...tarea };
   if (!datos || typeof datos !== 'object') return copia;
   if (datos.columnaId !== undefined) copia.columna_id = datos.columnaId;
+  if (datos.version !== undefined) copia.version = datos.version;
+  if (datos.orden !== undefined) copia.orden = datos.orden;
   if (datos.responsableId !== undefined) {
     copia.responsable_id = datos.responsableId;
     copia.responsable = datos.responsable ?? null;

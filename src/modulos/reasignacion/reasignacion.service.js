@@ -127,6 +127,7 @@ export async function reasignarTarea({ proyectoId, tareaId, responsableId, respo
     proyectoId: Number(proyectoId),
     tareaId: id,
     columnaId: actualizada.columna_id,
+    version: actualizada.version,
     responsableId: destino,
     responsable: nombreDestino,
     usuarioNombre: actor[0]?.nombre || 'Un compañero',

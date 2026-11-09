@@ -140,6 +140,93 @@
         </div>
     </div>
 
+    <!-- Banner de notificación de concurrencia -->
+    <div id="aviso-concurrencia-tablero" class="aviso-concurrencia-banner" hidden></div>
+
+    <!-- Modal de Edición de Tarjeta con Control de Versión (HU-25) -->
+    <div id="overlay-editar-tarjeta" class="modal-overlay modal--hidden">
+        <div class="modal-card" style="width: 100%; max-width: 520px;">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0;">Editar Tarjeta</h2>
+                <span id="editar-tarjeta-version" class="insignia insignia--neutro">v1</span>
+            </div>
+            <form id="form-editar-tarjeta" novalidate>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div id="modal-editar-presencia" class="tarjeta-presencia-aviso"
+                        style="font-size: 12px; color: var(--rosa-700); font-weight: 500;" hidden></div>
+                    <div id="editar-tarjeta-error" class="alerta alerta--error" role="alert" hidden></div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-titulo">Título *</label>
+                        <input id="editar-tarjeta-titulo" class="form-input" type="text" maxlength="200" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-descripcion">Descripción</label>
+                        <textarea id="editar-tarjeta-descripcion" class="form-input" rows="3"
+                            maxlength="1000"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-responsable">Responsable</label>
+                        <select id="editar-tarjeta-responsable" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-horas">Horas estimadas</label>
+                        <input id="editar-tarjeta-horas" class="form-input" type="number" min="0.1" step="0.1" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-etiquetas">Etiquetas (separadas por coma)</label>
+                        <input id="editar-tarjeta-etiquetas" class="form-input" type="text"
+                            placeholder="frontend, api" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary" id="btn-cancelar-editar-tarjeta">Cancelar</button>
+                    <button type="submit" class="btn btn--primary" id="btn-guardar-editar-tarjeta">Guardar
+                        cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Interactivo de Resolución de Conflictos 409 (HU-25) -->
+    <div id="overlay-conflicto-tarjeta" class="modal-overlay modal--hidden">
+        <div class="modal-card" style="width: 100%; max-width: 680px;">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: var(--rosa-700);">⚠️ Esta tarjeta cambió
+                </h2>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <p style="font-size: 13px; color: var(--texto-suave);">
+                    Otro usuario guardó cambios en esta tarjeta mientras la editabas. Compara las diferencias y decide
+                    cómo proceder:
+                </p>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--borde);">
+                                <th style="padding: 8px;">Campo</th>
+                                <th style="padding: 8px;">Tu versión (Modificada)</th>
+                                <th style="padding: 8px;">Versión en Servidor (Actual)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-conflicto-cuerpo"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <button type="button" class="btn btn--secondary" id="btn-conflicto-cerrar">Cancelar</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn--secondary" id="btn-conflicto-aceptar-suya">Aceptar la
+                        suya</button>
+                    <button type="button" class="btn btn--primary" id="btn-conflicto-fusionar"
+                        style="background-color: var(--ambar-700);">Fusionar selección</button>
+                    <button type="button" class="btn btn--primary" id="btn-conflicto-conservar-mia">Conservar
+                        mía</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="../js/pages/tablero.js"></script>
 
 </body>

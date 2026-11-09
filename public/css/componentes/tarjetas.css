@@ -70,3 +70,60 @@
     0%, 100% { opacity: 1; }
     50% { opacity: .7; }
 }
+
+/* Estilos para Concurrencia y Conflictos (HU-25) */
+.tarjeta-editando-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: var(--rosa-50, #f8ece9);
+  color: var(--rosa-700, #8f362d);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fecdd3;
+  z-index: 5;
+}
+
+.tarjeta-item--pendiente {
+  border-style: dashed !important;
+  border-color: var(--ambar-500, #c99a45) !important;
+}
+
+.aviso-concurrencia-banner {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 120;
+  background: var(--carbon, #282828);
+  color: var(--blanco, #fbfaf7);
+  padding: 12px 20px;
+  border-radius: var(--radio-lg, 8px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeInOut 0.3s ease-out;
+}
+
+.conflicto-fila {
+  border-bottom: 1px solid var(--borde, #e4dfd3);
+}
+
+.conflicto-celda {
+  padding: 10px 8px;
+  vertical-align: middle;
+}
+
+.conflicto-celda--campo {
+  font-weight: 600;
+  color: var(--texto, #282828);
+  width: 25%;
+}
+
+.conflicto-opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

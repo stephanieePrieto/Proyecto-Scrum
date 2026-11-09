@@ -147,18 +147,23 @@ function reemplazarTarea(tarea) {
 }
 
 /**
- * Toma del DOM la columna en la que quedó cada tarjeta. El arrastre entre columnas (arrastrar.js) mueve la
- * tarjeta en el DOM y la guarda en el servidor, pero no avisa; sin esto, al volver a filtrar la tarjeta
- * regresaría a su columna anterior.
+ * Toma del DOM la columna, la versión y el orden de cada tarjeta. El arrastre entre columnas (arrastrar.js)
+ * y la convergencia de ediciones (convergencia.js, HU-25) cambian las tarjetas en el DOM sin avisar; sin esto,
+ * al volver a filtrar la tarjeta regresaría a su columna anterior o con una versión vieja.
  * @param {HTMLElement} contenedor
  */
-function sincronizarColumnasDesdeDom(contenedor) {
+function sincronizarDesdeDom(contenedor) {
   contenedor.querySelectorAll('.tarjeta-item[data-tarea-id]').forEach((elemento) => {
     const id = elemento.dataset.tareaId;
     if (estado.cambiosEnVivo.has(id)) return;
     const tarea = buscarTarea(id);
+    if (!tarea) return;
     const columna = elemento.closest('[data-columna-id]')?.dataset.columnaId;
-    if (tarea && columna && String(tarea.columna_id) !== columna) tarea.columna_id = Number(columna);
+    if (columna && String(tarea.columna_id) !== columna) tarea.columna_id = Number(columna);
+    const version = Number(elemento.dataset.version);
+    if (Number.isFinite(version) && version > 0) tarea.version = version;
+    const orden = Number(elemento.dataset.orden);
+    if (Number.isFinite(orden) && elemento.dataset.orden !== '') tarea.orden = orden;
   });
 }
 
@@ -227,7 +232,7 @@ function renderizarVista() {
   const contenedor = obtenerContenedor();
   if (!contenedor || estado.columnas.length === 0) return;
 
-  sincronizarColumnasDesdeDom(contenedor);
+  sincronizarDesdeDom(contenedor);
   estado.cambiosEnVivo.clear();
 
   const visibles = filtrarTareas(estado.tareas, estado.filtros);

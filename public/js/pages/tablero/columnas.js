@@ -129,6 +129,7 @@ export function renderizarColumnas(columnas) {
         columnaElemento.dataset.columnaId = col.id;
         //mantener el límite WIP en el dataset para referencia futura pero sin mostrarlo en el html
         columnaElemento.dataset.limiteWip = col.limite_wip || '∞';
+        columnaElemento.dataset.esFinal = col.es_final ? 'true' : 'false';
 
         const encabezado = document.createElement('div');
         encabezado.classList.add('flex', 'justify-between', 'items-center', 'mb-3', 'px-1');

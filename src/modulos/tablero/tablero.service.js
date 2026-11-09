@@ -44,6 +44,7 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
     const tarRes = await consulta(
         `SELECT t.id, t.titulo, t.descripcion, t.columna_id, t.orden, t.version,
                 t.bloqueada, t.motivo_bloqueo,
+                t.historia_id, h.numero_hu, h.titulo AS historia_titulo, t.etiquetas,
                 t.responsable_id,
                 u.nombre AS responsable,
                 (u.id IS NOT NULL AND u.activo = FALSE) AS responsable_inactivo,

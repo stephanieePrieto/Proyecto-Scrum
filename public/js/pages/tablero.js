@@ -10,7 +10,8 @@
  * @see {@link module:tablero/columnas}
  */
 
-import { inicializarTablero, aplicarFiltrosTablero } from './tablero/columnas.js';
+import { inicializarTablero } from './tablero/columnas.js';
+import { inicializarFiltros } from './tablero/filtros.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { escucharMovimientosSocket } from './tablero/reconexion.js';
@@ -72,26 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Carga los permisos del proyecto activo para mostrar solo las acciones de su rol.
      */
-    cargarPermisos(Number(proyectoActivoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+    const permisos = cargarPermisos(Number(proyectoActivoId));
+    permisos.catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+
+    /**
+     * Filtros, agrupación en carriles y su persistencia (HU-21). La respuesta de permisos trae el usuario
+     * para guardar los filtros por proyecto y persona.
+     */
+    inicializarFiltros(proyectoActivoId, permisos);
 
     /**
      * Inicializa la escucha por WebSockets y la sincronización offline (HU-58).
      */
     escucharMovimientosSocket(proyectoActivoId);
-
-    /**
-     * Configura los escuchadores para los filtros dinámicos en tiempo real (Persona / Épica).
-     */
-    const filtroPersona = document.getElementById('filtro-persona');
-    const filtroEpica = document.getElementById('filtro-epica');
-
-    if (filtroPersona) {
-        filtroPersona.addEventListener('change', aplicarFiltrosTablero);
-    }
-
-    if (filtroEpica) {
-        filtroEpica.addEventListener('change', aplicarFiltrosTablero);
-    }
 
     /**
      * Configura los escuchadores de eventos para los botones de acción del encabezado.

@@ -1,0 +1,227 @@
+/* Responsable: Alfonso - HU-21: estilos de filtros, carriles (swimlanes) y avisos del tablero */
+
+/* ===========================================================================
+   Barra de filtros
+   =========================================================================== */
+.barra-filtros__etiqueta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-suave);
+}
+
+.barra-filtros__resumen {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.barra-filtros__resumen:empty {
+  display: none;
+}
+
+.barra-filtros .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===========================================================================
+   Ninguna tarjeta coincide (criterio 3)
+   =========================================================================== */
+.tablero-sin-resultados {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--espacio-4);
+  padding: 12px 16px;
+  border: 1px dashed var(--slate-300);
+  border-radius: var(--radio-lg);
+  background: var(--slate-50);
+  color: var(--texto);
+}
+
+.tablero-sin-resultados[hidden] {
+  display: none;
+}
+
+.tablero-sin-resultados p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ===========================================================================
+   Carriles: reemplazan a las columnas dentro de #tablero-contenedor
+   =========================================================================== */
+.carriles {
+  --carriles-ancho-min: 260px;
+  flex: 1 0 auto;
+  min-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.carriles__encabezado,
+.carril__celdas {
+  display: grid;
+  grid-template-columns: repeat(var(--carriles-columnas, 4), minmax(var(--carriles-ancho-min), 1fr));
+  gap: 12px;
+}
+
+.carriles__encabezado {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 4px;
+  background: var(--fondo-app);
+}
+
+.carriles__columna {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radio-lg);
+  background: var(--slate-200);
+}
+
+.carriles__columna-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-800);
+}
+
+.carriles__contador {
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--blanco);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+.carriles__contador--excedido {
+  background: var(--rosa-50);
+  color: var(--rosa-700);
+  box-shadow: inset 0 0 0 1px var(--rosa-500);
+}
+
+.carril {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  background: var(--blanco);
+  padding: 10px 12px 12px;
+}
+
+.carril__encabezado {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.carril__titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.carril__conteo {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.carril__celda {
+  min-height: 72px;
+  padding: 8px;
+  border-radius: var(--radio-lg);
+  background: var(--slate-50);
+}
+
+.carril__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 56px;
+  border-radius: var(--radio-lg);
+  transition: background-color 0.15s ease;
+}
+
+/* arrastrar.js marca con esta clase la lista sobre la que se arrastra */
+.carril__lista.bg-indigo-50\/50 {
+  background: var(--acento-claro);
+}
+
+/* Carril sin tarjetas visibles: se conserva como destino para soltar, pero más compacto */
+.carril--vacio .carril__celda {
+  min-height: 48px;
+}
+
+.carril--vacio .carril__lista {
+  min-height: 32px;
+}
+
+/* ===========================================================================
+   Tarjeta que sale de la vista por un cambio en vivo (criterio 5)
+   =========================================================================== */
+.tarjeta-item--saliendo {
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* ===========================================================================
+   Aviso discreto
+   =========================================================================== */
+.tablero-aviso {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 90;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border-radius: var(--radio-lg);
+  background: var(--carbon);
+  color: var(--blanco);
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 8px 20px rgb(40 40 40 / 0.18);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tablero-aviso--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tablero-aviso[data-tono="error"] {
+  background: var(--rosa-700);
+}
+
+@media (max-width: 768px) {
+  .carriles {
+    --carriles-ancho-min: 220px;
+  }
+
+  .barra-filtros__resumen {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-item--saliendo,
+  .tablero-aviso,
+  .carril__lista {
+    transition: none;
+  }
+}

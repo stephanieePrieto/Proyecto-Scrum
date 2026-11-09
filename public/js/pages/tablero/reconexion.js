@@ -78,6 +78,9 @@ export function escucharMovimientosSocket(proyectoId) {
 
                 setTimeout(() => aviso.remove(), 2500);
             }
+
+            // HU-21 (Alfonso): avisar a los filtros para sacar la tarjeta de la vista si ya no coincide (criterio 5)
+            document.dispatchEvent(new CustomEvent('tablero:cambio-en-vivo', { detail: data }));
         });
 
         socket.on('disconnect', () => {

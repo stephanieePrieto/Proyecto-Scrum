@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="../css/componentes/formularios.css">
     <link rel="stylesheet" href="../css/componentes/insignias.css">
     <link rel="stylesheet" href="../css/componentes/modales.css">
+    <link rel="stylesheet" href="../css/componentes/swimlanes.css">
 </head>
 
 <body>
@@ -59,16 +60,36 @@
                 </div>
             </div>
 
-            <!-- Barra de Filtros -->
-            <div class="tarjeta"
-                style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
+            <!-- Barra de Filtros (HU-21: persona, épica, etiqueta, estado y agrupación en carriles) -->
+            <div class="tarjeta barra-filtros" role="search" aria-label="Filtros del tablero"
+                style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
                 <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
-                <select id="filtro-persona" class="form-select" style="width: auto;">
-                    <option value="">Persona: Todos</option>
+                <select id="filtro-persona" class="form-select" style="width: auto;" aria-label="Filtrar por persona">
+                    <option value="">Persona: Todas</option>
                 </select>
-                <select id="filtro-epica" class="form-select" style="width: auto;">
+                <select id="filtro-epica" class="form-select" style="width: auto;" aria-label="Filtrar por épica">
                     <option value="">Épica: Todas</option>
                 </select>
+                <select id="filtro-etiqueta" class="form-select" style="width: auto;" aria-label="Filtrar por etiqueta">
+                    <option value="">Etiqueta: Todas</option>
+                </select>
+                <select id="filtro-estado" class="form-select" style="width: auto;" aria-label="Filtrar por estado">
+                    <option value="">Estado: Todos</option>
+                </select>
+                <label for="filtro-agrupar" class="barra-filtros__etiqueta">Agrupar:</label>
+                <select id="filtro-agrupar" class="form-select" style="width: auto;">
+                    <option value="ninguno">Sin carriles</option>
+                    <option value="historia">Por historia</option>
+                    <option value="persona">Por persona</option>
+                </select>
+                <span id="filtros-resumen" class="barra-filtros__resumen"></span>
+                <button type="button" class="btn btn--secondary" id="btn-limpiar-filtros" disabled>Limpiar filtros</button>
+            </div>
+
+            <!-- Ninguna tarjeta coincide con los filtros (HU-21, criterio 3) -->
+            <div id="tablero-sin-resultados" class="tablero-sin-resultados" role="status" hidden>
+                <p>Ninguna tarjeta coincide con los filtros seleccionados.</p>
+                <button type="button" class="btn btn--primary" id="btn-limpiar-filtros-vacio">Limpiar filtros</button>
             </div>
 
             <!-- Contenedor de las Columnas -->
@@ -95,6 +116,26 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn--secondary" id="btn-cerrar-config-modal">Cancelar</button>
                 <button type="button" class="btn btn--primary" id="btn-guardar-config-columnas">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aviso discreto del tablero (HU-21: reasignaciones y tarjetas que salen de la vista) -->
+    <div id="tablero-aviso" class="tablero-aviso" role="status" aria-live="polite"></div>
+
+    <!-- Modal de confirmación de reasignación (HU-21, criterio 4) -->
+    <div id="overlay-confirmar-reasignacion" class="modal-overlay modal--hidden" inert>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-confirmar-reasignacion"
+            aria-describedby="texto-confirmar-reasignacion" style="width: 100%; max-width: 440px;">
+            <div class="modal-header">
+                <h2 id="titulo-confirmar-reasignacion" style="font-size: 18px; font-weight: 600; margin: 0;">Confirmar reasignación</h2>
+            </div>
+            <div class="modal-body">
+                <p id="texto-confirmar-reasignacion" style="margin: 0;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary" id="btn-cancelar-reasignacion">Cancelar</button>
+                <button type="button" class="btn btn--primary" id="btn-confirmar-reasignacion">Reasignar</button>
             </div>
         </div>
     </div>

@@ -5,7 +5,7 @@
  */
 
 import { renderizarTarjetasEnTablero } from './tarjeta.js';
-import { inicializarDragAndDrop, actualizarContadoresYAlertasWip } from './arrastrar.js';
+import { inicializarDragAndDrop } from './arrastrar.js';
 
 /**
  * Cliente HTTP aislado para realizar peticiones.
@@ -192,10 +192,14 @@ export async function cargarTablero(proyectoId) {
             if (respuesta.data.tareas) {
                 tareasActivas = respuesta.data.tareas;
                 renderizarTarjetasEnTablero(tareasActivas);
-                poblarFiltros(tareasActivas);
             }
 
             inicializarDragAndDrop(proyectoIdActual);
+
+            // HU-21: avisar a tablero/filtros.js que hay datos nuevos para aplicar filtros y carriles
+            document.dispatchEvent(new CustomEvent('tablero:cargado', {
+                detail: { proyectoId: proyectoIdActual, columnas: respuesta.data.columnas || [], tareas: tareasActivas }
+            }));
         }
     } catch (error) {
         console.error("Error al cargar el tablero:", error);
@@ -220,97 +224,6 @@ export async function cargarTablero(proyectoId) {
     }
 }
 
-
-/**
- * TODO (Alfonso - HU-21): estas funciones (poblarFiltros y aplicarFiltrosTablero)
- * son una versión inicial del filtro por Persona y Épica, hecha en este archivo
- * para poder probar el tablero. Al desarrollar HU-21, muévelas a
- * tablero/filtros.js y adáptalas (etiqueta, estado, persistencia del filtro,
- * swimlanes, mensaje de "sin resultados", etc.). Después elimínalas de aquí
- * y actualiza los imports en tablero.js.
- */
-
-
-/**
- * Llena los selectores de Persona y Épica con los datos disponibles en las tareas,
- * soportando múltiples nomenclaturas o IDs numéricos.
- * 
- * @function poblarFiltros
- * @param {Array<Object>} tareas - Arreglo de tareas del sprint activo.
- * @returns {void}
- */
-function poblarFiltros(tareas) {
-    const filtroPersona = document.getElementById('filtro-persona');
-    const filtroEpica = document.getElementById('filtro-epica');
-
-    if (filtroPersona) {
-        const responsablesMap = new Map();
-
-        tareas.forEach(t => {
-            // Buscamos cualquier variante posible de ID y Nombre del responsable
-            const id = t.responsable_id || t.usuario_id || t.id_responsable;
-            const nombre = t.responsable_nombre || t.responsable || t.nombre_responsable || (id ? `Usuario #${id}` : null);
-
-            if (id && nombre) {
-                responsablesMap.set(String(id), { id, nombre });
-            }
-        });
-
-        filtroPersona.innerHTML = '<option value="">Persona: Todos</option>';
-        responsablesMap.forEach(r => {
-            const op = document.createElement('option');
-            op.value = r.id;
-            op.textContent = r.nombre;
-            filtroPersona.appendChild(op);
-        });
-    }
-
-    if (filtroEpica) {
-        const epicasMap = new Map();
-
-        tareas.forEach(t => {
-            const id = t.epica_id || t.id_epica;
-            const nombre = t.epica_nombre || t.epica || (id ? `Épica #${id}` : null);
-
-            if (id) {
-                epicasMap.set(String(id), { id, nombre });
-            }
-        });
-
-        filtroEpica.innerHTML = '<option value="">Épica: Todas</option>';
-        epicasMap.forEach(e => {
-            const op = document.createElement('option');
-            op.value = e.id;
-            op.textContent = e.nombre;
-            filtroEpica.appendChild(op);
-        });
-    }
-}
-
-/**
- * Filtra las tarjetas en tiempo real según los selectores seleccionados (Persona y Épica).
- * 
- * @function aplicarFiltrosTablero
- * @returns {void}
- */
-export function aplicarFiltrosTablero() {
-    const personaId = document.getElementById('filtro-persona')?.value;
-    const epicaId = document.getElementById('filtro-epica')?.value;
-
-    const tareasFiltradas = tareasActivas.filter(tarea => {
-        const coincidePersona = personaId ? String(tarea.responsable_id) === String(personaId) : true;
-        const coincideEpica = epicaId ? String(tarea.epica_id) === String(epicaId) : true;
-        return coincidePersona && coincideEpica;
-    });
-
-    columnasActivas.forEach(col => {
-        const listaTarjetas = document.getElementById(`lista-tarjetas-${col.id}`);
-        if (listaTarjetas) listaTarjetas.replaceChildren();
-    });
-
-    renderizarTarjetasEnTablero(tareasFiltradas);
-    actualizarContadoresYAlertasWip();
-}
 
 /**
  * Asigna eventos al modal de configuración generando los campos mediante nodos DOM.

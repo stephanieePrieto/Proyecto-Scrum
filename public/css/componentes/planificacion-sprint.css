@@ -18,35 +18,103 @@
 
 
 /* ==========================================
-   Resumen del Sprint
+   HU-07 · Resumen compacto del Sprint
+   Debajo del selector, sin cambiar los contadores
    ========================================== */
 
-.planificacion-resumen {
+.planificacion-contenido > .planificacion-resumen {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--espacio-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-sm);
 }
 
-.planificacion-metrica {
+.planificacion-resumen > .planificacion-metrica {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 110px;
-  padding: 20px;
+  gap: 10px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.planificacion-resumen > .planificacion-metrica:not(:last-child) {
+  border-right: 1px solid var(--borde);
 }
 
 .planificacion-metrica__valor {
-  font-size: 28px;
+  flex-shrink: 0;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--texto);
 }
 
 .planificacion-metrica > span:last-child {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.3;
   color: var(--texto-suave);
 }
+
+/* HU-07: lista disponible y medidor de capacidad. */
+.planificacion-disponibles__titulo,
+.planificacion-capacidad__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.planificacion-disponibles__contador,
+.planificacion-disponible__puntos,
+.planificacion-capacidad__encabezado > span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+.planificacion-disponible {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px;
+}
+.planificacion-disponible strong { overflow-wrap: anywhere; }
+.planificacion-disponible__puntos--pendiente { font-weight: 600; }
+.planificacion-capacidad { padding: 16px 20px; }
+.planificacion-capacidad[hidden] { display: none !important; }
+.planificacion-capacidad__pista {
+  height: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+  border-radius: 99px;
+  background: var(--borde);
+}
+.planificacion-capacidad__barra {
+  height: 100%;
+  width: 0;
+  background: #2c8977;
+  border-radius: inherit;
+  transition: width .2s ease;
+}
+.planificacion-capacidad--amarillo .planificacion-capacidad__barra { background: #c38a16; }
+.planificacion-capacidad--rojo .planificacion-capacidad__barra { background: #c44646; }
+.planificacion-capacidad__aviso {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.planificacion-capacidad__aviso:empty { display: none; }
 
 /* ==========================================
    Historias del Sprint
@@ -454,21 +522,76 @@
 
 
 
+/* HU-07: confirmaciones de planificación con el mismo diseño del modal HU-08. */
+#dialogo-confirmar-planificacion:not([open]) { display: none !important; }
+#dialogo-confirmar-planificacion[open] {
+  position: fixed !important;
+  inset: 0 !important;
+  transform: none !important;
+  margin: auto !important;
+  width: calc(100% - 32px);
+  max-width: 450px;
+  height: fit-content;
+  max-height: calc(100dvh - 32px);
+  padding: 0 !important;
+  border: none !important;
+  border-radius: var(--radio-lg);
+  background: var(--fondo-tarjeta);
+  box-shadow: var(--sombra-lg);
+  box-sizing: border-box;
+  overflow: auto;
+}
+#dialogo-confirmar-planificacion::backdrop { background: rgba(0, 0, 0, 0.45); }
+#dialogo-confirmar-planificacion .bl-confirmacion__contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+#dialogo-confirmar-planificacion .bl-confirmacion__contenido > h2,
+#dialogo-confirmar-planificacion .bl-confirmacion__contenido > p { margin: 0; }
+#dialogo-confirmar-planificacion .planificacion-confirmacion__mensaje {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+#dialogo-confirmar-planificacion #grupo-justificacion-planificacion[hidden],
+#dialogo-confirmar-planificacion #error-confirmar-planificacion[hidden] { display: none !important; }
+#dialogo-confirmar-planificacion textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+
 /* ==========================================
    Responsive
    ========================================== */
 
 @media (max-width: 800px) {
-  .planificacion-resumen {
-    grid-template-columns: 1fr;
-  }
-
+  .planificacion-contenido > .planificacion-resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .planificacion-resumen > .planificacion-metrica:nth-child(2) { border-right: 0; }
+  .planificacion-resumen > .planificacion-metrica:nth-child(-n+2) { border-bottom: 1px solid var(--borde); }
   .planificacion-tarea {
     grid-template-columns: 1fr 1fr;
   }
 
   .planificacion-selector {
     align-items: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .planificacion-contenido > .planificacion-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .planificacion-resumen > .planificacion-metrica {
+    justify-content: flex-start;
+    min-height: 50px;
+    padding: 10px 16px;
+  }
+
+  .planificacion-resumen > .planificacion-metrica:not(:last-child) {
+    border-right: 0;
+    border-bottom: 1px solid var(--borde);
   }
 }
 
@@ -485,5 +608,71 @@
 @media (prefers-reduced-motion: reduce) {
   .planificacion-contenido .sprints-proyectos__indicador {
     transition: none;
+  }
+}
+
+/* HU-07: arrastre y acción accesible sin modificar estilos compartidos. */
+.planificacion-disponible[draggable="true"] { cursor: grab; }
+.planificacion-disponible[draggable="true"]:active { cursor: grabbing; }
+.planificacion-disponible > .boton { margin-left: auto; }
+#lista-historias-sprint { min-height: 92px; }
+
+/* HU-07: devolución opcional con arrastre y botón, sin tocar estilos globales. */
+.planificacion-historia[draggable="true"] { cursor: grab; }
+.planificacion-historia[draggable="true"]:active { cursor: grabbing; }
+.planificacion-boton-devolver { margin-left: 10px; }
+
+
+/* ==========================================
+   HU-07 · Product Backlog y Sprint Backlog lado a lado
+   Solo distribución visual: conserva ids y eventos de arrastre.
+   ========================================== */
+.planificacion-columnas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+.planificacion-columnas > .planificacion-historias {
+  min-width: 0;
+  min-height: 260px;
+  padding: 20px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  background: var(--fondo-tarjeta);
+}
+
+.planificacion-columnas .planificacion-historias h2 {
+  margin: 0;
+}
+
+.planificacion-columnas .planificacion-historia__titulo {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.planificacion-columnas .planificacion-historia__encabezado {
+  padding: 16px;
+}
+
+/* Las tareas desplegadas necesitan una distribución más compacta
+   cuando la historia ocupa media pantalla. */
+.planificacion-columnas .planificacion-tarea {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.planificacion-columnas .planificacion-tarea__acciones {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .planificacion-columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .planificacion-columnas > .planificacion-historias {
+    min-height: 180px;
   }
 }

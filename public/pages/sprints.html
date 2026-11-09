@@ -51,21 +51,12 @@
       </button>
     </div>
 
-    <!-- HU-06: Pestañas para navegar entre proyectos -->
-    <nav class="sprints-proyectos" aria-label="Seleccionar proyecto">
-      <div id="pestanas-proyectos" class="sprints-proyectos__lista">
-        <!-- Las pestañas se cargarán con JavaScript -->
-      </div>
-    </nav>
-
     <!-- Mensajes -->
     <div id="mensaje-sprints" class="alerta" role="status" aria-live="polite" hidden></div>
 
     <!-- Listado de sprints -->
-    <section class="tarjeta" aria-labelledby="titulo-sprints">
-      <h2 id="titulo-sprints" class="tarjeta__titulo">
-        <h2 id="titulo-lista-sprints">Sprints del proyecto</h2>
-      </h2>
+    <section class="tarjeta" aria-labelledby="titulo-lista-sprints">
+      <h2 id="titulo-lista-sprints" class="tarjeta__titulo">Sprints del proyecto</h2>
 
       <div id="lista-sprints" aria-live="polite">
         <p id="estado-vacio" class="subtitulo-pagina">
@@ -190,6 +181,26 @@
     </form>
   </dialog>
 
+  <!-- Detalle del sprint seleccionado: no modifica el sprint -->
+  <dialog id="dialogo-detalle-sprint" class="modal-card" aria-labelledby="titulo-detalle-sprint">
+    <div class="modal-header">
+      <h2 id="titulo-detalle-sprint">Información del sprint</h2>
+      <button type="button" id="btn-cerrar-detalle-sprint" class="sprint-detalle__cerrar" aria-label="Cerrar detalle">×</button>
+    </div>
+    <div class="modal-body">
+      <dl class="sprint-detalle__datos">
+        <div><dt>Nombre</dt><dd id="detalle-sprint-nombre"></dd></div>
+        <div><dt>Objetivo</dt><dd id="detalle-sprint-objetivo"></dd></div>
+        <div><dt>Fechas</dt><dd id="detalle-sprint-fechas"></dd></div>
+        <div><dt>Estado</dt><dd id="detalle-sprint-estado"></dd></div>
+        <div><dt>Capacidad</dt><dd id="detalle-sprint-capacidad"></dd></div>
+      </dl>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="btn-volver-detalle-sprint" class="boton boton--secundario">Cerrar</button>
+      <a id="enlace-planificar-sprint" class="boton boton--primario" href="planificacion-sprint.html">Ir a planificación</a>
+    </div>
+  </dialog>
 
   <script type="module" src="../js/pages/sprints.js"></script>
 </body>

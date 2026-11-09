@@ -63,14 +63,6 @@
     </div>
 
 
-    <!-- Navegación por proyectos -->
-    <nav class="sprints-proyectos"
-         aria-label="Seleccionar proyecto">
-      <div id="pestanas-proyectos"
-           class="sprints-proyectos__lista">
-      </div>
-    </nav>
-
     <!-- Selector de Sprint -->
     <section class="tarjeta planificacion-selector">
       <div class="grupo-formulario">
@@ -87,6 +79,10 @@
         </select>
       </div>
     </section>
+
+    <p id="planificacion-aviso-lectura" class="subtitulo-pagina" hidden>
+      Modo consulta: puedes revisar historias y tareas, pero no modificarlas desde Planificación.
+    </p>
 
     <!-- Mensajes -->
     <div id="mensaje-planificacion"
@@ -108,6 +104,12 @@
 
       <article class="tarjeta planificacion-metrica">
         <span class="planificacion-metrica__valor"
+              id="total-puntos">0 pts</span>
+        <span>Puntos comprometidos</span>
+      </article>
+
+      <article class="tarjeta planificacion-metrica">
+        <span class="planificacion-metrica__valor"
               id="total-tareas">0</span>
         <span>Tareas técnicas</span>
       </article>
@@ -118,6 +120,35 @@
         <span>Horas estimadas</span>
       </article>
 
+    </section>
+
+    <!-- HU-07: compromiso y capacidad, calculados a partir de las tareas técnicas. -->
+    <section id="planificacion-capacidad" class="tarjeta planificacion-capacidad" hidden aria-label="Capacidad comprometida">
+      <div class="planificacion-capacidad__encabezado">
+        <strong>Capacidad comprometida</strong>
+        <span id="planificacion-capacidad-texto">0 h</span>
+      </div>
+      <div class="planificacion-capacidad__pista">
+        <div id="planificacion-capacidad-barra" class="planificacion-capacidad__barra"
+             role="progressbar" aria-label="Porcentaje de capacidad comprometida"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+      </div>
+      <p id="planificacion-capacidad-aviso" class="planificacion-capacidad__aviso" role="status"></p>
+    </section>
+
+    <!-- HU-07: columnas de planificación; se apilan en pantallas pequeñas. -->
+    <div class="planificacion-columnas">
+
+    <!-- HU-07: historias sin Sprint del proyecto seleccionado. -->
+    <section class="planificacion-historias" aria-labelledby="titulo-backlog-disponible">
+      <div class="planificacion-disponibles__titulo">
+        <h2 id="titulo-backlog-disponible">Product Backlog disponible</h2>
+        <span class="planificacion-disponibles__contador"><span id="total-historias-disponibles">0</span> historias</span>
+      </div>
+      <p class="subtitulo-pagina"></p>
+      <div id="lista-historias-disponibles" class="planificacion-lista" aria-live="polite">
+        <p class="tarjeta planificacion-vacio">Selecciona un Sprint para consultar las historias disponibles.</p>
+      </div>
     </section>
 
     <!-- Historias del Sprint -->
@@ -148,6 +179,7 @@
       </div>
 
     </section>
+    </div> <!-- /planificacion-columnas -->
     </div>
     </main>
 
@@ -330,6 +362,34 @@
     >
       Eliminar tarea
     </button>
+  </div>
+</dialog>
+
+<!-- HU-07: confirmaciones propias de ScrumFlow (sin ventanas nativas del navegador) -->
+<dialog id="dialogo-confirmar-planificacion"
+        class="eq-dialogo modal-card"
+        aria-labelledby="titulo-confirmar-planificacion"
+        aria-describedby="detalle-confirmar-planificacion">
+  <div class="bl-confirmacion__contenido">
+    <h2 id="titulo-confirmar-planificacion" class="eq-dialogo__titulo"></h2>
+    <p id="detalle-confirmar-planificacion" class="planificacion-confirmacion__mensaje"></p>
+    <div id="grupo-justificacion-planificacion" class="grupo-formulario" hidden>
+      <label for="justificacion-confirmar-planificacion" class="etiqueta-formulario">
+        Justificación del Scrum Master
+      </label>
+      <textarea id="justificacion-confirmar-planificacion"
+                class="entrada-formulario"
+                rows="3"
+                maxlength="500"
+                placeholder="Explica por qué es necesario superar la capacidad"></textarea>
+    </div>
+    <p id="error-confirmar-planificacion" class="alerta alerta--error" role="alert" hidden></p>
+  </div>
+  <div class="eq-dialogo__acciones modal-footer">
+    <button type="button" id="btn-cancelar-confirmar-planificacion"
+            class="boton boton--secundario">Cancelar</button>
+    <button type="button" id="btn-aceptar-confirmar-planificacion"
+            class="boton boton--primario">Confirmar</button>
   </div>
 </dialog>
 

@@ -294,3 +294,41 @@
   position: relative;
   top: 9px;
 }
+/* HU-07: las tarjetas completas abren el detalle del sprint. */
+#lista-sprints .sprint-tarjeta { cursor: pointer; }
+#lista-sprints .sprint-tarjeta:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 3px;
+}
+
+/* Modal de información: estilos locales, sin alterar modales compartidos. */
+#dialogo-detalle-sprint {
+  width: calc(100% - 32px);
+  max-width: 560px;
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: none;
+  margin: auto;
+  overflow: hidden;
+}
+#dialogo-detalle-sprint:not([open]) { display: none; }
+#dialogo-detalle-sprint[open] { position: fixed; inset: 0; margin: auto; }
+#dialogo-detalle-sprint .modal-body { overflow-y: auto; }
+#dialogo-detalle-sprint::backdrop { background: rgb(15 23 42 / 60%); }
+.sprint-detalle__cerrar {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+  font-size: 26px;
+  cursor: pointer;
+}
+.sprint-detalle__cerrar:hover { background: var(--borde); }
+.sprint-detalle__datos { margin: 0; display: grid; gap: 16px; }
+.sprint-detalle__datos dt { font-weight: 600; margin-bottom: 4px; }
+.sprint-detalle__datos dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+  #dialogo-detalle-sprint .modal-footer { flex-wrap: wrap; }
+}

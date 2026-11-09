@@ -11,7 +11,7 @@
 
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
-import { cargarPermisos } from '../core/permisos-ui.js';
+import { cargarPermisos, rolActual, tienePermiso } from '../core/permisos-ui.js';
 
 // Barra superior compartida de AgileDesk
 montarBarraSuperior();
@@ -22,18 +22,56 @@ montarBarraSuperior();
 
 const parametros = new URLSearchParams(window.location.search);
 
+// HU-07: conservar la capacidad informada por el servidor para cada Sprint.
+let sprintsDisponibles = [];
+
 let proyectoId =
   parametros.get('proyecto') ||
   localStorage.getItem('proyectoActivo');
 
-const contenedorPestanas =
-  document.getElementById('pestanas-proyectos');
-
 const enlaceVolver =
   document.getElementById('enlace-volver-sprints');
 
-// Evitar cambios simultáneos
-let cambiandoProyecto = false;
+// Modo de consulta en Planificación: el rol se obtiene del servidor para el proyecto actual.
+// Este control es de interfaz; la autorización de cada API sigue siendo responsabilidad del servidor.
+function puedeEditarEnPlanificacion() {
+  return ['scrum_master', 'product_owner'].includes(rolActual()) &&
+    tienePermiso('tarea.gestionar');
+}
+
+function prepararControlEdicion(boton) {
+  boton.dataset.planificacionEditar = 'true';
+  const permitido = puedeEditarEnPlanificacion();
+  boton.style.display = permitido ? '' : 'none';
+  boton.disabled = !permitido;
+}
+
+function actualizarModoPlanificacion() {
+  const permitido = puedeEditarEnPlanificacion();
+  document.querySelectorAll('[data-planificacion-editar]').forEach((boton) => {
+    boton.style.display = permitido ? '' : 'none';
+    boton.disabled = !permitido;
+  });
+
+  const aviso = document.getElementById('planificacion-aviso-lectura');
+  if (aviso) aviso.hidden = rolActual() !== 'developer';
+
+  // Si el rol cambia mientras hay un formulario abierto, dejar de permitir ediciones.
+  if (!permitido) {
+    document.getElementById('dialogo-tarea')?.open &&
+      document.getElementById('dialogo-tarea').close();
+    document.getElementById('dialogo-eliminar-tarea')?.open &&
+      document.getElementById('dialogo-eliminar-tarea').close();
+  }
+}
+
+window.addEventListener('permisos:actualizados', (evento) => {
+  if (String(evento.detail?.proyectoId) === String(proyectoId)) {
+    actualizarModoPlanificacion();
+    if (historiasDisponiblesActuales.length) mostrarBacklogDisponible(historiasDisponiblesActuales);
+    if (historiasSprintActuales.length) mostrarHistoriasSprint(historiasSprintActuales);
+  }
+});
 
 // ==========================================
 // Actualizar el enlace de regreso
@@ -48,175 +86,6 @@ function actualizarEnlaceSprints() {
 
   enlaceVolver.href = url.pathname + url.search;
 }
-
-// ==========================================
-// Seleccionar proyecto
-// ==========================================
-
-function marcarProyectoActivo() {
-  const pestanas = contenedorPestanas.querySelectorAll(
-    '.sprints-proyectos__pestana'
-  );
-
-  pestanas.forEach((pestana) => {
-    const activa =
-      pestana.dataset.proyectoId === String(proyectoId);
-
-    pestana.classList.toggle(
-      'sprints-proyectos__pestana--activa',
-      activa
-    );
-
-    if (activa) {
-      pestana.setAttribute('aria-current', 'page');
-    } else {
-      pestana.removeAttribute('aria-current');
-    }
-  });
-}
-
-// ==========================================
-// Cambiar proyecto sin recargar
-// ==========================================
-
-async function cambiarProyecto(nuevoId, guardarHistorial = true) {
-  if (cambiandoProyecto) return;
-  if (String(nuevoId) === String(proyectoId)) return;
-
-  cambiandoProyecto = true;
-
-  // Invalidar consultas del proyecto anterior.
-  versionConsultaSprint++;
-
-  try {
-    proyectoId = String(nuevoId);
-
-    localStorage.setItem('proyectoActivo', proyectoId);
-
-    // Al cambiar de proyecto se recargan los permisos
-    cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-
-    if (guardarHistorial) {
-      const url = new URL(window.location.href);
-      url.searchParams.set('proyecto', proyectoId);
-
-      window.history.pushState({}, '', url);
-    }
-
-    marcarProyectoActivo();
-    actualizarEnlaceSprints();
-
-    // Evitar mostrar datos del proyecto anterior.
-    document.getElementById('selector-sprint').innerHTML =
-      '<option value="">Selecciona un Sprint</option>';
-
-    document.getElementById('total-historias').textContent = '0';
-    document.getElementById('total-tareas').textContent = '0';
-    document.getElementById('total-horas').textContent = '0 h';
-
-
-    const listaHistorias =
-      document.getElementById('lista-historias-sprint');
-
-    // Limpiar las historias del proyecto anterior
-    listaHistorias.replaceChildren();
-
-    // Crear el mensaje dentro de una tarjeta
-    const tarjetaVacia = document.createElement('div');
-    tarjetaVacia.className = 'tarjeta planificacion-vacio';
-
-    const mensajeVacio = document.createElement('p');
-    mensajeVacio.textContent =
-      'Selecciona un Sprint para consultar sus historias de usuario.';
-
-    tarjetaVacia.appendChild(mensajeVacio);
-    listaHistorias.appendChild(tarjetaVacia);
-
-
-    document.getElementById('mensaje-planificacion').hidden = true;
-
-    await cargarSprintsProyecto();
-
-  } finally {
-    cambiandoProyecto = false;
-  }
-}
-
-// ==========================================
-// Consultar y mostrar proyectos
-// ==========================================
-
-async function cargarPestanasProyectos() {
-  contenedorPestanas.textContent = 'Cargando proyectos...';
-
-  try {
-    const datos = await api('/proyectos');
-    const proyectos = datos.proyectos || [];
-
-    contenedorPestanas.replaceChildren();
-
-    if (proyectos.length === 0) {
-      contenedorPestanas.textContent =
-        'No hay proyectos disponibles.';
-      return;
-    }
-
-    // Seleccionar el primero si no existe uno activo
-    const proyectoValido = proyectos.some(
-      (proyecto) => String(proyecto.id) === String(proyectoId)
-    );
-
-    if (!proyectoValido) {
-      proyectoId = String(proyectos[0].id);
-      localStorage.setItem('proyectoActivo', proyectoId);
-
-      const url = new URL(window.location.href);
-      url.searchParams.set('proyecto', proyectoId);
-      window.history.replaceState({}, '', url);
-    }
-
-    proyectos.forEach((proyecto) => {
-      const pestana = document.createElement('button');
-
-      pestana.type = 'button';
-      pestana.className = 'sprints-proyectos__pestana';
-      pestana.dataset.proyectoId = String(proyecto.id);
-      pestana.textContent = proyecto.nombre;
-
-      pestana.addEventListener('click', () => {
-        cambiarProyecto(proyecto.id);
-      });
-
-      contenedorPestanas.appendChild(pestana);
-    });
-
-    marcarProyectoActivo();
-    actualizarEnlaceSprints();
-
-  } catch (error) {
-    console.error('Error al cargar proyectos:', error);
-
-    contenedorPestanas.textContent =
-      'No se pudieron cargar los proyectos.';
-  }
-}
-
-// ==========================================
-// Navegación Atrás / Adelante
-// ==========================================
-
-window.addEventListener('popstate', () => {
-  const parametros = new URLSearchParams(window.location.search);
-
-  const nuevoId =
-    parametros.get('proyecto') ||
-    localStorage.getItem('proyectoActivo');
-
-  if (nuevoId) {
-    cambiarProyecto(nuevoId, false);
-  }
-});
-
 
 /**
  * HU-08: Cargar los Sprints del proyecto activo.
@@ -249,6 +118,7 @@ async function cargarSprintsProyecto() {
     selector.add(new Option('Selecciona un Sprint', ''));
 
     const sprints = datos.sprints || [];
+    sprintsDisponibles = sprints;
 
     if (sprints.length === 0) {
       selector.replaceChildren();
@@ -262,6 +132,13 @@ async function cargarSprintsProyecto() {
     });
 
     selector.disabled = false;
+
+    // Si venimos del detalle de Sprints, seleccionar ese sprint del mismo proyecto.
+    const sprintSolicitado = parametros.get('sprint');
+    if (sprintSolicitado && sprints.some(sprint => String(sprint.id) === sprintSolicitado)) {
+      selector.value = sprintSolicitado;
+      selector.dispatchEvent(new Event('change'));
+    }
 
   } catch (error) {
     if (String(proyectoConsultado) !== String(proyectoId)) {
@@ -287,13 +164,16 @@ async function cargarSprintsProyecto() {
 
 async function iniciarPlanificacion() {
   actualizarEnlaceSprints();
-  await cargarPestanasProyectos();
-
-  if (proyectoId) {
-    // Con el proyecto ya validado se cargan sus permisos
-    cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-    await cargarSprintsProyecto();
+  if (!proyectoId) {
+    const mensaje = document.getElementById('mensaje-planificacion');
+    mensaje.className = 'alerta alerta--advertencia';
+    mensaje.textContent = 'Selecciona un proyecto desde Dashboard para consultar su planificación.';
+    mensaje.hidden = false;
+    return;
   }
+
+  cargarPermisos(Number(proyectoId)).catch(() => { /* los permisos se validan también en el servidor */ });
+  await cargarSprintsProyecto();
 }
 
 iniciarPlanificacion();
@@ -356,8 +236,10 @@ async function cargarTareasHistoria(historiaId, contenedor) {
       botonEditar.className =
         'boton boton--secundario boton--pequeno';
       botonEditar.textContent = 'Editar';
+      prepararControlEdicion(botonEditar);
 
       botonEditar.addEventListener('click', async () => {
+        if (!puedeEditarEnPlanificacion()) return;
         // Preparar el formulario con los datos actuales.
         prepararFormularioTarea(tarea);
 
@@ -383,9 +265,11 @@ async function cargarTareasHistoria(historiaId, contenedor) {
       botonEliminar.className =
         'boton boton--secundario boton--pequeno';
       botonEliminar.textContent = 'Eliminar';
+      prepararControlEdicion(botonEliminar);
 
 
       botonEliminar.addEventListener('click', () => {
+        if (!puedeEditarEnPlanificacion()) return;
         // HU-08: Preparar la tarea que se desea eliminar.
         tareaPendienteEliminar = tarea.id;
 
@@ -400,6 +284,7 @@ async function cargarTareasHistoria(historiaId, contenedor) {
 
       // HU-08: Confirmar eliminación desde el modal personalizado.
       botonConfirmarEliminar.addEventListener('click', async () => {
+        if (!puedeEditarEnPlanificacion()) return;
         if (!tareaPendienteEliminar) return;
 
         const tareaId = tareaPendienteEliminar;
@@ -542,6 +427,8 @@ async function actualizarContadoresTareas(historias, versionActual) {
     contadorHoras.textContent =
       `${Math.round(totalHoras * 10) / 10} h`;
 
+    actualizarIndicadoresCompromiso(historias, totalHoras);
+
 
   } catch (error) {
     console.error('Error al calcular los contadores:', error);
@@ -552,12 +439,295 @@ async function actualizarContadoresTareas(historias, versionActual) {
     // Mostrar un guion si falla la consulta.
     contadorTareas.textContent = '—';
     contadorHoras.textContent = '—';
+    actualizarIndicadoresCompromiso(historias, null);
   }
 }
 
 
+// HU-07: usar el mismo estilo de confirmación que el modal de tareas.
+// Devuelve null si se cancela, o el texto capturado cuando se confirma.
+function solicitarConfirmacionPlanificacion({ titulo, mensaje, accion = 'Confirmar',
+  requiereJustificacion = false, peligro = false }) {
+  const dialogo = document.getElementById('dialogo-confirmar-planificacion');
+  const tituloElemento = document.getElementById('titulo-confirmar-planificacion');
+  const mensajeElemento = document.getElementById('detalle-confirmar-planificacion');
+  const campo = document.getElementById('justificacion-confirmar-planificacion');
+  const grupoCampo = document.getElementById('grupo-justificacion-planificacion');
+  const errorElemento = document.getElementById('error-confirmar-planificacion');
+  const botonAceptar = document.getElementById('btn-aceptar-confirmar-planificacion');
+  const botonCancelar = document.getElementById('btn-cancelar-confirmar-planificacion');
+
+  tituloElemento.textContent = titulo;
+  mensajeElemento.textContent = mensaje;
+  botonAceptar.textContent = accion;
+  botonAceptar.classList.toggle('boton--peligro', peligro);
+  botonAceptar.classList.toggle('eq-peligro', peligro);
+  grupoCampo.hidden = !requiereJustificacion;
+  campo.value = '';
+  errorElemento.hidden = true;
+  errorElemento.textContent = '';
+
+  return new Promise((resolver) => {
+    let resuelto = false;
+    function terminar(resultado) {
+      if (resuelto) return;
+      resuelto = true;
+      botonAceptar.removeEventListener('click', aceptar);
+      botonCancelar.removeEventListener('click', cancelar);
+      dialogo.removeEventListener('close', cerrar);
+      if (dialogo.open) dialogo.close();
+      resolver(resultado);
+    }
+    function aceptar() {
+      const valor = campo.value.trim();
+      if (requiereJustificacion && valor.length < 10) {
+        errorElemento.textContent = 'La justificación debe tener al menos 10 caracteres.';
+        errorElemento.hidden = false;
+        campo.focus();
+        return;
+      }
+      terminar({ confirmado: true, valor });
+    }
+    function cancelar() { terminar(null); }
+    function cerrar() { terminar(null); } // Incluye Escape del teclado.
+    botonAceptar.addEventListener('click', aceptar);
+    botonCancelar.addEventListener('click', cancelar);
+    dialogo.addEventListener('close', cerrar);
+    dialogo.showModal();
+    if (requiereJustificacion) campo.focus();
+    else botonCancelar.focus();
+  });
+}
+
+// HU-07: planificación por proyecto. El servidor vuelve a verificar rol, sprint y versión.
+function puedeComprometerHistoria() {
+  return ['scrum_master', 'product_owner'].includes(rolActual()) &&
+    tienePermiso('historia.gestionar');
+}
+
+let compromisoEnCurso = false;
+async function agregarHistoriaAlSprint(historia) {
+  if (compromisoEnCurso || !puedeComprometerHistoria() || !selectorSprint.value) return;
+  const sprint = sprintsDisponibles.find(s => String(s.id) === selectorSprint.value);
+  if (!sprint || sprint.estado === 'cerrado') return;
+  const proyectoMovimiento = String(proyectoId);
+  const sprintMovimiento = String(selectorSprint.value);
+  let confirmarSprintIniciado = false;
+  if (sprint.estado === 'activo') {
+    const confirmacion = await solicitarConfirmacionPlanificacion({
+      titulo: 'Modificar sprint iniciado',
+      mensaje: 'Este sprint ya inició. ¿Deseas agregar esta historia y cambiar su planificación?',
+      accion: 'Agregar historia'
+    });
+    if (!confirmacion || proyectoMovimiento !== String(proyectoId) ||
+        sprintMovimiento !== selectorSprint.value) return;
+    confirmarSprintIniciado = true;
+  }
+  const mensaje = document.getElementById('mensaje-planificacion');
+  let justificacion = '';
+  compromisoEnCurso = true;
+  try {
+    for (;;) {
+      try {
+        const respuesta = await api(`/sprints/proyectos/${proyectoMovimiento}/${sprintMovimiento}/historias/${historia.id}`, {
+          metodo: 'POST',
+          cuerpo: { version: historia.version, confirmarSprintIniciado, justificacion }
+        });
+        if (proyectoMovimiento === String(proyectoId) && sprintMovimiento === selectorSprint.value) {
+          selectorSprint.dispatchEvent(new Event('change'));
+          mensaje.className = respuesta.aviso ? 'alerta alerta--advertencia' : 'alerta alerta--exito';
+          mensaje.textContent = respuesta.aviso || respuesta.mensaje;
+          mensaje.hidden = false;
+        }
+        break;
+      } catch (error) {
+        const detalle = error.cuerpo?.mensaje || error.message || 'No se pudo planificar la historia.';
+        if (error.estado === 409 && detalle.includes('supera el 100 %') && rolActual() === 'scrum_master') {
+          const confirmacion = await solicitarConfirmacionPlanificacion({
+            titulo: 'Capacidad del sprint superada',
+            mensaje: 'El compromiso supera el 100 % de la capacidad. Como Scrum Master, debes justificar este cambio antes de continuar.',
+            accion: 'Confirmar compromiso',
+            requiereJustificacion: true
+          });
+          if (!confirmacion || proyectoMovimiento !== String(proyectoId) ||
+              sprintMovimiento !== selectorSprint.value) break;
+          justificacion = confirmacion.valor;
+          continue;
+        }
+        mensaje.className = 'alerta alerta--error';
+        mensaje.textContent = detalle;
+        mensaje.hidden = false;
+        if (error.estado === 409) selectorSprint.dispatchEvent(new Event('change'));
+        break;
+      }
+    }
+  } finally {
+    compromisoEnCurso = false;
+  }
+}
+
+// HU-07: devolución voluntaria con advertencia. Las tareas permanecen en la historia.
+let devolucionEnCurso = false;
+async function devolverHistoriaAlBacklog(historia) {
+  if (devolucionEnCurso || compromisoEnCurso || !puedeComprometerHistoria() || !selectorSprint.value) return;
+  const sprint = sprintsDisponibles.find(s => String(s.id) === selectorSprint.value);
+  if (!sprint || sprint.estado === 'cerrado') return;
+  const proyectoMovimiento = String(proyectoId);
+  const sprintMovimiento = String(selectorSprint.value);
+  const mensaje = document.getElementById('mensaje-planificacion');
+
+  // No permitir la devolución sin saber si hay tareas: el aviso debe ser preciso.
+  let tareas;
+  try {
+    const respuesta = await api(`/tareas/historia/${historia.id}`);
+    tareas = respuesta.tareas || [];
+  } catch (error) {
+    mensaje.className = 'alerta alerta--error';
+    mensaje.textContent = 'No se pudo comprobar si la historia tiene tareas. No se realizó ningún cambio.';
+    mensaje.hidden = false;
+    return;
+  }
+  if (proyectoMovimiento !== String(proyectoId) || sprintMovimiento !== selectorSprint.value) return;
+
+  const nombre = `HU-${String(historia.numero_hu).padStart(2, '0')} · ${historia.titulo}`;
+  const advertencia = tareas.length
+    ? `Esta historia tiene ${tareas.length} tarea(s) técnica(s). No se borrarán, pero dejarán de pertenecer al sprint y al tablero.\n\n`
+    : 'Esta historia no tiene tareas técnicas registradas.\n\n';
+  const avisoSprint = sprint.estado === 'activo'
+    ? 'Este sprint ya inició. Devolver la historia modificará su planificación.\n\n'
+    : '';
+  const confirmacion = await solicitarConfirmacionPlanificacion({
+    titulo: '¿Devolver historia al Product Backlog?',
+    mensaje: `${nombre}\n\n${advertencia}${avisoSprint}Se actualizarán los puntos y las horas comprometidas.`,
+    accion: 'Confirmar devolución',
+    peligro: true
+  });
+  if (!confirmacion || proyectoMovimiento !== String(proyectoId) ||
+      sprintMovimiento !== selectorSprint.value) return;
+  const confirmarSprintIniciado = sprint.estado === 'activo';
+  devolucionEnCurso = true;
+  try {
+    const respuesta = await api(`/sprints/proyectos/${proyectoMovimiento}/${sprintMovimiento}/historias/${historia.id}/devolver`, {
+      metodo: 'POST',
+      cuerpo: { version: historia.version, confirmarDevolucion: true, confirmarSprintIniciado }
+    });
+    if (proyectoMovimiento === String(proyectoId) && sprintMovimiento === selectorSprint.value) {
+      selectorSprint.dispatchEvent(new Event('change'));
+      mensaje.className = respuesta.aviso ? 'alerta alerta--advertencia' : 'alerta alerta--exito';
+      mensaje.textContent = respuesta.aviso || respuesta.mensaje;
+      mensaje.hidden = false;
+    }
+  } catch (error) {
+    mensaje.className = 'alerta alerta--error';
+    mensaje.textContent = error.cuerpo?.mensaje || error.message || 'No se pudo devolver la historia.';
+    mensaje.hidden = false;
+    if (error.estado === 409) selectorSprint.dispatchEvent(new Event('change'));
+  } finally {
+    devolucionEnCurso = false;
+  }
+}
+
+// HU-07: arrastrar al Sprint Backlog; el botón permite hacerlo con teclado o móvil.
+let historiasDisponiblesActuales = [];
+function mostrarBacklogDisponible(historias) {
+  const lista = document.getElementById('lista-historias-disponibles');
+  const contador = document.getElementById('total-historias-disponibles');
+  lista.replaceChildren();
+  const disponibles = historias.filter(historia =>
+    historia.estado === 'backlog' && !historia.sprint_id && !historia.propuesta
+  );
+  contador.textContent = String(disponibles.length);
+  historiasDisponiblesActuales = disponibles;
+
+  if (!disponibles.length) {
+    const aviso = document.createElement('p');
+    aviso.className = 'tarjeta planificacion-vacio';
+    aviso.textContent = 'No hay historias disponibles para planificar en este proyecto.';
+    lista.appendChild(aviso);
+    return;
+  }
+
+  disponibles.forEach(historia => {
+    const tarjeta = document.createElement('article');
+    tarjeta.className = 'tarjeta planificacion-disponible';
+    const nombre = document.createElement('strong');
+    nombre.textContent = `HU-${String(historia.numero_hu).padStart(2, '0')} · ${historia.titulo}`;
+    const puntos = document.createElement('span');
+    puntos.className = 'planificacion-disponible__puntos';
+    puntos.textContent = historia.puntos == null
+      ? 'Sin puntos estimados'
+      : `${historia.puntos} puntos`;
+    if (historia.puntos == null) puntos.classList.add('planificacion-disponible__puntos--pendiente');
+    tarjeta.append(nombre, puntos);
+    const permitido = puedeComprometerHistoria() && historia.puntos != null;
+    const sprint = sprintsDisponibles.find(s => String(s.id) === selectorSprint.value);
+    const editable = permitido && sprint?.estado !== 'cerrado';
+    tarjeta.draggable = Boolean(editable);
+    if (editable) {
+      tarjeta.title = 'Arrastra esta historia al Sprint Backlog';
+      tarjeta.addEventListener('dragstart', evento => {
+        if (!puedeComprometerHistoria()) { evento.preventDefault(); return; }
+        evento.dataTransfer.setData('text/plain', String(historia.id));
+        evento.dataTransfer.effectAllowed = 'move';
+      });
+    }
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'boton boton--secundario boton--pequeno';
+    boton.textContent = 'Agregar al sprint';
+    boton.disabled = !editable;
+    boton.hidden = !puedeComprometerHistoria();
+    boton.title = historia.puntos == null ? 'Primero estima los puntos de la historia' : '';
+    boton.addEventListener('click', () => agregarHistoriaAlSprint(historia));
+    tarjeta.appendChild(boton);
+    lista.appendChild(tarjeta);
+  });
+}
+
+// HU-07: indicadores informativos; la autorización y los límites deben validarse en API.
+function actualizarIndicadoresCompromiso(historias, horas) {
+  const puntos = historias.reduce((suma, historia) => suma + (Number(historia.puntos) || 0), 0);
+  document.getElementById('total-puntos').textContent = `${puntos} pts`;
+
+  const sprint = sprintsDisponibles.find(s => String(s.id) === selectorSprint.value);
+  const bloque = document.getElementById('planificacion-capacidad');
+  bloque.hidden = !sprint;
+  if (!sprint) return;
+
+  const capacidad = Number(sprint.capacidad_horas);
+  const etiqueta = document.getElementById('planificacion-capacidad-texto');
+  const barra = document.getElementById('planificacion-capacidad-barra');
+  const aviso = document.getElementById('planificacion-capacidad-aviso');
+  bloque.classList.remove('planificacion-capacidad--amarillo', 'planificacion-capacidad--rojo');
+  barra.style.width = '0%';
+  barra.setAttribute('aria-valuenow', '0');
+  aviso.textContent = '';
+
+  if (horas === null || !Number.isFinite(capacidad) || capacidad <= 0) {
+    etiqueta.textContent = horas === null ? 'No se pudieron calcular las horas comprometidas.' : 'Capacidad del Sprint no disponible.';
+    return;
+  }
+
+  const porcentaje = horas / capacidad * 100;
+  const redondear = numero => Math.round(numero * 10) / 10;
+  etiqueta.textContent = `${redondear(horas)} de ${redondear(capacidad)} h comprometidas · ${redondear(porcentaje)} %`;
+  barra.style.width = `${Math.min(100, Math.max(0, porcentaje))}%`;
+  barra.setAttribute('aria-valuenow', String(redondear(Math.min(100, porcentaje))));
+
+  if (porcentaje > 100) {
+    bloque.classList.add('planificacion-capacidad--rojo');
+    aviso.textContent = 'Capacidad superada. Solo el Scrum Master puede confirmar nuevos compromisos con justificación.';
+  } else if (porcentaje > 90) {
+    bloque.classList.add('planificacion-capacidad--amarillo');
+    aviso.textContent = 'Advertencia: el compromiso supera el 90 % de la capacidad.';
+  }
+}
+
+// Historias visibles en el Sprint seleccionado, para permitir arrastrarlas de regreso.
+let historiasSprintActuales = [];
 // HU-08: Mostrar las historias asignadas al Sprint
 function mostrarHistoriasSprint(historias) {
+  historiasSprintActuales = historias;
   const contenedor = document.getElementById('lista-historias-sprint');
   const contador = document.getElementById('total-historias');
 
@@ -584,6 +754,17 @@ function mostrarHistoriasSprint(historias) {
   historias.forEach(historia => {
     const tarjeta = document.createElement('article');
     tarjeta.className = 'tarjeta planificacion-historia';
+    const sprint = sprintsDisponibles.find(s => String(s.id) === selectorSprint.value);
+    const puedeDevolver = puedeComprometerHistoria() && sprint?.estado !== 'cerrado' && historia.estado === 'en_sprint';
+    tarjeta.draggable = Boolean(puedeDevolver);
+    if (puedeDevolver) {
+      tarjeta.title = 'Arrastra al Product Backlog para devolver esta historia';
+      tarjeta.addEventListener('dragstart', evento => {
+        if (!puedeComprometerHistoria()) { evento.preventDefault(); return; }
+        evento.dataTransfer.setData('application/x-scrumflow-sprint-historia', String(historia.id));
+        evento.dataTransfer.effectAllowed = 'move';
+      });
+    }
 
     const encabezado = document.createElement('button');
     encabezado.type = 'button';
@@ -649,9 +830,11 @@ function mostrarHistoriasSprint(historias) {
     botonAgregarTarea.type = 'button';
     botonAgregarTarea.className = 'boton boton--primario';
     botonAgregarTarea.textContent = '+ Agregar tarea técnica';
+    prepararControlEdicion(botonAgregarTarea);
 
 
     botonAgregarTarea.addEventListener('click', () => {
+      if (!puedeEditarEnPlanificacion()) return;
       // HU-08: Preparar el formulario en modo creación.
       prepararFormularioTarea();
 
@@ -672,6 +855,16 @@ function mostrarHistoriasSprint(historias) {
 
 
     contenido.appendChild(botonAgregarTarea);
+
+    // Alternativa accesible al arrastre para devolver la historia al Product Backlog.
+    if (puedeDevolver) {
+      const botonDevolver = document.createElement('button');
+      botonDevolver.type = 'button';
+      botonDevolver.className = 'boton boton--secundario boton--pequeno planificacion-boton-devolver';
+      botonDevolver.textContent = 'Devolver al Product Backlog';
+      botonDevolver.addEventListener('click', () => devolverHistoriaAlBacklog(historia));
+      contenido.appendChild(botonDevolver);
+    }
 
     // Abrir y cerrar la historia.
     encabezado.addEventListener('click', async () => {
@@ -694,16 +887,53 @@ function mostrarHistoriasSprint(historias) {
   });
 }
 
+// Arrastrar de vuelta al Product Backlog. Se solicita confirmación antes de guardar.
+const destinoBacklog = document.getElementById('lista-historias-disponibles');
+destinoBacklog.addEventListener('dragover', evento => {
+  if (!puedeComprometerHistoria() || !selectorSprint.value ||
+      !Array.from(evento.dataTransfer.types).includes('application/x-scrumflow-sprint-historia')) return;
+  evento.preventDefault();
+  evento.dataTransfer.dropEffect = 'move';
+});
+destinoBacklog.addEventListener('drop', evento => {
+  if (!puedeComprometerHistoria()) return;
+  const id = Number(evento.dataTransfer.getData('application/x-scrumflow-sprint-historia'));
+  const historia = historiasSprintActuales.find(h => Number(h.id) === id);
+  if (!historia) return;
+  evento.preventDefault();
+  devolverHistoriaAlBacklog(historia);
+});
+
+// El destino recibe la historia solo si pertenece al Product Backlog del proyecto actual.
+const destinoSprint = document.getElementById('lista-historias-sprint');
+destinoSprint.addEventListener('dragover', evento => {
+  if (!puedeComprometerHistoria() || !selectorSprint.value) return;
+  evento.preventDefault();
+  evento.dataTransfer.dropEffect = 'move';
+});
+destinoSprint.addEventListener('drop', evento => {
+  if (!puedeComprometerHistoria()) return;
+  evento.preventDefault();
+  const id = Number(evento.dataTransfer.getData('text/plain'));
+  const historia = historiasDisponiblesActuales.find(h => Number(h.id) === id);
+  if (historia) agregarHistoriaAlSprint(historia);
+});
+
 selectorSprint.addEventListener('change', async () => {
   const sprintId = selectorSprint.value;
   const versionActual = ++versionConsultaSprint;
   const proyectoActual = proyectoId;
 
-  // Si no hay un Sprint seleccionado, no consultamos historias
-  if (!sprintId) {
-    console.log('No hay un Sprint seleccionado');
-    return;
-  }
+  // Evitar mostrar los datos del Sprint anterior mientras se cambia de selección.
+  document.getElementById('lista-historias-disponibles').replaceChildren();
+  historiasDisponiblesActuales = [];
+  document.getElementById('total-historias-disponibles').textContent = '0';
+  mostrarHistoriasSprint([]);
+  document.getElementById('total-tareas').textContent = '0';
+  document.getElementById('total-horas').textContent = '0 h';
+  actualizarIndicadoresCompromiso([], 0);
+
+  if (!sprintId) return;
 
   console.log('Proyecto seleccionado:', proyectoId);
   console.log('Sprint seleccionado:', sprintId);
@@ -721,6 +951,8 @@ selectorSprint.addEventListener('change', async () => {
     }
 
 
+    mostrarBacklogDisponible(datos.historias || []);
+
     // Conservar únicamente las historias asignadas al Sprint
     const historiasSprint = (datos.historias || []).filter(
       historia => Number(historia.sprint_id) === Number(sprintId)
@@ -737,6 +969,10 @@ selectorSprint.addEventListener('change', async () => {
 
   } catch (error) {
     console.error('Error al consultar las historias del Sprint:', error);
+    const mensaje = document.getElementById('mensaje-planificacion');
+    mensaje.className = 'alerta alerta--error';
+    mensaje.textContent = 'No se pudieron consultar las historias de este proyecto.';
+    mensaje.hidden = false;
   }
 });
 
@@ -890,6 +1126,7 @@ dialogoTarea.addEventListener('close', () => {
  */
 formularioTarea.addEventListener('submit', async (evento) => {
   evento.preventDefault();
+  if (!puedeEditarEnPlanificacion()) return;
 
   const titulo = document.getElementById('tarea-titulo').value.trim();
   const responsableId = document.getElementById('tarea-responsable').value;

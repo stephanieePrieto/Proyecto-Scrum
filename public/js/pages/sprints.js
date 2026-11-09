@@ -26,236 +26,12 @@ if (proyectoId) {
   cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 }
 
-// HU-06: Navegación entre proyectos sin recargar la página
-let cambiandoProyecto = false;
-let animacionIndicador = null;
-
-// Limpiar los datos al cambiar de proyecto
-function limpiarFormularioPorCambioProyecto() {
-  equipoId = null;
-  fechaInicioProyecto = null;
-  fechaFinProyecto = null;
-  capacidadCalculada = null;
-  consultaCapacidadActual++;
-
-  formularioSprint.reset();
-  limpiarErrorSprint();
-
-  advertenciaDuracion.hidden = true;
-  duracionAceptada = false;
-
-  errorInicio.textContent = '';
-  errorFin.textContent = '';
-
-  inicioSprint.removeAttribute('aria-invalid');
-  finSprint.removeAttribute('aria-invalid');
-
-  for (const campo of [inicioSprint, finSprint]) {
-    campo.removeAttribute('min');
-    campo.removeAttribute('max');
-  }
-
-  document.getElementById('capacidad-sprint').textContent =
-    'Pendiente de calcular';
-
-  document.getElementById('mensaje-sprints').hidden = true;
+// El proyecto se selecciona desde Dashboard. Esta página solo consulta el proyecto activo.
+if (!proyectoId) {
+  const botonCrear = document.getElementById('btn-nuevo-sprint');
+  botonCrear.disabled = true;
+  botonCrear.title = 'Selecciona un proyecto desde Dashboard';
 }
-
-// Animar la rayita negra entre pestañas
-function animarPestana(destino) {
-  const contenedor = document.getElementById('pestanas-proyectos');
-
-  const origen = contenedor.querySelector(
-    '.sprints-proyectos__pestana--activa'
-  );
-
-  if (!destino || destino === origen) {
-    return Promise.resolve();
-  }
-
-  // Quitar una animación anterior
-  if (animacionIndicador) {
-    animacionIndicador.remove();
-    animacionIndicador = null;
-  }
-
-  // Crear el indicador temporal
-  const indicador = document.createElement('span');
-
-  indicador.className = 'sprints-proyectos__indicador';
-  indicador.setAttribute('aria-hidden', 'true');
-
-  indicador.style.width =
-    `${(origen || destino).offsetWidth}px`;
-
-  indicador.style.transform =
-    `translateX(${(origen || destino).offsetLeft}px)`;
-
-  contenedor.appendChild(indicador);
-  animacionIndicador = indicador;
-
-  // Ocultar las líneas originales durante la animación
-  if (origen) {
-    origen.style.borderBottomColor = 'transparent';
-  }
-
-  destino.style.borderBottomColor = 'transparent';
-
-  // Actualizar la pestaña seleccionada
-  contenedor
-    .querySelectorAll('.sprints-proyectos__pestana')
-    .forEach((tab) => {
-      tab.classList.toggle(
-        'sprints-proyectos__pestana--activa',
-        tab === destino
-      );
-
-      if (tab === destino) {
-        tab.setAttribute('aria-current', 'page');
-      } else {
-        tab.removeAttribute('aria-current');
-      }
-    });
-
-  // Deslizar el indicador
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        indicador.style.width = `${destino.offsetWidth}px`;
-
-        indicador.style.transform =
-          `translateX(${destino.offsetLeft}px)`;
-      });
-    });
-
-    setTimeout(() => {
-      if (animacionIndicador === indicador) {
-        indicador.remove();
-        animacionIndicador = null;
-      }
-
-      if (origen) {
-        origen.style.borderBottomColor = '';
-      }
-
-      destino.style.borderBottomColor = '';
-
-      resolve();
-    }, 350);
-  });
-}
-
-// Cambiar el proyecto sin recargar la página
-async function cambiarProyecto(nuevoId, guardarHistorial = true) {
-  if (String(nuevoId) === String(proyectoId)) return;
-  if (cambiandoProyecto) return;
-
-  cambiandoProyecto = true;
-
-  const contenedor = document.getElementById('pestanas-proyectos');
-
-  const destino = [
-    ...contenedor.querySelectorAll('.sprints-proyectos__pestana')
-  ].find(
-    (tab) => tab.dataset.proyectoId === String(nuevoId)
-  );
-
-  try {
-    // Esperar a que termine la animación
-    await animarPestana(destino);
-
-    // Actualizar el proyecto activo
-    proyectoId = String(nuevoId);
-
-    localStorage.setItem('proyectoActivo', proyectoId);
-
-    // Al cambiar de proyecto se recargan los permisos
-    cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-
-    // Actualizar la URL sin recargar
-    if (guardarHistorial) {
-      const url = new URL(window.location.href);
-
-      url.searchParams.set('proyecto', proyectoId);
-
-      window.history.pushState({}, '', url);
-    }
-
-    // Limpiar información del proyecto anterior
-    limpiarFormularioPorCambioProyecto();
-
-    // Cargar los nuevos datos
-    await Promise.all([
-      obtenerEquipoProyecto(),
-      cargarSprints()
-    ]);
-
-  } finally {
-    cambiandoProyecto = false;
-  }
-}
-
-// Crear las pestañas de los proyectos
-async function cargarPestanasProyectos() {
-  const contenedor = document.getElementById('pestanas-proyectos');
-
-  try {
-    const datos = await api('/proyectos');
-    const proyectos = datos.proyectos || [];
-
-    contenedor.replaceChildren();
-
-    proyectos.forEach((proyecto) => {
-      const pestana = document.createElement('button');
-
-      pestana.type = 'button';
-      pestana.dataset.proyectoId = String(proyecto.id);
-      pestana.className = 'sprints-proyectos__pestana';
-      pestana.textContent = proyecto.nombre;
-
-      // Marcar el proyecto actual
-      if (String(proyecto.id) === String(proyectoId)) {
-        pestana.classList.add(
-          'sprints-proyectos__pestana--activa'
-        );
-
-        pestana.setAttribute('aria-current', 'page');
-      }
-
-      // Cambiar de proyecto al hacer clic
-      pestana.addEventListener('click', () => {
-        cambiarProyecto(proyecto.id);
-      });
-
-      contenedor.appendChild(pestana);
-    });
-
-  } catch (error) {
-    console.error(
-      'Error al cargar las pestañas de proyectos:',
-      error
-    );
-
-    contenedor.textContent =
-      'No se pudieron cargar los proyectos.';
-  }
-}
-
-// Cargar las pestañas al abrir la página
-cargarPestanasProyectos();
-
-// Navegación con Atrás y Adelante de Chrome
-window.addEventListener('popstate', async () => {
-  const id = new URLSearchParams(
-    window.location.search
-  ).get('proyecto');
-
-  if (!id || String(id) === String(proyectoId)) {
-    return;
-  }
-
-  await cambiarProyecto(id, false);
-});
 
 // ==========================================
 // HU-06: Información del proyecto
@@ -824,6 +600,28 @@ formularioSprint.addEventListener('submit', async (evento) => {
   }
 });
 
+// Detalle general al seleccionar una tarjeta de sprint.
+const dialogoDetalleSprint = document.getElementById('dialogo-detalle-sprint');
+
+function abrirDetalleSprint(sprint, fechas, capacidad) {
+  document.getElementById('detalle-sprint-nombre').textContent = sprint.nombre || 'Sin nombre';
+  document.getElementById('detalle-sprint-objetivo').textContent = sprint.objetivo || 'Sin objetivo';
+  document.getElementById('detalle-sprint-fechas').textContent = fechas;
+  document.getElementById('detalle-sprint-estado').textContent = sprint.estado || 'Sin estado';
+  document.getElementById('detalle-sprint-capacidad').textContent = capacidad;
+
+  const destino = new URL('planificacion-sprint.html', window.location.href);
+  destino.searchParams.set('proyecto', String(proyectoId));
+  destino.searchParams.set('sprint', String(sprint.id));
+  document.getElementById('enlace-planificar-sprint').href = destino.pathname + destino.search;
+  dialogoDetalleSprint.showModal();
+}
+
+document.getElementById('btn-cerrar-detalle-sprint')
+  .addEventListener('click', () => dialogoDetalleSprint.close());
+document.getElementById('btn-volver-detalle-sprint')
+  .addEventListener('click', () => dialogoDetalleSprint.close());
+
 // ==========================================
 // HU-06: Consultar y mostrar los sprints
 // ==========================================
@@ -870,7 +668,11 @@ async function cargarSprints() {
     // Crear una tarjeta por cada sprint
     datos.sprints.forEach((sprint) => {
       const tarjeta = document.createElement('article');
-      tarjeta.className = 'tarjeta';
+      tarjeta.className = 'tarjeta sprint-tarjeta';
+      tarjeta.tabIndex = 0;
+      tarjeta.setAttribute('role', 'button');
+      tarjeta.setAttribute('aria-haspopup', 'dialog');
+      tarjeta.setAttribute('aria-label', `Ver información del sprint ${sprint.nombre}`);
 
       // Nombre del sprint
       const titulo = document.createElement('h3');
@@ -946,6 +748,16 @@ async function cargarSprints() {
         fechas,
         capacidad
       );
+
+      tarjeta.addEventListener('click', () => {
+        abrirDetalleSprint(sprint, fechas.textContent, capacidad.textContent);
+      });
+      tarjeta.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Enter' || evento.key === ' ') {
+          evento.preventDefault();
+          abrirDetalleSprint(sprint, fechas.textContent, capacidad.textContent);
+        }
+      });
 
       lista.appendChild(tarjeta);
     });

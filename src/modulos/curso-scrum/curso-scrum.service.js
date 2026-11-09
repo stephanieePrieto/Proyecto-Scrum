@@ -1,6 +1,17 @@
-import { consulta } from '../../config/db.js';
+/**
+ * ===========================================================================
+ * SERVICIOS PARA EL MICROCURSO DE SCRUM
+ * Autor: Stephanie Elizdeth Hernández Prieto
+ * Descripción: Manejo de lecciones, quizzes, seguimiento de progreso y certificados.
+ * ===========================================================================
+ */
 
-// ========== FUNCIONES PRINCIPALES ==========
+import { consulta } from '../../config/db.js';
+import { generarPDF } from '../../utils/pdf-generator.js';
+
+// ===========================================================================
+// FUNCIONES PRINCIPALES
+// ===========================================================================
 
 export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
   // Verificar rol del usuario en el proyecto actual
@@ -31,22 +42,22 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
 
   // Verificar si el usuario tiene certificado
   const certificadoRes = await consulta(
-    'SELECT id FROM curso_certificados WHERE usuario_id = $1',
+    'SELECT id, emitido_en FROM curso_certificados WHERE usuario_id = $1',
     [usuarioId]
   );
   const tieneCertificado = certificadoRes.rows.length > 0;
+  const certificadoData = tieneCertificado ? certificadoRes.rows[0] : null;
 
   // Calcular porcentaje de avance
   const totalLecciones = leccionesRes.rows.length;
   const leccionesCompletadas = leccionesRes.rows.filter(l => l.completada).length;
   const quizzesAprobados = leccionesRes.rows.filter(l => l.quiz_aprobado).length;
 
-  // Fórmula: (lecciones_completadas + quizzes_aprobados) / (total_lecciones * 2) * 100
-  const porcentajeAvance = Math.round(
-    ((leccionesCompletadas + quizzesAprobados) / (totalLecciones * 2)) * 100
-  );
+  const porcentajeAvance = totalLecciones > 0
+    ? Math.round(((leccionesCompletadas + quizzesAprobados) / (totalLecciones * 2)) * 100)
+    : 0;
 
-  // Si es Scrum Master o Product Owner, obtener el progreso global de todos los integrantes
+  // Si es Scrum Master o Product Owner, obtener el progreso global del equipo
   let progresoEquipo = [];
   if (rolEnProyecto === 'scrum_master' || rolEnProyecto === 'product_owner') {
     const equipoRes = await consulta(`
@@ -73,7 +84,10 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
     lecciones: leccionesRes.rows,
     quizzes: quizzesRes.rows,
     progresoEquipo,
-    certificado: tieneCertificado,
+    certificado: {
+      tieneCertificado,
+      ...certificadoData
+    },
     porcentajeAvance
   };
 }
@@ -88,6 +102,16 @@ export async function guardarProgresoLectura(usuarioId, leccionId, completada, p
       posicion_scroll = GREATEST(curso_progreso_lecciones.posicion_scroll, EXCLUDED.posicion_scroll),
       actualizado_en = NOW();
   `, [usuarioId, leccionId, completada, posicionScroll]);
+
+  // Verificar si completó el curso para emitir certificado automáticamente
+  const { completado } = await verificarCompletacionCurso(usuarioId);
+  if (completado) {
+    try {
+      await otorgarCertificado(usuarioId);
+    } catch (e) {
+      // Si ya lo tiene emitido no rompe la ejecución
+    }
+  }
 }
 
 export async function calificarQuiz(usuarioId, leccionId, respuestasUsuario) {
@@ -117,16 +141,28 @@ export async function calificarQuiz(usuarioId, leccionId, respuestasUsuario) {
       actualizado_en = NOW();
   `, [usuarioId, leccionId, calificacion, aprobado]);
 
+  // Verificar si completó el curso para emitir certificado automáticamente
+  const { completado } = await verificarCompletacionCurso(usuarioId);
+  if (completado) {
+    try {
+      await otorgarCertificado(usuarioId);
+    } catch (e) {
+      // Si ya lo tiene emitido no rompe la ejecución
+    }
+  }
+
   return { calificacion, aprobado };
 }
 
-// ========== FUNCIONES DE CERTIFICADO Y REINICIO ==========
+// ===========================================================================
+// FUNCIONES DE CERTIFICADO Y REINICIO
+// ===========================================================================
 
 export async function verificarCompletacionCurso(usuarioId) {
   const leccionesRes = await consulta('SELECT id FROM curso_lecciones');
   const totalLecciones = leccionesRes.rows.length;
 
-  if (totalLecciones === 0) return { completado: false, porcentaje: 0 };
+  if (totalLecciones === 0) return { completado: false, porcentaje: 0, leccionesCompletadas: 0, quizzesAprobados: 0, totalLecciones: 0 };
 
   const completadasRes = await consulta(`
     SELECT COUNT(*) AS count 
@@ -160,12 +196,16 @@ export async function otorgarCertificado(usuarioId) {
   }
 
   const existenteRes = await consulta(
-    'SELECT id FROM curso_certificados WHERE usuario_id = $1',
+    'SELECT id, emitido_en FROM curso_certificados WHERE usuario_id = $1',
     [usuarioId]
   );
 
   if (existenteRes.rows.length > 0) {
-    return { yaTieneCertificado: true, certificadoId: existenteRes.rows[0].id };
+    return { 
+      yaTieneCertificado: true, 
+      certificadoId: existenteRes.rows[0].id,
+      emitidoEn: existenteRes.rows[0].emitido_en
+    };
   }
 
   const resultado = await consulta(
@@ -188,18 +228,42 @@ export async function tieneCertificado(usuarioId) {
   return resultado.rows.length > 0 ? resultado.rows[0] : null;
 }
 
+/**
+ * Genera un PDF del certificado para un usuario.
+ * Emite automáticamente el registro en la base de datos si el usuario ya completó el curso.
+ */
+export async function generarCertificadoPDF(usuarioId) {
+  let certificado = await tieneCertificado(usuarioId);
+
+  if (!certificado) {
+    const { completado } = await verificarCompletacionCurso(usuarioId);
+    if (!completado) {
+      throw new Error('El usuario no ha completado el curso');
+    }
+    // Forzar la creación de la fila en curso_certificados
+    await otorgarCertificado(usuarioId);
+    certificado = await tieneCertificado(usuarioId);
+  }
+
+  const usuarioRes = await consulta(
+    'SELECT nombre FROM usuarios WHERE id = $1',
+    [usuarioId]
+  );
+  const nombre = usuarioRes.rows[0]?.nombre || 'Usuario';
+
+  const pdfBuffer = await generarPDF(nombre, certificado.emitido_en);
+  return pdfBuffer;
+}
+
 export async function reiniciarProgresoCurso(usuarioId) {
-  // Eliminar progreso de lecciones
   await consulta('DELETE FROM curso_progreso_lecciones WHERE usuario_id = $1', [usuarioId]);
-
-  // Eliminar intentos de quizzes
   await consulta('DELETE FROM curso_intentos_quizzes WHERE usuario_id = $1', [usuarioId]);
-
-  // NO eliminamos el certificado para mantener historial
   return { reiniciado: true };
 }
 
-// ========== FUNCIONES ADMIN ==========
+// ===========================================================================
+// FUNCIONES ADMIN (CRUD)
+// ===========================================================================
 
 export async function obtenerTodosLosModulos() {
   const resultado = await consulta(`

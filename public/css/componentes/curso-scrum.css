@@ -1,0 +1,363 @@
+/**
+ * @file curso-scrum.css
+ * @description Estilos de la página del curso Scrum.
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
+@import url('../base.css');
+@import url('../layout.css');
+
+.curso-contenedor {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.encabezado-curso {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.encabezado-curso h1 {
+  margin: 0;
+  color: var(--primario);
+  font-size: 1.8rem;
+}
+
+.encabezado-curso .subtitulo {
+  color: var(--texto-suave);
+  margin: 5px 0 0 0;
+  font-size: 0.95rem;
+}
+
+.barra-progreso-principal {
+  background: var(--slate-200);
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 25px;
+  box-shadow: var(--sombra-sm);
+}
+
+.barra-progreso-relleno {
+  height: 100%;
+  background: linear-gradient(90deg, var(--esmeralda-500), var(--acento));
+  transition: width 0.5s ease;
+  border-radius: 6px;
+}
+
+.porcentaje-avance {
+  text-align: right;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--primario);
+  font-weight: 600;
+}
+
+.boton-regresar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seccion {
+  margin-bottom: 40px;
+}
+
+.seccion-titulo {
+  font-size: 1.3rem;
+  color: var(--primario);
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--acento);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leccion {
+  background: var(--blanco);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--sombra-sm);
+  border: 1px solid var(--borde);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.leccion:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 40, 40, 0.12);
+}
+
+.leccion-completada {
+  border-left: 4px solid var(--esmeralda-500);
+}
+
+.leccion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.leccion-titulo {
+  font-weight: 600;
+  color: var(--primario);
+  font-size: 1.1rem;
+}
+
+.leccion-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icono-completado {
+  color: var(--esmeralda-500);
+  font-size: 1.1rem;
+}
+
+.icono-pendiente {
+  color: var(--slate-500);
+  font-size: 1.1rem;
+}
+
+.leccion-contenido {
+  color: var(--texto-suave);
+  line-height: 1.6;
+  margin-top: 10px;
+}
+
+.leccion-acciones {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.quiz-container {
+  background: var(--blanco);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: var(--sombra-sm);
+  border: 1px solid var(--borde);
+}
+
+.quiz-titulo {
+  font-weight: 600;
+  color: var(--primario);
+  margin-bottom: 15px;
+}
+
+.quiz-pregunta {
+  margin-bottom: 15px;
+  color: var(--primario);
+  font-weight: 500;
+}
+
+.quiz-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quiz-opcion {
+  background: var(--slate-50);
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quiz-opcion:hover {
+  background: var(--primario-claro);
+  border-color: var(--acento);
+}
+
+.quiz-opcion.seleccionada {
+  background: var(--acento);
+  color: var(--carbon);
+  border-color: var(--acento);
+  font-weight: 600;
+}
+
+.quiz-opcion.correcta {
+  background: var(--esmeralda-500);
+  color: var(--blanco);
+  border-color: var(--esmeralda-500);
+}
+
+.quiz-opcion.incorrecta {
+  background: var(--rosa-500);
+  color: var(--blanco);
+  border-color: var(--rosa-500);
+}
+
+.btn-curso {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-curso--primario {
+  background: var(--primario);
+  color: var(--blanco);
+}
+
+.btn-curso--primario:hover {
+  background: var(--primario-hover);
+}
+
+.btn-curso--secundario {
+  background: var(--acento);
+  color: var(--carbon);
+}
+
+.btn-curso--secundario:hover {
+  background: var(--acento-hover);
+}
+
+.btn-curso--exito {
+  background: var(--esmeralda-500);
+  color: var(--blanco);
+}
+
+.certificado-alerta {
+  background: linear-gradient(135deg, var(--esmeralda-500), var(--esmeralda-700));
+  color: var(--blanco);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  display: none;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.certificado-alerta.visible {
+  display: flex;
+}
+
+.certificado-icono {
+  font-size: 2rem;
+}
+
+.certificado-mensaje h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.certificado-mensaje p {
+  margin: 5px 0 0 0;
+  opacity: 0.9;
+}
+
+/* ===========================================================================
+   MODAL DE QUIZ (Ventana emergente centrada)
+   ========================================================================== */
+.modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(40, 40, 40, 0.6) !important;
+  backdrop-filter: blur(3px);
+  z-index: 9999 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px;
+}
+
+.modal-contenido {
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--borde, #e2e8f0);
+  animation: modalEntrada 0.2s ease-out;
+  margin: auto;
+}
+
+@keyframes modalEntrada {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-encabezado {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-encabezado h2 {
+  font-size: 1.2rem;
+  color: var(--primario, #282828);
+  margin: 0;
+}
+
+.modal-cerrar {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--texto-suave, #64748b);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modal-cerrar:hover {
+  color: var(--primario, #282828);
+}
+
+#quiz-contenido {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-pie {
+  padding: 16px 20px;
+  border-top: 1px solid var(--borde, #e2e8f0);
+  display: flex;
+  justify-content: flex-end;
+  background: var(--slate-50, #f8fafc);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .encabezado-curso {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .boton-regresar {
+    width: 100%;
+    justify-content: center;
+    margin-top: 15px;
+  }
+
+  .leccion-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

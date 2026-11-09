@@ -1,0 +1,304 @@
+/**
+ * @file avance-curso.css
+ * @description Estilos para la vista de avance del curso (Scrum Master / Product Owner).
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
+@import url('../base.css');
+@import url('../layout.css');
+
+.avance-contenedor {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.encabezado-avance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.encabezado-avance h1 {
+  margin: 0;
+  color: var(--primario, #1e293b);
+  font-size: 1.8rem;
+}
+
+.encabezado-avance .subtitulo {
+  color: var(--texto-suave, #64748b);
+  margin: 5px 0 0 0;
+  font-size: 0.95rem;
+}
+
+/* ===========================================================================
+   BARRA DE FILTROS Y CONTROLES ELEGANTES
+   ========================================================================== */
+.barra-filtros {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+}
+
+.select-filtro {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--blanco, #ffffff);
+  color: var(--primario, #1e293b);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 40px 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  
+  /* Icono vectorial SVG de flecha personalizado */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.select-filtro:hover {
+  border-color: var(--acento, #cbd5e1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.select-filtro:focus {
+  outline: none;
+  border-color: var(--primario, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.btn-actualizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primario, #1e293b);
+  color: var(--blanco, #ffffff);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-actualizar:hover {
+  background: var(--primario-hover, #0f172a);
+  transform: translateY(-1px);
+}
+
+/* ===========================================================================
+   RESUMEN Y LISTA DE INTEGRANTES
+   ========================================================================== */
+.resumen-avance {
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.1));
+  border: 1px solid var(--borde, #e2e8f0);
+}
+
+.resumen-avance h2 {
+  color: var(--primario, #1e293b);
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.resumen-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--slate-50, #f8fafc);
+}
+
+.resumen-item:last-child {
+  border-bottom: none;
+}
+
+.resumen-label {
+  color: var(--texto-suave, #64748b);
+  font-size: 0.9rem;
+}
+
+.resumen-valor {
+  font-weight: 600;
+  color: var(--primario, #1e293b);
+}
+
+.lista-integrantes h2 {
+  color: var(--primario, #1e293b);
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tarjeta-integrante {
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.1));
+  border: 1px solid var(--borde, #e2e8f0);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tarjeta-integrante:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 40, 40, 0.12);
+}
+
+.integrante-info {
+  flex: 1;
+}
+
+.integrante-nombre {
+  font-weight: 600;
+  color: var(--primario, #1e293b);
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.integrante-rol {
+  font-size: 0.875rem;
+  color: var(--celeste-500, #0284c7);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.integrante-correo {
+  font-size: 0.875rem;
+  color: var(--texto-suave, #64748b);
+}
+
+.integrante-progreso {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 200px;
+}
+
+.barra-progreso-integrante {
+  width: 120px;
+  height: 8px;
+  background: var(--slate-200, #e2e8f0);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barra-progreso-relleno {
+  height: 100%;
+  background: linear-gradient(90deg, var(--esmeralda-500, #10b981), var(--acento, #06b6d4));
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.porcentaje-progreso {
+  font-weight: 600;
+  color: var(--primario, #1e293b);
+  min-width: 40px;
+}
+
+.estado-certificado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.certificado-icono {
+  font-size: 1.2rem;
+  color: var(--esmeralda-500, #10b981);
+}
+
+.sin-certificado {
+  color: var(--slate-500, #64748b);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.acceso-denegado {
+  text-align: center;
+  padding: 40px;
+  background: var(--blanco, #ffffff);
+  border-radius: 12px;
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+.acceso-denegado i {
+  font-size: 3rem;
+  color: var(--rosa-500, #f43f5e);
+  margin-bottom: 15px;
+}
+
+.acceso-denegado h2 {
+  color: var(--primario, #1e293b);
+  margin: 0 0 10px 0;
+}
+
+.acceso-denegado p {
+  color: var(--texto-suave, #64748b);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .tarjeta-integrante {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .integrante-progreso {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .barra-progreso-integrante {
+    width: 100%;
+  }
+
+  .barra-filtros {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .select-filtro {
+    width: 100%;
+  }
+
+  .btn-actualizar {
+    justify-content: center;
+  }
+}

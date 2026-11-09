@@ -186,13 +186,14 @@ async function resumenPoker(cliente, usuario, proyecto, historia) {
       valor_final: sesion.valor_final, historia_id: sesion.historia_id,
       titulo: sesion.titulo, numero_hu: sesion.numero_hu,
       puntos_historia: sesion.puntos_historia,
+       cierre_automatico: sesion.ronda === 4 && sesion.estado === 'cerrada',
       mi_voto: mapa.get(usuario.id) ?? null,
       votos_recibidos: integrantes.filter((p) => mapa.has(p.id)).length,
       total_participantes: integrantes.length,
       // Solo tras revelar se publica el diagnóstico de la ronda.
       consenso: revelar ? consenso : null,
       diferencia: revelar ? diferencia : null,
-      recomendar_discusion: revelar ? diferencia >= 5 : null,
+      recomendar_discusion: revelar ? diferencia >= 8 : null,
       sin_voto: integrantes.filter((p) => !mapa.has(p.id)).map((p) => p.nombre),
       participantes: integrantes.map((p) => ({
         id: p.id, nombre: p.nombre, rol: p.rol, ha_votado: mapa.has(p.id),
@@ -228,6 +229,11 @@ export async function iniciarPoker(usuario, proyectoId, historiaId) {
     );
     if (!rows[0]) throw new ErrorApp('Historia no encontrada en el proyecto.', 404);
     if (rows[0].puntos !== null) throw new ErrorApp('La historia ya está estimada.', 409);
+    const { rows: anteriores } = await cliente.query(
+      "SELECT 1 FROM poker_sesiones WHERE proyecto_id = $1 AND historia_id = $2 AND estado = 'cerrada' LIMIT 1",
+      [proyecto, historia],
+    );
+    if (anteriores.length) throw new ErrorApp('Esta historia ya tuvo una estimación definitiva y no puede reestimarse.', 409);
     if (!['backlog', 'en_sprint'].includes(rows[0].estado)) throw new ErrorApp('La historia no está disponible.', 409);
     if (!(await participantes(cliente, proyecto)).length) throw new ErrorApp('No hay participantes en el proyecto.', 409);
     const existente = await obtenerSesionBloqueada(cliente, proyecto, historia);
@@ -245,6 +251,40 @@ export async function iniciarPoker(usuario, proyectoId, historiaId) {
   return consultarPoker(usuario, proyecto, historia);
 }
 
+/** Cuarta ronda: promedio de los votos recibidos, redondeo aritmético y Fibonacci más cercano.
+ * En un empate de distancia entre dos valores Fibonacci, se elige el superior.
+ * Se ejecuta dentro de la transacción que revela la ronda.
+ */
+async function finalizarCuartaRonda(cliente, usuario, proyecto, historia, sesion) {
+  if (sesion.ronda !== 4) return false;
+  const { rows: votos } = await cliente.query(
+    'SELECT puntos FROM poker_votos WHERE sesion_id = $1 AND ronda = $2',
+    [sesion.id, sesion.ronda],
+  );
+  if (!votos.length) throw new ErrorApp('Se necesita al menos un voto para finalizar la cuarta ronda.', 409);
+  const promedio = votos.reduce((suma, voto) => suma + voto.puntos, 0) / votos.length;
+  const entero = Math.round(promedio);
+  const puntos = ESCALA.reduce((mejor, candidato) =>
+    Math.abs(candidato - entero) <= Math.abs(mejor - entero) ? candidato : mejor,
+  );
+  const { rows: actualizadas } = await cliente.query(
+    `UPDATE historias SET puntos = $1, version = version + 1
+       WHERE id = $2 AND proyecto_id = $3 AND puntos IS NULL RETURNING id`,
+    [puntos, historia, proyecto],
+  );
+  if (!actualizadas.length) throw new ErrorApp('La historia ya tiene una estimación definitiva.', 409);
+  await cliente.query(
+    `UPDATE poker_sesiones SET estado = 'cerrada', valor_final = $1, actualizada_en = NOW() WHERE id = $2`,
+    [puntos, sesion.id],
+  );
+  await registrarAuditoria(cliente, {
+    usuarioId: usuario.id, proyectoId: proyecto, accion: ACCIONES.HISTORIA_MODIFICADA,
+    objeto: OBJETOS.HISTORIA, objetoId: historia, antes: { puntos: null },
+    despues: { puntos, promedio, ronda: 4, calculo_automatico: true }, emitirEvento: false,
+  });
+  return true;
+}
+
 export async function votarPoker(usuario, proyectoId, historiaId, datos = {}) {
   const proyecto = comprobarId(proyectoId);
   const historia = comprobarId(historiaId);
@@ -252,6 +292,7 @@ export async function votarPoker(usuario, proyectoId, historiaId, datos = {}) {
     throw new ErrorApp('Selecciona un valor Fibonacci válido.', 400);
   }
   const cliente = await pool.connect();
+  let cierreAutomatico = false;
   try {
     await cliente.query('BEGIN');
     await comprobarMiembro(usuario, proyecto, cliente);
@@ -275,6 +316,7 @@ export async function votarPoker(usuario, proyectoId, historiaId, datos = {}) {
         `UPDATE poker_sesiones SET estado = 'revelada', actualizada_en = NOW() WHERE id = $1`,
         [sesion.id],
       );
+      cierreAutomatico = await finalizarCuartaRonda(cliente, usuario, proyecto, historia, sesion);
     }
     await cliente.query('COMMIT');
   } catch (error) {
@@ -282,6 +324,7 @@ export async function votarPoker(usuario, proyectoId, historiaId, datos = {}) {
     throw error;
   } finally { cliente.release(); }
   avisarCambioPoker(proyecto, historia);
+  if (cierreAutomatico) emitirAProyecto(proyecto, 'story:updated', { proyecto_id: proyecto, historia_id: historia });
   return consultarPoker(usuario, proyecto, historia);
 }
 
@@ -290,6 +333,7 @@ export async function revelarPoker(usuario, proyectoId, historiaId) {
   const proyecto = comprobarId(proyectoId);
   const historia = comprobarId(historiaId);
   const cliente = await pool.connect();
+  let cierreAutomatico = false;
   try {
     await cliente.query('BEGIN');
     await exigirModerador(usuario, proyecto, cliente);
@@ -304,12 +348,14 @@ export async function revelarPoker(usuario, proyectoId, historiaId) {
       "UPDATE poker_sesiones SET estado = 'revelada', actualizada_en = NOW() WHERE id = $1",
       [sesion.id],
     );
+    cierreAutomatico = await finalizarCuartaRonda(cliente, usuario, proyecto, historia, sesion);
     await cliente.query('COMMIT');
   } catch (error) {
     await cliente.query('ROLLBACK');
     throw error;
   } finally { cliente.release(); }
   avisarCambioPoker(proyecto, historia);
+  if (cierreAutomatico) emitirAProyecto(proyecto, 'story:updated', { proyecto_id: proyecto, historia_id: historia });
   return consultarPoker(usuario, proyecto, historia);
 }
 
@@ -323,6 +369,7 @@ export async function nuevaRondaPoker(usuario, proyectoId, historiaId) {
     const sesion = await obtenerSesionBloqueada(cliente, proyecto, historia);
     if (!sesion) throw new ErrorApp('No hay una sesión de Planning Poker.', 404);
     if (sesion.estado !== 'revelada') throw new ErrorApp('Primero deben revelarse los votos.', 409);
+    if (sesion.ronda >= 4) throw new ErrorApp('La cuarta ronda es la última; no se permiten más rondas.', 409);
     await cliente.query(
       `UPDATE poker_sesiones SET ronda = ronda + 1, estado = 'votando', actualizada_en = NOW() WHERE id = $1`,
       [sesion.id],
@@ -349,6 +396,7 @@ export async function cerrarPoker(usuario, proyectoId, historiaId, datos = {}) {
     const sesion = await obtenerSesionBloqueada(cliente, proyecto, historia);
     if (!sesion) throw new ErrorApp('No hay una sesión de Planning Poker.', 404);
     if (sesion.estado !== 'revelada') throw new ErrorApp('La ronda debe revelarse antes de fijar los puntos.', 409);
+    if (sesion.ronda >= 4) throw new ErrorApp('La cuarta ronda se finaliza automáticamente.', 409);
     const { rows } = await cliente.query(
       `UPDATE historias SET puntos = $1, version = version + 1
         WHERE id = $2 AND proyecto_id = $3 AND puntos IS NULL

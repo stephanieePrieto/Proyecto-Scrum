@@ -1,16 +1,13 @@
-/** HU-05 · Paso 1: guardar una estimación Fibonacci sin sobrescribir estimaciones existentes. */
+/** HU-05 · Planning Poker grupal con estimación Fibonacci y cierre en cuatro rondas. */
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
-import { cargarPermisos, rolActual, tienePermiso } from '../core/permisos-ui.js';
+import { cargarPermisos, rolActual } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
 const $ = (id) => document.getElementById(id);
 const parametros = new URLSearchParams(location.search);
 const proyectoId = parametros.get('proyecto') || localStorage.getItem('proyectoActivo');
 const historias = [];
-let puntosElegidos = null;
-let guardando = false;
-let permisoEstimacion = false;
 
 if (proyectoId) $('volver-backlog').href = `/pages/backlog.html?proyecto=${encodeURIComponent(proyectoId)}`;
 
@@ -27,18 +24,11 @@ function historiaActual() {
 
 function actualizarControles() {
   const h = historiaActual();
-  const disponible = Boolean(h && h.puntos == null && permisoEstimacion && !guardando);
-  for (const boton of $('pp-escala').querySelectorAll('[data-puntos]')) {
-    boton.disabled = !disponible;
-    boton.setAttribute('aria-pressed', String(disponible && Number(boton.dataset.puntos) === puntosElegidos));
-  }
-  $('pp-guardar').disabled = !disponible || puntosElegidos === null;
   $('pp-detalle').textContent = !h
     ? 'Selecciona una historia para consultar su estimación.'
     : h.puntos == null
       ? `HU-${String(h.numero_hu).padStart(2, '0')} · ${h.titulo} · Sin estimar`
       : `HU-${String(h.numero_hu).padStart(2, '0')} · ${h.titulo} · ${h.puntos} puntos (ya estimada)`;
-  $('pp-seleccion').textContent = puntosElegidos === null ? 'Sin puntos seleccionados' : `${puntosElegidos} puntos seleccionados`;
 }
 
 async function cargarHistorias(mantenerSeleccion = true) {
@@ -59,7 +49,6 @@ async function cargarHistorias(mantenerSeleccion = true) {
     }
     if (historias.some((h) => String(h.id) === anterior)) selector.value = anterior;
     selector.disabled = historias.length === 0;
-    puntosElegidos = null;
     if (!historias.length) avisar('Este proyecto no tiene historias disponibles para estimar.', 'advertencia');
     actualizarControles();
   } catch (error) {
@@ -69,47 +58,13 @@ async function cargarHistorias(mantenerSeleccion = true) {
 }
 
 $('pp-historia').addEventListener('change', () => {
-  puntosElegidos = null;
   $('mensaje-poker').hidden = true;
   actualizarControles();
 });
 $('pp-actualizar').addEventListener('click', () => cargarHistorias());
-$('pp-escala').addEventListener('click', (evento) => {
-  const boton = evento.target.closest('button[data-puntos]');
-  if (!boton || boton.disabled) return;
-  puntosElegidos = Number(boton.dataset.puntos);
-  actualizarControles();
-});
-$('pp-guardar').addEventListener('click', async () => {
-  const h = historiaActual();
-  if (!h || puntosElegidos === null || !permisoEstimacion || guardando) return;
-  guardando = true;
-  actualizarControles();
-  try {
-    await api(`/poker/proyecto/${encodeURIComponent(proyectoId)}/historias/${h.id}/estimar`, {
-      metodo: 'POST', cuerpo: { puntos: puntosElegidos, version: h.version },
-    });
-    await cargarHistorias();
-    avisar('Estimación guardada correctamente. Los puntos ya aparecen en el Backlog.', 'exito');
-  } catch (error) {
-    avisar(error.cuerpo?.mensaje || error.message || 'No se pudo guardar la estimación.');
-    if (error.estado === 409) await cargarHistorias();
-  } finally {
-    guardando = false;
-    actualizarControles();
-  }
-});
-
-window.addEventListener('permisos:actualizados', (evento) => {
-  if (String(evento.detail?.proyectoId) !== String(proyectoId)) return;
-  permisoEstimacion = ['scrum_master', 'product_owner'].includes(rolActual());
-  actualizarControles();
-});
-
 if (proyectoId) {
   try {
     await cargarPermisos(Number(proyectoId));
-    permisoEstimacion = ['scrum_master', 'product_owner'].includes(rolActual());
   } catch {
     avisar('No se pudieron comprobar los permisos de este proyecto.');
   }
@@ -132,7 +87,7 @@ function pintarRonda() {
   const historia = historiaActual();
   const sesion = sesionPoker;
   permisoModerador = ['scrum_master', 'product_owner'].includes(rolActual());
-  $('pp-iniciar').textContent = sesion?.estado === 'cerrada' && historia?.puntos == null ? 'Nueva sesión' : 'Iniciar ronda';
+  $('pp-iniciar').textContent = 'Iniciar ronda';
   $('pp-iniciar').disabled = procesandoRonda || !permisoModerador || !historia || historia.puntos != null || Boolean(sesion && sesion.estado !== 'cerrada');
   $('pp-panel-ronda').hidden = !sesion;
   if (!historia) {
@@ -147,9 +102,7 @@ function pintarRonda() {
       revelada: sesion.votos_recibidos === sesion.total_participantes
         ? 'Todos votaron. Los puntos se revelaron al mismo tiempo.'
         : 'Ronda revelada. Los participantes pendientes quedaron registrados como Sin voto.',
-      cerrada: historia.puntos == null
-        ? `Esta historia está sin estimar. La sesión anterior terminó con ${sesion.valor_final} puntos.`
-        : `Estimación final guardada: ${sesion.valor_final} puntos.`,
+      cerrada: `Estimación final guardada: ${sesion.valor_final} puntos${sesion.cierre_automatico ? ' (calculada automáticamente en la cuarta ronda)' : ''}.`,
     };
     $('pp-estado-ronda').textContent = estados[sesion.estado] ?? 'Estado de ronda desconocido.';
     $('pp-numero-ronda').textContent = `Ronda ${sesion.ronda}`;
@@ -159,10 +112,10 @@ function pintarRonda() {
       if (sesion.sin_voto?.length) avisos.push(`Sin voto: ${sesion.sin_voto.join(', ')}.`);
       if (sesion.recomendar_discusion) avisos.push(`Diferencia de ${sesion.diferencia} puntos: se recomienda discutir y votar de nuevo.`);
       else if (sesion.consenso) avisos.push('Todos coincidieron en la estimación.');
-      else avisos.push('No hubo consenso completo; pueden discutir y repetir la ronda.');
+      else if (sesion.estado === 'revelada') avisos.push('No hubo consenso completo; pueden discutir y repetir la ronda.');
     }
-    if (sesion.estado === 'revelada' && sesion.ronda >= 3 && !sesion.consenso) {
-      avisos.push('Se realizaron al menos tres rondas sin consenso. SM o PO puede establecer los puntos finales.');
+    if (sesion.estado === 'revelada' && sesion.ronda === 3 && !sesion.consenso) {
+      avisos.push('Queda una ronda. En la cuarta se calcularán los puntos finales automáticamente.');
     }
     $('pp-diagnostico').textContent = avisos.join(' ');
 
@@ -193,11 +146,9 @@ function pintarRonda() {
   $('pp-revelar').hidden = !sesion || sesion.estado !== 'votando' || !permisoModerador;
   $('pp-revelar').disabled = procesandoRonda || !sesion?.votos_recibidos || sesion.votos_recibidos === sesion.total_participantes;
   if (!sesion) $('pp-diagnostico').textContent = '';
-  $('pp-otra-ronda').disabled = procesandoRonda;
-  $('pp-otra-ronda').textContent = sesion?.ronda >= 3 ? 'Iniciar otra ronda' : 'Votar de nuevo';
+  $('pp-otra-ronda').disabled = procesandoRonda || !sesion || sesion.ronda >= 4;
+  $('pp-otra-ronda').textContent = sesion?.ronda === 3 ? 'Iniciar cuarta ronda' : 'Votar de nuevo';
   $('pp-fijar').disabled = procesandoRonda || !$('pp-valor-final').value;
-  // Evitar que el guardado individual se salte una ronda grupal abierta.
-  if (sesion && sesion.estado !== 'cerrada') $('pp-guardar').disabled = true;
 }
 
 async function cargarRonda() {
@@ -229,7 +180,7 @@ async function ejecutarRonda(ruta, cuerpo) {
     if (sesionPoker?.estado === 'cerrada') {
       await cargarHistorias();
       await cargarRonda();
-      avisar('Estimación final guardada. Ya aparece en el Product Backlog.', 'exito');
+      avisar(sesionPoker?.cierre_automatico ? 'Cuarta ronda finalizada: se guardó la estimación Fibonacci calculada a partir de los votos recibidos.' : 'Estimación final guardada. Ya aparece en el Product Backlog.', 'exito');
     }
   } catch (error) {
     avisar(error.cuerpo?.mensaje || error.message || 'No se pudo realizar la operación.');

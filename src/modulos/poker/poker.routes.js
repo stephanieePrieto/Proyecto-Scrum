@@ -7,7 +7,6 @@ const router = Router();
 router.use(autenticar);
 
 router.get('/proyecto/:proyectoId/historias', controller.listarHistorias);
-router.post('/proyecto/:proyectoId/historias/:historiaId/estimar', controller.estimarHistoria);
 
 router.get('/proyecto/:proyectoId/historias/:historiaId/ronda', controller.consultarPoker);
 router.post('/proyecto/:proyectoId/historias/:historiaId/ronda', controller.iniciarPoker);

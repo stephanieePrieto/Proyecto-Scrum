@@ -31,39 +31,16 @@
 
     <div id="mensaje-poker" class="alerta" role="status" aria-live="polite" hidden></div>
 
-    <div class="pp-disposicion">
-      <section class="tarjeta" aria-labelledby="pp-historias-titulo">
-        <h2 id="pp-historias-titulo">Historias del proyecto</h2>
-        <p class="pp-ayuda">Selecciona una historia sin estimación. Las que ya tienen puntos aparecen solo para consulta.</p>
-        <label class="grupo-formulario">
-          <span class="etiqueta-formulario">Historia</span>
-          <select id="pp-historia" class="entrada-formulario" disabled>
-            <option value="">Cargando historias…</option>
-          </select>
-        </label>
-        <p id="pp-detalle" class="pp-ayuda" role="status"></p>
-        <button id="pp-actualizar" class="boton boton--secundario" type="button">Actualizar historias</button>
-      </section>
-
-      <section class="tarjeta" aria-labelledby="pp-puntos-titulo">
-        <h2 id="pp-puntos-titulo">Puntos Fibonacci</h2>
-        <p class="pp-ayuda">Elige el esfuerzo de la historia. Solo se permite 1, 2, 3, 5, 8, 13 o 21.</p>
-        <div id="pp-escala" class="pp-escala" role="group" aria-label="Seleccionar puntos Fibonacci">
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="1" aria-pressed="false">1</button>
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="2" aria-pressed="false">2</button>
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="3" aria-pressed="false">3</button>
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="5" aria-pressed="false">5</button>
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="8" aria-pressed="false">8</button>
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="13" aria-pressed="false">13</button>
-          <button type="button" class="boton boton--secundario pp-carta" data-puntos="21" aria-pressed="false">21</button>
-        </div>
-        <div class="pp-acciones">
-          <span id="pp-seleccion" class="pp-ayuda">Sin puntos seleccionados</span>
-          <button id="pp-guardar" class="boton boton--primario" type="button" disabled>Guardar estimación</button>
-        </div>
-        <p class="pp-ayuda">Para estimar en equipo, utiliza la sección Planning Poker. Los votos se mantienen ocultos hasta que todos participen.</p>
-      </section>
-    </div>
+    <section class="tarjeta" aria-labelledby="pp-historias-titulo">
+      <h2 id="pp-historias-titulo">Historias del proyecto</h2>
+      <p class="pp-ayuda">Selecciona una historia sin estimación para iniciar Planning Poker. Las historias con puntos son solo de consulta.</p>
+      <label class="grupo-formulario">
+        <span class="etiqueta-formulario">Historia</span>
+        <select id="pp-historia" class="entrada-formulario" disabled><option value="">Cargando historias…</option></select>
+      </label>
+      <p id="pp-detalle" class="pp-ayuda" role="status"></p>
+      <button id="pp-actualizar" class="boton boton--secundario" type="button">Actualizar historias</button>
+    </section>
 
     <section class="tarjeta pp-ronda" aria-labelledby="pp-ronda-titulo">
       <div class="pp-cabecera-ronda">

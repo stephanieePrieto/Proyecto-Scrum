@@ -1,6 +1,6 @@
 /**
  * @file tarjeta.js
- * @description Construcción programática pura de tarjetas de tareas mediante DOM API (HU-18, HU-19, HU-22, HU-23).
+ * @description Construcción programática pura de tarjetas de tareas mediante DOM API (HU-18, HU-19, HU-22, HU-23, HU-25).
  * @author Camila Mariné Crespo Zurita
  */
 
@@ -33,7 +33,10 @@ export function crearElementoTarjeta(tarea) {
     contenedor.id = `tarjeta-${tarea.id}`;
     contenedor.dataset.tareaId = tarea.id;
 
-    // Modificación HU-23: Permitir arrastre general y asignar dataset bloqueada[cite: 5]
+    // Modificaciones HU-25: integración de versión y orden para control de concurrencia y convergencia
+    contenedor.dataset.version = String(tarea.version || 1);
+    contenedor.dataset.orden = String(tarea.orden || 0);
+
     contenedor.draggable = true;
     contenedor.dataset.bloqueada = tarea.bloqueada ? 'true' : 'false';
 
@@ -49,6 +52,13 @@ export function crearElementoTarjeta(tarea) {
     } else {
         contenedor.classList.add('border', 'border-slate-200', 'bg-white');
     }
+
+    // --- INDICADOR DE EDICIÓN EN TIEMPO REAL ("X está editando" - HU-25) ---
+    const indicadorEditando = document.createElement('div');
+    indicadorEditando.id = `indicador-editando-${tarea.id}`;
+    indicadorEditando.className = 'tarjeta-editando-badge';
+    indicadorEditando.hidden = true;
+    contenedor.appendChild(indicadorEditando);
 
     // --- ENCABEZADO (#ID, Días restantes, Candado) ---
     const encabezado = document.createElement('div');
@@ -135,6 +145,14 @@ export function crearElementoTarjeta(tarea) {
     pie.appendChild(cajaHoras);
 
     contenedor.appendChild(pie);
+
+    // Evento de doble clic para abrir el modal de edición con control de versión (HU-25)
+    contenedor.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        import('./concurrencia.js').then((mod) => {
+            mod.abrirModalEditarTarjeta(tarea.id);
+        });
+    });
 
     return contenedor;
 }

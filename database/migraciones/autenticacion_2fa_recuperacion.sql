@@ -20,5 +20,5 @@ CREATE INDEX IF NOT EXISTS ix_recuperacion_2fa_usuario ON recuperacion_2fa (usua
 CREATE INDEX IF NOT EXISTS ix_recuperacion_2fa_cancelacion ON recuperacion_2fa (token_cancelacion);
 CREATE INDEX IF NOT EXISTS ix_recuperacion_2fa_confirmacion ON recuperacion_2fa (token_confirmacion);
 
--- Permisos
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE recuperacion_2fa TO scrumflow_app;
+-- Los permisos de la aplicación no se otorgan aquí: los asigna permisos_aplicacion.sql, que se vuelve a ejecutar
+-- después de cada migración y es quien crea los roles si todavía no existen.

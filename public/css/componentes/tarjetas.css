@@ -52,3 +52,21 @@
 [id^="lista-tarjetas-"] {
     min-height: 150px;
 }
+
+/* Alertas de Límite WIP*/
+.ring-rose-400 { 
+    box-shadow: inset 0 0 0 2px #fb7185 !important; 
+}
+.bg-rose-100 { 
+    background-color: #ffe4e6 !important; 
+}
+.text-rose-700 { 
+    color: #be123c !important; 
+}
+.animate-pulse { 
+    animation: pulse-wip 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; 
+}
+@keyframes pulse-wip {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .7; }
+}

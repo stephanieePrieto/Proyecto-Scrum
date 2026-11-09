@@ -36,12 +36,23 @@ export const actualizarProgreso = asyncHandler(async (req, res) => {
 /**
  * Califica un quiz y registra el intento.
  */
-export const enviarQuiz = asyncHandler(async (req, res) => {
-  const usuarioId = req.user.id;  // ← CAMBIADO
-  const { leccionId, respuestas } = req.body;
-  const resultado = await servicio.calificarQuiz(usuarioId, leccionId, respuestas);
-  res.json(resultado);
-});
+export async function enviarQuiz(req, res, next) {
+  try {
+    const usuarioId = req.user.id;
+    const { leccionId, respuestas } = req.body;
+    
+    const resultado = await servicio.calificarQuiz(usuarioId, leccionId, respuestas);
+    
+    // Retornar directamente la propiedad calificacion y aprobado
+    res.json({
+      exito: true,
+      calificacion: resultado.calificacion,
+      aprobado: resultado.aprobado
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 // ===========================================================================
 // CONTROLADORES DE CERTIFICADO
@@ -92,18 +103,20 @@ export const otorgarCertificado = asyncHandler(async (req, res) => {
 /**
  * Descarga el certificado en PDF.
  */
-export const descargarCertificado = asyncHandler(async (req, res) => {
-  const usuarioId = req.user.id;  // ← CAMBIADO
-
+export async function descargarCertificado(req, res, next) {
   try {
+    const usuarioId = req.user.id;
     const pdfBuffer = await servicio.generarCertificadoPDF(usuarioId);
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=certificado-scrum-${usuarioId}.pdf`);
-    res.send(pdfBuffer);
+    res.setHeader('Content-Disposition', 'attachment; filename="Certificado_ScrumFlow.pdf"');
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    return res.end(Buffer.from(pdfBuffer));
   } catch (error) {
-    res.status(404).json({ error: error.message });
+    next(error);
   }
-});
+}
 
 /**
  * Reinicia el progreso del curso.

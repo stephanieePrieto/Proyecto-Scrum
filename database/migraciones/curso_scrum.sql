@@ -1,11 +1,10 @@
 -- ===========================================================================
--- MICROCURSO DE SCRUM - ESQUEMA DE BASE DE DATOS
--- Descripción: Estructura para el micro curso de Scrum con seguimiento de progreso,
+-- MICROCURSO DE SCRUM - ESQUEMA DE BASE DE DATOS Y DATOS INICIALES
+-- Autor: Stephanie Elizdeth Hernández Prieto
+-- Descripción: Estructura de tablas, índices y semillas para lecciones y quizzes.
+-- ===========================================================================
 
--- ===========================================================================
--- TABLA: curso_lecciones
--- Descripción: Almacena las lecciones/módulos del curso.
--- ===========================================================================
+-- 1. TABLA: curso_lecciones
 CREATE TABLE IF NOT EXISTS curso_lecciones (
   id SERIAL PRIMARY KEY,
   orden INTEGER NOT NULL UNIQUE,
@@ -15,13 +14,9 @@ CREATE TABLE IF NOT EXISTS curso_lecciones (
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Índice para ordenar lecciones rápidamente
 CREATE INDEX IF NOT EXISTS ix_curso_lecciones_orden ON curso_lecciones(orden);
 
--- ===========================================================================
--- TABLA: curso_progreso_lecciones
--- Descripción: Registra el progreso de lectura de cada usuario por lección.
--- ===========================================================================
+-- 2. TABLA: curso_progreso_lecciones
 CREATE TABLE IF NOT EXISTS curso_progreso_lecciones (
   id SERIAL PRIMARY KEY,
   usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -32,14 +27,10 @@ CREATE TABLE IF NOT EXISTS curso_progreso_lecciones (
   UNIQUE (usuario_id, leccion_id)
 );
 
--- Índices para consultas rápidas de progreso por usuario
 CREATE INDEX IF NOT EXISTS ix_curso_progreso_usuario ON curso_progreso_lecciones(usuario_id);
 CREATE INDEX IF NOT EXISTS ix_curso_progreso_leccion ON curso_progreso_lecciones(leccion_id);
 
--- ===========================================================================
--- TABLA: curso_quizzes
--- Descripción: Almacena las preguntas y opciones de los quizzes por lección.
--- ===========================================================================
+-- 3. TABLA: curso_quizzes
 CREATE TABLE IF NOT EXISTS curso_quizzes (
   id SERIAL PRIMARY KEY,
   leccion_id INTEGER NOT NULL REFERENCES curso_lecciones(id) ON DELETE CASCADE,
@@ -48,13 +39,9 @@ CREATE TABLE IF NOT EXISTS curso_quizzes (
   respuesta_correcta INTEGER NOT NULL
 );
 
--- Índice para agrupar quizzes por lección
 CREATE INDEX IF NOT EXISTS ix_curso_quizzes_leccion ON curso_quizzes(leccion_id);
 
--- ===========================================================================
--- TABLA: curso_intentos_quizzes
--- Descripción: Registra los intentos, calificaciones y aprobación de quizzes por usuario.
--- ===========================================================================
+-- 4. TABLA: curso_intentos_quizzes
 CREATE TABLE IF NOT EXISTS curso_intentos_quizzes (
   id SERIAL PRIMARY KEY,
   usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -66,14 +53,10 @@ CREATE TABLE IF NOT EXISTS curso_intentos_quizzes (
   UNIQUE (usuario_id, leccion_id)
 );
 
--- Índices para consultas rápidas de quizzes por usuario
 CREATE INDEX IF NOT EXISTS ix_curso_intentos_usuario ON curso_intentos_quizzes(usuario_id);
 CREATE INDEX IF NOT EXISTS ix_curso_intentos_leccion ON curso_intentos_quizzes(leccion_id);
 
--- ===========================================================================
--- TABLA: curso_certificados
--- Descripción: Almacena los certificados emitidos a usuarios que completaron el curso.
--- ===========================================================================
+-- 5. TABLA: curso_certificados
 CREATE TABLE IF NOT EXISTS curso_certificados (
   id SERIAL PRIMARY KEY,
   usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -84,14 +67,14 @@ CREATE TABLE IF NOT EXISTS curso_certificados (
 CREATE INDEX IF NOT EXISTS ix_curso_certificados_usuario ON curso_certificados(usuario_id);
 
 -- ===========================================================================
--- SEED: Contenido inicial del curso (4 lecciones con quizzes)
+-- SEED: CONTENIDO DE LECCIONES (4 Módulos)
 -- ===========================================================================
 INSERT INTO curso_lecciones (orden, titulo, contenido, seccion) VALUES
 (1, '1. Fundamentos Ágiles y el Tablero Kanban',
 '<h3>Teoría de Scrum</h3>
-<p>Scrum es un marco de trabajo ligero que ayuda a las personas, equipos y organizaciones a generar valor mediante soluciones adaptativas a problemas complejos. Se basa en la <strong>transparencia</strong>, <strong>inspección</strong> y <strong>adaptación</strong>.</p>
+<p>Scrum es un marco de trabajo ligero que ayuda a las personas, equipos y organizaciones a generar valor mediante soluciones adaptativas a problemas complejos. Se basa en el empirismo y el pensamiento Lean: <strong>transparencia</strong>, <strong>inspección</strong> y <strong>adaptación</strong>.</p>
 <h3>Cómo se usa en ScrumFlow</h3>
-<p>En nuestra plataforma, el trabajo se organiza en Sprints y se visualiza en el módulo de <strong>Tablero</strong> (<code>/pages/tablero.html</code>). Las tarjetas se mueven entre columnas (Por hacer, En progreso, Hecho) arrastrándolas en tiempo real gracias a WebSockets.</p>',
+<p>En nuestra plataforma, el trabajo se organiza en Sprints y se visualiza en el módulo de <strong>Tablero</strong>. Las tarjetas se mueven entre columnas (Por hacer, En progreso, Hecho) arrastrándolas en tiempo real gracias a WebSockets.</p>',
 'Introducción'),
 
 (2, '2. Roles en el Proyecto: Scrum Master, Product Owner y Developers',
@@ -104,58 +87,72 @@ INSERT INTO curso_lecciones (orden, titulo, contenido, seccion) VALUES
 </ul>
 </p>
 <h3>Cómo se usa en ScrumFlow</h3>
-<p>Los roles se asignan <strong>por proyecto</strong> en la tabla <code>miembros_proyecto</code>. Dependiendo de tu rol en el proyecto activo, la barra superior y los permisos (<code>permisos-ui.js</code>) adaptarán las herramientas disponibles.</p>',
+<p>Los roles se asignan <strong>por proyecto</strong> en la tabla <code>miembros_proyecto</code>. Dependiendo de tu rol en el proyecto activo, la barra superior y los permisos adaptarán las herramientas disponibles.</p>',
 'Roles'),
 
 (3, '3. Sprints, Capacidad y Planificación',
 '<h3>Teoría de Sprints</h3>
-<p>Los Sprints son contenedores de <strong>un mes o menos</strong> para crear consistencia. Tienen:
-<ul>
-<li>Una <strong>duración fija</strong> (no se alarga).</li>
-<li>Un <strong>Sprint Goal</strong> (objetivo claro).</li>
-<li>Una <strong>revisión</strong> al final (Sprint Review).</li>
-<li>Una <strong>retrospectiva</strong> para mejorar (Sprint Retrospective).</li>
-</ul>
-Ningún cambio altera la calidad del Sprint Goal.</p>
+<p>Los Sprints son contenedores de <strong>un mes o menos</strong> para crear consistencia. Tienen una duración fija, un Sprint Goal claro, una revisión al final (Sprint Review) y una retrospectiva (Sprint Retrospective).</p>
 <h3>Cómo se usa en ScrumFlow</h3>
-<p>Antes de arrancar un Sprint, cada integrante configura sus horas disponibles y ausencias en el módulo de <strong>Capacidad</strong> (<code>/pages/capacidad.html</code>). El sistema calcula automáticamente la capacidad total del equipo.</p>',
+<p>Antes de arrancar un Sprint, cada integrante configura sus horas disponibles y ausencias en el módulo de <strong>Capacidad</strong>. El sistema calcula automáticamente la capacidad total del equipo.</p>',
 'Planificación'),
 
 (4, '4. Ceremonias Ágiles: Daily, Review y Retrospectiva',
 '<h3>Teoría de Ceremonias</h3>
 <p>Scrum define eventos clave para mantener el ritmo:
 <ul>
-<li><strong>Daily Scrum</strong>: Reunión diaria de 15 minutos para alinear al equipo. Responde: ¿Qué hice ayer? ¿Qué haré hoy? ¿Qué impedimentos tengo?</li>
-<li><strong>Sprint Review</strong>: Al final del Sprint, se inspecciona el incremento y se adapta el Backlog.</li>
-<li><strong>Sprint Retrospective</strong>: El equipo reflexiona sobre cómo mejorar en el próximo Sprint.</li>
+<li><strong>Daily Scrum</strong>: Reunión diaria de 15 minutos para alinear al equipo.</li>
+<li><strong>Sprint Review</strong>: Inspección del incremento al final del Sprint.</li>
+<li><strong>Sprint Retrospective</strong>: Reflexión del equipo para mejorar procesos.</li>
 </ul>
 </p>
 <h3>Cómo se usa en ScrumFlow</h3>
-<p>Registra tus pendientes en el módulo <strong>Daily</strong> (<code>/pages/daily.html</code>) y mide el tiempo real invertido en cada tarea utilizando el temporizador nativo del servidor para evitar pérdida de datos si cierras el navegador.</p>',
+<p>Registra tus pendientes en el módulo <strong>Daily</strong> y mide el tiempo real invertido en cada tarea utilizando el temporizador nativo del servidor para evitar pérdida de datos si cierras el navegador.</p>',
 'Ejecución')
-ON CONFLICT (orden) DO NOTHING;
+ON CONFLICT (orden) DO UPDATE 
+SET titulo = EXCLUDED.titulo, contenido = EXCLUDED.contenido, seccion = EXCLUDED.seccion;
 
 -- ===========================================================================
--- SEED: Quizzes de ejemplo (1 por lección)
+-- SEED: QUIZZES CORREGIDOS (2 Preguntas específicas por lección)
 -- ===========================================================================
+TRUNCATE TABLE curso_quizzes RESTART IDENTITY CASCADE;
+
+-- Lección 1 (Fundamentos Ágiles y Kanban)
 INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
-SELECT l.id, q.pregunta, q.opciones::jsonb, q.respuesta_correcta
-FROM curso_lecciones l
-JOIN (
-  VALUES
-    (1, '¿Qué pilar fundamental de Scrum se refleja al mover tarjetas en el Tablero Kanban en tiempo real?',
-     '{"0":"Transparencia y visibilidad", "1":"Ocultar información", "2":"Trabajar sin orden"}'::json, 0),
-    (2, '¿Dónde se definen los roles de Scrum Master, Product Owner y Developer en ScrumFlow?',
-     '{"0":"En el perfil global del usuario", "1":"Dentro de cada proyecto en miembros_proyecto", "2":"En el archivo .env"}'::json, 1),
-    (3, '¿Qué módulo de ScrumFlow permite registrar las horas disponibles y vacaciones de cada integrante?',
-     '{"0":"Módulo de Capacidad", "1":"Módulo de Bitácora", "2":"Módulo de Login"}'::json, 0),
-    (4, '¿Para qué sirve el temporizador de tareas integrado en ScrumFlow?',
-     '{"0":"Para medir horas reales en el servidor sin perder tiempo si se cierra el navegador", "1":"Para bloquear la computadora", "2":"Para enviar correos masivos"}'::json, 0)
-) AS q(orden, pregunta, opciones, respuesta_correcta)
-ON l.orden = q.orden
-ON CONFLICT DO NOTHING;
+VALUES 
+((SELECT id FROM curso_lecciones WHERE orden = 1),
+ '¿Qué pilar fundamental de Scrum se refleja al mover tarjetas en el Tablero Kanban en tiempo real?',
+ '{"0": "Transparencia y visibilidad", "1": "Ocultar información", "2": "Trabajar sin orden"}', 0),
+((SELECT id FROM curso_lecciones WHERE orden = 1),
+ '¿En qué teoría de control de procesos se basa principalmente Scrum?',
+ '{"0": "Empírica (Transparencia, Inspección y Adaptación)", "1": "Modelo Cascada clásico", "2": "Planificación rígida prediseñada"}', 0);
 
--- ===========================================================================
--- NOTA: Para habiltar la generación de PDFs, instalar en el backend:
--- npm install pdf-lib
--- ===========================================================================
+-- Lección 2 (Roles en Scrum)
+INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
+VALUES 
+((SELECT id FROM curso_lecciones WHERE orden = 2),
+ '¿Dónde se definen los roles de Scrum Master, Product Owner y Developer en ScrumFlow?',
+ '{"0": "En el perfil global del usuario", "1": "Dentro de cada proyecto en la tabla miembros_proyecto", "2": "En el archivo .env"}', 1),
+((SELECT id FROM curso_lecciones WHERE orden = 2),
+ '¿Quién es el responsable de maximizar el valor del producto y gestionar el Product Backlog?',
+ '{"0": "Scrum Master", "1": "Product Owner", "2": "Developers"}', 1);
+
+-- Lección 3 (Sprints y Planificación)
+INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
+VALUES 
+((SELECT id FROM curso_lecciones WHERE orden = 3),
+ '¿Qué módulo de ScrumFlow permite registrar las horas disponibles y ausencias de cada integrante?',
+ '{"0": "Módulo de Capacidad", "1": "Módulo de Bitácora", "2": "Módulo de Autenticación"}', 0),
+((SELECT id FROM curso_lecciones WHERE orden = 3),
+ '¿Cuál es la duración máxima recomendada para un Sprint en Scrum?',
+ '{"0": "Un mes o menos", "1": "Seis meses", "2": "No tiene límite fijado"}', 0);
+
+-- Lección 4 (Ceremonias Ágiles)
+INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
+VALUES 
+((SELECT id FROM curso_lecciones WHERE orden = 4),
+ '¿Para qué sirve el temporizador de tareas integrado en ScrumFlow?',
+ '{"0": "Para medir horas reales en el servidor sin perder tiempo al cerrar el navegador", "1": "Para bloquear el acceso al sistema", "2": "Para enviar correos masivos de notificación"}', 0),
+((SELECT id FROM curso_lecciones WHERE orden = 4),
+ '¿Cuál es la duración máxima acordada para la reunión Daily Scrum?',
+ '{"0": "15 minutos", "1": "45 minutos", "2": "2 horas"}', 0);

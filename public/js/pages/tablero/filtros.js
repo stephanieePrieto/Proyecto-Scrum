@@ -36,6 +36,7 @@ import {
   aplicarCambioEnVivo,
   evaluarCambioEnVivo,
 } from './filtros.reglas.js';
+import { huboCambios } from '../../componentes/tiempo-real.reglas.js';
 
 /** Prefijo de la llave de localStorage. */
 const PREFIJO_LLAVE = 'filtrosTablero';
@@ -114,11 +115,11 @@ function guardarFiltros() {
 }
 
 /**
- * Muestra un aviso discreto que desaparece solo.
+ * Muestra un aviso discreto que desaparece solo. También lo usa el menú "Mover a…" (HU-52).
  * @param {string} texto
  * @param {'info'|'error'} [tono='info']
  */
-function mostrarAviso(texto, tono = 'info') {
+export function mostrarAviso(texto, tono = 'info') {
   const aviso = document.getElementById('tablero-aviso');
   if (!aviso) return;
   aviso.textContent = texto;
@@ -126,6 +127,14 @@ function mostrarAviso(texto, tono = 'info') {
   aviso.classList.add('tablero-aviso--visible');
   clearTimeout(temporizadorAviso);
   temporizadorAviso = setTimeout(() => aviso.classList.remove('tablero-aviso--visible'), DURACION_AVISO_MS);
+}
+
+/**
+ * Columnas del tablero en su orden, como las conoce la vista (las usa el menú "Mover a…", HU-52).
+ * @returns {{id: number, nombre: string}[]}
+ */
+export function obtenerColumnas() {
+  return [...estado.columnas];
 }
 
 /**
@@ -227,12 +236,15 @@ function poblarControles() {
 
 /**
  * Dibuja el tablero con los filtros y la agrupación vigentes. Solo cambia la vista (criterio 6).
+ * @param {Object} [opciones]
+ * @param {boolean} [opciones.sincronizar=true] - Tomar antes del DOM la columna y versión de cada tarjeta.
+ *   Se omite cuando los datos acaban de llegar del servidor, porque el DOM todavía muestra los anteriores.
  */
-function renderizarVista() {
+function renderizarVista({ sincronizar = true } = {}) {
   const contenedor = obtenerContenedor();
   if (!contenedor || estado.columnas.length === 0) return;
 
-  sincronizarDesdeDom(contenedor);
+  if (sincronizar) sincronizarDesdeDom(contenedor);
   estado.cambiosEnVivo.clear();
 
   const visibles = filtrarTareas(estado.tareas, estado.filtros);
@@ -284,10 +296,56 @@ async function recargarDatos() {
     estado.tareas = Array.isArray(datos.tareas) ? datos.tareas.map((t) => ({ ...t })) : [];
     estado.cambiosEnVivo.clear();
     poblarControles();
-    renderizarVista();
+    renderizarVista({ sincronizar: false });
   } catch (error) {
     console.error('[HU-21] No se pudo actualizar el tablero:', error);
   }
+}
+
+/**
+ * Sondeo del tablero cuando el WebSocket está bloqueado (HU-52, criterio 5). Lee el tablero (solo lectura) y
+ * repinta únicamente si algo cambió, respetando filtros y carriles. Avisa de forma discreta si alguna tarjeta
+ * que estaba a la vista ya no coincide con los filtros (HU-21, criterio 5). Conserva el scroll del tablero.
+ * @returns {Promise<boolean>} true si hubo cambios y se repintó.
+ */
+export async function sincronizarConServidor() {
+  const contenedor = obtenerContenedor();
+  if (!contenedor || !estado.proyectoId || estado.columnas.length === 0) return false;
+
+  const respuesta = await api(`/tablero/${estado.proyectoId}`);
+  const datos = respuesta?.data;
+  if (!datos || !Array.isArray(datos.tareas)) return false;
+  const columnasNuevas = Array.isArray(datos.columnas) && datos.columnas.length ? datos.columnas : estado.columnas;
+
+  // Lo que el DOM ya refleja (arrastres propios) cuenta como estado actual antes de comparar
+  sincronizarDesdeDom(contenedor);
+  if (!huboCambios({ columnas: estado.columnas, tareas: estado.tareas }, { columnas: columnasNuevas, tareas: datos.tareas })) {
+    return false;
+  }
+
+  const nuevasPorId = new Map(datos.tareas.map((t) => [String(t.id), t]));
+  const ocultadas = estado.tareas
+    .filter((antes) => {
+      const despues = nuevasPorId.get(String(antes.id));
+      return despues && evaluarCambioEnVivo(antes, despues, estado.filtros).accion === 'ocultar';
+    })
+    .map((t) => t.titulo);
+
+  const scroll = { x: contenedor.scrollLeft, y: contenedor.scrollTop };
+  estado.columnas = columnasNuevas;
+  estado.tareas = datos.tareas.map((t) => ({ ...t }));
+  estado.cambiosEnVivo.clear();
+  poblarControles();
+  renderizarVista({ sincronizar: false });
+  contenedor.scrollLeft = scroll.x;
+  contenedor.scrollTop = scroll.y;
+
+  if (ocultadas.length === 1) {
+    mostrarAviso(`«${ocultadas[0]}» cambió y ya no coincide con tus filtros; se ocultó de la vista.`);
+  } else if (ocultadas.length > 1) {
+    mostrarAviso(`${ocultadas.length} tarjetas cambiaron y ya no coinciden con tus filtros; se ocultaron de la vista.`);
+  }
+  return true;
 }
 
 /**

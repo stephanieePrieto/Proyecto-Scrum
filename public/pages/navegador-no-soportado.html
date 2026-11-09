@@ -1,1 +1,146 @@
-<!-- Responsable: Alfonso - HU-52: aviso de compatibilidad. Usa errores.css -->
+<!DOCTYPE html>
+<!-- Responsable: Alfonso - HU-52: aviso de compatibilidad. Usa los estilos globales (base, layout, botones, avisos) -->
+<!-- No carga compatibilidad.js ni módulos ES: debe verse bien justo en los navegadores que no los soportan -->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Navegador no compatible · ScrumFlow</title>
+
+    <!-- Estilos globales (rutas absolutas, igual que 404.html) -->
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/componentes/botones.css" />
+    <link rel="stylesheet" href="/css/componentes/avisos.css" />
+    <link rel="stylesheet" href="/css/componentes/responsive.css" />
+
+    <!-- Valores fijos de la paleta: un navegador sin variables CSS ignora var() y usa estos -->
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            background: #F3F0E9;
+            color: #282828;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+        }
+
+        .compat {
+            max-width: 640px;
+            margin: 48px auto;
+            padding: 0 16px;
+        }
+
+        .compat .aviso--vacio {
+            padding: 40px 24px;
+            background: #FBFAF7;
+            border: 1px dashed #D3CCBC;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .compat .aviso__icono {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: #EFE6D5;
+            color: #282828;
+            line-height: 56px;
+        }
+
+        .compat .aviso__texto,
+        .compat__detalle {
+            color: #6B665C;
+        }
+
+        .compat__navegadores {
+            margin: 8px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .compat__navegadores li {
+            display: inline-block;
+            margin: 4px 6px;
+        }
+
+        .compat__navegadores a {
+            color: #5C4A2E;
+            text-decoration: underline;
+        }
+
+        .compat__acciones {
+            margin-top: 8px;
+        }
+
+        .compat__acciones .btn {
+            display: inline-block;
+            margin: 4px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .compat__acciones .btn--primary {
+            background: #282828;
+            color: #FBFAF7;
+        }
+
+        .compat__acciones .btn--secondary {
+            background: #FBFAF7;
+            color: #282828;
+            border: 1px solid #E4DFD3;
+        }
+
+        .compat__detalle {
+            margin-top: 8px;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .compat__detalle ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="compat">
+        <section class="aviso aviso--vacio" aria-labelledby="compat-titulo">
+            <div class="aviso__icono" aria-hidden="true">!</div>
+            <h1 class="aviso__titulo" id="compat-titulo">Tu navegador no es compatible con ScrumFlow</h1>
+            <p class="aviso__texto" id="compat-texto">
+                ScrumFlow funciona en las dos versiones más recientes de Google Chrome, Microsoft Edge,
+                Mozilla Firefox y Safari. Actualiza tu navegador o abre ScrumFlow en uno de ellos.
+            </p>
+
+            <ul class="compat__navegadores" id="compat-navegadores" aria-label="Navegadores compatibles">
+                <li><a href="https://www.google.com/chrome/" rel="noopener noreferrer">Google Chrome</a></li>
+                <li><a href="https://www.microsoft.com/edge" rel="noopener noreferrer">Microsoft Edge</a></li>
+                <li><a href="https://www.mozilla.org/firefox/" rel="noopener noreferrer">Mozilla Firefox</a></li>
+                <li><a href="https://www.apple.com/safari/" rel="noopener noreferrer">Safari</a></li>
+            </ul>
+
+            <div class="compat__acciones">
+                <a class="btn btn--primary" id="compat-reintentar" href="/">Volver a intentar</a>
+                <a class="btn btn--secondary" id="compat-continuar" href="/" hidden>Continuar de todos modos</a>
+            </div>
+
+            <details class="compat__detalle" id="compat-detalle" hidden>
+                <summary>Detalle técnico</summary>
+                <p>A este navegador le falta:</p>
+                <ul id="compat-faltan"></ul>
+            </details>
+        </section>
+    </main>
+
+    <!-- Script clásico ES5: lee qué falta y a qué página volver -->
+    <script src="/js/pages/navegador-no-soportado.js"></script>
+</body>
+
+</html>

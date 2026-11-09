@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/componentes/compatibilidad.js"></script>
     <title>Tablero Kanban · ScrumFlow</title>
 
     <!-- Enlaces unificados del equipo -->
@@ -16,6 +17,7 @@
     <link rel="stylesheet" href="../css/componentes/insignias.css">
     <link rel="stylesheet" href="../css/componentes/modales.css">
     <link rel="stylesheet" href="../css/componentes/swimlanes.css">
+    <link rel="stylesheet" href="/css/componentes/responsive.css">
 </head>
 
 <body>
@@ -227,6 +229,8 @@
         </div>
     </div>
 
+    <!-- HU-52: cliente de Socket.io como script clásico, disponible antes de que se ejecuten los módulos -->
+    <script src="/socket.io/socket.io.js"></script>
     <script type="module" src="../js/pages/tablero.js"></script>
 
 </body>

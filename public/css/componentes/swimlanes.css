@@ -137,7 +137,11 @@
   color: var(--texto-suave);
 }
 
+/* tarjetas.css da min-width: 320px y height: 100% a todo [data-columna-id]; en un carril la celda debe
+   ajustarse a su columna del grid para no encimarse con la siguiente */
 .carril__celda {
+  min-width: 0;
+  height: auto;
   min-height: 72px;
   padding: 8px;
   border-radius: var(--radio-lg);
@@ -149,6 +153,7 @@
   flex-direction: column;
   gap: 10px;
   min-height: 56px;
+  margin-top: 0;
   border-radius: var(--radio-lg);
   transition: background-color 0.15s ease;
 }

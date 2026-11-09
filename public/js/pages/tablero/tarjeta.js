@@ -144,6 +144,16 @@ export function crearElementoTarjeta(tarea) {
     pie.appendChild(cajaResponsable);
     pie.appendChild(cajaHoras);
 
+    // HU-52 (Alfonso): botón "Mover a…" para pantallas táctiles; solo se ve con (pointer: coarse)
+    const botonMover = document.createElement('button');
+    botonMover.type = 'button';
+    botonMover.className = 'tarjeta-mover-btn';
+    botonMover.dataset.tareaId = tarea.id;
+    botonMover.dataset.permiso = 'tarea.gestionar';
+    botonMover.setAttribute('aria-label', `Mover «${tarea.titulo}» a otra columna`);
+    botonMover.textContent = 'Mover a…';
+    pie.appendChild(botonMover);
+
     contenedor.appendChild(pie);
 
     // Evento de doble clic para abrir el modal de edición con control de versión (HU-25)

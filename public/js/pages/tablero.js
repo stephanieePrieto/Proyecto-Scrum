@@ -10,8 +10,12 @@
  * @see {@link module:tablero/columnas}
  */
 
+// HU-52: debe ser el primer import. Crea la conexión en tiempo real y la publica en window.socket antes de que
+// reconexion.js se cargue (la toma al cargarse). No se conecta hasta llamar a iniciarTiempoReal.
+import { iniciarTiempoReal } from '../componentes/tiempo-real-limitado.js';
 import { inicializarTablero } from './tablero/columnas.js';
-import { inicializarFiltros } from './tablero/filtros.js';
+import { inicializarFiltros, sincronizarConServidor } from './tablero/filtros.js';
+import { inicializarMenuMover, hayArrastreEnCurso } from './tablero/mover-menu.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { escucharMovimientosSocket } from './tablero/reconexion.js';
@@ -87,9 +91,28 @@ document.addEventListener('DOMContentLoaded', async() => {
     inicializarFiltros(proyectoActivoId, permisos);
 
     /**
+     * Menú "Mover a…" para pantallas táctiles y seguimiento de arrastres (HU-52).
+     */
+    inicializarMenuMover();
+
+    /**
      * Inicializa la escucha por WebSockets y la sincronización offline (HU-58).
      */
     escucharMovimientosSocket(proyectoActivoId);
+
+    /**
+     * Conecta el tiempo real; si el WebSocket está bloqueado, sondea cada 5 s y avisa "tiempo real limitado" (HU-52).
+     * El sondeo se salta mientras hay un arrastre o un modal abierto.
+     */
+    iniciarTiempoReal({
+        proyectoId: proyectoActivoId,
+        sondear: sincronizarConServidor,
+        obtenerContexto: () => ({
+            arrastrando: hayArrastreEnCurso(),
+            modalAbierto: Boolean(document.querySelector('.modal-overlay:not(.modal--hidden)')),
+        }),
+        contenedorAviso: document.getElementById('sprint-estado')?.parentElement || null,
+    });
 
     /**
      * Configura los escuchadores de eventos para los botones de acción del encabezado.

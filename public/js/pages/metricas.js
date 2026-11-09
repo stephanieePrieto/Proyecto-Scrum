@@ -2,7 +2,7 @@
  * @file metricas.js
  * @description Orquestador de la vista de métricas. Controla los selectores y 
  * decide si muestra la Gráfica Velocity o el Burndown.
- * Carga la velocity (HU-30) y el avance (HU-31).
+ * Carga la velocity (HU-30), el avance (HU-31) y la distribución (HU-32).
  * @author Dana Carmona Santamaria
  * @author Citlaly Morales Viveros
  */
@@ -13,6 +13,8 @@ import { dibujarVelocity } from './metricas/velocity.js';
 import { dibujarAvance } from './metricas/avance.js';
 import { dibujarBurndown } from './metricas/burndown.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
+import { dibujarDistribucion } from './metricas/distribucion.js';
+import { procesarExportacionFront } from './metricas/exportar.js';
 
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
@@ -20,17 +22,31 @@ const selectSprint = document.getElementById('filtro-sprint');
 const selectProyecto = document.getElementById('filtro-proyecto');
 const cajaProyecto = document.getElementById('selector-proyecto');
 const avisoError = document.getElementById('metricas-error');
+const contDistribucion = document.getElementById('distribucion-contenido');
 
-// 1. Inyección del filtro de Tipo de Gráfica en la cabecera general (con validación de existencia)
+// 1. Inyección de filtros en la cabecera general (Vista e Integrante Principal)
 const headerAcciones = document.querySelector('.encabezado-pagina__acciones');
-if (headerAcciones && !document.getElementById('filtro-tipo-grafica')) {
-  const selectorTipo = document.createElement('label');
-  selectorTipo.className = 'metricas__filtro';
-  selectorTipo.innerHTML = `Vista <select id="filtro-tipo-grafica" class="metricas__selector">
-    <option value="velocity" selected>Velocity</option>
-    <option value="burndown">Burndown</option>
-  </select>`;
-  headerAcciones.prepend(selectorTipo);
+if (headerAcciones) {
+  // Primero inyectamos "Vista" (al inyectar el siguiente, este quedará a la derecha)
+  if (!document.getElementById('filtro-tipo-grafica')) {
+    const selectorTipo = document.createElement('label');
+    selectorTipo.className = 'metricas__filtro';
+    selectorTipo.innerHTML = `Vista <select id="filtro-tipo-grafica" class="metricas__selector">
+      <option value="velocity" selected>Velocity</option>
+      <option value="burndown">Burndown</option>
+    </select>`;
+    headerAcciones.prepend(selectorTipo);
+  }
+  
+  // Luego inyectamos "Integrante" (al hacer prepend, queda a la izquierda de "Vista")
+  if (!document.getElementById('filtro-integrante-principal')) {
+    const selectorInt = document.createElement('label');
+    selectorInt.className = 'metricas__filtro';
+    selectorInt.innerHTML = `Integrante <select id="filtro-integrante-principal" class="metricas__selector">
+      <option value="">Todo el equipo</option>
+    </select>`;
+    headerAcciones.prepend(selectorInt);
+  }
 }
 
 // 2. Inyección del filtro de Integrante junto al filtro de Sprint (Sección Avance con validación)
@@ -52,11 +68,21 @@ if (selectSprint && !selectIntegranteAvance) {
 const CLAVE_PROYECTO = 'proyectoActivo';
 let datosAvanceActual = null;
 
+/**
+ * Leer el ID del proyecto directamente de los parámetros de la URL (?proyecto=ID).
+ * @returns {number|null} Identificador numérico del proyecto, o null si no es válido.
+ */
 function proyectoDeLaUrl() {
   const id = Number(new URLSearchParams(window.location.search).get('proyecto'));
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+/**
+ * Guardar el proyecto elegido en la URL (sin recargar la página) y en el localStorage.
+ * Esto asegura que al volver al dashboard o refrescar, el sistema recuerde el proyecto.
+ * @param {number} proyectoId - Identificador del proyecto activo.
+ * @returns {void}
+ */
 function recordarProyecto(proyectoId) {
   const url = new URL(window.location.href);
   url.searchParams.set('proyecto', proyectoId);
@@ -64,6 +90,11 @@ function recordarProyecto(proyectoId) {
   try { window.localStorage.setItem(CLAVE_PROYECTO, String(proyectoId)); } catch { }
 }
 
+/**
+ * Manejar el ancla (hash) de la URL para hacer scroll automático 
+ * y preseleccionar la pestaña/vista correcta (ej. #burndown o #avance).
+ * @returns {void}
+ */
 function manejarTabUrl() {
   const hash = window.location.hash;
   const selectTipo = document.getElementById('filtro-tipo-grafica');
@@ -76,6 +107,11 @@ function manejarTabUrl() {
   }
 }
 
+/**
+ * Consultar la API para obtener los proyectos a los que pertenece el usuario.
+ * Llenar el selector desplegable y elegir un proyecto inicial por defecto.
+ * @returns {Promise<number|null>} El ID del proyecto seleccionado o null si no tiene ninguno.
+ */
 async function elegirProyecto() {
   const proyectos = await api('/metricas/mis-proyectos');
   if (proyectos.length === 0) return null;
@@ -94,6 +130,10 @@ async function elegirProyecto() {
   return elegido.id;
 }
 
+/**
+ * Importar dinámicamente y montar la barra de navegación superior.
+ * @returns {Promise<void>}
+ */
 async function montarLayout() {
   try {
     const layout = await import('../core/layout.js');
@@ -103,6 +143,11 @@ async function montarLayout() {
   }
 }
 
+/**
+ * Traducir un error HTTP en un mensaje legible para el usuario.
+ * @param {ErrorApp} error - Objeto de error capturado.
+ * @returns {string} Mensaje traducido.
+ */
 function mensajeDeError(error) {
   if (error.estado === 401) {
     window.location.href = '/pages/login.html';
@@ -112,6 +157,14 @@ function mensajeDeError(error) {
   return error.cuerpo?.mensaje || 'No se pudo cargar esta sección.';
 }
 
+/**
+ * Mostrar una alerta de error dentro del contenedor de la gráfica que falló,
+ * permitiendo reintentar la solicitud específica.
+ * @param {HTMLElement} contenedor - Elemento DOM de la sección.
+ * @param {ErrorApp} error - El error que causó el fallo.
+ * @param {string} clave - ID identificador del botón reintentar ('grafica', 'avance', 'distribucion').
+ * @returns {void}
+ */
 function mostrarErrorSeccion(contenedor, error, clave) {
   if (!contenedor) return;
   contenedor.innerHTML = `<div class="alerta alerta--error metricas__error" role="alert">
@@ -120,15 +173,28 @@ function mostrarErrorSeccion(contenedor, error, clave) {
     </div>`;
 }
 
+/**
+ * Pintar un esqueleto animado mientras se espera la respuesta del servidor.
+ * @param {HTMLElement} contenedor - Contenedor a limpiar y cargar.
+ * @returns {void}
+ */
 function mostrarCarga(contenedor) {
   if (!contenedor) return;
   contenedor.setAttribute('aria-busy', 'true');
   contenedor.innerHTML = '<span class="esqueleto metricas__esqueleto"></span>';
 }
 
+/**
+ * Consultar al backend y renderizar la gráfica principal elegida (Velocity o Burndown).
+ * Aplica automáticamente el filtro del integrante seleccionado.
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @returns {Promise<void>}
+ */
 async function cargarGraficaPrincipal(proyectoId) {
   const selectTipo = document.getElementById('filtro-tipo-grafica');
+  const selectInt = document.getElementById('filtro-integrante-principal'); 
   const tipo = selectTipo ? selectTipo.value : 'velocity';
+  const integranteId = selectInt ? selectInt.value : '';
 
   const titulo = document.getElementById('velocity-titulo');
   const subtitulo = titulo?.nextElementSibling;
@@ -144,10 +210,11 @@ async function cargarGraficaPrincipal(proyectoId) {
 
   mostrarCarga(contVelocity);
   try {
+    const query = integranteId ? `?usuarioId=${integranteId}` : '';
     if (tipo === 'velocity') {
-      dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity`));
+      dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity${query}`));
     } else {
-      dibujarBurndown(contVelocity, await api(`/metricas/proyectos/${proyectoId}/burndown`));
+      dibujarBurndown(contVelocity, await api(`/metricas/proyectos/${proyectoId}/burndown${query}`));
     }
   } catch (error) {
     mostrarErrorSeccion(contVelocity, error, 'grafica');
@@ -156,6 +223,12 @@ async function cargarGraficaPrincipal(proyectoId) {
   }
 }
 
+/**
+ * Rellenar el `<select>` de Sprints para poder filtrar el avance.
+ * @param {Array<Object>} sprints - Arreglo de sprints devuelto por la API.
+ * @param {number|null} elegido - ID del sprint actualmente seleccionado.
+ * @returns {void}
+ */
 function llenarSelectorSprints(sprints, elegido) {
   if (!selectSprint) return;
   selectSprint.innerHTML = '<option value="">Todo el proyecto</option>' + sprints
@@ -163,6 +236,13 @@ function llenarSelectorSprints(sprints, elegido) {
   selectSprint.value = elegido ? String(elegido) : '';
 }
 
+/**
+ * Cargar y renderizar la barra de Avance por equipo o integrante individual (HU-31).
+ * Esta función también lee la lista de miembros filtrada por permisos y puebla los selectores de integrantes.
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @param {number|null} sprintId - ID opcional del sprint a filtrar.
+ * @returns {Promise<void>}
+ */
 async function cargarAvance(proyectoId, sprintId = null) {
   mostrarCarga(contAvance);
   try {
@@ -171,24 +251,39 @@ async function cargarAvance(proyectoId, sprintId = null) {
 
     llenarSelectorSprints(datosAvanceActual.sprints, datosAvanceActual.sprintId);
 
-    // Poblar el filtro de integrantes basado en los permisos aplicados en el backend
-    const selectInt = document.getElementById('filtro-integrante-avance');
-    if (selectInt) {
-      const valActual = selectInt.value;
+    // Poblar el filtro de integrantes (Avance) basado en los permisos aplicados en el backend
+    const selectIntAvance = document.getElementById('filtro-integrante-avance');
+    if (selectIntAvance) {
+      const valActual = selectIntAvance.value;
       const opcionesIntegrantes = datosAvanceActual.personas.map(p =>
         `<option value="${p.usuarioId}">${escaparHtml(p.nombre)}</option>`
       ).join('');
 
-      selectInt.innerHTML = '<option value="equipo">Todo el equipo</option>' + opcionesIntegrantes;
+      selectIntAvance.innerHTML = '<option value="equipo">Todo el equipo</option>' + opcionesIntegrantes;
 
-      // Si el usuario previo existe en la nueva lista, mantenerlo; si no, volver a "equipo"
+      // Mantener el usuario si sigue en la lista, sino volver a "equipo"
       const existe = valActual === 'equipo' || datosAvanceActual.personas.some(p => String(p.usuarioId) === valActual);
-      selectInt.value = existe ? valActual : 'equipo';
+      selectIntAvance.value = existe ? valActual : 'equipo';
 
-      dibujarAvance(contAvance, datosAvanceActual, selectInt.value);
+      dibujarAvance(contAvance, datosAvanceActual, selectIntAvance.value);
     } else {
       dibujarAvance(contAvance, datosAvanceActual, 'equipo');
     }
+
+    // Poblar el filtro principal superior (Velocity/Burndown) basado en los mismos permisos
+    const selectIntPrincipal = document.getElementById('filtro-integrante-principal');
+    if (selectIntPrincipal) {
+      const valActualPrin = selectIntPrincipal.value;
+      const opcionesPrin = datosAvanceActual.personas.map(p => 
+        `<option value="${p.usuarioId}">${escaparHtml(p.nombre)}</option>`
+      ).join('');
+      
+      selectIntPrincipal.innerHTML = '<option value="">Todo el equipo</option>' + opcionesPrin;
+      
+      const existePrin = valActualPrin === '' || datosAvanceActual.personas.some(p => String(p.usuarioId) === valActualPrin);
+      selectIntPrincipal.value = existePrin ? valActualPrin : '';
+    }
+
   } catch (error) {
     mostrarErrorSeccion(contAvance, error, 'avance');
   } finally {
@@ -196,13 +291,41 @@ async function cargarAvance(proyectoId, sprintId = null) {
   }
 }
 
+/**
+ * Cargar y renderizar la gráfica de dona interactiva con el tiempo invertido (HU-32).
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @returns {Promise<void>}
+ */
+async function cargarDistribucion(proyectoId) {
+  mostrarCarga(contDistribucion);
+  try {
+    const datos = await api(`/metricas/proyectos/${proyectoId}/distribucion`);
+    dibujarDistribucion(contDistribucion, datos);
+  } catch (error) {
+    mostrarErrorSeccion(contDistribucion, error, 'distribucion');
+  } finally {
+    contDistribucion?.removeAttribute('aria-busy');
+  }
+}
+
+/**
+ * Ejecutar todas las llamadas de red para dibujar las métricas simultáneamente.
+ * @param {number} proyectoId - ID del proyecto.
+ * @returns {Promise<Array>} Promesas resueltas sin importar si alguna falla de forma aislada.
+ */
 function cargarTodo(proyectoId) {
   return Promise.allSettled([
     cargarGraficaPrincipal(proyectoId),
     cargarAvance(proyectoId, Number(selectSprint?.value) || null),
+    cargarDistribucion(proyectoId)
   ]);
 }
 
+/**
+ * Mostrar un mensaje de alerta genérica que bloquea toda la pantalla (ej. No hay acceso a ningún proyecto).
+ * @param {string} texto - Texto del aviso.
+ * @returns {void}
+ */
 function mostrarAvisoGeneral(texto) {
   if (avisoError) {
     avisoError.textContent = texto;
@@ -214,6 +337,11 @@ function mostrarAvisoGeneral(texto) {
   if (secAvance) secAvance.hidden = true;
 }
 
+/**
+ * Función principal de arranque. 
+ * Resuelve el proyecto de la URL o el último usado, valida permisos y enlaza eventos de selectores.
+ * @returns {Promise<void>}
+ */
 async function iniciar() {
   await montarLayout();
   let proyectoId;
@@ -227,8 +355,9 @@ async function iniciar() {
   if (!proyectoId) return mostrarAvisoGeneral('No perteneces a ningún proyecto todavía.');
 
   recordarProyecto(proyectoId);
-  // Permisos del proyecto elegido
-  cargarPermisos(proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+  
+  // Refrescar qué botones mostrar según los permisos del usuario para este proyecto
+  cargarPermisos(proyectoId).catch(() => { /* Silenciar error si aún no hay backend de permisos conectado */ });
   manejarTabUrl();
 
   if (selectProyecto && selectProyecto.options.length === 0) {
@@ -238,30 +367,48 @@ async function iniciar() {
   selectProyecto?.addEventListener('change', () => {
     proyectoId = Number(selectProyecto.value);
     recordarProyecto(proyectoId);
-    // Al cambiar de proyecto se recargan los permisos
-    cargarPermisos(proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+    cargarPermisos(proyectoId).catch(() => {});
     if (selectSprint) selectSprint.value = '';
     cargarTodo(proyectoId);
   });
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
+  
+  const selectIntPrincipal = document.getElementById('filtro-integrante-principal');
+  selectIntPrincipal?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
 
   // Al cambiar sprint, consultamos al backend
   selectSprint?.addEventListener('change', () => cargarAvance(proyectoId, Number(selectSprint.value) || null));
 
-  // Al cambiar integrante, redibujamos localmente (sin request)
-  const selectInt = document.getElementById('filtro-integrante-avance');
-  selectInt?.addEventListener('change', () => {
-    if (datosAvanceActual) dibujarAvance(contAvance, datosAvanceActual, selectInt.value);
+  // Al cambiar integrante de avance, redibujamos localmente (sin request)
+  const selectIntAvance = document.getElementById('filtro-integrante-avance');
+  selectIntAvance?.addEventListener('change', () => {
+    if (datosAvanceActual) dibujarAvance(contAvance, datosAvanceActual, selectIntAvance.value);
   });
 
+  // Reintentar cargar sección si alguna falla
   document.addEventListener('click', (evento) => {
     const boton = evento.target.closest('[data-reintentar]');
     if (!boton) return;
     if (boton.dataset.reintentar === 'grafica') cargarGraficaPrincipal(proyectoId);
     if (boton.dataset.reintentar === 'avance') cargarAvance(proyectoId, Number(selectSprint?.value) || null);
+    if (boton.dataset.reintentar === 'distribucion') cargarDistribucion(proyectoId);
   });
+
+  const btnExportar = document.getElementById('btn-exportar');
+  if (btnExportar) {
+    btnExportar.addEventListener('click', async () => {
+      // Importamos exportar.js dinámicamente al hacer clic para optimizar la carga
+      const moduloExportar = await import('./metricas/exportar.js');
+      
+      const formato = document.getElementById('exportar-formato').value;
+      const contProgreso = document.getElementById('exportar-progreso-contenedor');
+      const avisoExp = document.getElementById('exportar-error');
+      const alcance = document.getElementById('exportar-alcance').value;
+      moduloExportar.procesarExportacionFront(proyectoId, formato, alcance, btnExportar, contProgreso, avisoExp);
+    });
+  }
 
   await cargarTodo(proyectoId);
 }

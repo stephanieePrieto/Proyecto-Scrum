@@ -32,15 +32,15 @@ export function crearElementoTarjeta(tarea) {
     const contenedor = document.createElement('div');
     contenedor.id = `tarjeta-${tarea.id}`;
     contenedor.dataset.tareaId = tarea.id;
-    
+
     // Modificación HU-23: Permitir arrastre general y asignar dataset bloqueada[cite: 5]
     contenedor.draggable = true;
     contenedor.dataset.bloqueada = tarea.bloqueada ? 'true' : 'false';
-    
+
     contenedor.tabIndex = 0;
 
     contenedor.classList.add(
-        'tarjeta-item', 'p-3', 'rounded-lg', 'shadow-sm', 'cursor-grab', 
+        'tarjeta-item', 'p-3', 'rounded-lg', 'shadow-sm', 'cursor-grab',
         'hover:shadow-md', 'transition-all', 'relative', 'group', 'select-none'
     );
 
@@ -67,7 +67,7 @@ export function crearElementoTarjeta(tarea) {
     badgeDias.textContent = `${dias}d`;
     aplicarEstiloSemaforo(badgeDias, dias);
     cajaBadges.appendChild(badgeDias);
-    
+
     if (tarea.bloqueada) {
         const candado = document.createElement('a');
         candado.title = 'Tarea Bloqueada - Ver impedimento';
@@ -170,10 +170,7 @@ export function renderizarTarjetasEnTablero(tareas = []) {
 
         if (elWip) {
             const cantidadActual = conteoPorColumna[idCol] || 0;
-            const partes = elWip.textContent.split('/');
-            const limite = partes[1] ? partes[1].trim() : '∞';
-
-            elWip.textContent = `${cantidadActual} / ${limite}`;
+            elWip.textContent = cantidadActual;
         }
     });
 }

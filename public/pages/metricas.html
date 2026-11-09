@@ -66,9 +66,60 @@
       <div id="avance-contenido" aria-live="polite"></div>
     </section>
 
-    <!-- HU-29: Gráfica Burndown -->
-    <section id="seccion-burndown" class="tarjeta metricas__seccion">
-      <div id="burndown-contenido" aria-live="polite"></div>
+    <!-- HU-32: Distribución del tiempo -->
+    <section id="seccion-distribucion" class="tarjeta metricas__seccion" aria-labelledby="distribucion-titulo">
+      <div class="metricas__cabecera">
+        <div>
+          <h2 id="distribucion-titulo" class="metricas__titulo">Distribución del tiempo</h2>
+          <p class="subtitulo-pagina">Proporción de horas reales invertidas según la categoría elegida</p>
+        </div>
+      </div>
+      <div id="distribucion-contenido" aria-live="polite"></div>
+    </section>
+
+    <!-- HU-36: Exportar reportes asíncronamente -->
+    <section id="seccion-exportar" class="tarjeta metricas__seccion">
+      <div class="metricas__cabecera">
+        <div>
+          <h2 class="metricas__titulo">Exportar reportes</h2>
+          <p class="subtitulo-pagina">Genera un resumen del avance en PDF o CSV</p>
+        </div>
+      </div>
+      
+      <!-- Contenedor del botón y selector de formato -->
+      <div id="exportar-acciones" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <!-- HU-36: formato del archivo -->
+          <label class="metricas__filtro">Formato:
+            <select id="exportar-formato" class="metricas__selector">
+              <option value="csv" selected>CSV (Excel)</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <!-- HU-36: alcance, qué parte del reporte se exporta -->
+          <label class="metricas__filtro">Alcance:
+            <select id="exportar-alcance" class="metricas__selector">
+              <option value="todo" selected>Todo el reporte</option>
+              <option value="avance">Avance por integrante</option>
+              <option value="distribucion">Distribución del tiempo</option>
+            </select>
+          </label>
+        <button id="btn-exportar" class="boton boton--primario" type="button">Generar reporte</button>
+      </div>
+      
+      <!-- Barra de progreso (Oculta por defecto) -->
+      <div id="exportar-progreso-contenedor" hidden style="margin-top: 20px;">
+        <div class="progreso" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progreso__barra" style="width: 0%;"></div>
+        </div>
+        <p class="progreso__texto" style="margin-top: 8px; font-size: 13px; color: var(--texto-suave);">Preparando reporte...</p>
+      </div>
+      
+      <!-- Mensaje de error (Oculto por defecto) -->
+      <p id="exportar-error" class="alerta alerta--error" role="alert" hidden style="margin-top: 16px;"></p>
+    </section>
+    
+          <!-- Mensaje de error (Oculto por defecto) -->
+      <p id="exportar-error" class="alerta alerta--error" role="alert" hidden style="margin-top: 16px;"></p>
     </section>
   </main>
 

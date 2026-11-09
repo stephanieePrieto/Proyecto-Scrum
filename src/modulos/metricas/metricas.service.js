@@ -16,6 +16,8 @@
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { exigirPermiso } from '../../utils/permisos.js';
+import { randomUUID } from 'node:crypto';
+import { generarPdf } from './metricas.pdf.js';
 
 /**
  * Cantidad de sprints que abarca el promedio móvil de la velocity (HU-30).
@@ -568,4 +570,240 @@ export async function obtenerBurndown(proyectoId) {
     horasIniciales: inicioHoras,
     sprints
   };
+}
+
+// ===========================================================================
+  // HU-32: Distribución del tiempo
+  // ===========================================================================
+
+  /**
+   * Obtener las horas reales registradas, detalladas por dimensiones para su distribución.
+   * El backend extrae el detalle plano y el frontend lo agrupa dinámicamente.
+   * 
+   * @param {number} proyectoId Identificador del proyecto.
+   * @param {number} usuarioId Identificador del usuario que consulta.
+   * @returns {Promise<{esScrumMaster: boolean, datos: Array}>}
+   */
+  export async function obtenerDistribucionTiempo(proyectoId, usuarioId) {
+    const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+    const esScrumMaster = rol === 'scrum_master';
+
+    const params = [proyectoId];
+    let filtroUsuario = '';
+    
+    if (!esScrumMaster) {
+      filtroUsuario = ' AND r.usuario_id = $2';
+      params.push(usuarioId);
+    }
+
+    const datos = await consultar(`
+      SELECT
+        COALESCE(u.nombre, 'Usuario eliminado') AS persona,  -- LEFT JOIN: no perder horas de usuarios borrados
+        COALESCE(h.titulo, 'Sin historia') AS historia,
+        COALESCE(e.nombre, 'Sin épica') AS epica,
+        COALESCE(t.etiquetas[1], 'Sin etiqueta') AS actividad, -- tipo de actividad = primera etiqueta de la tarea
+        SUM(r.horas)::numeric AS horas
+      FROM registros_horas r
+      JOIN tareas t ON t.id = r.tarea_id
+      LEFT JOIN usuarios u ON u.id = r.usuario_id
+      LEFT JOIN historias h ON h.id = t.historia_id
+      LEFT JOIN epicas e ON e.id = h.epica_id
+      WHERE t.proyecto_id = $1 ${filtroUsuario}
+      GROUP BY u.id, u.nombre, h.id, h.titulo, e.id, e.nombre, t.etiquetas[1]  -- por id, no solo por nombre
+    `, params);
+
+    return { esScrumMaster, datos };
+  }
+// ===========================================================================
+// HU-36: Exportación Asíncrona de Reportes (CSV / PDF)
+// ===========================================================================
+
+// Cola en memoria de trabajos: { jobId: { proyectoId, usuarioId, estado, progreso, archivo, error } }
+const trabajosExportacion = new Map();
+
+// Valores permitidos que llegan desde el cliente
+const ALCANCES = ['avance', 'distribucion', 'todo'];
+const FORMATOS = ['csv', 'pdf'];
+
+/**
+ * Preparar un valor para una celda CSV: lo entrecomilla y neutraliza fórmulas de Excel
+ * (valores que empiezan con = + - @) para evitar inyección de fórmulas.
+ *
+ * @param {*} v Valor de la celda.
+ * @returns {string} Celda lista para el CSV.
+ */
+function limpiarCelda(v) {
+  let s = String(v ?? '');
+  if (/^[=+\-@]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Reunir los mismos datos que se ven en pantalla, según el alcance elegido.
+ * Reutiliza obtenerAvance, obtenerKpisDashboard y obtenerDistribucionTiempo, que ya filtran
+ * por lo que el usuario puede ver; así el archivo nunca incluye datos de más.
+ *
+ * @param {number} proyectoId Identificador del proyecto.
+ * @param {number} usuarioId Identificador del usuario que exporta.
+ * @param {string} alcance 'avance', 'distribucion' o 'todo'.
+ * @returns {Promise<Array<{titulo: string, cabecera: string[], filas: Array[]}>>}
+ *          Secciones con datos; arreglo vacío si no hay nada que exportar.
+ */
+async function armarSecciones(proyectoId, usuarioId, alcance) {
+  const secciones = [];
+
+  if (alcance === 'avance' || alcance === 'todo') {
+    const [avance, kpis] = await Promise.all([
+      obtenerAvance(proyectoId, null, usuarioId),
+      obtenerKpisDashboard(proyectoId, usuarioId),
+    ]);
+    secciones.push({
+      titulo: 'Resumen',
+      tipo: 'tarjetas',
+      cabecera: ['Indicador', 'Valor'],
+      filas: [['Avance global', `${kpis.kpis.avance.valor}%`], ['Desviación (hrs)', kpis.kpis.desviacion.valor]],
+    });
+    secciones.push({
+      titulo: 'Avance por integrante',
+      cabecera: ['Nombre', 'Rol', 'Tareas', 'Horas asignadas', 'Horas hechas', 'Avance (%)'],
+      filas: avance.personas.map((p) => [p.nombre, p.rol, p.tareas, p.horasAsignadas, p.horasHechas, p.porcentaje || 0]),
+    });
+  }
+
+  if (alcance === 'distribucion' || alcance === 'todo') {
+    const { datos } = await obtenerDistribucionTiempo(proyectoId, usuarioId);
+    secciones.push({
+      titulo: 'Distribución del tiempo',
+      cabecera: ['Persona', 'Historia', 'Épica', 'Actividad', 'Horas'],
+      filas: datos.map((d) => [d.persona, d.historia, d.epica, d.actividad, d.horas]),
+    });
+  }
+
+  // Descartar secciones vacías. "Resumen" solo no cuenta como contenido: debe haber filas reales.
+  const conDatos = secciones.filter((s) => s.filas.length);
+  return conDatos.some((s) => s.titulo !== 'Resumen') ? conDatos : [];
+}
+
+/**
+ * Iniciar el proceso de exportación en segundo plano.
+ * Solo el Scrum Master puede exportar y el proyecto debe tener datos.
+ *
+ * @param {number} proyectoId Identificador del proyecto.
+ * @param {number} usuarioId Identificador del usuario que solicita.
+ * @param {string} [formato='csv'] 'csv' o 'pdf'.
+ * @param {string} [alcance='todo'] 'avance', 'distribucion' o 'todo'.
+ * @returns {Promise<{jobId: string}>} Identificador para consultar el progreso.
+ */
+export async function iniciarExportacion(proyectoId, usuarioId, formato = 'csv', alcance = 'todo') {
+  // 1. Permisos: solo el Scrum Master puede exportar
+  const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+  if (rol !== 'scrum_master') {
+    throw new ErrorApp('Acceso denegado: solo el Scrum Master puede exportar reportes del proyecto.', 403);
+  }
+
+  // 2. Validar lo que llega del cliente
+  if (!FORMATOS.includes(formato)) throw new ErrorApp('Formato no válido (usa csv o pdf).', 400);
+  if (!ALCANCES.includes(alcance)) throw new ErrorApp('Alcance no válido.', 400);
+
+  // 3. No generar archivos vacíos
+  if (await proyectoVacio(proyectoId)) {
+    throw new ErrorApp('No hay datos para exportar en este proyecto.', 400);
+  }
+
+  // 4. Registrar el trabajo; expira a los 10 minutos para no llenar la memoria
+  const jobId = randomUUID();
+  const trabajo = { proyectoId, usuarioId, estado: 'procesando', progreso: 0, archivo: null, error: null };
+  trabajosExportacion.set(jobId, trabajo);
+  setTimeout(() => trabajosExportacion.delete(jobId), 10 * 60 * 1000).unref();
+
+  // 5. Lanzar la generación sin esperar; si falla, el cliente verá el error y podrá reintentar
+  procesarArchivo(trabajo, proyectoId, usuarioId, formato, alcance).catch((err) => {
+    trabajo.estado = 'error';
+    trabajo.error = err.message || 'No se pudo generar el reporte.';
+  });
+
+  return { jobId };
+}
+
+/**
+ * Buscar un trabajo comprobando que pertenezca al usuario y al proyecto indicados.
+ * Así nadie puede consultar ni descargar el reporte de otra persona.
+ *
+ * @param {string} jobId Identificador del trabajo.
+ * @param {number} proyectoId Identificador del proyecto.
+ * @param {number} usuarioId Identificador del usuario.
+ * @returns {object} El trabajo encontrado.
+ */
+function obtenerTrabajo(jobId, proyectoId, usuarioId) {
+  const t = trabajosExportacion.get(jobId);
+  if (!t || t.proyectoId !== proyectoId || t.usuarioId !== usuarioId) {
+    throw new ErrorApp('El trabajo de exportación no existe o ha expirado.', 404);
+  }
+  return t;
+}
+
+/**
+ * Consultar el estado y el avance de un trabajo (para la barra de progreso).
+ *
+ * @returns {{estado: string, progreso: number, error: string|null}}
+ */
+export function consultarEstadoExportacion(jobId, proyectoId, usuarioId) {
+  const t = obtenerTrabajo(jobId, proyectoId, usuarioId);
+  return { estado: t.estado, progreso: t.progreso, error: t.error };
+}
+
+/**
+ * Recuperar el archivo generado y borrar el trabajo de la memoria.
+ *
+ * @returns {{contenido: string|Buffer, mime: string, extension: string, nombre: string}}
+ */
+export function obtenerArchivoExportado(jobId, proyectoId, usuarioId) {
+  const t = obtenerTrabajo(jobId, proyectoId, usuarioId);
+  if (t.estado !== 'completado') throw new ErrorApp('El archivo aún no está listo.', 400);
+  trabajosExportacion.delete(jobId); // Limpiar memoria tras descargar
+  return t.archivo;
+}
+
+/**
+ * Tarea en segundo plano: recopila los datos y genera el CSV o el PDF.
+ * Actualiza trabajo.progreso para que el cliente lo muestre.
+ */
+async function procesarArchivo(trabajo, proyectoId, usuarioId, formato, alcance) {
+  // 20%: consultando la base de datos
+  trabajo.progreso = 20;
+  const secciones = await armarSecciones(proyectoId, usuarioId, alcance);
+  if (!secciones.length) throw new ErrorApp('No hay datos para exportar con el alcance elegido.', 400);
+
+  // 60%: armando el archivo
+  trabajo.progreso = 60;
+  const fecha = new Date().toISOString().slice(0, 10);
+  let contenido;
+  let mime;
+  let extension;
+
+  if (formato === 'csv') {
+    // BOM al inicio para que Excel lea bien los acentos (UTF-8); una sección tras otra
+    contenido = '\uFEFF' + secciones.map((s) => [
+      limpiarCelda(s.titulo),
+      s.cabecera.map(limpiarCelda).join(','),
+      ...s.filas.map((f) => f.map(limpiarCelda).join(',')),
+    ].join('\n')).join('\n\n');
+    mime = 'text/csv; charset=utf-8';
+    extension = 'csv';
+  } else {
+    // PDF con diseño: el generador recibe las mismas secciones que el CSV
+    const textoAlcance = { todo: 'Todo el reporte', avance: 'Avance por integrante', distribucion: 'Distribución del tiempo' }[alcance];
+    contenido = generarPdf({
+      titulo: 'Reporte del proyecto',
+      subtitulo: `Proyecto ${proyectoId} - ${textoAlcance} - Generado el ${fecha}`,
+      secciones,
+    });
+    mime = 'application/pdf';
+    extension = 'pdf';
+  }
+
+  // 100%: listo para descargar
+  trabajo.archivo = { contenido, mime, extension, nombre: `Reporte_${proyectoId}_${alcance}_${fecha}.${extension}` };
+  trabajo.progreso = 100;
+  trabajo.estado = 'completado';
 }

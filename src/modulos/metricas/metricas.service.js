@@ -523,53 +523,45 @@ export async function obtenerAvance(proyectoId, sprintId = null, usuarioId) {
 // ===========================================================================
 
 /**
- * Obtener los datos necesarios para dibujar la gráfica de Burndown del proyecto por sprint.
+ * Burndown por sprint. Con usuarioIdFiltro solo cuenta las tareas de esa persona.
  *
  * @param {number} proyectoId Identificador del proyecto.
- * @returns {Promise<Object>} Serie de sprints con horas restantes acumuladas e ideales.
+ * @param {number|null} usuarioIdFiltro Integrante a filtrar (null = todo el equipo).
  */
-export async function obtenerBurndown(proyectoId) {
+export async function obtenerBurndown(proyectoId, usuarioIdFiltro = null) {
   const filasSprints = await consultar(
     `SELECT s.id, s.nombre, s.estado, s.fecha_inicio,
             COALESCE(SUM(t.horas_estimadas), 0) AS estimado_total,
             COALESCE(SUM(t.horas_estimadas) FILTER (WHERE c.es_final), 0) AS estimado_hecho
        FROM sprints s
-       LEFT JOIN tareas t ON t.sprint_id = s.id
+       LEFT JOIN tareas t ON t.sprint_id = s.id AND ($2::int IS NULL OR t.responsable_id = $2)
        LEFT JOIN columnas_tablero c ON c.id = t.columna_id
       WHERE s.proyecto_id = $1
       GROUP BY s.id, s.fecha_inicio, s.nombre, s.estado
       ORDER BY s.fecha_inicio, s.id`,
-    [proyectoId]
+    [proyectoId, usuarioIdFiltro],
   );
 
   const [totalProyecto] = await consultar(
-    `SELECT COALESCE(SUM(horas_estimadas), 0) AS total FROM tareas WHERE proyecto_id = $1`,
-    [proyectoId]
+    `SELECT COALESCE(SUM(horas_estimadas), 0) AS total FROM tareas
+      WHERE proyecto_id = $1 AND ($2::int IS NULL OR responsable_id = $2)`,
+    [proyectoId, usuarioIdFiltro],
   );
 
-  const inicioHoras = aUnDecimal(Number(totalProyecto.total) || 374);
+  // Sin valor de respaldo: si no hay horas estimadas, la gráfica muestra "sin datos"
+  const inicioHoras = aUnDecimal(Number(totalProyecto.total) || 0);
 
   let acumuladoRestante = inicioHoras;
-  const sprints = [
-    { nombre: 'Inicio', horasRestantes: inicioHoras }
-  ];
-
+  const sprints = [{ nombre: 'Inicio', horasRestantes: inicioHoras }];
   filasSprints.forEach((s) => {
-    const completadas = Number(s.estimado_hecho);
-    acumuladoRestante = Math.max(0, acumuladoRestante - completadas);
+    acumuladoRestante = Math.max(0, acumuladoRestante - Number(s.estimado_hecho));
     sprints.push({
-      id: s.id,
-      nombre: s.nombre,
-      estado: s.estado,
-      horasRestantes: s.estado === 'planificado' ? null : aUnDecimal(acumuladoRestante)
+      id: s.id, nombre: s.nombre, estado: s.estado,
+      horasRestantes: s.estado === 'planificado' ? null : aUnDecimal(acumuladoRestante),
     });
   });
 
-  return {
-    vacio: sprints.length <= 1 && inicioHoras === 0,
-    horasIniciales: inicioHoras,
-    sprints
-  };
+  return { vacio: inicioHoras === 0, individual: !!usuarioIdFiltro, horasIniciales: inicioHoras, sprints };
 }
 
 // ===========================================================================

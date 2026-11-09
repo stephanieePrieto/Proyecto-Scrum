@@ -77,6 +77,20 @@ export async function dashboard(req, res, next) {
 }
 
 /**
+ * Validar que un integrante no consulte las métricas individuales de otra persona.
+ * Solo el Scrum Master puede filtrar por cualquier integrante.
+ */
+async function resolverFiltroUsuario(req, proyectoId) {
+  const usuarioFiltro = aEnteroPositivo(req.query.usuarioId);
+  if (!usuarioFiltro) return null;
+  const rol = await exigirIntegranteProyecto(req.user.id, proyectoId);
+  if (rol !== 'scrum_master' && usuarioFiltro !== req.user.id) {
+    throw new ErrorApp('Solo puedes consultar tus propias métricas individuales.', 403);
+  }
+  return usuarioFiltro;
+}
+
+/**
  * Responder con la velocity de cada sprint cerrado y su promedio móvil (HU-30).
  * Puede filtrarse por un integrante específico.
  *
@@ -85,8 +99,7 @@ export async function dashboard(req, res, next) {
 export async function velocity(req, res, next) {
   try {
     const proyectoId = await validarAcceso(req);
-    const usuarioFiltro = aEnteroPositivo(req.query.usuarioId);
-    res.json(await obtenerVelocity(proyectoId, usuarioFiltro));
+    res.json(await obtenerVelocity(proyectoId, await resolverFiltroUsuario(req, proyectoId)));
   } catch (error) {
     responderError(error, res, next);
   }
@@ -123,7 +136,7 @@ export async function avance(req, res, next) {
 export async function burndown(req, res, next) {
   try {
     const proyectoId = await validarAcceso(req);
-    res.json(await obtenerBurndown(proyectoId));
+    res.json(await obtenerBurndown(proyectoId, await resolverFiltroUsuario(req, proyectoId)));
   } catch (error) {
     responderError(error, res, next);
   }

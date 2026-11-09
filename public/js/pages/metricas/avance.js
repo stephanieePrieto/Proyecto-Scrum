@@ -68,20 +68,22 @@ export function dibujarAvance(contenedor, datos, seleccionadoId = 'equipo') {
     entidad = datos.personas.find(p => String(p.usuarioId) === seleccionadoId) || datos.equipo;
   }
 
-  // 2. Alertas generales
-  let htmlAvisos = '';
+    // 2. Avisos: mismo estilo de tarjeta que los impedimentos (imp--baja = azul, imp--media = ámbar)
+  const avisos = [];
   if (seleccionadoId === 'equipo') {
-    const avisos = [];
     if (datos.equipo.tareasSinEstimar > 0) {
-      avisos.push(`${datos.equipo.tareasSinEstimar} ${pluralizar(datos.equipo.tareasSinEstimar, 'tarea sin horas estimadas no se cuenta', 'tareas sin horas estimadas no se cuentan')} en el cálculo global.`);
+      avisos.push({ clase: 'imp--baja', texto: `${datos.equipo.tareasSinEstimar} ${pluralizar(datos.equipo.tareasSinEstimar, 'tarea sin horas estimadas no se cuenta', 'tareas sin horas estimadas no se cuentan')} en el cálculo global.` });
     }
     if (datos.tareasSinResponsable > 0) {
-      avisos.push(`${datos.tareasSinResponsable} ${pluralizar(datos.tareasSinResponsable, 'tarea no tiene', 'tareas no tienen')} responsable asignado.`);
+      avisos.push({ clase: 'imp--media', texto: `${datos.tareasSinResponsable} ${pluralizar(datos.tareasSinResponsable, 'tarea no tiene', 'tareas no tienen')} responsable asignado.` });
     }
-    htmlAvisos = avisos.map((texto) => `<p class="alerta alerta--info" role="status" style="margin-bottom: 16px;">${texto}</p>`).join('');
   } else if (entidad.tareasSinEstimar > 0) {
-    htmlAvisos = `<p class="alerta alerta--info" role="status" style="margin-bottom: 16px;">Tienes ${entidad.tareasSinEstimar} ${pluralizar(entidad.tareasSinEstimar, 'tarea', 'tareas')} sin estimar que no suman a tu porcentaje.</p>`;
+    avisos.push({ clase: 'imp--baja', texto: `Tienes ${entidad.tareasSinEstimar} ${pluralizar(entidad.tareasSinEstimar, 'tarea', 'tareas')} sin estimar que no suman a tu porcentaje.` });
   }
+  const htmlAvisos = avisos.length
+    ? `<ul class="imp-lista" style="margin-bottom: 16px;">${avisos.map((a) =>
+        `<li class="imp ${a.clase}" role="status"><div class="imp__titulo">${a.texto}</div></li>`).join('')}</ul>`
+    : '';
 
   // 3. Renderizar el diseño de 2 columnas (Resumen + Gráfica)
   const titulo = entidad.nombre || 'Avance del Equipo';

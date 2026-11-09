@@ -113,46 +113,53 @@ ON CONFLICT (orden) DO UPDATE
 SET titulo = EXCLUDED.titulo, contenido = EXCLUDED.contenido, seccion = EXCLUDED.seccion;
 
 -- ===========================================================================
--- SEED: QUIZZES CORREGIDOS (2 Preguntas específicas por lección)
+-- SEED: QUIZZES (2 preguntas por leccion). Es seguro correrlo varias veces.
 -- ===========================================================================
-TRUNCATE TABLE curso_quizzes RESTART IDENTITY CASCADE;
+-- Ya NO se hace TRUNCATE: los ids de curso_quizzes se conservan entre ejecuciones.
+-- Una pregunta se identifica por (leccion, texto de la pregunta); no hace falta ningun UNIQUE nuevo.
+--   * Si la pregunta no existe en esa leccion, se inserta.
+--   * Si ya existe, solo se actualizan sus opciones y respuesta correcta (por si se corrigieron aqui).
+-- Si cambias el TEXTO de una pregunta, se insertara como una nueva y la anterior se quedara en la tabla:
+-- en ese caso borra la vieja a mano (DELETE FROM curso_quizzes WHERE id = ...).
+DO $$
+DECLARE
+  q RECORD;
+  v_leccion INTEGER;
+BEGIN
+  FOR q IN
+    SELECT * FROM (VALUES
+  (1, '¿Qué pilar fundamental de Scrum se refleja al mover tarjetas en el Tablero Kanban en tiempo real?',
+   '{"0": "Transparencia y visibilidad", "1": "Ocultar información", "2": "Trabajar sin orden"}', 0),
+  (1, '¿En qué teoría de control de procesos se basa principalmente Scrum?',
+   '{"0": "Empírica (Transparencia, Inspección y Adaptación)", "1": "Modelo Cascada clásico", "2": "Planificación rígida prediseñada"}', 0),
+  (2, '¿Dónde se definen los roles de Scrum Master, Product Owner y Developer en ScrumFlow?',
+   '{"0": "En el perfil global del usuario", "1": "Dentro de cada proyecto en la tabla miembros_proyecto", "2": "En el archivo .env"}', 1),
+  (2, '¿Quién es el responsable de maximizar el valor del producto y gestionar el Product Backlog?',
+   '{"0": "Scrum Master", "1": "Product Owner", "2": "Developers"}', 1),
+  (3, '¿Qué módulo de ScrumFlow permite registrar las horas disponibles y ausencias de cada integrante?',
+   '{"0": "Módulo de Capacidad", "1": "Módulo de Bitácora", "2": "Módulo de Autenticación"}', 0),
+  (3, '¿Cuál es la duración máxima recomendada para un Sprint en Scrum?',
+   '{"0": "Un mes o menos", "1": "Seis meses", "2": "No tiene límite fijado"}', 0),
+  (4, '¿Para qué sirve el temporizador de tareas integrado en ScrumFlow?',
+   '{"0": "Para medir horas reales en el servidor sin perder tiempo al cerrar el navegador", "1": "Para bloquear el acceso al sistema", "2": "Para enviar correos masivos de notificación"}', 0),
+  (4, '¿Cuál es la duración máxima acordada para la reunión Daily Scrum?',
+   '{"0": "15 minutos", "1": "45 minutos", "2": "2 horas"}', 0)
+    ) AS t(orden, pregunta, opciones, respuesta_correcta)
+  LOOP
+    SELECT id INTO v_leccion FROM curso_lecciones WHERE orden = q.orden;
+    IF v_leccion IS NULL THEN
+      RAISE NOTICE 'No existe la leccion % ; se omite su pregunta.', q.orden;
+      CONTINUE;
+    END IF;
 
--- Lección 1 (Fundamentos Ágiles y Kanban)
-INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
-VALUES 
-((SELECT id FROM curso_lecciones WHERE orden = 1),
- '¿Qué pilar fundamental de Scrum se refleja al mover tarjetas en el Tablero Kanban en tiempo real?',
- '{"0": "Transparencia y visibilidad", "1": "Ocultar información", "2": "Trabajar sin orden"}', 0),
-((SELECT id FROM curso_lecciones WHERE orden = 1),
- '¿En qué teoría de control de procesos se basa principalmente Scrum?',
- '{"0": "Empírica (Transparencia, Inspección y Adaptación)", "1": "Modelo Cascada clásico", "2": "Planificación rígida prediseñada"}', 0);
-
--- Lección 2 (Roles en Scrum)
-INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
-VALUES 
-((SELECT id FROM curso_lecciones WHERE orden = 2),
- '¿Dónde se definen los roles de Scrum Master, Product Owner y Developer en ScrumFlow?',
- '{"0": "En el perfil global del usuario", "1": "Dentro de cada proyecto en la tabla miembros_proyecto", "2": "En el archivo .env"}', 1),
-((SELECT id FROM curso_lecciones WHERE orden = 2),
- '¿Quién es el responsable de maximizar el valor del producto y gestionar el Product Backlog?',
- '{"0": "Scrum Master", "1": "Product Owner", "2": "Developers"}', 1);
-
--- Lección 3 (Sprints y Planificación)
-INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
-VALUES 
-((SELECT id FROM curso_lecciones WHERE orden = 3),
- '¿Qué módulo de ScrumFlow permite registrar las horas disponibles y ausencias de cada integrante?',
- '{"0": "Módulo de Capacidad", "1": "Módulo de Bitácora", "2": "Módulo de Autenticación"}', 0),
-((SELECT id FROM curso_lecciones WHERE orden = 3),
- '¿Cuál es la duración máxima recomendada para un Sprint en Scrum?',
- '{"0": "Un mes o menos", "1": "Seis meses", "2": "No tiene límite fijado"}', 0);
-
--- Lección 4 (Ceremonias Ágiles)
-INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
-VALUES 
-((SELECT id FROM curso_lecciones WHERE orden = 4),
- '¿Para qué sirve el temporizador de tareas integrado en ScrumFlow?',
- '{"0": "Para medir horas reales en el servidor sin perder tiempo al cerrar el navegador", "1": "Para bloquear el acceso al sistema", "2": "Para enviar correos masivos de notificación"}', 0),
-((SELECT id FROM curso_lecciones WHERE orden = 4),
- '¿Cuál es la duración máxima acordada para la reunión Daily Scrum?',
- '{"0": "15 minutos", "1": "45 minutos", "2": "2 horas"}', 0);
+    IF EXISTS (SELECT 1 FROM curso_quizzes WHERE leccion_id = v_leccion AND pregunta = q.pregunta) THEN
+      UPDATE curso_quizzes
+         SET opciones = q.opciones::JSONB, respuesta_correcta = q.respuesta_correcta
+       WHERE leccion_id = v_leccion AND pregunta = q.pregunta
+         AND (opciones IS DISTINCT FROM q.opciones::JSONB OR respuesta_correcta IS DISTINCT FROM q.respuesta_correcta);
+    ELSE
+      INSERT INTO curso_quizzes (leccion_id, pregunta, opciones, respuesta_correcta)
+      VALUES (v_leccion, q.pregunta, q.opciones::JSONB, q.respuesta_correcta);
+    END IF;
+  END LOOP;
+END $$;

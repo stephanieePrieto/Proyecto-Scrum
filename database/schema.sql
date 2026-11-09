@@ -1,3 +1,4 @@
+-- @author: Citlaly Morales Viveros (Cliente / Programadora XP)
 -- BASE (no modificar sin avisar al equipo) - HU-47: crea todas las tablas del sistema
 -- VERSION 2: todos los usuarios son "base" (sin rol global). El rol existe SOLO en miembros_proyecto.rol.
 -- Para empezar de cero: database/reiniciar.sql
@@ -96,6 +97,24 @@ CREATE INDEX IF NOT EXISTS ix_miembros_proyecto_usuario ON miembros_proyecto (us
 -- Un solo Product Owner por proyecto
 CREATE UNIQUE INDEX IF NOT EXISTS ux_un_product_owner_por_proyecto ON miembros_proyecto (proyecto_id)
 WHERE rol = 'product_owner';
+-- Antes de crear el indice se revisa que ninguna base existente tenga dos Scrum Master en el mismo proyecto.
+-- No borra ni modifica datos: si hay duplicados se detiene con un aviso para corregirlo a mano.
+DO $$
+DECLARE
+  duplicados TEXT;
+BEGIN
+  SELECT string_agg(proyecto_id::text, ', ') INTO duplicados
+  FROM (
+    SELECT proyecto_id FROM miembros_proyecto
+    WHERE rol = 'scrum_master'
+    GROUP BY proyecto_id HAVING COUNT(*) > 1
+  ) d;
+
+  IF duplicados IS NOT NULL THEN
+    RAISE EXCEPTION 'Proyectos con más de un Scrum Master (ids: %). Deja uno solo en cada proyecto y vuelve a ejecutar.', duplicados;
+  END IF;
+END
+$$;
 -- Un solo Scrum Master por proyecto
 CREATE UNIQUE INDEX IF NOT EXISTS ux_un_scrum_master_por_proyecto ON miembros_proyecto (proyecto_id)
 WHERE rol = 'scrum_master';
@@ -112,7 +131,7 @@ CREATE TABLE IF NOT EXISTS invitaciones (
   ),
   token_hash TEXT NOT NULL,
   estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (
-    estado IN ('pendiente', 'aceptada', 'fallida', 'expirada')
+    estado IN ('pendiente', 'aceptada', 'fallida', 'expirada', 'rechazada')
   ),
   expira_en TIMESTAMPTZ NOT NULL,
   invitado_por INTEGER REFERENCES usuarios (id) ON DELETE
@@ -316,6 +335,25 @@ CREATE TABLE IF NOT EXISTS registros_horas (
 );
 CREATE INDEX IF NOT EXISTS ix_horas_usuario_fecha ON registros_horas (usuario_id, fecha);
 CREATE INDEX IF NOT EXISTS ix_horas_tarea ON registros_horas (tarea_id);
+
+-- HU-27 (Alfonso): temporizador de horas reales.
+-- Es seguro correrlo varias veces. Este mismo bloque debe ir tambien al FINAL de schema.sql
+-- para que una base nueva ya nazca con esta tabla.
+--
+-- Una persona solo puede tener UN temporizador (la llave primaria es usuario_id).
+-- El tiempo vive en el servidor: si se cierra el navegador no se pierde.
+--   acumulado_segundos = tiempo ya medido hasta la ultima pausa
+--   reanudado_en       = momento en que volvio a correr (NULL mientras esta en pausa)
+CREATE TABLE IF NOT EXISTS temporizadores (
+  usuario_id          INTEGER PRIMARY KEY REFERENCES usuarios (id) ON DELETE CASCADE,
+  tarea_id            INTEGER NOT NULL REFERENCES tareas (id) ON DELETE CASCADE,
+  estado              TEXT NOT NULL DEFAULT 'corriendo' CHECK (estado IN ('corriendo', 'pausado')),
+  acumulado_segundos  INTEGER NOT NULL DEFAULT 0 CHECK (acumulado_segundos >= 0),
+  reanudado_en        TIMESTAMPTZ,
+  iniciado_en         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT temporizadores_estado_coherente CHECK ((estado = 'corriendo') = (reanudado_en IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS ix_temporizadores_tarea ON temporizadores (tarea_id);
 -- ===========================================================================
 -- Ceremonias Scrum (HU-10 a HU-15)
 -- ===========================================================================
@@ -419,7 +457,7 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   mensaje TEXT NOT NULL,
   enlace TEXT,
   referencia_id INTEGER,
-  metadatos JSONB DEFAULT '{}',
+  metadatos JSONB NOT NULL DEFAULT '{}',
   leida BOOLEAN NOT NULL DEFAULT FALSE,
   leida_en TIMESTAMPTZ,
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -493,6 +531,12 @@ CREATE TABLE IF NOT EXISTS intentos_ip (
 -- DROP TRIGGER IF EXISTS tg_validar_miembro_proyecto ON miembros_proyecto;
 -- CREATE TRIGGER tg_validar_miembro_proyecto BEFORE INSERT ON miembros_proyecto
 --   FOR EACH ROW EXECUTE FUNCTION validar_miembro_proyecto();
+-- ===========================================================================
+-- Ajustes para bases que ya existian
+-- ===========================================================================
+-- Una base nueva ya nace con todo esto desde los CREATE TABLE de arriba. Estos pasos solo corrigen las
+-- bases creadas con una version anterior del archivo y no hacen nada si ya estan aplicados.
+
 -- HU-24 (Alfonso): columnas que usa la campana de notificaciones. Sin datos de prueba.
 -- Es seguro correrlo varias veces. Este mismo bloque debe ir tambien al FINAL de schema.sql
 -- para que una base nueva ya nazca con estas columnas.
@@ -502,25 +546,23 @@ ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS referencia_id  INTEGER;
 ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS metadatos      JSONB NOT NULL DEFAULT '{}';
 ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS leida_en       TIMESTAMPTZ;
 
--- HU-27 (Alfonso): temporizador de horas reales.
--- Es seguro correrlo varias veces. Este mismo bloque debe ir tambien al FINAL de schema.sql
--- para que una base nueva ya nazca con esta tabla.
---
--- Una persona solo puede tener UN temporizador (la llave primaria es usuario_id).
--- El tiempo vive en el servidor: si se cierra el navegador no se pierde.
---   acumulado_segundos = tiempo ya medido hasta la ultima pausa
---   reanudado_en       = momento en que volvio a correr (NULL mientras esta en pausa)
-CREATE TABLE IF NOT EXISTS temporizadores (
-  usuario_id          INTEGER PRIMARY KEY REFERENCES usuarios (id) ON DELETE CASCADE,
-  tarea_id            INTEGER NOT NULL REFERENCES tareas (id) ON DELETE CASCADE,
-  estado              TEXT NOT NULL DEFAULT 'corriendo' CHECK (estado IN ('corriendo', 'pausado')),
-  acumulado_segundos  INTEGER NOT NULL DEFAULT 0 CHECK (acumulado_segundos >= 0),
-  reanudado_en        TIMESTAMPTZ,
-  iniciado_en         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT temporizadores_estado_coherente CHECK ((estado = 'corriendo') = (reanudado_en IS NOT NULL))
-);
-CREATE INDEX IF NOT EXISTS ix_temporizadores_tarea ON temporizadores (tarea_id);
+-- notificaciones: en bases viejas metadatos podia aceptar NULL
+UPDATE notificaciones SET metadatos = '{}' WHERE metadatos IS NULL;
+ALTER TABLE notificaciones ALTER COLUMN metadatos SET DEFAULT '{}';
+ALTER TABLE notificaciones ALTER COLUMN metadatos SET NOT NULL;
 
-ALTER TABLE invitaciones DROP CONSTRAINT invitaciones_estado_check;
-ALTER TABLE invitaciones ADD CONSTRAINT invitaciones_estado_check 
-CHECK (estado IN ('pendiente', 'aceptada', 'fallida', 'expirada', 'rechazada'));
+-- invitaciones: acepta el estado 'rechazada'. Solo cambia la restriccion si todavia no la incluye.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'invitaciones'::regclass
+      AND conname = 'invitaciones_estado_check'
+      AND pg_get_constraintdef(oid) LIKE '%rechazada%'
+  ) THEN
+    ALTER TABLE invitaciones DROP CONSTRAINT IF EXISTS invitaciones_estado_check;
+    ALTER TABLE invitaciones ADD CONSTRAINT invitaciones_estado_check
+      CHECK (estado IN ('pendiente', 'aceptada', 'fallida', 'expirada', 'rechazada'));
+  END IF;
+END
+$$;

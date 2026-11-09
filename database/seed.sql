@@ -85,15 +85,16 @@ JOIN usuarios u  ON u.correo = r.correo
 ON CONFLICT DO NOTHING;
 
 -- Columnas por defecto del tablero
-INSERT INTO columnas_tablero (proyecto_id, nombre, orden, es_final)
-SELECT p.id, c.nombre, c.orden, c.es_final
+-- Mismos valores que migraciones/columnas_tablero_predeterminadas.sql (limites WIP: 5 y 3). Si cambias uno, cambia el otro.
+INSERT INTO columnas_tablero (proyecto_id, nombre, orden, limite_wip, es_final)
+SELECT p.id, c.nombre, c.orden, c.limite_wip, c.es_final
 FROM proyectos p
 CROSS JOIN (VALUES
-  ('Por hacer',    1, FALSE),
-  ('En progreso',  2, FALSE),
-  ('En revision',  3, FALSE),
-  ('Hecho',        4, TRUE)
-) AS c(nombre, orden, es_final)
+  ('Por hacer',    1, 5,    FALSE),
+  ('En progreso',  2, 3,    FALSE),
+  ('En revision',  3, NULL::INTEGER, FALSE),
+  ('Hecho',        4, NULL::INTEGER, TRUE)
+) AS c(nombre, orden, limite_wip, es_final)
 ON CONFLICT DO NOTHING;
 
 -- Un sprint planificado para el Proyecto Demo Alfa
@@ -164,9 +165,7 @@ BEGIN
   VALUES ('Marco Reyes (baja)', 'marco.reyes.baja@example.com', NULL, FALSE)
   ON CONFLICT DO NOTHING;
 
-  -- ---------------------------------------------------------------- Limites WIP
-  UPDATE columnas_tablero SET limite_wip = 3 WHERE proyecto_id = v_proy AND nombre = 'En progreso' AND limite_wip IS NULL;
-  UPDATE columnas_tablero SET limite_wip = 2 WHERE proyecto_id = v_proy AND nombre = 'En revision' AND limite_wip IS NULL;
+  -- Los limites WIP ya vienen del INSERT de columnas por defecto (5 y 3); aqui no se redefinen.
 
   -- ---------------------------------------------------------------- Epicas
   INSERT INTO epicas (proyecto_id, nombre, color) VALUES

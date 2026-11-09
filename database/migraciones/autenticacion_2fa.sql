@@ -1,3 +1,4 @@
+-- @author Citlaly Morales Viveros
 -- Migracion: Autenticacion en dos pasos (2FA)
 -- Aplicar DESPUES de schema.sql y sesiones.sql. Es seguro correrla varias veces (usa IF NOT EXISTS).
 --
@@ -161,8 +162,3 @@ $$ LANGUAGE plpgsql;
 CREATE INDEX IF NOT EXISTS ix_otp_correo_no_usados ON otp_correo (usuario_id, usado, expira_en);
 CREATE INDEX IF NOT EXISTS ix_dispositivos_validos ON dispositivos_confianza (usuario_id, revocado, expira_en);
 CREATE INDEX IF NOT EXISTS ix_codigos_respaldo_validos ON codigos_respaldo (usuario_id, usado, grupo_id);
-
--- ===========================================================================
--- Comentarios finales
--- ===========================================================================
-COMMENT ON SCHEMA public IS 'Base de datos de ScrumFlow con soporte para autenticacion en dos pasos (2FA).';

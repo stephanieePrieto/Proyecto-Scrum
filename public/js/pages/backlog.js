@@ -17,7 +17,7 @@
 import { escaparHtml, pluralizar } from '../core/utils.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { obtenerTokenCsrf } from '../core/seguridad.js';
-import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
+import { cargarPermisos, escucharCambiosDeRol, tienePermiso } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
 
@@ -32,8 +32,11 @@ const ctx = {
   proyectoId: null,
   historias: [],        // Lista priorizada tal como la devolvió el servidor
   epicas: [],
+  epicaEditando: null,
+  epicaEliminando: null,
   seleccionadaId: null,
   texto: '',            // Texto de la búsqueda
+  filtros: { epica: '', estado: '', etiqueta: '' },
   firma: '',            // Resumen de la lista para detectar cambios sin repintar de más
   arrastrandoId: null,  // Historia que se está arrastrando
   guardando: false,     // Hay un guardado en curso (formulario u orden)
@@ -48,6 +51,8 @@ const ctx = {
 const el = {
   lista: $('lista'), estadoLista: $('estado-lista'), detalle: $('detalle'), resumen: $('resumen'),
   mensaje: $('mensaje'), anuncio: $('anuncio'), buscar: $('buscar'), btnNueva: $('btn-nueva'),
+  filtroEpica: $('filtro-epica'), filtroEstado: $('filtro-estado'), filtroEtiqueta: $('filtro-etiqueta'),
+  btnLimpiarFiltros: $('btn-limpiar-filtros'), resultadoFiltros: $('resultado-filtros'),
   dlgHistoria: $('dialogo-historia'), form: $('formulario-historia'), avisoForm: $('aviso-form'),
   btnGuardar: $('btn-guardar-historia'), btnDescartarBorrador: $('btn-descartar-borrador'),
   dlgEliminar: $('dialogo-eliminar'), dlgDevolver: $('dialogo-devolver'),
@@ -89,7 +94,9 @@ async function llamar(ruta, { metodo = 'GET', cuerpo } = {}) {
 /** Mostrar un aviso general. Los de éxito desaparecen solos. */
 function mostrarMensaje(texto, tipo = 'info') {
   clearTimeout(ctx.temporizadorMensaje);
-  el.mensaje.className = `bl-mensaje bl-mensaje--${tipo}`;
+  // Reutilizar los estilos de avisos.css, ya cargados por la página.
+  const variante = tipo === 'exito' ? 'exito' : tipo === 'error' ? 'error' : 'advertencia';
+  el.mensaje.className = `alerta alerta--${variante} bl-mensaje`;
   el.mensaje.textContent = texto;
   el.mensaje.hidden = !texto;
   if (texto && tipo === 'exito') ctx.temporizadorMensaje = setTimeout(() => { el.mensaje.hidden = true; }, 5000);
@@ -109,16 +116,55 @@ const mensajeDe = (r, porDefecto) => (r.estado >= 500 || !r.datos?.mensaje ? por
 
 const buscarHistoria = (id) => ctx.historias.find((h) => h.id === id) ?? null;
 const textoPuntos = (puntos) => (puntos === null || puntos === undefined ? '—' : `${puntos} pts`);
-const filtroActivo = () => ctx.texto.trim() !== '';
+const filtroActivo = () => Boolean(ctx.texto.trim() || ctx.filtros.epica || ctx.filtros.estado || ctx.filtros.etiqueta);
 
 /** Resumen de la lista: si no cambia, no hace falta repintar. */
 const firmaDe = (historias) => historias.map((h) => `${h.id}:${h.orden}:${h.version}:${h.sprint_id ?? ''}:${h.estado}`).join('|');
 
-/** Historias que se ven según la búsqueda (título o etiqueta). */
+/** Filtros combinados: deben cumplirse todos los criterios seleccionados. */
 function historiasVisibles() {
-  const texto = ctx.texto.trim().toLowerCase();
-  if (!texto) return ctx.historias;
-  return ctx.historias.filter((h) => h.titulo.toLowerCase().includes(texto) || (h.etiquetas ?? []).some((e) => e.toLowerCase().includes(texto)));
+  const texto = ctx.texto.trim().toLocaleLowerCase('es');
+  return ctx.historias.filter((h) => {
+    const etiquetas = Array.isArray(h.etiquetas) ? h.etiquetas : [];
+    if (texto && !h.titulo.toLocaleLowerCase('es').includes(texto)
+      && !etiquetas.some((e) => String(e).toLocaleLowerCase('es').includes(texto))) return false;
+    if (ctx.filtros.epica && String(h.epica_id ?? 'sin-epica') !== ctx.filtros.epica) return false;
+    if (ctx.filtros.estado && h.estado !== ctx.filtros.estado) return false;
+    if (ctx.filtros.etiqueta && !etiquetas.includes(ctx.filtros.etiqueta)) return false;
+    return true;
+  });
+}
+
+/** Mantener las opciones actualizadas sin perder los filtros del usuario. */
+function actualizarOpcionesFiltros() {
+  const epicas = ctx.epicas.map((ep) => ({ valor: String(ep.id), texto: ep.nombre }));
+  const etiquetas = [...new Set(ctx.historias.flatMap((h) => Array.isArray(h.etiquetas) ? h.etiquetas : []))]
+    .sort((a, b) => a.localeCompare(b, 'es'));
+  const opciones = [
+    [el.filtroEpica, [{ valor: '', texto: 'Todas las épicas' }, { valor: 'sin-epica', texto: 'Sin épica' }, ...epicas], 'epica'],
+    [el.filtroEtiqueta, [{ valor: '', texto: 'Todas las etiquetas' }, ...etiquetas.map((e) => ({ valor: e, texto: e }))], 'etiqueta'],
+  ];
+  for (const [selector, valores, clave] of opciones) {
+    const seleccionado = ctx.filtros[clave];
+    selector.replaceChildren(...valores.map(({ valor, texto }) => {
+      const opcion = document.createElement('option');
+      opcion.value = valor;
+      opcion.textContent = texto;
+      return opcion;
+    }));
+    if (valores.some(({ valor }) => valor === seleccionado)) selector.value = seleccionado;
+    else { ctx.filtros[clave] = ''; selector.value = ''; }
+  }
+}
+
+function limpiarFiltros() {
+  ctx.texto = '';
+  ctx.filtros = { epica: '', estado: '', etiqueta: '' };
+  el.buscar.value = '';
+  el.filtroEpica.value = '';
+  el.filtroEstado.value = '';
+  el.filtroEtiqueta.value = '';
+  pintar();
 }
 
 // ====================================================================
@@ -165,23 +211,28 @@ function pintar() {
   } else if (!visibles.length) {
     el.estadoLista.innerHTML = `<div class="aviso--vacio bl-vacio">
       <h3 class="aviso__titulo">Ninguna historia coincide</h3>
-      <p class="aviso__texto">Prueba con otra palabra o limpia la búsqueda.</p>
-      <button class="boton boton--secundario" type="button" data-accion="limpiar">Limpiar búsqueda</button></div>`;
+      <p class="aviso__texto">No se encontraron historias con los filtros seleccionados.</p>
+      <button class="boton boton--secundario" type="button" data-accion="limpiar">Limpiar filtros</button></div>`;
   } else {
-    el.estadoLista.innerHTML = filtroActivo() ? '<p class="bl-ayuda">Limpia la búsqueda para poder reordenar.</p>' : '';
+    el.estadoLista.innerHTML = filtroActivo() ? '<p class="bl-ayuda">Limpia los filtros para poder reordenar.</p>' : '';
   }
 
-  // Contadores (siempre sobre la lista completa)
-  const puntos = ctx.historias.reduce((suma, h) => suma + (h.puntos ?? 0), 0);
-  const sinEstimar = ctx.historias.filter((h) => h.puntos == null).length;
-  $('total-historias').textContent = `${ctx.historias.length} ${pluralizar(ctx.historias.length, 'historia', 'historias')}`;
+  // Los contadores corresponden a las historias visibles (criterio HU-04).
+  const puntos = visibles.reduce((suma, h) => suma + (Number(h.puntos) || 0), 0);
+  const sinEstimar = visibles.filter((h) => h.puntos == null).length;
+  $('total-historias').textContent = `${visibles.length} ${pluralizar(visibles.length, 'historia', 'historias')}`;
   $('total-puntos').textContent = `${puntos} pts`;
-  $('resumen-historias').textContent = ctx.historias.length;
+  $('resumen-historias').textContent = visibles.length;
   $('resumen-historias-texto').textContent =
-    pluralizar(ctx.historias.length, 'historia', 'historias');
+    pluralizar(visibles.length, 'historia', 'historias');
   $('resumen-puntos').textContent = puntos;
   $('resumen-sin-estimar').textContent = sinEstimar;
-  el.resumen.hidden = !ctx.historias.length;
+  el.resumen.hidden = !visibles.length;
+  el.btnLimpiarFiltros.hidden = !filtroActivo();
+  el.resultadoFiltros.hidden = !filtroActivo();
+  el.resultadoFiltros.textContent = filtroActivo()
+    ? `${visibles.length} de ${ctx.historias.length} historias · ${puntos} puntos en los resultados`
+    : '';
 
   pintarDetalle();
 
@@ -240,6 +291,7 @@ function aplicarDatos({ historias, epicas }) {
   const previaSeleccion = ctx.seleccionadaId;
   ctx.historias = historias;
   if (epicas) ctx.epicas = epicas;
+  actualizarOpcionesFiltros();
   ctx.firma = firmaDe(historias);
 
   if (previaSeleccion && !buscarHistoria(previaSeleccion)) {
@@ -288,7 +340,8 @@ async function refrescar({ forzar = false } = {}) {
   if (
     !forzar &&
     ctx.cargada &&
-    firmaDe(r.datos.historias) === ctx.firma
+    firmaDe(r.datos.historias) === ctx.firma &&
+    JSON.stringify(r.datos.epicas ?? []) === JSON.stringify(ctx.epicas)
   ) {
     return;
   }
@@ -317,9 +370,7 @@ async function resolverProyecto() {
     if (r.ok) return { id: Number(id), proyecto: r.datos.proyecto };
     if (explicito) return { id: null };   // Pidieron uno concreto y no existe: no cambiar en silencio
   }
-  const lista = await llamar('/proyectos');
-  const primero = lista.datos?.proyectos?.[0];
-  return primero ? { id: primero.id, proyecto: primero } : { id: null };
+  return { id: null };
 }
 
 // Conexión de Socket.io utilizada por el Product Backlog
@@ -369,6 +420,10 @@ function seleccionar(id) {
 }
 
 el.buscar.addEventListener('input', () => { ctx.texto = el.buscar.value; pintar(); });
+el.filtroEpica.addEventListener('change', () => { ctx.filtros.epica = el.filtroEpica.value; pintar(); });
+el.filtroEstado.addEventListener('change', () => { ctx.filtros.estado = el.filtroEstado.value; pintar(); });
+el.filtroEtiqueta.addEventListener('change', () => { ctx.filtros.etiqueta = el.filtroEtiqueta.value; pintar(); });
+el.btnLimpiarFiltros.addEventListener('click', limpiarFiltros);
 
 el.btnNueva.addEventListener('click', () => abrirFormulario(null));
 
@@ -390,7 +445,7 @@ document.addEventListener('click', (e) => {
   if (accion === 'aceptar-propuesta') resolverPropuesta(true);
   if (accion === 'rechazar-propuesta') resolverPropuesta(false);
   if (accion === 'reintentar') { pintarCarga(); refrescar({ forzar: true }); }
-  if (accion === 'limpiar') { el.buscar.value = ''; ctx.texto = ''; pintar(); }
+  if (accion === 'limpiar') limpiarFiltros();
 });
 
 // ====================================================================
@@ -882,211 +937,155 @@ async function resolverPropuesta(aceptar) {
 }
 
 // ====================================================================
-// Pestañas de proyectos - Product Backlog
+// HU-04 · Crear y editar épicas del proyecto seleccionado
 // ====================================================================
-
-// Animar la línea negra al cambiar de proyecto
-let temporizadorIndicador = null;
-
-function animarPestana(destino) {
-  const contenedor = $('pestanas-proyectos');
-  const actual = contenedor.querySelector(
-    '.sprints-proyectos__pestana--activa'
-  );
-
-  if (!actual || !destino || actual === destino) return;
-
-  // Eliminar una animación anterior si todavía existe
-  clearTimeout(temporizadorIndicador);
-  contenedor.querySelector(
-    '.sprints-proyectos__indicador'
-  )?.remove();
-
-  // Crear la línea animada
-  const indicador = document.createElement('span');
-  indicador.className = 'sprints-proyectos__indicador';
-
-  indicador.style.width = `${actual.offsetWidth}px`;
-  indicador.style.transform =
-    `translateX(${actual.offsetLeft}px)`;
-
-  contenedor.appendChild(indicador);
-
-  // Ocultar temporalmente la línea fija
-  actual.style.borderBottomColor = 'transparent';
-
-  // Deslizar la línea hasta el nuevo proyecto
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      indicador.style.width = `${destino.offsetWidth}px`;
-      indicador.style.transform =
-        `translateX(${destino.offsetLeft}px)`;
-    });
-  });
-
-  // Retirar el indicador cuando termine la animación
-  temporizadorIndicador = setTimeout(() => {
-    indicador.remove();
-    actual.style.removeProperty('border-bottom-color');
-  }, 350);
+const dlgEpicas = $('dialogo-epicas');
+const formEpica = $('formulario-epica');
+const avisoEpica = $('aviso-epica');
+let temporizadorAvisoEpica = null;
+function mostrarAvisoEpica(texto) {
+  clearTimeout(temporizadorAvisoEpica);
+  avisoEpica.textContent = texto;
+  avisoEpica.hidden = false;
+  temporizadorAvisoEpica = setTimeout(() => { avisoEpica.hidden = true; }, 5000);
 }
 
-// Cambiar de proyecto sin recargar la página
-async function cambiarProyecto(nuevoId, guardarHistorial = true) {  // Evitar seleccionar nuevamente el mismo proyecto
-  if (String(nuevoId) === String(ctx.proyectoId)) return;
+function limpiarEdicionEpica() {
+  ctx.epicaEditando = null;
+  formEpica.reset();
+  $('color-epica').value = '#4F46E5';
+  $('titulo-form-epica').textContent = 'Nueva épica';
+  $('guardar-epica').textContent = 'Crear épica';
+  $('cancelar-edicion-epica').hidden = true;
+  $('error-epica').textContent = '';
+}
 
-  // No cambiar mientras se guarda una historia o su prioridad
-  if (ctx.guardando || ctx.arrastrandoId !== null) return;
-
-  // Evitar cambiar mientras hay un modal abierto
-  if (
-    el.dlgHistoria.open ||
-    el.dlgEliminar.open ||
-    el.dlgDevolver.open
-  ) {
-    mostrarMensaje(
-      'Cierra el formulario o la confirmación antes de cambiar de proyecto.',
-      'aviso'
-    );
+function pintarEpicas() {
+  const contenedor = $('lista-epicas');
+  if (!ctx.epicas.length) {
+    contenedor.innerHTML = '<p class="bl-ayuda">Todavía no hay épicas en este proyecto.</p>';
     return;
   }
+  contenedor.innerHTML = ctx.epicas.map((epica) => `
+    <div class="bl-epica-fila">
+      <span class="bl-epica-color" style="background:${colorSeguro(epica.color)}"></span>
+      <span class="bl-epica-nombre">${escaparHtml(epica.nombre)}</span>
+      <span class="bl-epica-fila__acciones">
+        <button class="boton boton--secundario boton--pequeno" type="button" data-editar-epica="${epica.id}">Editar</button>
+        <button class="boton boton--secundario boton--pequeno" type="button" data-eliminar-epica="${epica.id}" aria-label="Eliminar épica ${escaparHtml(epica.nombre)}">Eliminar</button>
+      </span>
+    </div>`).join('');
+}
 
-  // Actualizar el proyecto activo
-  ctx.proyectoId = Number(nuevoId);
-  localStorage.setItem('proyectoActivo', String(nuevoId));
-  cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-
-  // Actualizar la URL sin recargar
-  if (guardarHistorial) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('proyecto', nuevoId);
-    window.history.pushState({}, '', url);
+$('btn-epicas').addEventListener('click', () => {
+  if (!ctx.proyectoId || !tienePermiso('historia.gestionar')) return;
+  limpiarEdicionEpica();
+  clearTimeout(temporizadorAvisoEpica);
+  avisoEpica.hidden = true;
+  pintarEpicas();
+  dlgEpicas.showModal();
+});
+$('btn-cerrar-epicas').addEventListener('click', () => dlgEpicas.close());
+$('cancelar-edicion-epica').addEventListener('click', limpiarEdicionEpica);
+$('lista-epicas').addEventListener('click', (evento) => {
+  const botonEliminar = evento.target.closest('[data-eliminar-epica]');
+  if (botonEliminar) {
+    abrirConfirmacionEliminarEpica(Number(botonEliminar.dataset.eliminarEpica));
+    return;
   }
+  const boton = evento.target.closest('[data-editar-epica]');
+  if (!boton) return;
+  const epica = ctx.epicas.find((e) => e.id === Number(boton.dataset.editarEpica));
+  if (!epica) return;
+  ctx.epicaEditando = epica.id;
+  $('nombre-epica').value = epica.nombre;
+  $('color-epica').value = colorSeguro(epica.color);
+  $('titulo-form-epica').textContent = 'Editar épica';
+  $('guardar-epica').textContent = 'Guardar cambios';
+  $('cancelar-edicion-epica').hidden = false;
+  $('error-epica').textContent = '';
+  $('nombre-epica').scrollIntoView({ block: 'nearest' });
+  $('nombre-epica').focus({ preventScroll: true });
+});
 
-  // Marcar la pestaña seleccionada
-  const pestanas = document.querySelectorAll(
-    '.sprints-proyectos__pestana'
-  );
-
-  // Animar la línea hacia el proyecto seleccionado
-  const pestanaDestino = [...pestanas].find(
-    (pestana) =>
-      pestana.dataset.proyectoId === String(nuevoId)
-  );
-
-  animarPestana(pestanaDestino);
-
-  pestanas.forEach((pestana) => {
-    const activa =
-      pestana.dataset.proyectoId === String(nuevoId);
-
-    pestana.classList.toggle(
-      'sprints-proyectos__pestana--activa',
-      activa
-    );
-
-    if (activa) {
-      pestana.setAttribute('aria-current', 'page');
-    } else {
-      pestana.removeAttribute('aria-current');
-    }
+const dlgEliminarEpica = $('dialogo-eliminar-epica');
+function abrirConfirmacionEliminarEpica(epicaId) {
+  if (!tienePermiso('historia.gestionar') || ctx.guardando) return;
+  const epica = ctx.epicas.find((e) => e.id === epicaId);
+  if (!epica) return;
+  ctx.epicaEliminando = epicaId;
+  const cantidad = ctx.historias.filter((h) => Number(h.epica_id) === epicaId).length;
+  $('texto-eliminar-epica').textContent = cantidad
+    ? `¿Eliminar «${epica.nombre}»? Tiene ${cantidad} ${cantidad === 1 ? 'historia asociada' : 'historias asociadas'}. Puedes reasignarlas o dejarlas sin épica.`
+    : `¿Eliminar «${epica.nombre}»? Esta acción no se puede deshacer.`;
+  const selector = $('destino-epica');
+  selector.replaceChildren(new Option('Dejarlas sin épica', ''), ...ctx.epicas
+    .filter((e) => e.id !== epicaId)
+    .map((e) => new Option(`Mover a: ${e.nombre}`, String(e.id))));
+  $('grupo-destino-epica').hidden = cantidad === 0;
+  $('error-eliminar-epica').textContent = '';
+  dlgEliminarEpica.showModal();
+}
+function cerrarConfirmacionEliminarEpica() {
+  if (ctx.guardando) return;
+  dlgEliminarEpica.close();
+  ctx.epicaEliminando = null;
+}
+$('btn-cerrar-eliminar-epica').addEventListener('click', cerrarConfirmacionEliminarEpica);
+$('btn-cancelar-eliminar-epica').addEventListener('click', cerrarConfirmacionEliminarEpica);
+dlgEliminarEpica.addEventListener('cancel', (evento) => {
+  if (ctx.guardando) evento.preventDefault();
+  else ctx.epicaEliminando = null;
+});
+$('btn-confirmar-eliminar-epica').addEventListener('click', async () => {
+  if (!ctx.proyectoId || !ctx.epicaEliminando || !tienePermiso('historia.gestionar') || ctx.guardando) return;
+  ctx.guardando = true;
+  const boton = $('btn-confirmar-eliminar-epica');
+  boton.disabled = true;
+  const id = ctx.epicaEliminando;
+  const destino = $('destino-epica').value;
+  const r = await llamar(`/epicas/proyecto/${ctx.proyectoId}/${id}`, {
+    metodo: 'DELETE', cuerpo: { destino_epica_id: destino ? Number(destino) : null },
   });
-
-  // Limpiar la información del proyecto anterior
-  ctx.historias = [];
-  ctx.epicas = [];
-  ctx.seleccionadaId = null;
-  ctx.firma = '';
-  ctx.cargada = false;
-  ctx.texto = '';
-
-  el.buscar.value = '';
-  el.mensaje.hidden = true;
-
-  // Mostrar el proyecto seleccionado en el encabezado
-  const pestanaActiva = document.querySelector(
-    '.sprints-proyectos__pestana--activa'
-  );
-
-  $('subtitulo').textContent =
-    pestanaActiva?.textContent || `Proyecto ${nuevoId}`;
-
-  // Actualizar la lista, el detalle y los contadores
-  pintar();
-  pintarCarga();
-
-  // Reconectar Socket.io para unirse al nuevo proyecto
-  if (socketBacklog) {
-    socketBacklog.disconnect();
-    socketBacklog.connect();
+  ctx.guardando = false;
+  boton.disabled = false;
+  if (!r.ok) {
+    $('error-eliminar-epica').textContent = mensajeDe(r, 'No se pudo eliminar la épica.');
+    if (r.estado === 404 || r.estado === 409) await refrescar({ forzar: true });
+    return;
   }
-
-  // Consultar las historias del nuevo proyecto
+  dlgEliminarEpica.close();
+  ctx.epicaEliminando = null;
+  if (ctx.epicaEditando === id) limpiarEdicionEpica();
   await refrescar({ forzar: true });
+  pintarEpicas();
+  mostrarAvisoEpica('Épica eliminada. Las historias se conservaron correctamente.');
+});
 
-  // Revisar únicamente los borradores del proyecto seleccionado
-  ocultarAvisoBorradorPagina();
-  revisarBorradores();
-}
-
-async function cargarPestanasProyectos() {
-  const contenedor = $('pestanas-proyectos');
-
-  if (!contenedor) return;
-
-  try {
-    // Obtener los proyectos disponibles
-    const respuesta = await llamar('/proyectos');
-
-    if (!respuesta.ok) {
-      throw new Error('No se pudieron consultar los proyectos.');
-    }
-
-    const proyectos = respuesta.datos.proyectos || [];
-
-    // Limpiar las pestañas anteriores
-    contenedor.replaceChildren();
-
-    proyectos.forEach((proyecto) => {
-      const pestana = document.createElement('button');
-
-      pestana.type = 'button';
-      pestana.dataset.proyectoId = String(proyecto.id);
-      pestana.className = 'sprints-proyectos__pestana';
-      pestana.textContent = proyecto.nombre;
-
-      // Marcar el proyecto seleccionado
-      if (String(proyecto.id) === String(ctx.proyectoId)) {
-        pestana.classList.add(
-          'sprints-proyectos__pestana--activa'
-        );
-
-        pestana.setAttribute('aria-current', 'page');
-      }
-
-      // Cambiar de proyecto al hacer clic
-      pestana.addEventListener('click', () => {
-        cambiarProyecto(proyecto.id);
-      });
-      contenedor.appendChild(pestana);
-    });
-
-  } catch (error) {
-    console.error('Error al cargar proyectos:', error);
-
-    contenedor.textContent =
-      'No se pudieron cargar los proyectos.';
+formEpica.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  if (!ctx.proyectoId || !tienePermiso('historia.gestionar') || ctx.guardando) return;
+  const nombre = $('nombre-epica').value.trim();
+  if (!nombre || nombre.length > 80) {
+    $('error-epica').textContent = 'Escribe un nombre de 1 a 80 caracteres.';
+    return;
   }
-}
-
-// Navegar entre proyectos usando Atrás y Adelante
-window.addEventListener('popstate', () => {
-  const parametros = new URLSearchParams(window.location.search);
-  const proyecto = parametros.get('proyecto');
-
-  if (!proyecto) return;
-
-  cambiarProyecto(proyecto, false);
+  ctx.guardando = true;
+  $('guardar-epica').disabled = true;
+  const id = ctx.epicaEditando;
+  const r = await llamar(`/epicas/proyecto/${ctx.proyectoId}${id ? `/${id}` : ''}`, {
+    metodo: id ? 'PUT' : 'POST', cuerpo: { nombre, color: $('color-epica').value },
+  });
+  ctx.guardando = false;
+  $('guardar-epica').disabled = false;
+  if (!r.ok) {
+    $('error-epica').textContent = mensajeDe(r, 'No se pudo guardar la épica.');
+    return;
+  }
+  limpiarEdicionEpica();
+  await refrescar({ forzar: true });
+  pintarEpicas();
+  mostrarAvisoEpica(id ? 'Épica actualizada correctamente.' : 'Épica creada correctamente.');
 });
 
 // ====================================================================
@@ -1114,10 +1113,10 @@ async function iniciar() {
     window.history.replaceState({}, '', urlInicial);
   }
 
-  await cargarPestanasProyectos();
 
   $('subtitulo').textContent = proyecto ? `${proyecto.nombre}${proyecto.equipo_nombre ? ` · ${proyecto.equipo_nombre}` : ''}` : `Proyecto ${id}`;
   el.btnNueva.disabled = false;
+  $('btn-epicas').disabled = false;
 
   await refrescar({ forzar: true });
   revisarBorradores();

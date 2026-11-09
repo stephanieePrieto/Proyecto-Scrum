@@ -48,21 +48,10 @@
       <div class="bl-encabezado__insignias">
         <span class="insignia insignia--neutro" id="total-historias">0 historias</span>
         <span class="insignia insignia--info" id="total-puntos">0 pts</span>
+        <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="historia.gestionar" disabled>Gestionar épicas</button>
         <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
       </div>
     </div>
-
-    <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
-
-    </div>
-
-    <!-- Pestañas para navegar entre proyectos -->
-    <nav class="sprints-proyectos" aria-label="Seleccionar proyecto">
-      <div id="pestanas-proyectos" class="sprints-proyectos__lista">
-        <!-- Los proyectos se cargarán con JavaScript -->
-      </div>
-    </nav>
-
 
     <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
     <div id="aviso-borrador" class="alerta alerta--advertencia" role="status" hidden>
@@ -75,13 +64,37 @@
       </div>
     </div>
 
-    <div class="bl-buscador">
-      <label class="grupo-formulario">
-        <span class="solo-lectores">Buscar historias</span>
-        <input id="buscar" type="search" placeholder="Buscar historias por título o etiqueta…" autocomplete="off"
-          class="entrada-formulario" />
-      </label>
-    </div>
+    <section class="bl-buscador" aria-label="Filtros del Product Backlog">
+      <div class="bl-filtros">
+        <label class="grupo-formulario bl-filtros__buscar">
+          <span class="etiqueta-formulario">Buscar historias</span>
+          <input id="buscar" type="search" placeholder="Título o etiqueta…" autocomplete="off"
+            class="entrada-formulario" />
+        </label>
+        <label class="grupo-formulario">
+          <span class="etiqueta-formulario">Épica</span>
+          <select id="filtro-epica" class="entrada-formulario">
+            <option value="">Todas las épicas</option>
+          </select>
+        </label>
+        <label class="grupo-formulario">
+          <span class="etiqueta-formulario">Estado</span>
+          <select id="filtro-estado" class="entrada-formulario">
+            <option value="">Todos los estados</option>
+            <option value="backlog">En backlog</option>
+            <option value="en_sprint">En sprint</option>
+          </select>
+        </label>
+        <label class="grupo-formulario">
+          <span class="etiqueta-formulario">Etiqueta</span>
+          <select id="filtro-etiqueta" class="entrada-formulario">
+            <option value="">Todas las etiquetas</option>
+          </select>
+        </label>
+        <button id="btn-limpiar-filtros" class="boton boton--secundario" type="button" hidden>Limpiar filtros</button>
+      </div>
+      <p id="resultado-filtros" class="eq-ayuda" role="status" aria-live="polite" hidden></p>
+    </section>
 
     <div class="bl-disposicion">
       <section class="tarjeta" aria-labelledby="titulo-lista">
@@ -250,6 +263,64 @@
       </button>
     </div>
 
+  </dialog>
+
+  <!-- HU-04: modal de épicas, con la misma estructura que "Nueva historia" -->
+  <dialog id="dialogo-epicas" class="modal-card bl-epicas-modal" aria-labelledby="titulo-epicas">
+    <div class="modal-header">
+      <h2 id="titulo-epicas" class="eq-dialogo__titulo">Épicas del proyecto</h2>
+      <button id="btn-cerrar-epicas" class="bl-boton-cerrar" type="button" aria-label="Cerrar épicas" title="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="contenido-epicas">
+      <p class="eq-ayuda">Organiza las historias por grupos. Cada épica pertenece únicamente al proyecto seleccionado.</p>
+      <p id="aviso-epica" class="alerta alerta--exito" role="status" aria-live="polite" hidden></p>
+      <div id="lista-epicas" class="bl-epicas-lista"></div>
+      <form id="formulario-epica" novalidate>
+        <h3 id="titulo-form-epica">Nueva épica</h3>
+        <div class="grupo-formulario">
+          <label class="etiqueta-formulario" for="nombre-epica">Nombre</label>
+          <input id="nombre-epica" class="entrada-formulario" type="text" maxlength="80" required placeholder="Ej. Autenticación" />
+        </div>
+        <div class="grupo-formulario">
+          <label class="etiqueta-formulario" for="color-epica">Color</label>
+          <input id="color-epica" type="color" value="#4F46E5" />
+        </div>
+        <p id="error-epica" class="eq-error" role="alert"></p>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button id="cancelar-edicion-epica" class="boton boton--secundario" type="button" hidden>Cancelar edición</button>
+      <button id="guardar-epica" class="boton boton--primario" type="submit" form="formulario-epica">Crear épica</button>
+    </div>
+  </dialog>
+
+  <!-- HU-04: confirmación de eliminación y reasignación, sin borrar historias -->
+  <dialog id="dialogo-eliminar-epica" class="modal-card bl-eliminar-epica-modal" aria-labelledby="titulo-eliminar-epica">
+    <div class="modal-header">
+      <h2 id="titulo-eliminar-epica" class="eq-dialogo__titulo">Eliminar épica</h2>
+      <button id="btn-cerrar-eliminar-epica" class="bl-boton-cerrar" type="button" aria-label="Cerrar confirmación" title="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p id="texto-eliminar-epica"></p>
+      <p class="eq-ayuda">Las historias no se eliminarán y conservarán sus puntos, tareas y sprint.</p>
+      <div id="grupo-destino-epica" class="grupo-formulario">
+        <label class="etiqueta-formulario" for="destino-epica">¿Qué hacemos con sus historias?</label>
+        <select id="destino-epica" class="entrada-formulario">
+          <option value="">Dejarlas sin épica</option>
+        </select>
+      </div>
+      <p id="error-eliminar-epica" class="eq-error" role="alert"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cancelar-eliminar-epica" class="boton boton--secundario" type="button">Cancelar</button>
+      <button id="btn-confirmar-eliminar-epica" class="boton boton--primario boton--peligro eq-peligro" type="button">Eliminar épica</button>
+    </div>
   </dialog>
 
   <script src="../socket.io/socket.io.js"></script>

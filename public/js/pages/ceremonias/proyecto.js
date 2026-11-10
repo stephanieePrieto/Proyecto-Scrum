@@ -1,8 +1,8 @@
 // Responsable: Diego - HU-10, HU-11: elegir el proyecto activo y conectar los avisos en tiempo real
 /**
- * Utilidades compartidas por las pantallas de Daily Scrum e impedimentos.
- * Siguen la misma convención que backlog y dashboard: ?proyecto=ID, el último proyecto usado
- * (localStorage "proyectoActivo") o el primero disponible.
+ * Utilidades compartidas por las pantallas de ceremonias (Daily, impedimentos, ciclo, calendario, retrospectiva).
+ * El proyecto es el que la persona abrió desde el dashboard: ?proyecto=ID, el último proyecto usado
+ * (localStorage "proyectoActivo") o el primero disponible. Estas pantallas ya no ofrecen cambiar de proyecto.
  */
 import { api } from '../../core/api.js';
 
@@ -54,26 +54,4 @@ export function conectarTiempoReal(proyectoId, eventos, alCambiar) {
   } catch {
     return null;
   }
-}
-
-/**
- * Llenar un <select> con los proyectos de la persona; al cambiar, recargar la página con ?proyecto=ID.
- * Se oculta si solo hay un proyecto.
- *
- * @param {HTMLSelectElement} select
- * @param {Array<{id: number, nombre: string}>} proyectos
- * @param {number} idActivo
- * @param {(texto: string) => string} escapar - Función para escapar HTML.
- * @param {string} ruta - Ruta de la página, por ejemplo "/pages/daily.html".
- * @returns {void}
- */
-export function pintarSelectorProyecto(select, proyectos, idActivo, escapar, ruta) {
-  select.hidden = proyectos.length < 2;
-  select.innerHTML = proyectos
-    .map((p) => `<option value="${p.id}"${p.id === idActivo ? ' selected' : ''}>${escapar(p.nombre)}</option>`)
-    .join('');
-  select.addEventListener('change', () => {
-    try { localStorage.setItem('proyectoActivo', select.value); } catch { /* almacenamiento bloqueado */ }
-    location.href = `${ruta}?proyecto=${encodeURIComponent(select.value)}`;
-  });
 }

@@ -13,14 +13,15 @@
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { escaparHtml, pluralizar } from '../core/utils.js';
-import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '../pages/ceremonias/proyecto.js';
+import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
+import { pintarPendientes } from '../componentes/retro-pendientes.js';
 
 montarBarraSuperior();
 
 const el = {
-  selectorProyecto: document.getElementById('selector-proyecto'),
   aviso: document.getElementById('aviso'),
+  retroPendientes: document.getElementById('retro-pendientes'),
   seccionActivo: document.getElementById('seccion-activo'),
   tarjetaActivo: document.getElementById('tarjeta-activo'),
   planificados: document.getElementById('lista-planificados'),
@@ -158,16 +159,18 @@ async function cargar() {
   } catch (error) {
     el.planificados.removeAttribute('aria-busy');
     el.planificados.innerHTML = '';
-    mostrarAviso('error', error.estado === 404
-      ? 'No encontramos este proyecto o no tienes acceso a él.'
-      : 'No pudimos cargar los sprints. Revisa tu conexión e inténtalo de nuevo.');
+    el.seccionActivo.hidden = true;
+    mostrarAviso('error', error.estado === 403
+      ? 'Esta pantalla es solo para el Scrum Master del proyecto.'
+      : error.estado === 404
+        ? 'No encontramos este proyecto o no tienes acceso a él.'
+        : 'No pudimos cargar los sprints. Revisa tu conexión e inténtalo de nuevo.');
     return;
-  }
-  if (!ctx.datos.puedeGestionar && el.aviso.hidden) {
-    mostrarAviso('advertencia', 'Solo el Scrum Master puede iniciar o cerrar sprints. Aquí ves su estado.');
   }
   pintarActivo();
   pintarPlanificados();
+  // HU-14: al abrir el siguiente sprint, recordar los compromisos pendientes de la retro anterior
+  pintarPendientes(el.retroPendientes, ctx.proyectoId);
 }
 
 document.addEventListener('click', (evento) => {
@@ -375,7 +378,6 @@ async function iniciar() {
   ctx.proyectoId = eleccion.id;
   // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
   cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-  pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/sprint-detalle.html');
   await cargar();
   const socket = conectarTiempoReal(ctx.proyectoId, ['sprint:iniciado', 'sprint:cerrado'], cargar);
   if (socket) escucharCambiosDeRol(socket);

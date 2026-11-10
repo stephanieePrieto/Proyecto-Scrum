@@ -1,6 +1,7 @@
 <!-- Responsable: Alfonso - HU-27: pantalla de registro de horas reales. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -15,6 +16,7 @@
   <link rel="stylesheet" href="../css/componentes/mis-horas.css" />
   <link rel="stylesheet" href="/css/componentes/responsive.css">
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
 
@@ -25,9 +27,11 @@
         <p class="mh__subtitulo">Registra el tiempo real que dedicas a cada tarea, a mano o con el temporizador.</p>
       </div>
       <div class="mh__acciones">
-        <button id="mh-anterior" class="boton boton--secundario boton--pequeno" type="button" aria-label="Semana anterior">‹</button>
+        <button id="mh-anterior" class="boton boton--secundario boton--pequeno" type="button"
+          aria-label="Semana anterior">‹</button>
         <span id="mh-semana" class="mh__semana" aria-live="polite"></span>
-        <button id="mh-siguiente" class="boton boton--secundario boton--pequeno" type="button" aria-label="Semana siguiente">›</button>
+        <button id="mh-siguiente" class="boton boton--secundario boton--pequeno" type="button"
+          aria-label="Semana siguiente">›</button>
         <button id="mh-hoy" class="boton boton--secundario boton--pequeno" type="button">Hoy</button>
         <button id="mh-registrar" class="boton boton--primario" type="button">+ Registrar horas</button>
       </div>
@@ -37,10 +41,12 @@
 
     <section class="mh-resumen" aria-label="Resumen de la semana">
       <div class="mh-resumen__linea">
-        <span class="mh-resumen__total"><span id="mh-total">0</span> <span id="mh-meta" class="mh-resumen__meta"></span></span>
+        <span class="mh-resumen__total"><span id="mh-total">0</span> <span id="mh-meta"
+            class="mh-resumen__meta"></span></span>
         <span class="mh-resumen__meta">Meta según tu capacidad diaria × 5 días</span>
       </div>
-      <div class="mh-barra" role="progressbar" aria-label="Avance de la meta semanal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="mh-barra" role="progressbar" aria-label="Avance de la meta semanal" aria-valuemin="0"
+        aria-valuemax="100" aria-valuenow="0">
         <div id="mh-barra" class="mh-barra__relleno" style="width: 0%"></div>
       </div>
     </section>
@@ -76,11 +82,13 @@
       </div>
       <div class="horas-campo">
         <label for="mh-horas">Horas</label>
-        <input id="mh-horas" class="horas-entrada" type="number" min="0.1" max="24" step="0.1" inputmode="decimal" required />
+        <input id="mh-horas" class="horas-entrada" type="number" min="0.1" max="24" step="0.1" inputmode="decimal"
+          required />
       </div>
       <div class="horas-campo">
         <label for="mh-nota">Nota</label>
-        <textarea id="mh-nota" class="horas-entrada" rows="2" maxlength="500" placeholder="Opcional: ¿qué hiciste?"></textarea>
+        <textarea id="mh-nota" class="horas-entrada" rows="2" maxlength="500"
+          placeholder="Opcional: ¿qué hiciste?"></textarea>
       </div>
 
       <ul id="mh-registros" class="mh-registros" aria-label="Horas ya registradas ese día en esta tarea" hidden></ul>
@@ -97,4 +105,5 @@
 
   <script type="module" src="../js/pages/mis-horas.js"></script>
 </body>
+
 </html>

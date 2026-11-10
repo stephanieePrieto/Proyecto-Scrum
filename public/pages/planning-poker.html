@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,6 +19,7 @@
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css">
   <link rel="stylesheet" href="/css/componentes/planning-poker.css">
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
   <main class="principal">
@@ -33,10 +35,13 @@
 
     <section class="tarjeta" aria-labelledby="pp-historias-titulo">
       <h2 id="pp-historias-titulo">Historias del proyecto</h2>
-      <p class="pp-ayuda">Selecciona una historia sin estimación para iniciar Planning Poker. Las historias con puntos son solo de consulta.</p>
+      <p class="pp-ayuda">Selecciona una historia sin estimación para iniciar Planning Poker. Las historias con puntos
+        son solo de consulta.</p>
       <label class="grupo-formulario">
         <span class="etiqueta-formulario">Historia</span>
-        <select id="pp-historia" class="entrada-formulario" disabled><option value="">Cargando historias…</option></select>
+        <select id="pp-historia" class="entrada-formulario" disabled>
+          <option value="">Cargando historias…</option>
+        </select>
       </label>
       <p id="pp-detalle" class="pp-ayuda" role="status"></p>
       <button id="pp-actualizar" class="boton boton--secundario" type="button">Actualizar historias</button>
@@ -46,7 +51,8 @@
       <div class="pp-cabecera-ronda">
         <div>
           <h2 id="pp-ronda-titulo">Planning Poker en equipo</h2>
-          <p class="pp-ayuda">Selecciona una historia sin estimación. SM o PO inicia la ronda y cada integrante vota con una carta Fibonacci.</p>
+          <p class="pp-ayuda">Selecciona una historia sin estimación. SM o PO inicia la ronda y cada integrante vota con
+            una carta Fibonacci.</p>
         </div>
         <button id="pp-iniciar" type="button" class="boton boton--primario" disabled>Iniciar ronda</button>
       </div>
@@ -74,8 +80,13 @@
           <label for="pp-valor-final" class="etiqueta-formulario">Estimación final (SM o PO)</label>
           <select id="pp-valor-final" class="entrada-formulario">
             <option value="">Seleccionar puntos finales</option>
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-            <option value="5">5</option><option value="8">8</option><option value="13">13</option><option value="21">21</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="8">8</option>
+            <option value="13">13</option>
+            <option value="21">21</option>
           </select>
           <div class="pp-acciones-ronda">
             <button id="pp-otra-ronda" type="button" class="boton boton--secundario">Votar de nuevo</button>
@@ -87,12 +98,14 @@
   </main>
   <!-- HU-05: modal propio para confirmar revelación anticipada, sin alertas nativas. -->
   <div id="pp-modal-revelar" class="pp-modal-fondo" hidden>
-    <section class="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-modal-titulo" aria-describedby="pp-modal-descripcion">
+    <section class="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-modal-titulo"
+      aria-describedby="pp-modal-descripcion">
       <div class="pp-modal-cabecera">
         <h2 id="pp-modal-titulo">Revelar votos</h2>
         <button id="pp-modal-cerrar" type="button" class="pp-modal-x" aria-label="Cerrar">×</button>
       </div>
-      <p id="pp-modal-descripcion" class="pp-ayuda">¿Deseas revelar los votos de esta ronda? Los participantes pendientes aparecerán como <strong>Sin voto</strong> y ya no podrán votar en esta ronda.</p>
+      <p id="pp-modal-descripcion" class="pp-ayuda">¿Deseas revelar los votos de esta ronda? Los participantes
+        pendientes aparecerán como <strong>Sin voto</strong> y ya no podrán votar en esta ronda.</p>
       <div class="pp-modal-acciones">
         <button id="pp-modal-cancelar" type="button" class="boton boton--secundario">Cancelar</button>
         <button id="pp-modal-confirmar" type="button" class="boton boton--primario">Revelar votos</button>
@@ -102,4 +115,5 @@
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/js/pages/planning-poker.js"></script>
 </body>
+
 </html>

@@ -52,7 +52,8 @@
         </div>
         <div class="bl-encabezado__acciones" aria-label="Acciones del backlog">
           <a class="boton boton--secundario" href="/pages/planning-poker.html">Estimar historias</a>
-          <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="historia.gestionar" disabled>Gestionar épicas</button>
+          <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="historia.gestionar"
+            disabled>Gestionar épicas</button>
           <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
         </div>
       </div>
@@ -276,18 +277,22 @@
       <h2 id="titulo-epicas" class="eq-dialogo__titulo">Épicas del proyecto</h2>
       <button id="btn-cerrar-epicas" class="bl-boton-cerrar" type="button" aria-label="Cerrar épicas" title="Cerrar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
       </button>
     </div>
     <div class="modal-body" id="contenido-epicas">
-      <p class="eq-ayuda">Organiza las historias por grupos. Cada épica pertenece únicamente al proyecto seleccionado.</p>
+      <p class="eq-ayuda">Organiza las historias por grupos. Cada épica pertenece únicamente al proyecto seleccionado.
+      </p>
       <p id="aviso-epica" class="alerta alerta--exito" role="status" aria-live="polite" hidden></p>
       <div id="lista-epicas" class="bl-epicas-lista"></div>
       <form id="formulario-epica" novalidate>
         <h3 id="titulo-form-epica">Nueva épica</h3>
         <div class="grupo-formulario">
           <label class="etiqueta-formulario" for="nombre-epica">Nombre</label>
-          <input id="nombre-epica" class="entrada-formulario" type="text" maxlength="80" required placeholder="Ej. Autenticación" />
+          <input id="nombre-epica" class="entrada-formulario" type="text" maxlength="80" required
+            placeholder="Ej. Autenticación" />
         </div>
         <div class="grupo-formulario">
           <label class="etiqueta-formulario" for="color-epica">Color</label>
@@ -298,17 +303,22 @@
     </div>
     <div class="modal-footer">
       <button id="cancelar-edicion-epica" class="boton boton--secundario" type="button" hidden>Cancelar edición</button>
-      <button id="guardar-epica" class="boton boton--primario" type="submit" form="formulario-epica">Crear épica</button>
+      <button id="guardar-epica" class="boton boton--primario" type="submit" form="formulario-epica">Crear
+        épica</button>
     </div>
   </dialog>
 
   <!-- HU-04: confirmación de eliminación y reasignación, sin borrar historias -->
-  <dialog id="dialogo-eliminar-epica" class="modal-card bl-eliminar-epica-modal" aria-labelledby="titulo-eliminar-epica">
+  <dialog id="dialogo-eliminar-epica" class="modal-card bl-eliminar-epica-modal"
+    aria-labelledby="titulo-eliminar-epica">
     <div class="modal-header">
       <h2 id="titulo-eliminar-epica" class="eq-dialogo__titulo">Eliminar épica</h2>
-      <button id="btn-cerrar-eliminar-epica" class="bl-boton-cerrar" type="button" aria-label="Cerrar confirmación" title="Cerrar">
+      <button id="btn-cerrar-eliminar-epica" class="bl-boton-cerrar" type="button" aria-label="Cerrar confirmación"
+        title="Cerrar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
       </button>
     </div>
     <div class="modal-body">
@@ -324,7 +334,8 @@
     </div>
     <div class="modal-footer">
       <button id="btn-cancelar-eliminar-epica" class="boton boton--secundario" type="button">Cancelar</button>
-      <button id="btn-confirmar-eliminar-epica" class="boton boton--primario boton--peligro eq-peligro" type="button">Eliminar épica</button>
+      <button id="btn-confirmar-eliminar-epica" class="boton boton--primario boton--peligro eq-peligro"
+        type="button">Eliminar épica</button>
     </div>
   </dialog>
 

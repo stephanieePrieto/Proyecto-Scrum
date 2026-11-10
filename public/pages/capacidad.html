@@ -1,6 +1,7 @@
 <!doctype html>
 <!-- Responsable: Diego - HU-44: pantalla de capacidad individual -->
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,6 +20,7 @@
   <link rel="stylesheet" href="../css/componentes/responsive.css" />
   <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
 
@@ -42,20 +44,24 @@
 
         <div class="campo form-group">
           <label class="campo__etiqueta form-label" for="horas">Horas disponibles por día</label>
-          <input class="campo__control form-input" id="horas" name="horas" type="number" inputmode="decimal" min="0" max="24" step="0.5" />
+          <input class="campo__control form-input" id="horas" name="horas" type="number" inputmode="decimal" min="0"
+            max="24" step="0.5" />
           <p class="campo__error" id="error-horas" hidden></p>
         </div>
 
         <fieldset class="ausencias">
           <legend class="campo__etiqueta form-label">Ausencias y vacaciones</legend>
-          <p id="ausencias-vacio" class="ausencias__vacio" hidden>Sin ausencias registradas. Agrega una si no estarás disponible.</p>
+          <p id="ausencias-vacio" class="ausencias__vacio" hidden>Sin ausencias registradas. Agrega una si no estarás
+            disponible.</p>
           <div id="lista-ausencias" class="ausencias__lista"></div>
-          <button class="boton boton--secundario btn btn--secondary btn--pequeno" id="btn-agregar" type="button">+ Agregar ausencia</button>
+          <button class="boton boton--secundario btn btn--secondary btn--pequeno" id="btn-agregar" type="button">+
+            Agregar ausencia</button>
         </fieldset>
 
         <div class="campo campo--notas form-group">
           <label class="campo__etiqueta form-label" for="notas">Notas</label>
-          <textarea class="campo__control form-input" id="notas" name="notas" rows="3" maxlength="500" placeholder="Ej. Disponible para apoyo en QA"></textarea>
+          <textarea class="campo__control form-input" id="notas" name="notas" rows="3" maxlength="500"
+            placeholder="Ej. Disponible para apoyo en QA"></textarea>
           <p class="campo__error" id="error-notas" hidden></p>
         </div>
 
@@ -85,4 +91,5 @@
 
   <script type="module" src="../js/pages/capacidad.js"></script>
 </body>
+
 </html>

@@ -14,9 +14,45 @@ let usuarioId = null;
 
 async function inicializar() {
   montarBarraSuperior();
-  proyectoId = window.proyectoActual?.id || 1;
+  
+  // Obtener el proyecto activo fijado al seleccionar un proyecto en el Dashboard
+  const proyectoGuardado = localStorage.getItem('proyectoActivo');
+  
+  // Si no hay proyecto seleccionado en localStorage, bloquear toda la vista y requerir uno
+  if (!proyectoGuardado || proyectoGuardado === 'null' || proyectoGuardado === 'undefined') {
+    mostrarAvisoSeleccionarProyecto();
+    return;
+  }
+
+  proyectoId = parseInt(proyectoGuardado, 10);
   await cargarCurso();
   configurarEventos();
+}
+
+/**
+ * Reemplaza todo el contenido del <main> si no hay un proyecto seleccionado en el Dashboard.
+ */
+function mostrarAvisoSeleccionarProyecto() {
+  const contenedorPrincipal = document.querySelector('main.curso-contenedor') || document.querySelector('main');
+  
+  if (contenedorPrincipal) {
+    contenedorPrincipal.innerHTML = `
+      <div class="aviso aviso--vacio" style="text-align: center; padding: 50px 20px; background: var(--blanco, #ffffff); border-radius: 12px; border: 1px solid var(--borde, #e2e8f0); max-width: 650px; margin: 40px auto; box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.05));">
+        <div class="aviso__icono" style="font-size: 3.5rem; color: var(--ambar-500, #d97706); margin-bottom: 20px;">
+          <i class="fas fa-folder-open"></i>
+        </div>
+        <h2 class="aviso__titulo" style="margin-bottom: 12px; font-size: 1.5rem; color: var(--primario, #1e293b); font-weight: 600;">
+          Selecciona un proyecto
+        </h2>
+        <p class="aviso__texto" style="color: var(--texto-suave, #64748b); margin-bottom: 25px; font-size: 1rem; line-height: 1.5;">
+          Para ingresar a la Capacitación de Scrum y validar los permisos de tu rol en el equipo, primero debes seleccionar un proyecto activo en el Dashboard.
+        </p>
+        <a class="boton boton--primario" href="./dashboard.html" style="display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fas fa-arrow-left"></i> Ir al Dashboard
+        </a>
+      </div>
+    `;
+  }
 }
 
 function decodeHtmlEntities(text) {
@@ -44,6 +80,7 @@ async function cargarCurso() {
     quizFinalData = datos.quizFinal || null;
     usuarioId = window.usuarioActual?.id;
 
+    // Mostrar el botón "Avance del Equipo" solo si el rol en este proyecto activo es Scrum Master o Product Owner
     const btnAvance = document.getElementById('btn-avance-equipo');
     if (btnAvance) {
       btnAvance.style.display = (datos.rolEnProyecto === 'scrum_master' || datos.rolEnProyecto === 'product_owner') ? 'inline-flex' : 'none';
@@ -389,7 +426,7 @@ async function enviarQuizFinal() {
     if (datos.aprobado) {
       alert(`¡FELICIDADES! Has aprobado el Quiz Final con ${datos.calificacion}%. Tu certificado ha sido emitido.`);
     } else {
-      alert(`Puntuación: ${datos.calificacion}%. Se requiere mínimo 95% (9.5) para certificar. Puedes reintentar.`);
+      alert(`Puntuación: ${datos.calificacion}%. Se requiere mínimo 95% (9.5) para certificar. Puedes reintentarlo.`);
     }
 
     document.getElementById('modal-quiz').style.display = 'none';

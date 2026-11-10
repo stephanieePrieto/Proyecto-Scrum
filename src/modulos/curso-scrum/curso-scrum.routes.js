@@ -23,8 +23,25 @@ router.get('/:proyectoId', controller.obtenerCursoProyecto);
 // Actualizar progreso de lectura de una lección
 router.post('/progreso', controller.actualizarProgreso);
 
-// Enviar y calificar quiz
+// Enviar y calificar quiz modular
 router.post('/quiz', controller.enviarQuiz);
+
+// Enviar y calificar Quiz Final Integrador (20 preguntas)
+router.post('/quiz-final', async (req, res, next) => {
+  try {
+    const usuarioId = req.user.id;
+    const { respuestas } = req.body;
+    const servicio = await import('./curso-scrum.service.js');
+    const resultado = await servicio.calificarQuizFinal(usuarioId, respuestas);
+    res.json({
+      exito: true,
+      calificacion: resultado.calificacion,
+      aprobado: resultado.aprobado
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ===========================================================================
 // RUTAS DE CERTIFICADO

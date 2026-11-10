@@ -155,6 +155,7 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
   );
   const rolEnProyecto = rolRes.rows[0]?.rol || null;
 
+  // Filtrar para que la lección ficticia 999 NO aparezca en la lista del temario
   const leccionesRes = await consulta(`
     SELECT 
       l.id, l.orden, l.titulo, l.contenido, l.seccion,
@@ -165,11 +166,12 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
     FROM curso_lecciones l
     LEFT JOIN curso_progreso_lecciones p ON p.leccion_id = l.id AND p.usuario_id = $1
     LEFT JOIN curso_intentos_quizzes q_intento ON q_intento.leccion_id = l.id AND q_intento.usuario_id = $1
+    WHERE l.id != 999
     ORDER BY l.orden ASC;
   `, [usuarioId]);
 
   const quizzesRes = await consulta(`
-    SELECT id, leccion_id, pregunta, opciones FROM curso_quizzes ORDER BY leccion_id, id;
+    SELECT id, leccion_id, pregunta, opciones FROM curso_quizzes WHERE leccion_id != 999 ORDER BY leccion_id, id;
   `);
 
   const certificadoRes = await consulta(
@@ -186,11 +188,11 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
   );
   const quizFinalInfo = quizFinalRes.rows[0] || { calificacion: 0, aprobado: false };
 
-  const totalLecciones = leccionesRes.rows.length;
+  const totalLecciones = leccionesRes.rows.length; // Ahora es estrictamente 4
   const leccionesCompletadas = leccionesRes.rows.filter(l => l.completada).length;
   const quizzesAprobados = leccionesRes.rows.filter(l => l.quiz_aprobado).length;
 
-  // Avance global considerando lecciones (40%), quizzes modulares (40%) y Quiz Final (20%)
+  // Avance global considerando las 4 lecciones reales (40% lecciones, 40% quizzes modulares, 20% quiz final)
   const porcentajeAvance = totalLecciones > 0
     ? Math.round(
         ((leccionesCompletadas / totalLecciones) * 40) +
@@ -204,8 +206,8 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
     const equipoRes = await consulta(`
       SELECT 
         mp.usuario_id, u.nombre, u.correo, mp.rol,
-        COUNT(DISTINCT l.id) AS total_lecciones,
-        COUNT(DISTINCT p.leccion_id) FILTER (WHERE p.completada = TRUE) AS lecciones_completadas,
+        COUNT(DISTINCT l.id) FILTER (WHERE l.id != 999) AS total_lecciones,
+        COUNT(DISTINCT p.leccion_id) FILTER (WHERE p.completada = TRUE AND p.leccion_id != 999) AS lecciones_completadas,
         COUNT(DISTINCT q.leccion_id) FILTER (WHERE q.aprobado = TRUE AND q.leccion_id != 999) AS quizzes_aprobados,
         CASE WHEN c.id IS NOT NULL THEN TRUE ELSE FALSE END AS tiene_certificado
       FROM miembros_proyecto mp
@@ -214,7 +216,7 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
       LEFT JOIN curso_progreso_lecciones p ON p.leccion_id = l.id AND p.usuario_id = mp.usuario_id AND p.completada = TRUE
       LEFT JOIN curso_intentos_quizzes q ON q.leccion_id = l.id AND q.usuario_id = mp.usuario_id
       LEFT JOIN curso_certificados c ON c.usuario_id = mp.usuario_id
-      WHERE mp.proyecto_id = $1
+      WHERE mp.proyecto_id = $1 AND l.id != 999
       GROUP BY mp.usuario_id, u.nombre, u.correo, mp.rol, c.id
     `, [proyectoId]);
     progresoEquipo = equipoRes.rows;
@@ -271,6 +273,9 @@ export async function calificarQuizFinal(usuarioId, respuestasUsuario) {
 }
 
 export async function guardarProgresoLectura(usuarioId, leccionId, completada, posicionScroll) {
+  // Asegurar que el scroll sea un número válido y no exceda el límite numérico de la BD (máx 999.99)
+  const scrollSeguro = Math.min(Math.max(0, parseFloat(posicionScroll) || 0), 999.99);
+
   await consulta(`
     INSERT INTO curso_progreso_lecciones (usuario_id, leccion_id, completada, posicion_scroll, actualizado_en)
     VALUES ($1, $2, $3, $4, NOW())
@@ -279,7 +284,7 @@ export async function guardarProgresoLectura(usuarioId, leccionId, completada, p
       completada = EXCLUDED.completada,
       posicion_scroll = GREATEST(curso_progreso_lecciones.posicion_scroll, EXCLUDED.posicion_scroll),
       actualizado_en = NOW();
-  `, [usuarioId, leccionId, completada, posicionScroll]);
+  `, [usuarioId, leccionId, completada, scrollSeguro]);
 }
 
 export async function calificarQuiz(usuarioId, leccionId, respuestasUsuario) {

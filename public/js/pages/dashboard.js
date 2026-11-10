@@ -54,7 +54,18 @@ const btnActualizar = document.getElementById('btn-actualizar');
 
 // Leer los parámetros de la URL
 const params = new URLSearchParams(location.search);
-const proyectoId = params.get('proyecto') || null;
+const proyectoIdParam = params.get('proyecto');
+
+// SOLO si el parámetro existe explícitamente en la URL (?proyecto=X), se guarda como proyectoActivo.
+// De lo contrario, se limpia la selección previa para no predeterminar ningún proyecto.
+if (proyectoIdParam && proyectoIdParam !== 'null') {
+  localStorage.setItem('proyectoActivo', proyectoIdParam);
+} else {
+  localStorage.removeItem('proyectoActivo');
+}
+
+// El proyectoId únicamente tendrá valor si viene en la URL (?proyecto=X)
+const proyectoId = (proyectoIdParam && proyectoIdParam !== 'null') ? proyectoIdParam : null;
 
 // Permisos del proyecto abierto, para mostrar solo las acciones que le tocan a su rol
 if (proyectoId && proyectoId !== 'null') {

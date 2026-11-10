@@ -4,6 +4,48 @@
  * @author Camila Mariné Crespo Zurita
  */
 
+const CLASES_PASTEL_ROTATIVAS = [
+    'tarjeta-encargado--naranja',
+    'tarjeta-encargado--azul',
+    'tarjeta-encargado--amarillo',
+    'tarjeta-encargado--lavanda',
+    'tarjeta-encargado--menta',
+    'tarjeta-encargado--rosa',
+    'tarjeta-encargado--coral',
+    'tarjeta-encargado--celeste'
+];
+
+/**
+ * Determina la clase CSS de color pastel según la persona encargada de la tarea.
+ * 
+ * @function obtenerClaseColorEncargado
+ * @param {Object} tarea 
+ * @returns {string}
+ */
+function obtenerClaseColorEncargado(tarea) {
+    const nombre = String(tarea.responsable || tarea.responsable_nombre || '').trim().toLowerCase();
+    const responsableId = Number(tarea.responsable_id);
+
+    if (!nombre && (!Number.isInteger(responsableId) || responsableId <= 0)) {
+        return 'tarjeta-encargado--sin-asignar';
+    }
+
+    if (nombre.includes('dana')) return 'tarjeta-encargado--naranja';
+    if (nombre.includes('diego')) return 'tarjeta-encargado--azul';
+    if (nombre.includes('alfonso')) return 'tarjeta-encargado--amarillo';
+    if (nombre.includes('camila')) return 'tarjeta-encargado--lavanda';
+    if (nombre.includes('stephy') || nombre.includes('stephanie')) return 'tarjeta-encargado--menta';
+    if (nombre.includes('citlaly')) return 'tarjeta-encargado--rosa';
+    if (nombre.includes('jetz')) return 'tarjeta-encargado--coral';
+    if (nombre.includes('juan')) return 'tarjeta-encargado--celeste';
+
+    const semilla = Number.isInteger(responsableId) && responsableId > 0
+        ? responsableId
+        : Array.from(nombre).reduce((acum, char) => acum + char.charCodeAt(0), 0);
+
+    return CLASES_PASTEL_ROTATIVAS[Math.abs(semilla) % CLASES_PASTEL_ROTATIVAS.length];
+}
+
 /**
  * Aplica las clases de Tailwind según los días restantes para el vencimiento.
  * 
@@ -33,7 +75,6 @@ export function crearElementoTarjeta(tarea) {
     contenedor.id = `tarjeta-${tarea.id}`;
     contenedor.dataset.tareaId = tarea.id;
 
-    // Modificaciones HU-25: integración de versión y orden para control de concurrencia y convergencia
     contenedor.dataset.version = String(tarea.version || 1);
     contenedor.dataset.orden = String(tarea.orden || 0);
 
@@ -47,14 +88,15 @@ export function crearElementoTarjeta(tarea) {
         'hover:shadow-md', 'transition-all', 'relative', 'group', 'select-none'
     );
 
+    contenedor.classList.add(obtenerClaseColorEncargado(tarea));
+
     if (tarea.bloqueada) {
-        contenedor.classList.add('border-2', 'border-rose-500', 'bg-rose-50/30');
+        contenedor.classList.add('border-2', 'border-rose-500', 'bg-rose-50/30', 'tarjeta-item--bloqueada');
     } else if (tarea.supera_umbral) {
-        // HU-33: la tarea supera el umbral de desviación configurado (dato calculado en tablero.service.js)
         contenedor.classList.add('tarjeta-item--desviacion');
         contenedor.title = 'Esta tarea supera el umbral de desviación';
     } else {
-        contenedor.classList.add('border', 'border-slate-200', 'bg-white');
+        contenedor.classList.add('border', 'border-slate-200');
     }
 
     // --- INDICADOR DE EDICIÓN EN TIEMPO REAL ("X está editando" - HU-25) ---
@@ -64,7 +106,7 @@ export function crearElementoTarjeta(tarea) {
     indicadorEditando.hidden = true;
     contenedor.appendChild(indicadorEditando);
 
-    // --- ENCABEZADO (#ID, Días restantes, Candado) ---
+    // --- ENCABEZADO (#ID, Días restantes, Candado, Botón Editar ✏️) ---
     const encabezado = document.createElement('div');
     encabezado.classList.add('flex', 'items-center', 'justify-between', 'gap-2', 'mb-1.5');
 
@@ -73,7 +115,7 @@ export function crearElementoTarjeta(tarea) {
     idPadre.textContent = `#${tarea.id}${tarea.historia_padre ? ` • ${tarea.historia_padre}` : ''}`;
 
     const cajaBadges = document.createElement('div');
-    cajaBadges.classList.add('flex', 'items-center', 'gap-1');
+    cajaBadges.classList.add('flex', 'items-center', 'gap-1.5');
 
     const badgeDias = document.createElement('span');
     badgeDias.classList.add('text-[10px]', 'px-1.5', 'py-0.5', 'rounded', 'border');
@@ -91,6 +133,20 @@ export function crearElementoTarjeta(tarea) {
         candado.target = '_blank';
         cajaBadges.appendChild(candado);
     }
+
+    // Botón directo para abrir el modal de edición optimista sin interferir con el click general
+    const botonEditar = document.createElement('button');
+    botonEditar.type = 'button';
+    botonEditar.title = 'Editar tarjeta';
+    botonEditar.className = 'tarjeta-editar-btn';
+    botonEditar.textContent = '✏️';
+    botonEditar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        import('./concurrencia.js').then((mod) => {
+            mod.abrirModalEditarTarjeta(tarea.id);
+        });
+    });
+    cajaBadges.appendChild(botonEditar);
 
     encabezado.appendChild(idPadre);
     encabezado.appendChild(cajaBadges);
@@ -148,7 +204,7 @@ export function crearElementoTarjeta(tarea) {
     pie.appendChild(cajaResponsable);
     pie.appendChild(cajaHoras);
 
-    // HU-52 (Alfonso): botón "Mover a…" para pantallas táctiles; solo se ve con (pointer: coarse)
+    // HU-52 (Alfonso): botón "Mover a…" para pantallas táctiles
     const botonMover = document.createElement('button');
     botonMover.type = 'button';
     botonMover.className = 'tarjeta-mover-btn';
@@ -160,7 +216,7 @@ export function crearElementoTarjeta(tarea) {
 
     contenedor.appendChild(pie);
 
-    // Evento de doble clic para abrir el modal de edición con control de versión (HU-25)
+    // El doble clic se mantiene como alternativa, deteniendo la propagación
     contenedor.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         import('./concurrencia.js').then((mod) => {

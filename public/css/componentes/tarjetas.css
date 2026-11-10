@@ -5,70 +5,200 @@
   box-shadow: var(--sombra-sm);
   padding: var(--espacio-6);
 }
+
+/* Fijar el alto del área del tablero para que el scroll viva dentro de cada columna y no baje toda la página */
+#pantalla-tablero {
+  height: calc(100vh - var(--altura-barra, 64px));
+  max-height: calc(100vh - var(--altura-barra, 64px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#contenedor-tablero {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#tablero-contenedor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+}
+
 /*Forzar la estructura de las columnas*/
-[data-columna-id] {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start !important; /* Esto elimina el hueco gigante */
-    min-width: 320px;
-    background-color: #f8fafc; /* Fondo gris claro de la columna */
-    border-radius: 12px;
-    padding: 16px;
-    height: 100%;
+#tablero-contenedor>[data-columna-id] {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important;
+  /* Esto elimina el hueco gigante */
+  min-width: 320px;
+  max-width: 320px;
+  background-color: #f8fafc;
+  /* Fondo gris claro de la columna */
+  border-radius: 12px;
+  padding: 16px;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* Forzar la zona de arrastre para que las tarjetas se apilen desde arriba */
+/* Forzar la zona de arrastre para que las tarjetas se apilen desde arriba y tengan scroll propio */
 [id^="lista-tarjetas-"] {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start !important;
-    gap: 12px;
-    margin-top: 16px;
-    flex-grow: 1;
-    overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important;
+  gap: 12px;
+  margin-top: 16px;
+  flex: 1 1 auto;
+  min-height: 150px;
+  /* Asegura un área de caída mínima cuando la columna está vacía */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--slate-300, #d3ccbc) transparent;
 }
 
-/* Conectar el estilo del proyectoo con la clase que inyecta el JS (.tarjeta-item) */
+[id^="lista-tarjetas-"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+[id^="lista-tarjetas-"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[id^="lista-tarjetas-"]::-webkit-scrollbar-thumb {
+  background-color: var(--slate-300, #d3ccbc);
+  border-radius: 999px;
+}
+
+[id^="lista-tarjetas-"]::-webkit-scrollbar-thumb:hover {
+  background-color: var(--slate-500, #6b665c);
+}
+
+/* Conectar el estilo del proyecto con la clase que inyecta el JS (.tarjeta-item) */
 .tarjeta-item {
-    background: var(--fondo-tarjeta, #ffffff);
-    border: 1px solid var(--borde, #e2e8f0);
-    border-radius: var(--radio-xl, 12px);
-    box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.1));
-    padding: var(--espacio-6, 16px);
-    display: flex;
-    flex-direction: column;
-    background-color: white;
+  background: var(--fondo-tarjeta, #ffffff);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-left-width: 5px;
+  border-radius: var(--radio-xl, 12px);
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+  padding: var(--espacio-6, 16px);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background-color: white;
+  cursor: grab;
+  user-select: none;
+  /*Evita la selección de texto al arrastrar */
 }
 
-.tarjeta-item {    
-    cursor: grab;
-    user-select: none; /*Evita la selección de texto al arrastrar */
-}
 .tarjeta-item:active {
-    cursor: grabbing;
+  cursor: grabbing;
 }
 
-/* Asegura un área de caída mínima cuando la columna está vacía */
-[id^="lista-tarjetas-"] {
-    min-height: 150px;
+/* Colores pastel por encargado */
+/* Dana: Naranja / Durazno Pastel */
+.tarjeta-item.tarjeta-encargado--naranja {
+  background-color: #FFF4EA;
+  border-color: #F3D5B8;
+  border-left-color: #E09F67;
+}
+
+/* Diego: Azul Pastel */
+.tarjeta-item.tarjeta-encargado--azul {
+  background-color: #EEF6FB;
+  border-color: #C9E0F0;
+  border-left-color: #6A9EC0;
+}
+
+/* Alfonso: Amarillo / Crema Pastel */
+.tarjeta-item.tarjeta-encargado--amarillo {
+  background-color: #FEFBEA;
+  border-color: #F2E4A6;
+  border-left-color: #D4B24C;
+}
+
+/* Camila: Lavanda / Lila Pastel */
+.tarjeta-item.tarjeta-encargado--lavanda {
+  background-color: #F5F1FA;
+  border-color: #DCD0EC;
+  border-left-color: #9B82C1;
+}
+
+/* Stephy: Verde Menta / Salvia Pastel */
+.tarjeta-item.tarjeta-encargado--menta {
+  background-color: #EFF7F1;
+  border-color: #C5DFCD;
+  border-left-color: #6E9376;
+}
+
+/* Citlaly: Rosa Pastel */
+.tarjeta-item.tarjeta-encargado--rosa {
+  background-color: #FDF1F4;
+  border-color: #F2CED8;
+  border-left-color: #CF7E93;
+}
+
+/* Jetzaly: Coral / Terracota Suave Pastel */
+.tarjeta-item.tarjeta-encargado--coral {
+  background-color: #FDF0EC;
+  border-color: #F0CEC4;
+  border-left-color: #CD7F6B;
+}
+
+/* Juan / Otros: Celeste Agua Pastel */
+.tarjeta-item.tarjeta-encargado--celeste {
+  background-color: #EDF7F7;
+  border-color: #C2E2E2;
+  border-left-color: #5E9EA0;
+}
+
+/* Sin asignar: Blanco Hueso Neutro */
+.tarjeta-item.tarjeta-encargado--sin-asignar {
+  background-color: var(--blanco, #FBFAF7);
+  border-color: var(--slate-200, #E4DFD3);
+  border-left-color: var(--slate-300, #D3CCBC);
 }
 
 /* Alertas de Límite WIP*/
-.ring-rose-400 { 
-    box-shadow: inset 0 0 0 2px #fb7185 !important; 
+.ring-rose-400 {
+  box-shadow: inset 0 0 0 2px #fb7185 !important;
 }
-.bg-rose-100 { 
-    background-color: #ffe4e6 !important; 
+
+.bg-rose-100 {
+  background-color: #ffe4e6 !important;
 }
-.text-rose-700 { 
-    color: #be123c !important; 
+
+.text-rose-700 {
+  color: #be123c !important;
 }
-.animate-pulse { 
-    animation: pulse-wip 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; 
+
+.animate-pulse {
+  animation: pulse-wip 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
 @keyframes pulse-wip {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .7;
+  }
 }
 
 /* Estilos para Concurrencia y Conflictos (HU-25) */
@@ -129,6 +259,39 @@
 }
 
 .tarjeta-item--desviacion {
-  border: 2px solid var(--ambar-500);
-  background: var(--ambar-50);
+  box-shadow: inset 0 0 0 2px var(--ambar-500, #c99a45);
+}
+
+.tarjeta-item--bloqueada {
+  border: 2px solid #f43f5e !important;
+  border-left-width: 6px !important;
+}
+
+/* ==========================================================================
+   BOTÓN DE EDICIÓN FLOTANTE EN TARJETA
+   ========================================================================== */
+.tarjeta-editar-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radio-lg, 8px);
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--texto-suave, #6b665c);
+  opacity: 0.6;
+  transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Aparece con más presencia al pasar el cursor sobre la tarjeta */
+.tarjeta-item:hover .tarjeta-editar-btn {
+  opacity: 1;
+}
+
+.tarjeta-editar-btn:hover {
+  background-color: var(--slate-200, #e4dfd3);
+  color: var(--texto, #282828);
 }

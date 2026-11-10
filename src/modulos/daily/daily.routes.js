@@ -2,7 +2,8 @@
 /**
  * Rutas del Daily Scrum. app.js (BASE) monta este módulo solo, en /api/daily.
  *
- *   GET /api/daily/proyecto/:proyectoId   estado del equipo en un día (?fecha=AAAA-MM-DD, por omisión hoy)
+ *   GET /api/daily/proyecto/:proyectoId   estado del equipo en un día (?fecha=AAAA-MM-DD, por omisión hoy);
+ *                                         solo el Scrum Master recibe a todo el equipo, los demás su propio registro
  *   PUT /api/daily/proyecto/:proyectoId   registrar o editar MI Daily de hoy
  */
 import { Router } from 'express';

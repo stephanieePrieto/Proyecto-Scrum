@@ -8,6 +8,7 @@ import {
   verCapacidad,
   guardarCapacidad,
   verCapacidadEquipo,
+  obtenerCapacidadPorSprint,
   contextoActual,
 } from './capacidad.service.js';
 
@@ -90,6 +91,22 @@ export async function obtenerEquipo(req, res, next) {
     const equipoId = leerId(req.params.equipoId);
     if (!equipoId) return res.status(400).json({ mensaje: 'El identificador del equipo no es válido' });
     res.json(await verCapacidadEquipo(req.user ?? null, equipoId, { inicio: req.query.inicio, fin: req.query.fin }));
+  } catch (error) {
+    responderError(error, res, next);
+  }
+}
+
+/**
+ * Responder con la capacidad del equipo de un proyecto en un sprint (solo Scrum Master).
+ * Sin ?sprint= se propone el activo.
+ *
+ * @route GET /api/capacidad/proyecto/:proyectoId/equipo
+ */
+export async function obtenerPorSprint(req, res, next) {
+  try {
+    const sprintId = req.query.sprint === undefined ? null : leerId(req.query.sprint);
+    if (req.query.sprint !== undefined && !sprintId) return res.status(400).json({ mensaje: 'El identificador del sprint no es válido' });
+    res.json(await obtenerCapacidadPorSprint(req.proyectoId, sprintId));
   } catch (error) {
     responderError(error, res, next);
   }

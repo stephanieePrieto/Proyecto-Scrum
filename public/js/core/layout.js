@@ -7,7 +7,7 @@
  * @author Citlaly Morales Viveros
  */
 import { escaparHtml, iniciales } from './utils.js';
-import './permisos-ui.js';
+import { cargarPermisos } from './permisos-ui.js';
 
 /** Ruta pública de la hoja de estilos de la campana de notificaciones (HU-24). */
 const RUTA_CSS_NOTIFICACIONES = '/css/componentes/notificaciones.css';
@@ -47,7 +47,8 @@ const ENLACES = [
   { href: '/pages/daily.html', etiqueta: 'Daily', icono: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { href: '/pages/impedimentos.html', etiqueta: 'Impedimentos', icono: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/>' },
   { href: '/pages/capacidad.html', etiqueta: 'Capacidad', icono: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
-  { href: '/pages/sprint-detalle.html', etiqueta: 'Ciclo', icono: '<path d="M5 3v18M5 4h11l-2 4 2 4H5"/>' },
+  { href: '/pages/sprint-detalle.html', etiqueta: 'Ciclo', permiso: 'sprint.gestionar', icono: '<path d="M5 3v18M5 4h11l-2 4 2 4H5"/>' },
+  { href: '/pages/retrospectiva.html', etiqueta: 'Retro', icono: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/>' },
   { href: '/pages/calendario.html', etiqueta: 'Calendario', icono: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2"/>' },
   { href: '/pages/equipos.html', etiqueta: 'Equipo', icono: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>' },
   { href: '/pages/metricas.html', etiqueta: 'Métricas', icono: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
@@ -73,7 +74,7 @@ const GRUPOS = [
   },
   {
     etiqueta: 'Seguimiento',
-    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html'],
+    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html'],
   },
   {
     etiqueta: 'Equipo',
@@ -311,4 +312,10 @@ export function montarBarraSuperior() {
 
   // Montar la campana en todas las páginas que usen la barra
   montarCampana();
+
+  // Opciones como "Ciclo" o "Bitácora" dependen del rol: conocer el del proyecto activo en todas las páginas.
+  // Si la página pide después los mismos permisos, comparte esta misma consulta.
+  let proyectoActivo = null;
+  try { proyectoActivo = Number(localStorage.getItem('proyectoActivo')); } catch { /* almacenamiento bloqueado */ }
+  if (proyectoActivo > 0) cargarPermisos(proyectoActivo).catch(() => { /* sin permisos conocidos, esas opciones siguen ocultas */ });
 }

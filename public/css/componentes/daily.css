@@ -221,3 +221,148 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Retrospectiva (HU-13) y recordatorio de acciones pendientes (HU-14)
+   Comparten las clases de las ceremonias (daily-aviso, daily__titulo, chip, insignia).
+   ========================================================================== */
+.retro {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espacio-6);
+  align-items: start;
+}
+
+.retro-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: var(--espacio-4);
+}
+
+.retro-form textarea.form-input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.retro-form__fila {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.retro-form__fila > .form-group {
+  flex: 1 1 140px;
+  margin: 0;
+}
+
+.retro-form__anonimo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.retro-notas,
+.retro-pendientes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.retro-nota {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  padding: 12px;
+  background: var(--fondo-tarjeta);
+}
+
+.retro-nota__texto {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.retro-nota__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.retro-nota__autor {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.retro-nota__acciones {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.retro-nota__voto:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.retro-nota__editando {
+  margin: 8px 0 0;
+  color: var(--ambar-700);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.retro-vacio {
+  color: var(--texto-suave);
+}
+
+.retro-accion--hecha {
+  opacity: 0.65;
+}
+
+.retro-accion--vencida,
+.retro-pendiente--vencida {
+  border-color: var(--rosa-500);
+  background: var(--rosa-50);
+}
+
+.retro-pendientes {
+  margin-bottom: var(--espacio-6);
+}
+
+.retro-pendiente {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  padding: 10px 12px;
+}
+
+.retro-pendiente__texto {
+  flex: 1 1 240px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.retro-pendiente__meta {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+@media (max-width: 1000px) {
+  .retro {
+    grid-template-columns: 1fr;
+  }
+}

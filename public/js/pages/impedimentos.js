@@ -12,7 +12,7 @@
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { escaparHtml, pluralizar } from '../core/utils.js';
-import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '../pages/ceremonias/proyecto.js';
+import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
@@ -20,7 +20,6 @@ montarBarraSuperior();
 
 // Referenciar los elementos de la página
 const el = {
-  selectorProyecto: document.getElementById('selector-proyecto'),
   btnNuevo: document.getElementById('btn-nuevo'),
   aviso: document.getElementById('aviso'),
   abiertos: document.getElementById('dato-abiertos'),
@@ -331,7 +330,6 @@ async function iniciar() {
   ctx.proyectoId = eleccion.id;
   // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
   cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-  pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/impedimentos.html');
   await cargar();
 
   const socket = conectarTiempoReal(ctx.proyectoId, ['impedimento:creado', 'impedimento:resuelto', 'impedimento:reasignado'], cargar);

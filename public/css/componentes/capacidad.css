@@ -152,12 +152,6 @@
   margin: 4px 0 var(--espacio-4);
 }
 
-.rango {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
 .resumen__total {
   display: flex;
   align-items: baseline;
@@ -278,9 +272,5 @@
 
   .ausencia__quitar {
     justify-self: end;
-  }
-
-  .rango {
-    grid-template-columns: 1fr;
   }
 }

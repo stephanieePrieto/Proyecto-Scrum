@@ -200,6 +200,11 @@ export const PERMISOS = Object.freeze({
     // HU-10 y HU-11 (Diego): Daily Scrum e impedimentos
     'daily.registrar': definirPermiso('registrar tu Daily Scrum', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'impedimento.gestionar': definirPermiso('registrar o resolver impedimentos', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
+    // Sprint 4 (Diego): lo que solo ve el Scrum Master del resto del equipo, y la retrospectiva (HU-13 y HU-14)
+    'capacidad.equipo.ver': definirPermiso('ver la capacidad del resto del equipo', [SCRUM_MASTER]),
+    'daily.equipo.ver': definirPermiso('ver las Daily del resto del equipo', [SCRUM_MASTER]),
+    'retro.participar': definirPermiso('participar en la retrospectiva', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
+    'retro.gestionar': definirPermiso('cerrar la retrospectiva o dar seguimiento a las acciones de todo el equipo', [SCRUM_MASTER]),
     'sprint.gestionar': definirPermiso('planificar, iniciar o cerrar sprints', [SCRUM_MASTER]),
     'review.decidir': definirPermiso('aceptar o rechazar historias en la review', [PRODUCT_OWNER]),
     'proyecto.gestionar': definirPermiso('gestionar miembros, invitaciones o la configuración del proyecto', [SCRUM_MASTER], { incluyeCreador: true }),

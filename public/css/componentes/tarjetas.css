@@ -127,3 +127,8 @@
   gap: 8px;
   cursor: pointer;
 }
+
+.tarjeta-item--desviacion {
+  border: 2px solid var(--ambar-500);
+  background: var(--ambar-50);
+}

@@ -392,13 +392,16 @@ const constructores = {
 
   desviacion(k, meta) {
     const signo = k.valor > 0 ? '+' : '';
-    // HU-33: Si supera umbral, forzamos advertencia o peligro
-    const estado = k.superaUmbral ? 'Alerta por desviación' : k.valor < 0 ? 'Bajo presupuesto' : k.valor === 0 ? 'Dentro de lo estimado' : 'Sobre presupuesto';
-    const tonoFuerza = k.superaUmbral ? 'peligro' : tonoDesviacion(k.valor, k.estimado);
+    // HU-33: umbral superado a nivel proyecto o con tareas en alerta -> tarjeta ámbar
+    const alerta = k.superaUmbral || k.tareasEnAlerta > 0;
+    const estado = alerta ? 'Alerta por desviación' : k.valor < 0 ? 'Bajo presupuesto' : k.valor === 0 ? 'Dentro de lo estimado' : 'Sobre presupuesto';
+    const detalle = k.tareasEnAlerta > 0
+      ? ` · ${k.tareasEnAlerta} ${pluralizar(k.tareasEnAlerta, 'tarea sobre el umbral', 'tareas sobre el umbral')} (±${k.umbral}%)`
+      : '';
 
     return tarjetaValor({
-      ...meta, tono: tonoFuerza, valor: `${signo}${k.valor}`,
-      unidad: 'h', pista: `${estado} · ${k.real} h reales de ${k.estimado} h`
+      ...meta, tono: alerta ? 'advertencia' : tonoDesviacion(k.valor, k.estimado), valor: `${signo}${k.valor}`,
+      unidad: 'h', pista: `${estado} · ${k.real} h reales de ${k.estimado} h${detalle}`,
     });
   },
 };
@@ -434,6 +437,23 @@ function volverClicable(html, id) {
 }
 
 /**
+ * Mostrar u ocultar el aviso de tareas que superan el umbral de desviación.
+ *
+ * @param {Object} datos Respuesta de los KPIs del dashboard.
+ * @returns {void}
+ */
+function pintarAlertaDesviacion(datos) {
+  const aviso = document.getElementById('alerta-desviacion');
+  if (!aviso) return;
+  const d = datos.kpis?.desviacion;
+  const n = d && !d.error ? Number(d.tareasEnAlerta) || 0 : 0;
+  aviso.style.display = n > 0 ? '' : 'none';
+  if (n > 0) {
+    aviso.textContent = `⚠ ${n} ${pluralizar(n, 'tarea supera', 'tareas superan')} el umbral de desviación (±${d.umbral}%).`;
+  }
+}
+
+/**
  * Pintar la respuesta del servidor.
  * Mostrar el aviso de estado vacío cuando datos.vacio es true.
  * @param {{vacio: boolean, kpis: Object, esScrumMaster: boolean}} datos - Respuesta del backend.
@@ -443,6 +463,7 @@ function pintarDatos(datos) {
   if (!grilla) return;
   datosKpiActuales = datos.vacio ? {} : (datos.kpis || {});
   estadoEsScrumMaster = datos.esScrumMaster || false;
+  pintarAlertaDesviacion(datos);
 
   // Mostrar un mensaje diferente cuando no hay proyecto seleccionado
   if (!proyectoId) {

@@ -22,6 +22,7 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { enTransaccion } from '../detalle-tarjeta/detalle-tarjeta.service.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { evaluarDesviacionTarea } from '../desviacion/desviacion.alertas.js';
 
 /*
  * Constantes
@@ -327,7 +328,7 @@ async function publicarCambio(proyectoId, tareaId, usuarioId) {
       [tareaId],
     );
     const horasReales = Number(rows[0].total);
-    emitirAProyecto(proyectoId, EVENTO_HORAS, { tareaId, usuarioId, horasReales });
+    evaluarDesviacionTarea(proyectoId, tareaId).catch((e) => console.error('[desviacion]', e?.message ?? e));
     return horasReales;
   } catch (error) {
     console.error('[horas] No se pudo avisar el cambio de horas:', error?.message ?? error);

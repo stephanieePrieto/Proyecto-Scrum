@@ -49,6 +49,10 @@ export function crearElementoTarjeta(tarea) {
 
     if (tarea.bloqueada) {
         contenedor.classList.add('border-2', 'border-rose-500', 'bg-rose-50/30');
+    } else if (tarea.supera_umbral) {
+        // HU-33: la tarea supera el umbral de desviación configurado (dato calculado en tablero.service.js)
+        contenedor.classList.add('tarjeta-item--desviacion');
+        contenedor.title = 'Esta tarea supera el umbral de desviación';
     } else {
         contenedor.classList.add('border', 'border-slate-200', 'bg-white');
     }

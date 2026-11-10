@@ -18,6 +18,7 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { exigirPermiso } from '../../utils/permisos.js';
 import { randomUUID } from 'node:crypto';
 import { generarPdf } from './metricas.pdf.js';
+import { evaluarDesviacionTarea, evaluarUmbral } from '../desviacion/desviacion.alertas.js';
 
 /**
  * Cantidad de sprints que abarca el promedio móvil de la velocity (HU-30).
@@ -204,8 +205,16 @@ async function desviacionAcumulada(proyectoId) {
   // HU-33: Alertas por desviación (Evaluación contra el umbral)
   const porcentajeDesviacion = estimado > 0 ? Math.abs((valor / estimado) * 100) : 0;
   const superaUmbral = porcentajeDesviacion > fila.umbral_desviacion;
+  const tareasUmbral = await consultar(
+    `SELECT t.horas_estimadas::float AS estimadas, COALESCE(c.es_final, FALSE) AS terminada,
+            COALESCE((SELECT SUM(r.horas) FROM registros_horas r WHERE r.tarea_id = t.id), 0)::float AS reales
+       FROM tareas t LEFT JOIN columnas_tablero c ON c.id = t.columna_id
+      WHERE t.proyecto_id = $1 AND t.horas_estimadas > 0`,
+    [proyectoId],
+  );
+  const tareasEnAlerta = tareasUmbral.filter((t) => evaluarUmbral({ ...t, umbral: fila.umbral_desviacion }).supera).length;
 
-  return { valor, estimado, real, superaUmbral, umbral: fila.umbral_desviacion };
+  return { valor, estimado, real, superaUmbral, umbral: fila.umbral_desviacion, tareasEnAlerta };
 }
 
 /**
@@ -798,4 +807,43 @@ async function procesarArchivo(trabajo, proyectoId, usuarioId, formato, alcance)
   trabajo.archivo = { contenido, mime, extension, nombre: `Reporte_${proyectoId}_${alcance}_${fecha}.${extension}` };
   trabajo.progreso = 100;
   trabajo.estado = 'completado';
+}
+
+// ===========================================================================
+// HU-33: Configuración del umbral de desviación
+// ===========================================================================
+
+/**
+ * Consultar el umbral vigente y si el usuario puede editarlo (solo Scrum Master).
+ *
+ * @returns {Promise<{umbral: number, puedeEditar: boolean}>}
+ */
+export async function obtenerUmbral(proyectoId, usuarioId) {
+  const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+  const [fila] = await consultar('SELECT umbral_desviacion FROM proyectos WHERE id = $1', [proyectoId]);
+  return { umbral: fila.umbral_desviacion, puedeEditar: rol === 'scrum_master' };
+}
+
+/**
+ * Guardar el umbral (entero entre 0 y 100) y reevaluar las tareas con la nueva regla.
+ *
+ * @param {number} proyectoId Identificador del proyecto.
+ * @param {number} usuarioId Usuario que guarda.
+ * @param {*} valor Valor recibido del cliente.
+ * @returns {Promise<{umbral: number}>}
+ */
+export async function guardarUmbral(proyectoId, usuarioId, valor) {
+  const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+  if (rol !== 'scrum_master') throw new ErrorApp('Solo el Scrum Master puede configurar el umbral.', 403);
+
+  const n = (typeof valor === 'number' || (typeof valor === 'string' && valor.trim() !== '')) ? Number(valor) : NaN;
+  if (!Number.isInteger(n) || n < 0 || n > 100) {
+    throw new ErrorApp('El umbral debe ser un número entero entre 0 y 100.', 400);
+  }
+
+  await consultar('UPDATE proyectos SET umbral_desviacion = $2 WHERE id = $1', [proyectoId, n]);
+  // Con la nueva regla se reevalúan las tareas; las que ya se notificaron no se repiten
+  const tareas = await consultar('SELECT id FROM tareas WHERE proyecto_id = $1 AND horas_estimadas > 0', [proyectoId]);
+  for (const t of tareas) await evaluarDesviacionTarea(proyectoId, t.id);
+  return { umbral: n };
 }

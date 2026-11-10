@@ -2,7 +2,9 @@
 /**
  * Pintar la pantalla de Daily Scrum:
  *   - Registrar o editar MI Daily de hoy (ayer, hoy, impedimentos) y vincular tareas como chips.
- *   - Ver el estado del equipo: Registrado, Tarde, Ausente o Pendiente.
+ *   - Scrum Master: ver el estado de todo el equipo (Registrado, Tarde, Ausente o Pendiente).
+ *     Los demás roles solo registran y ven su propio registro.
+ *   - Los chips de tareas solo muestran las tareas asignadas a quien registra.
  *   - Consultar días anteriores en solo lectura.
  *   - Si falla la conexión al guardar, conservar el texto como borrador local.
  *   - Actualizarse sola cuando otra persona registra su Daily (Socket.io).
@@ -13,7 +15,7 @@
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { escaparHtml, pluralizar } from '../core/utils.js';
-import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '../pages/ceremonias/proyecto.js';
+import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
@@ -22,7 +24,6 @@ montarBarraSuperior();
 // Referenciar los elementos de la página
 const el = {
   subtitulo: document.getElementById('subtitulo'),
-  selectorProyecto: document.getElementById('selector-proyecto'),
   selectorFecha: document.getElementById('selector-fecha'),
   btnHoy: document.getElementById('btn-hoy'),
   aviso: document.getElementById('aviso'),
@@ -37,6 +38,7 @@ const el = {
   btnGuardar: document.getElementById('btn-guardar'),
   enlaceImpedimentos: document.getElementById('enlace-impedimentos'),
   estadoForm: document.getElementById('estado-form'),
+  tituloEquipo: document.getElementById('titulo-equipo'),
   ayudaEquipo: document.getElementById('ayuda-equipo'),
   resumen: document.getElementById('resumen'),
   lista: document.getElementById('lista-equipo'),
@@ -178,7 +180,7 @@ function pintarErrores(errores = {}) {
 function pintarChips() {
   const tareas = ctx.datos?.tareas ?? [];
   if (!tareas.length) {
-    el.chips.innerHTML = '<span class="daily__ayuda">El sprint todavía no tiene tareas en el tablero.</span>';
+    el.chips.innerHTML = '<span class="daily__ayuda">No tienes tareas asignadas en este sprint.</span>';
     return;
   }
   el.chips.innerHTML = tareas.map((t) => {
@@ -334,8 +336,10 @@ window.addEventListener('offline', () => {
  * @returns {void}
  */
 function pintarEquipo() {
-  const { miembros, resumen, sprint, yo, fecha } = ctx.datos;
+  const { miembros, resumen, sprint, yo, fecha, verEquipo } = ctx.datos;
 
+  el.tituloEquipo.textContent = verEquipo ? 'Estado del equipo' : 'Mi registro';
+  el.resumen.hidden = !verEquipo;
   if (!sprint) {
     el.ayudaEquipo.textContent = '';
     el.resumen.innerHTML = '';
@@ -344,7 +348,7 @@ function pintarEquipo() {
   }
 
   el.ayudaEquipo.textContent = `${sprint.nombre} · ${fechaLarga(fecha)}`;
-  el.resumen.innerHTML = ['registrado', 'tarde', 'ausente', 'pendiente'].map((estado) => {
+  el.resumen.innerHTML = !verEquipo ? '' : ['registrado', 'tarde', 'ausente', 'pendiente'].map((estado) => {
     const n = resumen[estado];
     const textos = {
       registrado: pluralizar(n, 'registrado', 'registrados'),
@@ -370,7 +374,10 @@ function pintarEquipo() {
     } else if (m.estado === 'ausente') {
       cuerpo = '<p class="integrante__vacio">Tiene una ausencia registrada este día. No cuenta como pendiente.</p>';
     } else {
-      cuerpo = `<p class="integrante__vacio">${ctx.datos.soloLectura ? 'No registró su Daily este día.' : 'Aún no registra su Daily.'}</p>`;
+      const propio = m.usuarioId === yo.id;
+      cuerpo = `<p class="integrante__vacio">${ctx.datos.soloLectura
+        ? (propio ? 'No registraste tu Daily este día.' : 'No registró su Daily este día.')
+        : (propio ? 'Aún no registras tu Daily.' : 'Aún no registra su Daily.')}</p>`;
     }
     return `<li class="integrante${m.usuarioId === yo.id ? ' integrante--yo' : ''}">
       <div class="integrante__cabecera">
@@ -455,7 +462,6 @@ async function iniciar() {
   ctx.proyectoId = eleccion.id;
   // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
   cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-  pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/daily.html');
   await cargar();
   const socket = conectarTiempoReal(ctx.proyectoId, ['daily:registrada'], cargar);
   if (socket) escucharCambiosDeRol(socket);

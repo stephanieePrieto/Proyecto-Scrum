@@ -13,6 +13,8 @@
  *    si no hay evento ese día, después de HORA_CORTE_DEFECTO. Editarlo luego no cambia la marca.
  *  - Los días anteriores solo se consultan (solo lectura); no se puede registrar en el pasado.
  *  - Quien tiene una ausencia ese día y no registró aparece "ausente", sin penalización.
+ *  - Solo el Scrum Master (permiso daily.equipo.ver) ve la Daily del resto del equipo; los demás solo
+ *    reciben su propio registro. Los chips de tareas solo ofrecen las tareas asignadas a quien registra.
  *
  * @author Diego Rafael Jimenez Trujano
  * @author Citlaly Morales Viveros
@@ -20,7 +22,7 @@
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
-import { exigirPermiso } from '../../utils/permisos.js';
+import { exigirPermiso, tienePermiso } from '../../utils/permisos.js';
 import {
   HORA_CORTE_DEFECTO,
   esFechaValida,
@@ -87,7 +89,7 @@ async function sprintActivo(proyectoId) {
  * @param {number} usuarioId
  * @returns {Promise<{nombre: string, zona: string, hoy: string, hora: string}>} `hoy` "AAAA-MM-DD" y `hora` "HH:MM".
  */
-async function relojDe(usuarioId) {
+export async function relojDe(usuarioId) {
   const { rows: [usuario] } = await consulta('SELECT nombre, zona_horaria FROM usuarios WHERE id = $1', [usuarioId]);
   const leer = async (zona) => {
     const { rows } = await consulta(
@@ -145,18 +147,20 @@ export async function consultar(actor, proyectoId, fechaTexto) {
   const base = { fecha, hoy: reloj.hoy, soloLectura: fecha < reloj.hoy, horaCorte: HORA_CORTE_DEFECTO };
   const sprint = await sprintActivo(proyectoId);
   if (!sprint) {
-    return { ...base, sprint: null, soloLectura: true, puedeRegistrar: false, miembros: [], resumen: resumenEstados([]), tareas: [] };
+    return { ...base, sprint: null, soloLectura: true, puedeRegistrar: false, verEquipo: false, miembros: [], resumen: resumenEstados([]), tareas: [] };
   }
 
+  // Solo el Scrum Master ve a todo el equipo; el resto únicamente su propio registro
+  const verEquipo = await tienePermiso(actor, 'daily.equipo.ver', Number(proyectoId));
   const { rows: integrantes } = await consulta(
     `SELECT u.id, u.nombre, mp.rol
        FROM miembros_proyecto mp
        JOIN usuarios u ON u.id = mp.usuario_id
        JOIN proyectos p ON p.id = mp.proyecto_id
        JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
-      WHERE mp.proyecto_id = $1 AND u.activo = TRUE
+      WHERE mp.proyecto_id = $1 AND u.activo = TRUE AND ($2::boolean OR u.id = $3)
       ORDER BY u.nombre`,
-    [proyectoId],
+    [proyectoId, verEquipo, actor.id],
   );
   const ids = integrantes.map((i) => i.id);
 
@@ -210,17 +214,17 @@ export async function consultar(actor, proyectoId, fechaTexto) {
   const yo = integrantes.find((i) => i.id === actor.id);
   const puedeRegistrar = Boolean(yo) && !base.soloLectura;
 
-  // Las tareas del sprint para vincular como chips (primero las propias); solo si se puede editar
+  // Chips de tareas: solo las que tiene asignadas quien registra; únicamente si puede editar
   let tareas = [];
   if (puedeRegistrar) {
     const { rows } = await consulta(
-      `SELECT t.id, t.titulo, t.responsable_id, c.nombre AS columna
+      `SELECT t.id, t.titulo, c.nombre AS columna
          FROM tareas t LEFT JOIN columnas_tablero c ON c.id = t.columna_id
-        WHERE t.sprint_id = $1
-        ORDER BY (t.responsable_id = $2) DESC NULLS LAST, c.orden NULLS LAST, t.orden, t.id`,
+        WHERE t.sprint_id = $1 AND t.responsable_id = $2
+        ORDER BY c.orden NULLS LAST, t.orden, t.id`,
       [sprint.id, actor.id],
     );
-    tareas = rows.map((t) => ({ id: t.id, titulo: t.titulo, columna: t.columna ?? '', propia: t.responsable_id === actor.id }));
+    tareas = rows.map((t) => ({ id: t.id, titulo: t.titulo, columna: t.columna ?? '' }));
   }
 
   return {
@@ -230,6 +234,7 @@ export async function consultar(actor, proyectoId, fechaTexto) {
     sprint: { id: sprint.id, nombre: sprint.nombre, objetivo: sprint.objetivo },
     yo: { id: actor.id, nombre: reloj.nombre, rol: yo?.rol ?? null },
     puedeRegistrar,
+    verEquipo,
     miembros,
     resumen: resumenEstados(miembros),
     tareas,
@@ -256,9 +261,12 @@ export async function guardar(actor, proyectoId, datos) {
   const reloj = await relojDe(actor.id);
 
   if (valores.tareas.length) {
-    const { rows } = await consulta('SELECT id FROM tareas WHERE id = ANY($1::int[]) AND sprint_id = $2', [valores.tareas, sprint.id]);
+    const { rows } = await consulta(
+      'SELECT id FROM tareas WHERE id = ANY($1::int[]) AND sprint_id = $2 AND responsable_id = $3',
+      [valores.tareas, sprint.id, actor.id],
+    );
     if (rows.length !== valores.tareas.length) {
-      lanzar(400, 'Revisa los campos marcados.', { tareas: 'Solo puedes vincular tareas del sprint activo.' });
+      lanzar(400, 'Revisa los campos marcados.', { tareas: 'Solo puedes vincular tus tareas asignadas del sprint activo.' });
     }
   }
 

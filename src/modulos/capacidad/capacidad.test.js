@@ -10,7 +10,7 @@ process.env.MODO_DEMO = 'true';
 
 const { validarCapacidad, fusionarAusencias, capacidadUsuario, capacidadEquipo } = await import('./capacidad.calculo.js');
 const demo = await import('./capacidad.demo.js');
-const { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo } = await import('./capacidad.service.js');
+const { ErrorCapacidad, obtenerCapacidad, guardarCapacidad, obtenerCapacidadEquipo, verCapacidad } = await import('./capacidad.service.js');
 
 const sprint = { inicio: '2026-10-12', fin: '2026-10-23' };
 
@@ -116,6 +116,27 @@ describe('Módulo de Capacidad - Pruebas Unitarias', () => {
     await expect(guardarCapacidad({ id: 2, rol: 'DEV' }, 1, { horasPorDia: 6 })).rejects.toThrow();
     await guardarCapacidad({ id: 9, rol: 'Admin' }, 1, { horasPorDia: 5 });
     expect((await obtenerCapacidad(1)).horasPorDia).toBe(5);
+  });
+
+  test('servicio: con horas y notas vacías (formulario limpio) conserva lo ya guardado', async () => {
+    const r = await guardarCapacidad({ id: 1, rol: 'DEV' }, 1, {
+      horasPorDia: '',
+      notas: '',
+      ausencias: [{ tipo: 'ausencia', fechaInicio: '2026-10-28', fechaFin: '2026-10-29' }],
+    });
+    expect(r.horasPorDia).toBe(6);
+    expect(r.notas).toMatch(/apoyo en QA/);
+    expect(r.ausencias.length).toBe(1);
+  });
+
+  test('servicio: quien aún no captura sus horas debe escribirlas', async () => {
+    await expect(guardarCapacidad({ id: 3, rol: 'DEV' }, 3, { horasPorDia: '' })).rejects.toThrow(ErrorCapacidad);
+  });
+
+  test('servicio: solo la propia persona (o quien administra) puede ver una capacidad individual', async () => {
+    await expect(verCapacidad({ id: 2, rol: 'DEV' }, 1)).rejects.toThrow(ErrorCapacidad);
+    expect((await verCapacidad({ id: 1, rol: 'DEV' }, 1)).horasPorDia).toBe(6);
+    expect((await verCapacidad({ id: 9, rol: 'Admin' }, 1)).horasPorDia).toBe(6);
   });
 
   test('servicio: la capacidad del equipo se recalcula tras guardar', async () => {

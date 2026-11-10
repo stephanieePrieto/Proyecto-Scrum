@@ -44,15 +44,25 @@
 
         <div class="campo form-group">
           <label class="campo__etiqueta form-label" for="horas">Horas disponibles por día</label>
+<<<<<<< HEAD
           <input class="campo__control form-input" id="horas" name="horas" type="number" inputmode="decimal" min="0"
             max="24" step="0.5" />
+=======
+          <input class="campo__control form-input" id="horas" name="horas" type="number" inputmode="decimal" min="0" max="24" step="0.5" />
+          <p class="capacidad__ayuda" id="horas-actuales"></p>
+>>>>>>> 4da375e5fba4ebb3deca823505ed26fae0a21aff
           <p class="campo__error" id="error-horas" hidden></p>
         </div>
 
         <fieldset class="ausencias">
           <legend class="campo__etiqueta form-label">Ausencias y vacaciones</legend>
+<<<<<<< HEAD
           <p id="ausencias-vacio" class="ausencias__vacio" hidden>Sin ausencias registradas. Agrega una si no estarás
             disponible.</p>
+=======
+          <div id="ausencias-guardadas" class="ausencias__lista"></div>
+          <p id="ausencias-vacio" class="ausencias__vacio" hidden>Sin ausencias registradas. Agrega una si no estarás disponible.</p>
+>>>>>>> 4da375e5fba4ebb3deca823505ed26fae0a21aff
           <div id="lista-ausencias" class="ausencias__lista"></div>
           <button class="boton boton--secundario btn btn--secondary btn--pequeno" id="btn-agregar" type="button">+
             Agregar ausencia</button>
@@ -69,19 +79,14 @@
         <button class="boton boton--primario btn btn--primary" id="btn-guardar" type="submit">Guardar capacidad</button>
       </form>
 
-      <section class="tarjeta capacidad__resumen" aria-labelledby="titulo-resumen">
+      <!-- Solo el Scrum Master ve la capacidad del resto del equipo; las fechas salen del sprint elegido -->
+      <section class="tarjeta capacidad__resumen" data-permiso="capacidad.equipo.ver" aria-labelledby="titulo-resumen">
         <h2 id="titulo-resumen" class="capacidad__subtitulo">Capacidad del equipo</h2>
-        <p class="capacidad__ayuda">Horas disponibles del equipo entre dos fechas (lunes a viernes).</p>
+        <p class="capacidad__ayuda" id="ayuda-sprint">Horas disponibles del equipo durante el sprint elegido (lunes a viernes).</p>
 
-        <div class="rango">
-          <div class="campo form-group">
-            <label class="campo__etiqueta form-label" for="desde">Desde</label>
-            <input class="campo__control form-input" id="desde" type="date" />
-          </div>
-          <div class="campo form-group">
-            <label class="campo__etiqueta form-label" for="hasta">Hasta</label>
-            <input class="campo__control form-input" id="hasta" type="date" />
-          </div>
+        <div class="campo form-group">
+          <label class="campo__etiqueta form-label" for="sprint">Sprint</label>
+          <select class="campo__control form-input" id="sprint"></select>
         </div>
 
         <div id="resumen" aria-live="polite"></div>

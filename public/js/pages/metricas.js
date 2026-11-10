@@ -15,6 +15,7 @@ import { dibujarBurndown } from './metricas/burndown.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { dibujarDistribucion } from './metricas/distribucion.js';
 import { procesarExportacionFront } from './metricas/exportar.js';
+import { iniciarUmbral } from './metricas/umbral.js';
 
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
@@ -248,6 +249,8 @@ async function cargarAvance(proyectoId, sprintId = null) {
   try {
     const consulta = sprintId ? `?sprintId=${sprintId}` : '';
     datosAvanceActual = await api(`/metricas/proyectos/${proyectoId}/avance${consulta}`);
+    const seccionExportar = document.getElementById('seccion-exportar');
+    if (seccionExportar) seccionExportar.style.display = datosAvanceActual.esScrumMaster ? '' : 'none';
 
     llenarSelectorSprints(datosAvanceActual.sprints, datosAvanceActual.sprintId);
 
@@ -314,6 +317,7 @@ async function cargarDistribucion(proyectoId) {
  * @returns {Promise<Array>} Promesas resueltas sin importar si alguna falla de forma aislada.
  */
 function cargarTodo(proyectoId) {
+  iniciarUmbral(proyectoId);
   return Promise.allSettled([
     cargarGraficaPrincipal(proyectoId),
     cargarAvance(proyectoId, Number(selectSprint?.value) || null),

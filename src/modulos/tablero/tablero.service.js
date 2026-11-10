@@ -10,6 +10,7 @@ import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
+import { evaluarUmbral } from '../desviacion/desviacion.alertas.js';
 
 /**
  * Obtiene la estructura completa de columnas y tareas asociadas al proyecto.
@@ -76,10 +77,20 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
         [proyectoId]
     );
 
+    const umbralRes = await consulta('SELECT umbral_desviacion FROM proyectos WHERE id = $1', [proyectoId]);
+    const umbral = umbralRes?.rows?.[0]?.umbral_desviacion ?? 20;
+    const columnasFinales = new Set(columnas.filter((c) => c.es_final).map((c) => c.id));
+    const tareas = (tarRes?.rows || []).map((t) => ({
+        ...t,
+        supera_umbral: evaluarUmbral({
+            estimadas: t.horas_estimadas, reales: t.horas_reales, umbral, terminada: columnasFinales.has(t.columna_id),
+        }).supera,
+    }));
+
     return {
         sprint: sprintActivo || { nombre: 'Sprint 1', diasRestantes: 7 },
         columnas,
-        tareas: tarRes?.rows || []
+        tareas
     };
 };
 

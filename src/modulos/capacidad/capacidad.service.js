@@ -7,10 +7,11 @@
  *
  * Permisos (no hay administrador global; el rol vive dentro de cada proyecto):
  *   - Ver o editar la capacidad de una persona: ella misma, o quien administra un equipo que comparten
- *     (creó el equipo o es Scrum Master de alguno de sus proyectos).
- *   - Ver la capacidad de un equipo: integrantes del equipo y quien lo administra.
+ *     (creó el equipo o es Scrum Master de alguno de sus proyectos). El resto del equipo no ve la ajena.
+ *   - Ver la capacidad de todo el equipo: solo quien lo administra (Scrum Master).
+ *   - Capacidad de un proyecto por sprint: solo el Scrum Master del proyecto (permiso capacidad.equipo.ver).
  *
- * MODO DEMO: solo con MODO_DEMO=true se usan los datos de capacidad.demo.js (lo usan las pruebas).
+ * Los datos son reales (PostgreSQL). Solo con MODO_DEMO=true (pruebas automáticas) se usan los de capacidad.demo.js.
  */
 import pool from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
@@ -109,15 +110,16 @@ const repoPg = {
     }
   },
 
-  async listarMiembros(equipoId) {
+  async listarMiembros(equipoId, proyectoId = null) {
     const miembros = await consultar(
       `SELECT u.id AS "usuarioId", u.nombre, c.horas_por_dia
          FROM miembros_equipo em
          JOIN usuarios u ON u.id = em.usuario_id
     LEFT JOIN capacidad_usuarios c ON c.usuario_id = u.id
         WHERE em.equipo_id = $1 AND u.activo = TRUE
+          AND ($2::int IS NULL OR EXISTS (SELECT 1 FROM miembros_proyecto mp WHERE mp.proyecto_id = $2 AND mp.usuario_id = u.id))
         ORDER BY u.nombre`,
-      [equipoId],
+      [equipoId, proyectoId],
     );
     if (miembros.length === 0) return [];
 
@@ -158,14 +160,14 @@ export async function obtenerCapacidad(usuarioId) {
 }
 
 /**
- * Indicar si el actor puede editar la capacidad de otra persona: la propia, o la de alguien
- * de un equipo que el actor administra. En modo demo solo cuenta la propia (o el rol "Admin" de prueba).
+ * Indicar si el actor puede ver o editar la capacidad de una persona: la propia, o la de alguien
+ * de un equipo que el actor administra (Scrum Master). En modo demo solo cuenta la propia (o el rol "Admin" de prueba).
  *
  * @param {{id: number, rol?: string}|null} actor - Usuario autenticado (req.user).
  * @param {number} usuarioId - Persona dueña de la capacidad.
  * @returns {Promise<boolean>}
  */
-async function puedeEditarCapacidad(actor, usuarioId) {
+async function puedeAccederCapacidad(actor, usuarioId) {
   if (!actor) return esModoDemo();
   if (actor.id === usuarioId) return true;
   if (esModoDemo()) return actor.rol === 'Admin';
@@ -181,27 +183,10 @@ async function puedeEditarCapacidad(actor, usuarioId) {
 }
 
 /**
- * Indicar si el actor puede ver la capacidad de una persona: la propia o la de alguien de su equipo.
- *
- * @param {{id: number}|null} actor
- * @param {number} usuarioId
- * @returns {Promise<boolean>}
- */
-async function puedeVerCapacidad(actor, usuarioId) {
-  if (!actor) return esModoDemo();
-  if (actor.id === usuarioId || esModoDemo()) return true;
-  const filas = await consultar(
-    `SELECT 1 FROM miembros_equipo a JOIN miembros_equipo b ON b.equipo_id = a.equipo_id
-      WHERE a.usuario_id = $1 AND b.usuario_id = $2 LIMIT 1`,
-    [usuarioId, actor.id],
-  );
-  return filas.length > 0;
-}
-
-/**
  * Guardar las horas por día, las notas y las ausencias de una persona.
  * Permitir editar solo a la propia persona o a quien administra su equipo. Validar los datos,
  * fusionar las ausencias que se traslapan y avisar cuántas se fusionaron.
+ * Si no llegan horas (o notas) y ya había guardadas, se conservan.
  * En modo demo, aceptar peticiones sin sesión.
  *
  * @param {{id: number, rol?: string}|null} actor - Usuario autenticado (req.user).
@@ -211,17 +196,22 @@ async function puedeVerCapacidad(actor, usuarioId) {
  * @throws {ErrorCapacidad} 403 sin permiso, 400 si los datos no son válidos.
  */
 export async function guardarCapacidad(actor, usuarioId, datos = {}) {
-  if (!(await puedeEditarCapacidad(actor, usuarioId))) {
+  if (!(await puedeAccederCapacidad(actor, usuarioId))) {
     throw new ErrorCapacidad(403, 'Solo puedes editar tu propia capacidad.');
   }
 
-  const errores = validarCapacidad(datos);
+  // La pantalla limpia sus campos tras guardar: un campo vacío conserva lo que ya estaba guardado
+  const actual = await obtenerCapacidad(usuarioId);
+  const sinHoras = datos.horasPorDia === undefined || datos.horasPorDia === null || String(datos.horasPorDia).trim() === '';
+  const horasPorDia = sinHoras && actual.horasPorDia !== null ? actual.horasPorDia : datos.horasPorDia;
+
+  const errores = validarCapacidad({ ...datos, horasPorDia });
   if (errores.length) throw new ErrorCapacidad(400, 'Revisa los campos marcados.', errores);
 
   const { ausencias, fusionadas } = fusionarAusencias(datos.ausencias ?? []);
   await elegirRepo().guardarTodo(usuarioId, {
-    horasPorDia: Number(datos.horasPorDia),
-    notas: datos.notas?.trim() || null,
+    horasPorDia: Number(horasPorDia),
+    notas: datos.notas?.trim() || actual.notas || null,
     ausencias,
   });
 
@@ -235,23 +225,25 @@ export async function guardarCapacidad(actor, usuarioId, datos = {}) {
 }
 
 /**
- * Consultar la capacidad de una persona comprobando que el actor puede verla (lo usa la ruta).
+ * Consultar la capacidad de una persona comprobando que el actor puede verla (lo usa la ruta):
+ * la propia, o la de su equipo si es Scrum Master.
  *
  * @param {{id: number}|null} actor
  * @param {number} usuarioId
  * @returns {Promise<Object>}
- * @throws {ErrorCapacidad} 403 si no comparten equipo.
+ * @throws {ErrorCapacidad} 403 si no es la propia y el actor no administra el equipo.
  */
 export async function verCapacidad(actor, usuarioId) {
-  if (!(await puedeVerCapacidad(actor, usuarioId))) {
-    throw new ErrorCapacidad(403, 'No tienes permiso para ver la capacidad de esta persona.');
+  if (!(await puedeAccederCapacidad(actor, usuarioId))) {
+    throw new ErrorCapacidad(403, 'Solo puedes ver tu propia capacidad.');
   }
   return obtenerCapacidad(usuarioId);
 }
 
 /**
- * Consultar la capacidad de un equipo comprobando que el actor lo puede ver (lo usa la ruta).
- * Responde 404 si no pertenece al equipo, para no revelar que existe (HU-43).
+ * Consultar la capacidad de un equipo comprobando que el actor lo administra (Scrum Master). Lo usa la ruta
+ * y la pantalla de sprints al planificar. Responde 404 si no pertenece al equipo, para no revelar que existe (HU-43),
+ * y 403 si es integrante pero no lo administra.
  *
  * @param {{id: number}|null} actor
  * @param {number} equipoId
@@ -259,8 +251,9 @@ export async function verCapacidad(actor, usuarioId) {
  * @returns {Promise<Object>}
  */
 export async function verCapacidadEquipo(actor, equipoId, rango) {
-  if (!esModoDemo() && !(await puedeVerEquipo(actor, equipoId))) {
-    throw new ErrorCapacidad(404, MENSAJE_NO_ENCONTRADO);
+  if (!esModoDemo() && !(await esAdminEquipo(actor, equipoId))) {
+    if (!(await puedeVerEquipo(actor, equipoId))) throw new ErrorCapacidad(404, MENSAJE_NO_ENCONTRADO);
+    throw new ErrorCapacidad(403, 'Solo el Scrum Master puede ver la capacidad del equipo.');
   }
   return obtenerCapacidadEquipo(equipoId, rango);
 }
@@ -292,16 +285,44 @@ export async function contextoActual(actor) {
  *
  * @param {number} equipoId
  * @param {{inicio: string, fin: string}} sprint - Fechas "AAAA-MM-DD".
+ * @param {number|null} [proyectoId] - Si se indica, solo cuentan los integrantes de ese proyecto.
  * @returns {Promise<{miembros: Array, totalHoras: number, sinCapacidad: boolean}>}
  * @throws {ErrorCapacidad} 400 si las fechas no son válidas.
  */
-export async function obtenerCapacidadEquipo(equipoId, sprint) {
+export async function obtenerCapacidadEquipo(equipoId, sprint, proyectoId = null) {
   const inicio = leerDia(sprint?.inicio);
   const fin = leerDia(sprint?.fin);
   if (inicio === null || fin === null || fin < inicio) {
     throw new ErrorCapacidad(400, 'Indica un rango de fechas válido (inicio y fin).');
   }
-  const miembros = await elegirRepo().listarMiembros(equipoId);
+  const miembros = await elegirRepo().listarMiembros(equipoId, proyectoId);
   return capacidadEquipo(miembros, sprint);
+}
+
+/**
+ * Capacidad del equipo de un proyecto en un sprint (la ruta ya comprobó el permiso capacidad.equipo.ver).
+ * Las fechas salen del propio sprint, así que la pantalla solo elige el sprint. Sin sprint indicado se
+ * propone el activo, si no el siguiente planificado y, si no, el último.
+ *
+ * @param {number} proyectoId
+ * @param {number|null} [sprintId] - Sprint elegido; si es null se propone uno.
+ * @returns {Promise<{sprints: Array, sprint: Object|null, capacidad: Object|null}>}
+ * @throws {ErrorCapacidad} 404 si el sprint no existe en el proyecto.
+ */
+export async function obtenerCapacidadPorSprint(proyectoId, sprintId = null) {
+  const sprints = await consultar(
+    `SELECT id, nombre, estado, ${fechaSql('fecha_inicio')} AS "fechaInicio", ${fechaSql('fecha_fin')} AS "fechaFin"
+       FROM sprints WHERE proyecto_id = $1 ORDER BY fecha_inicio, id`,
+    [proyectoId],
+  );
+  const sprint = sprintId
+    ? sprints.find((s) => s.id === sprintId)
+    : sprints.find((s) => s.estado === 'activo') ?? sprints.find((s) => s.estado === 'planificado') ?? sprints.at(-1);
+  if (sprintId && !sprint) throw new ErrorCapacidad(404, MENSAJE_NO_ENCONTRADO);
+  if (!sprint) return { sprints, sprint: null, capacidad: null };
+
+  const [proyecto] = await consultar('SELECT equipo_id FROM proyectos WHERE id = $1', [proyectoId]);
+  const capacidad = await obtenerCapacidadEquipo(proyecto.equipo_id, { inicio: sprint.fechaInicio, fin: sprint.fechaFin }, proyectoId);
+  return { sprints, sprint, capacidad };
 }
 

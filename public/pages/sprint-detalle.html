@@ -32,10 +32,12 @@
         <h1 class="titulo-pagina">Ciclo del sprint</h1>
         <p class="subtitulo-pagina">Inicia el sprint cuando esté listo y ciérralo con un resumen.</p>
       </div>
-      <select class="form-input" id="selector-proyecto" aria-label="Proyecto" hidden></select>
     </div>
 
     <div id="aviso" class="ciclo-aviso" role="status" aria-live="polite" hidden></div>
+
+    <!-- HU-14: acciones de retros anteriores que siguen pendientes -->
+    <div id="retro-pendientes" hidden></div>
 
     <section id="seccion-activo" aria-labelledby="titulo-activo" hidden>
       <h2 class="ciclo__titulo" id="titulo-activo">Sprint activo</h2>

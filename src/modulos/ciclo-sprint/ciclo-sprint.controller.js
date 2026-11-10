@@ -1,25 +1,6 @@
 // Responsable: Diego - HU-09: recibe la peticion y responde (iniciar y cerrar sprint); sin logica de negocio
 import * as servicio from './ciclo-sprint.service.js';
-import { asyncHandler } from '../../utils/asyncHandler.js';
-
-/**
- * Envolver un controlador asíncrono.
- * Los errores controlados (ErrorApp: 400, 404, 409...) se responden aquí como { mensaje, detalles } para que
- * la pantalla pueda marcar el campo o listar lo que falta. Cualquier otro error pasa al manejador global.
- */
-const envolver = (funcion) => asyncHandler(async (req, res) => {
-  try {
-    await funcion(req, res);
-  } catch (error) {
-    if (error?.isOperational) {
-      return res.status(error.statusCode || 400).json({
-        mensaje: error.message,
-        ...(error.detalles ? { detalles: error.detalles } : {}),
-      });
-    }
-    throw error;
-  }
-});
+import { envolver } from '../../utils/envolverControlador.js';
 
 /** GET /api/ciclo-sprint/proyecto/:proyectoId → { activo, planificados, roles, yo, puedeGestionar } */
 export const obtener = envolver(async (req, res) => {

@@ -80,9 +80,21 @@
       </div>
       <div id="distribucion-contenido" aria-live="polite"></div>
     </section>
+    
+    <!-- HU-33: configuración del umbral de desviación (solo visible para el Scrum Master) -->
+    <section id="seccion-umbral" class="tarjeta metricas__seccion" aria-labelledby="umbral-titulo" style="display: none;">
+      <h2 id="umbral-titulo" class="metricas__titulo">Alertas por desviación</h2>
+      <p class="subtitulo-pagina">Se avisa cuando las horas reales de una tarea se desvían más de este porcentaje de lo estimado.</p>
+      <form id="umbral-form" class="metricas__filtro" novalidate style="flex-wrap: wrap; margin-top: 16px;">
+        <label for="umbral-valor">Umbral de tolerancia (±%)</label>
+        <input id="umbral-valor" class="form-input" type="number" min="0" max="100" step="1" required style="width: 100px;" />
+        <button class="boton boton--primario" type="submit">Guardar umbral</button>
+      </form>
+      <p id="umbral-mensaje" class="alerta" role="status" style="display: none; margin-top: 12px;"></p>
+    </section>
 
     <!-- HU-36: Exportar reportes asíncronamente -->
-    <section id="seccion-exportar" class="tarjeta metricas__seccion">
+    <section id="seccion-exportar" class="tarjeta metricas__seccion" style="display: none;">
       <div class="metricas__cabecera">
         <div>
           <h2 class="metricas__titulo">Exportar reportes</h2>

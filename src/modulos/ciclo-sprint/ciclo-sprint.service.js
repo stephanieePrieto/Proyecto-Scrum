@@ -165,7 +165,7 @@ async function siguienteSprint(cliente, proyectoId, elegido = null) {
  */
 export async function estado(actor, proyectoId) {
   const idProyecto = leerId(proyectoId, 'El identificador del proyecto no es válido.');
-  const rol = await exigirPermiso(actor, 'proyecto.ver', idProyecto);
+  const rol = await exigirPermiso(actor, 'sprint.gestionar', idProyecto);
   const [{ rows: sprints }, roles] = await Promise.all([
     consulta(
       `SELECT ${COLUMNAS_SPRINT},
@@ -212,7 +212,7 @@ export async function estado(actor, proyectoId) {
  * @throws {ErrorApp} 404 si el sprint no existe o la persona no tiene vínculo con su proyecto.
  */
 export async function resumen(actor, sprintId) {
-  const id = await exigirPermisoSobreSprint(actor, sprintId, 'proyecto.ver');
+  const id = await exigirPermisoSobreSprint(actor, sprintId, 'sprint.gestionar');
   const { rows: [sprint] } = await consulta(`SELECT ${COLUMNAS_SPRINT} FROM sprints s WHERE s.id = $1`, [id]);
   if (!sprint) lanzar(404, MENSAJE_NO_ENCONTRADO);
 

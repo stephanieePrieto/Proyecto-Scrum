@@ -4,7 +4,7 @@
 -- Descripción: Tablas, índices y semillas basadas estrictamente en la Guía de Scrum.
 -- ===========================================================================
 
--- Configuración de codificación UTF-8 para evitar errores de acentos en cualquier SO
+-- Configuración de codificación UTF-8 para evitar errores de acentos
 SET client_encoding = 'UTF8';
 
 -- 1. TABLA: curso_lecciones
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS curso_progreso_lecciones (
   usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   leccion_id INTEGER NOT NULL REFERENCES curso_lecciones(id) ON DELETE CASCADE,
   completada BOOLEAN NOT NULL DEFAULT FALSE,
-  posicion_scroll NUMERIC(5, 2) NOT NULL DEFAULT 0,
+  posicion_scroll INTEGER NOT NULL DEFAULT 0, -- Definido como INTEGER para evitar desbordamiento numeric
   actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (usuario_id, leccion_id)
 );
@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS ix_curso_quizzes_leccion ON curso_quizzes(leccion_id)
 CREATE TABLE IF NOT EXISTS curso_intentos_quizzes (
   id SERIAL PRIMARY KEY,
   usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  leccion_id INTEGER NOT NULL, -- Soporta lecciones normales e ID ficticio 999 para el Quiz Final Integrador
+  leccion_id INTEGER NOT NULL REFERENCES curso_lecciones(id) ON DELETE CASCADE,
   calificacion NUMERIC(5, 2) NOT NULL DEFAULT 0,
   aprobado BOOLEAN NOT NULL DEFAULT FALSE,
   intentos INTEGER NOT NULL DEFAULT 1,
@@ -70,8 +70,10 @@ CREATE TABLE IF NOT EXISTS curso_certificados (
 CREATE INDEX IF NOT EXISTS ix_curso_certificados_usuario ON curso_certificados(usuario_id);
 
 -- ===========================================================================
--- SEED: LECCIONES TEÓRICAS (Teoría Concisa de la Guía Oficial de Scrum)
+-- SEED: LECCIONES TEÓRICAS Y LECCIÓN FANTASMA 999 PARA EVALUACIÓN FINAL
 -- ===========================================================================
+
+-- Inserción de lecciones estándar (1 a 4)
 INSERT INTO curso_lecciones (orden, titulo, contenido, seccion) VALUES
 (1, '1. Introducción a Scrum y Teoría Empírica',
 '<h3>¿Qué es Scrum?</h3>
@@ -126,8 +128,17 @@ INSERT INTO curso_lecciones (orden, titulo, contenido, seccion) VALUES
 ON CONFLICT (orden) DO UPDATE 
 SET titulo = EXCLUDED.titulo, contenido = EXCLUDED.contenido, seccion = EXCLUDED.seccion;
 
+-- Inserción explícita de la Lección 999 para satisfacer la Foreign Key del Quiz Final Integrador
+INSERT INTO curso_lecciones (id, orden, titulo, contenido, seccion)
+VALUES (999, 999, 'Quiz Final Integrador', 'Evaluación final para la obtención de certificado', 'Evaluación')
+ON CONFLICT (id) DO NOTHING;
+
+-- Asegurar tipo INTEGER en instalaciones previas de la BD
+ALTER TABLE curso_progreso_lecciones 
+ALTER COLUMN posicion_scroll TYPE INTEGER USING ROUND(posicion_scroll);
+
 -- ===========================================================================
--- LIMPIEZA Y SEED: QUIZZES MODULARES (4 Preguntas Detalladas por Lección)
+-- LIMPIEZA Y SEED: QUIZZES MODULARES (4 Preguntas por Lección)
 -- ===========================================================================
 DELETE FROM curso_quizzes;
 

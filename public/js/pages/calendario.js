@@ -12,14 +12,13 @@
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { escaparHtml } from '../core/utils.js';
-import { resolverProyecto, conectarTiempoReal, pintarSelectorProyecto } from '../pages/ceremonias/proyecto.js';
+import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
 
 const el = {
   subtitulo: document.getElementById('subtitulo'),
-  selectorProyecto: document.getElementById('selector-proyecto'),
   vistas: document.querySelectorAll('[data-vista]'),
   aviso: document.getElementById('aviso'),
   conflictos: document.getElementById('conflictos'),
@@ -257,7 +256,6 @@ async function iniciar() {
   ctx.proyectoId = eleccion.id;
   // Permisos del proyecto elegido, para mostrar solo lo que le toca a su rol
   cargarPermisos(ctx.proyectoId).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
-  pintarSelectorProyecto(el.selectorProyecto, eleccion.proyectos, eleccion.id, escaparHtml, '/pages/calendario.html');
   await cargar();
   const socket = conectarTiempoReal(ctx.proyectoId, ['calendario:actualizado', 'sprint:iniciado', 'sprint:cerrado'], cargar);
   if (socket) escucharCambiosDeRol(socket);

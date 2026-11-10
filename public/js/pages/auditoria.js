@@ -267,7 +267,7 @@ function formatearDetalle(detalle) {
  */
 async function cargarProyecto() {
     try {
-        const { id, proyectos } = await resolverProyecto();
+        const { id, proyectos } = await resolverProyecto({ primeroPorDefecto: true });
         ctx.proyectoId = id;
         ctx.proyectos = proyectos;
 

@@ -12,7 +12,7 @@
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { escaparHtml } from '../core/utils.js';
-import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
+import { resolverProyecto, conectarTiempoReal, mostrarSinProyecto } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
@@ -248,9 +248,7 @@ async function iniciar() {
     return;
   }
   if (!eleccion.id) {
-    el.aviso.hidden = false;
-    el.aviso.className = 'cal-aviso alerta alerta--advertencia';
-    el.aviso.textContent = 'Todavía no perteneces a ningún proyecto.';
+    mostrarSinProyecto(!eleccion.proyectos.length);
     return;
   }
   ctx.proyectoId = eleccion.id;

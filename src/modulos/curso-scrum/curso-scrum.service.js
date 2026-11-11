@@ -2,6 +2,7 @@
  * ===========================================================================
  * SERVICIOS PARA EL MICROCURSO DE SCRUM
  * Autor: Stephanie Elizdeth Hernández Prieto
+ * @author Citlaly Morales Viveros (Cliente / Programadora XP)
  * Descripción: Lecciones, Quizzes modulares, Quiz Final Integrador (20 preguntas) y Certificado (>= 9.5).
  * ===========================================================================
  */
@@ -195,10 +196,10 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
   // Avance global considerando las 4 lecciones reales (40% lecciones, 40% quizzes modulares, 20% quiz final)
   const porcentajeAvance = totalLecciones > 0
     ? Math.round(
-        ((leccionesCompletadas / totalLecciones) * 40) +
-        ((quizzesAprobados / totalLecciones) * 40) +
-        (quizFinalInfo.aprobado ? 20 : (quizFinalInfo.calificacion / 100) * 20)
-      )
+      ((leccionesCompletadas / totalLecciones) * 40) +
+      ((quizzesAprobados / totalLecciones) * 40) +
+      (quizFinalInfo.aprobado ? 20 : (quizFinalInfo.calificacion / 100) * 20)
+    )
     : 0;
 
   let progresoEquipo = [];
@@ -266,15 +267,25 @@ export async function calificarQuizFinal(usuarioId, respuestasUsuario) {
   if (aprobado) {
     try {
       await otorgarCertificado(usuarioId);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   return { calificacion, aprobado, correctas, total: PREGUNTAS_QUIZ_FINAL.length };
 }
 
+/**
+ * Guarda el progreso de lectura de una lección para un usuario.
+ * La posición de scroll se redondea a entero porque la columna posicion_scroll es INTEGER.
+ * @param {number} usuarioId - Id del usuario
+ * @param {number} leccionId - Id de la lección
+ * @param {boolean} completada - Indica si la lección ya se terminó de leer
+ * @param {number|string} posicionScroll - Posición de scroll enviada por el cliente (puede traer decimales)
+ * @returns {Promise<void>}
+ */
 export async function guardarProgresoLectura(usuarioId, leccionId, completada, posicionScroll) {
   // Asegurar que el scroll sea un número válido y no exceda el límite numérico de la BD (máx 999.99)
-  const scrollSeguro = Math.min(Math.max(0, parseFloat(posicionScroll) || 0), 999.99);
+  // El valor se redondea porque Postgres rechaza decimales como 147.83 en una columna INTEGER
+  const scrollSeguro = Math.round(Math.min(Math.max(0, parseFloat(posicionScroll) || 0), 999.99));
 
   await consulta(`
     INSERT INTO curso_progreso_lecciones (usuario_id, leccion_id, completada, posicion_scroll, actualizado_en)

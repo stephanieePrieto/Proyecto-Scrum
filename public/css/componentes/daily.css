@@ -366,3 +366,128 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Sprint Review (HU-12)
+   Reutiliza retro-notas / retro-nota, ciclo-resumen, ciclo-dialogo, insignia y alerta.
+   ========================================================================== */
+.review-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-id {
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.review-meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.review-detalle {
+  margin: 6px 0 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.review-historia--aceptada {
+  border-color: #C5D9C8;
+  background: var(--esmeralda-50);
+}
+
+.review-historia--rechazada {
+  border-color: var(--rosa-500);
+  background: var(--rosa-50);
+}
+
+.review-criterios {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--fondo-tarjeta);
+}
+
+.review-criterios legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-criterios .boton {
+  justify-self: start;
+}
+
+.review-criterio {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.review-criterio span {
+  overflow-wrap: anywhere;
+}
+
+.review-criterios-lectura {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.review-decision {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.review-decision p {
+  margin: 0;
+}
+
+.review-decision .boton {
+  justify-self: start;
+}
+
+.review-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-opcional {
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.review-titulo-aparte {
+  margin-top: var(--espacio-6);
+}
+
+.review-delegacion {
+  margin-top: var(--espacio-6);
+}
+
+.review-delegacion-actual {
+  margin-bottom: var(--espacio-4);
+}
+
+.review-subtitulo {
+  margin: var(--espacio-4) 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}

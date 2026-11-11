@@ -61,6 +61,8 @@ const ACCIONES_AUDITORIA = [
     'impedimento_creado', 'impedimento_resuelto',
     'invitacion_creada', 'invitacion_aceptada', 'invitacion_rechazada', 'invitacion_cancelada', 'invitacion_reenviada',
     'rol_proyecto_asignado', 'rol_proyecto_modificado', 'rol_proyecto_retirado',
+    'review_historia_aceptada', 'review_historia_rechazada', 'review_decision_cambiada',
+    'review_delegacion_creada', 'review_delegacion_revocada',
 ];
 
 /**
@@ -142,6 +144,11 @@ function obtenerNombreAccion(accion) {
         'rol_proyecto_asignado': 'Rol asignado',
         'rol_proyecto_modificado': 'Rol modificado',
         'rol_proyecto_retirado': 'Rol retirado',
+        'review_historia_aceptada': 'Historia aceptada en la Review',
+        'review_historia_rechazada': 'Historia rechazada en la Review',
+        'review_decision_cambiada': 'Decisión de la Review cambiada',
+        'review_delegacion_creada': 'Aceptación delegada',
+        'review_delegacion_revocada': 'Delegación revocada',
     };
     return mapeo[accion] || accion;
 }
@@ -162,6 +169,7 @@ function obtenerNombreObjeto(objeto) {
         'tablero': 'Tablero',
         'impedimento': 'Impedimento',
         'invitacion': 'Invitación',
+        'review': 'Sprint Review',
     };
     return mapeo[objeto] || objeto;
 }
@@ -188,6 +196,16 @@ const ETIQUETAS_DETALLE = {
     descripcion: 'Descripción',
     fecha_inicio: 'Fecha de inicio',
     fecha_fin: 'Fecha de fin',
+    decision: 'Decisión',
+    comentario: 'Comentario',
+    delegado_nombre: 'Delegado',
+    desde: 'Desde',
+    hasta: 'Hasta',
+    motivo: 'Motivo',
+    como_delegado: 'Decidió como delegado',
+    criterios_cumplidos: 'Criterios cumplidos',
+    criterios_total: 'Criterios totales',
+    velocity_sprint: 'Velocity del sprint',
 };
 
 /**

@@ -404,8 +404,25 @@ CREATE TABLE IF NOT EXISTS reviews_historias (
   decidido_por INTEGER REFERENCES usuarios (id) ON DELETE
   SET NULL,
     decidido_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    como_delegado BOOLEAN NOT NULL DEFAULT FALSE,
+    criterios_cumplidos INTEGER CHECK (criterios_cumplidos IS NULL OR criterios_cumplidos >= 0),
+    criterios_total INTEGER CHECK (criterios_total IS NULL OR criterios_total >= 0),
     UNIQUE (sprint_id, historia_id)
 );
+-- HU-12: delegacion temporal de la aceptacion del Product Owner (la crea el Scrum Master)
+CREATE TABLE IF NOT EXISTS review_delegaciones (
+  id SERIAL PRIMARY KEY,
+  proyecto_id INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
+  delegado_id INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+  creada_por INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  desde TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  hasta TIMESTAMPTZ NOT NULL,
+  motivo TEXT,
+  revocada_en TIMESTAMPTZ,
+  revocada_por INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  CONSTRAINT review_delegaciones_fechas_validas CHECK (hasta > desde)
+);
+CREATE INDEX IF NOT EXISTS ix_review_delegaciones_proyecto ON review_delegaciones (proyecto_id, hasta DESC);
 CREATE TABLE IF NOT EXISTS retros (
   id SERIAL PRIMARY KEY,
   sprint_id INTEGER NOT NULL UNIQUE REFERENCES sprints (id) ON DELETE CASCADE,
@@ -566,3 +583,11 @@ BEGIN
   END IF;
 END
 $$;
+
+-- HU-12 (Diego): columnas de reviews_historias para bases que ya existian (la tabla review_delegaciones se crea arriba).
+ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS como_delegado BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS criterios_cumplidos INTEGER CHECK (criterios_cumplidos IS NULL OR criterios_cumplidos >= 0);
+ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS criterios_total INTEGER CHECK (criterios_total IS NULL OR criterios_total >= 0);
+
+GRANT SELECT, INSERT, UPDATE ON review_delegaciones TO scrumflow_app;
+GRANT USAGE, SELECT ON SEQUENCE review_delegaciones_id_seq TO scrumflow_app;

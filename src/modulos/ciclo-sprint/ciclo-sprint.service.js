@@ -11,7 +11,8 @@
  *    Si dos Scrum Masters inician a la vez, PostgreSQL deja pasar a uno y al otro le responde
  *    409 "Ya existe un sprint activo".
  *  - Cerrar dos veces no duplica nada: si el sprint ya está cerrado, devuelve el resumen guardado.
- *  - Velocity = puntos de las historias terminadas (hecho o aceptada).
+ *  - Velocity = puntos de las historias terminadas (hecho o aceptada). Si el Product Owner ya decidió en la Review
+ *    (HU-12), manda la Review: solo suman las historias ACEPTADAS.
  *  - Las historias no terminadas vuelven al backlog o pasan al siguiente sprint (con sus tareas).
  *  - Al iniciar se generan los eventos del calendario (HU-15).
  *
@@ -25,6 +26,7 @@ import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { sincronizarEventos } from '../calendario/calendario.service.js';
 import { faltantesParaIniciar, calcularResumen, validarCierre, ESTADOS_TERMINADA } from './ciclo-sprint.reglas.js';
 import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
+import { recalcularVelocity } from '../reviews/reviews.service.js';
 
 /** Nombres de los eventos en tiempo real (el cliente de la pantalla los escucha). */
 export const EVENTOS = { iniciado: 'sprint:iniciado', cerrado: 'sprint:cerrado' };
@@ -363,6 +365,9 @@ export async function cerrar(actor, sprintIdTexto, decisiones = {}) {
     }
 
     await cliente.query("UPDATE sprints SET estado = 'cerrado', velocity = $2, cerrado_en = NOW() WHERE id = $1", [sprint.id, calculo.velocity]);
+    // HU-12: con decisiones de Review, la velocity son los puntos aceptados (null si nadie ha decidido todavía)
+    const velocityReview = await recalcularVelocity(cliente, sprint.id);
+    if (velocityReview !== null) calculo.velocity = velocityReview;
     await registrarAuditoria(cliente, {
       usuarioId: actor.id,
       proyectoId: sprint.proyecto_id,

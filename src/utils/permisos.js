@@ -206,7 +206,10 @@ export const PERMISOS = Object.freeze({
     'retro.participar': definirPermiso('participar en la retrospectiva', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'retro.gestionar': definirPermiso('cerrar la retrospectiva o dar seguimiento a las acciones de todo el equipo', [SCRUM_MASTER]),
     'sprint.gestionar': definirPermiso('planificar, iniciar o cerrar sprints', [SCRUM_MASTER]),
+    // HU-12 (Diego): ver la review es de todos; decidir es del PO (o de quien tenga su delegacion vigente); delegar es del Scrum Master
+    'review.ver': definirPermiso('ver la Sprint Review', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'review.decidir': definirPermiso('aceptar o rechazar historias en la review', [PRODUCT_OWNER]),
+    'review.delegar': definirPermiso('delegar la aceptación de historias del Product Owner', [SCRUM_MASTER], { incluyeCreador: true }),
     'proyecto.gestionar': definirPermiso('gestionar miembros, invitaciones o la configuración del proyecto', [SCRUM_MASTER], { incluyeCreador: true }),
     'tablero.configurar': definirPermiso('configurar las columnas del tablero', [SCRUM_MASTER]),
     'auditoria.ver': definirPermiso('consultar la auditoría del proyecto', [SCRUM_MASTER]),

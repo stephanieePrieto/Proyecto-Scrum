@@ -8,6 +8,7 @@
 import { pool, consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { evaluarUmbral } from '../desviacion/desviacion.alertas.js';
 
 const ENTERO_MAXIMO = 2147483647;
 const MAX_TEXTO_ITEM = 200;
@@ -121,10 +122,12 @@ export async function obtenerDetalle(tareaId) {
             t.horas_estimadas::float8 AS horas_estimadas,
             (SELECT COALESCE(SUM(r.horas), 0)::float8 FROM registros_horas r WHERE r.tarea_id = t.id) AS horas_reales,
             h.id AS historia_id, h.titulo AS historia_titulo,
-            c.nombre AS columna,
+            c.nombre AS columna, COALESCE(c.es_final, FALSE) AS terminada,
+            p.umbral_desviacion,
             u.id AS responsable_id, u.nombre AS responsable_nombre, u.activo AS responsable_activo
        FROM tareas t
        JOIN historias h ON h.id = t.historia_id
+       JOIN proyectos p ON p.id = t.proyecto_id
        LEFT JOIN columnas_tablero c ON c.id = t.columna_id
        LEFT JOIN usuarios u ON u.id = t.responsable_id
       WHERE t.id = $1`,
@@ -149,6 +152,10 @@ export async function obtenerDetalle(tareaId) {
       actualizadaEn: f.actualizado_en,
       horasEstimadas: f.horas_estimadas,
       horasReales: f.horas_reales,
+      // HU-19/HU-33: misma regla y umbral del proyecto que la tarjeta del tablero (tablero.service.js)
+      superaUmbral: evaluarUmbral({
+        estimadas: f.horas_estimadas, reales: f.horas_reales, umbral: f.umbral_desviacion ?? 20, terminada: f.terminada,
+      }).supera,
       columna: f.columna ?? null,
       historia: { id: f.historia_id, titulo: f.historia_titulo },
       responsable: f.responsable_id

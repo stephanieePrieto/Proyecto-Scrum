@@ -328,6 +328,9 @@ async function publicarCambio(proyectoId, tareaId, usuarioId) {
       [tareaId],
     );
     const horasReales = Number(rows[0].total);
+    // HU-27/HU-28: refresca en vivo la desviación de horas en métricas
+    emitirAProyecto(proyectoId, EVENTO_HORAS, { tareaId, usuarioId, horasReales });
+    // HU-33: alerta al Scrum Master si la tarea supera el umbral
     evaluarDesviacionTarea(proyectoId, tareaId).catch((e) => console.error('[desviacion]', e?.message ?? e));
     return horasReales;
   } catch (error) {

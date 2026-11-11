@@ -16,6 +16,7 @@ import { cargarPermisos } from '../core/permisos-ui.js';
 import { dibujarDistribucion } from './metricas/distribucion.js';
 import { procesarExportacionFront } from './metricas/exportar.js';
 import { iniciarUmbral } from './metricas/umbral.js';
+import { iniciarDesviacion } from './metricas/desviacion.js';
 
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
@@ -273,6 +274,33 @@ async function cargarDistribucion(proyectoId) {
   }
 }
 
+/** HU-28: rol que puede ver la desviación de horas (el servidor lo exige igual, ROLES_PERMITIDOS en desviacion.service.js). */
+const ROL_DESVIACION = 'scrum_master';
+
+/** HU-28: componente de desviación montado, o null. */
+let desviacion = null;
+
+/**
+ * HU-28: mostrar la desviación de horas solo al Scrum Master y montarla una sola vez.
+ * Se vuelve a evaluar cada vez que cambian los permisos (evento "permisos:actualizados" de permisos-ui.js).
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @param {string|null} rol - Rol vigente de la persona en el proyecto.
+ * @returns {void}
+ */
+function actualizarDesviacion(proyectoId, rol) {
+  const seccion = document.getElementById('seccion-desviacion');
+  const contenedor = document.getElementById('desviacion-contenido');
+  if (!seccion || !contenedor) return;
+  const permitido = rol === ROL_DESVIACION;
+  seccion.hidden = !permitido;
+  if (permitido && !desviacion) {
+    desviacion = iniciarDesviacion({ contenedor, proyectoId });
+  } else if (!permitido && desviacion) {
+    desviacion.destruir();
+    desviacion = null;
+  }
+}
+
 /**
  * Ejecutar todas las llamadas de red para dibujar las métricas simultáneamente.
  * @param {number} proyectoId - ID del proyecto.
@@ -309,6 +337,11 @@ async function iniciar() {
   const proyectoId = proyectoActivo();
   if (!proyectoId) return mostrarAvisoSeleccionarProyecto();
   
+  // HU-28: la desviación depende del rol; se escucha antes de pedir los permisos para no perder el aviso
+  window.addEventListener('permisos:actualizados', (evento) => {
+    if (evento.detail?.proyectoId === proyectoId) actualizarDesviacion(proyectoId, evento.detail.rol);
+  });
+
   // Refrescar qué botones mostrar según los permisos del usuario para este proyecto
   cargarPermisos(proyectoId).catch(() => { /* Silenciar error si aún no hay backend de permisos conectado */ });
   manejarTabUrl();

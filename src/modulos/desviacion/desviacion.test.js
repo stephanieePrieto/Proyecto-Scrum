@@ -15,6 +15,7 @@ import {
   agregarDesviacion,
   ordenarPorDesviacion,
 } from './desviacion.calculo.js';
+import { DESVIACION_UMBRAL_OK, DESVIACION_UMBRAL_ALERTA, tonoDesviacion } from '../../../public/js/core/semaforo.js';
 
 function sinValoresInvalidos(resultado) {
   for (const [clave, valor] of Object.entries(resultado)) {
@@ -29,7 +30,7 @@ describe('Módulo de Desviación de Horas - Pruebas Unitarias', () => {
     expect(UMBRAL_ALERTA).toBe(25);
   });
 
-  test('caso 1: 8 h estimadas y 9,5 h reales → +1,5 h · +18,75 % en ámbar', () => {
+  test('caso 1: 8 h estimadas y 9.5 h reales → +1.5 h · +18.75 % en ámbar', () => {
     const r = calcularDesviacion(8, 9.5);
     expect(r).toEqual({
       horasEstimadas: 8,
@@ -213,5 +214,56 @@ describe('Módulo de Desviación de Horas - Pruebas Unitarias', () => {
       { nombre: 'Ana', ...calcularDesviacion(5, 0) },
     ]).map((e) => e.nombre);
     expect(orden).toEqual(['Ana', 'Beto']);
+  });
+});
+
+describe('Semáforo del dashboard (public/js/core/semaforo.js) = regla del servidor', () => {
+  // Cada estado del servidor y el tono con que lo pinta el dashboard
+  const TONO_DE_ESTADO = {
+    [ESTADOS.OK]: 'exito',
+    [ESTADOS.ALERTA]: 'advertencia',
+    [ESTADOS.CRITICO]: 'peligro',
+    [ESTADOS.AHORRO]: 'info',
+    [ESTADOS.NA]: 'neutro',
+    [ESTADOS.SIN_REGISTRO]: 'neutro',
+  };
+
+  test('usa los mismos umbrales que el servidor', () => {
+    expect(DESVIACION_UMBRAL_OK).toBe(UMBRAL_OK);
+    expect(DESVIACION_UMBRAL_ALERTA).toBe(UMBRAL_ALERTA);
+  });
+
+  test('límites exactos: 10 % verde, 10.01 % ámbar, 25 % ámbar, 25.01 % rojo', () => {
+    expect(tonoDesviacion(10, 100, 110)).toBe('exito');
+    expect(tonoDesviacion(10.01, 100, 110.01)).toBe('advertencia');
+    expect(tonoDesviacion(25, 100, 125)).toBe('advertencia');
+    expect(tonoDesviacion(25.01, 100, 125.01)).toBe('peligro');
+    expect(calcularDesviacion(100, 125.01).estado).toBe(ESTADOS.CRITICO);
+  });
+
+  test('0 estimadas → neutro sin dividir; sin reales → neutro aunque sea un "ahorro" del 100 %', () => {
+    expect(tonoDesviacion(5, 0, 5)).toBe('neutro');
+    expect(tonoDesviacion(0, 0, 0)).toBe('neutro');
+    expect(tonoDesviacion(-8, 8, 0)).toBe('neutro');
+    expect(tonoDesviacion(-8, 8)).toBe('neutro'); // sin el dato de reales se deduce: 8 + (−8) = 0
+  });
+
+  test('ahorro → info (nunca verde ni rojo)', () => {
+    expect(tonoDesviacion(-1, 8, 7)).toBe('info');
+  });
+
+  test('coincide con calcularDesviacion en una cuadrícula de horas, límites incluidos', () => {
+    const estimadas = [0, 0.5, 1, 3, 8, 10, 12.5, 40, 100];
+    const factores = [0, 0.5, 0.9, 1, 1.05, 1.1, 1.1001, 1.15, 1.25, 1.2501, 1.3, 2];
+    let comparados = 0;
+    for (const est of estimadas) {
+      const reales = [...factores.map((f) => est * f), 0.25, 5];
+      for (const real of reales) {
+        const esperado = TONO_DE_ESTADO[calcularDesviacion(est, real).estado];
+        expect(tonoDesviacion(real - est, est, real)).toBe(esperado);
+        comparados += 1;
+      }
+    }
+    expect(comparados).toBeGreaterThan(100);
   });
 });

@@ -13,7 +13,6 @@ import { validarMotivoBloqueo, debeSugerirDesbloqueo } from './bloqueo.js';
 
 const RUTA_CSS = '/css/componentes/detalle-tarjeta.css';
 const ENFOCABLES = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
-const UMBRAL_DESVIACION = 20;
 const MAX_ITEM = 200;
 
 /** Cómo se redacta cada acción del historial. */
@@ -134,11 +133,12 @@ function construirDatos(tarea) {
 
   const estimadas = tarea.horasEstimadas;
   const reales = tarea.horasReales;
-  const desviacion = estimadas > 0 && reales > 0 ? ((reales - estimadas) / estimadas) * 100 : 0;
+  // El servidor decide con el umbral del proyecto (HU-33), igual que la tarjeta del tablero
   const horas = crear('span', {
-    clase: desviacion > UMBRAL_DESVIACION ? 'dt-horas dt-horas--alerta' : 'dt-horas',
+    clase: tarea.superaUmbral ? 'dt-horas dt-horas--alerta' : 'dt-horas',
     texto: `${estimadas ? `${estimadas} h` : '—'} est. / ${reales > 0 ? `${reales} h` : '—'} real`,
   });
+  if (tarea.superaUmbral) horas.title = 'Esta tarea supera el umbral de desviación';
 
   return crear('dl', { clase: 'dt-datos' }, [
     dato('Responsable', responsable),

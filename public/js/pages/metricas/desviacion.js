@@ -12,6 +12,7 @@
  *   // Al cambiar de proyecto: desviacion.destruir(); y volver a llamar a iniciarDesviacion.
  *
  * Los textos que vienen del usuario (títulos, nombres) se insertan siempre con textContent, nunca con innerHTML.
+ * Estilos: css/componentes/desviacion.css, que se carga desde layout.css.
  */
 
 import { api } from '../../core/api.js';
@@ -29,8 +30,8 @@ const ESPERA_RECARGA_MS = 400;
 /** Signo menos tipográfico para los ahorros. */
 const MENOS = '−';
 
-/** Coma decimal estilo español y máximo 2 decimales: 1,5 · 18,75. */
-const FORMATO = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2, useGrouping: false });
+/** Punto decimal y máximo 2 decimales (como en la HU-28): 1.5 · 18.75. */
+const FORMATO = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2, useGrouping: false });
 
 /** Niveles del selector, en el orden en que se muestran. */
 const NIVELES = [
@@ -83,15 +84,6 @@ function crear(etiqueta, { clase, texto, atributos = {} } = {}, hijos = []) {
 }
 
 /**
- * Agrega la hoja de estilos del componente si la página aún no la tiene.
- * @returns {void}
- */
-function asegurarEstilos() {
-  if (document.querySelector(`link[href="${HOJA_ESTILOS}"]`)) return;
-  document.head.append(crear('link', { atributos: { rel: 'stylesheet', href: HOJA_ESTILOS } }));
-}
-
-/**
  * Carga el cliente de Socket.io una sola vez. Si no está disponible, el componente funciona sin tiempo real.
  * @returns {Promise<Function|null>} La función `io`, o null.
  */
@@ -109,14 +101,14 @@ function cargarClienteSocket() {
 }
 
 /**
- * Formatea horas sin signo: "9,5 h".
+ * Formatea horas sin signo: "9.5 h".
  * @param {number} horas Horas.
  * @returns {string}
  */
 const formatearHoras = (horas) => `${FORMATO.format(horas)} h`;
 
 /**
- * Formatea un número con signo explícito: "+1,5", "−2", "0".
+ * Formatea un número con signo explícito: "+1.5", "−2", "0".
  * @param {number} valor Número.
  * @returns {string}
  */
@@ -127,14 +119,14 @@ function conSigno(valor) {
 }
 
 /**
- * Texto de la desviación en horas: "+1,5 h", o "—" si no aplica.
+ * Texto de la desviación en horas: "+1.5 h", o "—" si no aplica.
  * @param {{desviacionHoras:number|null}} d Desviación del servidor.
  * @returns {string}
  */
 const textoHoras = (d) => (d.desviacionHoras === null ? '—' : `${conSigno(d.desviacionHoras)} h`);
 
 /**
- * Texto de la desviación en porcentaje: "+18,75 %", "N/A" si no hay estimado, o "—" sin registro.
+ * Texto de la desviación en porcentaje: "+18.75 %", "N/A" si no hay estimado, o "—" sin registro.
  * @param {{desviacionPorcentaje:number|null, estado:string}} d Desviación del servidor.
  * @returns {string}
  */
@@ -145,7 +137,7 @@ function textoPorcentaje(d) {
 }
 
 /**
- * Texto completo de la desviación, por ejemplo "+1,5 h · +18,75 %".
+ * Texto completo de la desviación, por ejemplo "+1.5 h · +18.75 %".
  * @param {Object} d Desviación del servidor.
  * @returns {string}
  */
@@ -213,7 +205,6 @@ function mensajeDeError(error) {
  */
 export function iniciarDesviacion({ contenedor, proyectoId, sprintId = null, mostrarSelector = true }) {
   if (!contenedor) throw new Error('iniciarDesviacion: falta el contenedor.');
-  asegurarEstilos();
 
   const prefijo = `desv-${++instancias}`;
   const estado = {

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!-- HU-30: Gráfica Velocity. HU-31: Porcentaje de avance. HU-29: Burndown.
      Esta página no lleva estilos propios: todo viene de /css (ver componentes/metricas.css).
-     El proyecto sale de ?proyecto=ID; si falta, se elige con GET /api/metricas/mis-proyectos. 
-     @author Dana -->
+     El proyecto sale de localStorage ('proyectoActivo'); se elige en el Dashboard.
+     @author Dana Carmona Santamaria -->
 <html lang="es">
 
 <head>
@@ -40,14 +40,24 @@
         <p class="subtitulo-pagina">Velocity del equipo, avance y burndown</p>
       </div>
       <div class="encabezado-pagina__acciones">
-        <label id="selector-proyecto" class="metricas__filtro" for="filtro-proyecto" hidden>Proyecto
-          <select id="filtro-proyecto" class="metricas__selector"></select>
-        </label>
         <a class="boton boton--secundario btn btn--secondary" href="dashboard.html">Volver al dashboard</a>
       </div>
     </div>
 
     <p id="metricas-error" class="alerta alerta--error" role="alert" hidden></p>
+
+        <!-- Sin proyecto seleccionado: mismo aviso que curso-scrum (estilos en avisos.css) -->
+    <section id="aviso-proyecto" class="aviso aviso--vacio aviso--proyecto" hidden>
+      <div class="aviso__icono" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        </svg>
+      </div>
+      <h2 class="aviso__titulo">Selecciona un proyecto</h2>
+      <p class="aviso__texto">Para consultar las métricas, primero debes seleccionar un proyecto activo en el Dashboard.</p>
+      <a class="boton boton--primario" href="./dashboard.html">← Ir al Dashboard</a>
+    </section>
 
     <!-- HU-30: Velocity por sprint cerrado -->
     <section id="seccion-velocity" class="tarjeta metricas__seccion">
@@ -82,19 +92,19 @@
     </section>
     
     <!-- HU-33: configuración del umbral de desviación (solo visible para el Scrum Master) -->
-    <section id="seccion-umbral" class="tarjeta metricas__seccion" aria-labelledby="umbral-titulo" style="display: none;">
+    <section id="seccion-umbral" class="tarjeta metricas__seccion" aria-labelledby="umbral-titulo" hidden>
       <h2 id="umbral-titulo" class="metricas__titulo">Alertas por desviación</h2>
       <p class="subtitulo-pagina">Se avisa cuando las horas reales de una tarea se desvían más de este porcentaje de lo estimado.</p>
-      <form id="umbral-form" class="metricas__filtro" novalidate style="flex-wrap: wrap; margin-top: 16px;">
+      <form id="umbral-form" class="metricas__filtro" novalidate class="metricas__filtro metricas__umbral-form">
         <label for="umbral-valor">Umbral de tolerancia (±%)</label>
-        <input id="umbral-valor" class="form-input" type="number" min="0" max="100" step="1" required style="width: 100px;" />
+                <input id="umbral-valor" class="form-input metricas__umbral-input" type="number" min="0" max="100" step="1" required />
         <button class="boton boton--primario" type="submit">Guardar umbral</button>
       </form>
-      <p id="umbral-mensaje" class="alerta" role="status" style="display: none; margin-top: 12px;"></p>
+      <p id="umbral-mensaje" class="alerta" role="status" hidden></p>
     </section>
 
     <!-- HU-36: Exportar reportes asíncronamente -->
-    <section id="seccion-exportar" class="tarjeta metricas__seccion" style="display: none;">
+    <section id="seccion-exportar" class="tarjeta metricas__seccion" hidden>
       <div class="metricas__cabecera">
         <div>
           <h2 class="metricas__titulo">Exportar reportes</h2>
@@ -132,11 +142,7 @@
       </div>
 
       <!-- Mensaje de error (Oculto por defecto) -->
-      <p id="exportar-error" class="alerta alerta--error" role="alert" hidden style="margin-top: 16px;"></p>
-    </section>
-
-    <!-- Mensaje de error (Oculto por defecto) -->
-    <p id="exportar-error" class="alerta alerta--error" role="alert" hidden style="margin-top: 16px;"></p>
+            <p id="exportar-error" class="alerta alerta--error metricas__exportar-error" role="alert" hidden></p>
     </section>
   </main>
 

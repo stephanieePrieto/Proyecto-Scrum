@@ -1,5 +1,6 @@
 import { api } from '../core/api.js';
 import { mostrarAlerta } from '../core/auth.js';
+localStorage.removeItem('proyectoActivo');
 
 /**
  * @file login.js

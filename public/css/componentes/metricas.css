@@ -532,15 +532,33 @@
   font-size: 13px;
 }
 
-/* fFltros siempre a la derecha del título */
 .encabezado-pagina--filtros { flex-wrap: nowrap; align-items: center; }
 .encabezado-pagina--filtros > div:first-child { flex: 1 1 auto; min-width: 0; }
 .encabezado-pagina--filtros .encabezado-pagina__acciones { flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; }
 .encabezado-pagina--filtros .metricas__filtro { white-space: nowrap; }
 .encabezado-pagina--filtros .metricas__selector { max-width: 170px; text-overflow: ellipsis; }
 
-/* En pantallas angostas sí se permite que bajen, para todos los roles por igual */
 @media (max-width: 1100px) {
   .encabezado-pagina--filtros,
   .encabezado-pagina--filtros .encabezado-pagina__acciones { flex-wrap: wrap; justify-content: flex-start; }
+}
+
+.metricas--sin-proyecto > section:not(#aviso-proyecto),
+.metricas--sin-proyecto .metricas__filtro {
+  display: none !important;
+}
+.metricas__umbral-form { 
+  flex-wrap: wrap; margin-top: 16px; 
+}
+
+.metricas__umbral-input {
+  width: 100px; 
+}
+
+.metricas__umbral-mensaje { 
+  margin-top: 12px; 
+}
+
+.metricas__exportar-error { 
+  margin-top: 16px; 
 }

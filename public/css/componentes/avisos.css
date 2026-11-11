@@ -63,3 +63,16 @@
 .aviso__texto {
   color: var(--texto-suave);
 }
+
+.aviso--proyecto {
+  max-width: 650px;
+  margin: 40px auto;
+  padding: 50px 20px;
+  border: 1px solid var(--slate-300);
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+
+.aviso--proyecto .aviso__icono {
+  background: var(--ambar-50);
+  color: var(--ambar-500);
+}

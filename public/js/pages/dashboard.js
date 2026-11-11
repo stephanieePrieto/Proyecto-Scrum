@@ -56,16 +56,16 @@ const btnActualizar = document.getElementById('btn-actualizar');
 const params = new URLSearchParams(location.search);
 const proyectoIdParam = params.get('proyecto');
 
-// SOLO si el parámetro existe explícitamente en la URL (?proyecto=X), se guarda como proyectoActivo.
-// De lo contrario, se limpia la selección previa para no predeterminar ningún proyecto.
-if (proyectoIdParam && proyectoIdParam !== 'null') {
-  localStorage.setItem('proyectoActivo', proyectoIdParam);
-} else {
-  localStorage.removeItem('proyectoActivo');
-}
+/** Un id guardado o recibido es válido si es un número positivo (no 'null', 'undefined' ni vacío). */
+const esIdValido = (valor) => Number(valor) > 0;
 
-// El proyectoId únicamente tendrá valor si viene en la URL (?proyecto=X)
-const proyectoId = (proyectoIdParam && proyectoIdParam !== 'null') ? proyectoIdParam : null;
+// ?proyecto=X de la URL (se recuerda como proyecto activo),
+// el proyecto ya guardado en localStorage. Solo cambia cuando se elige otro proyecto.
+if (esIdValido(proyectoIdParam)) {
+  localStorage.setItem('proyectoActivo', proyectoIdParam);
+}
+const proyectoGuardado = localStorage.getItem('proyectoActivo');
+const proyectoId = esIdValido(proyectoIdParam) ? proyectoIdParam : (esIdValido(proyectoGuardado) ? proyectoGuardado : null);
 
 // Permisos del proyecto abierto, para mostrar solo las acciones que le tocan a su rol
 if (proyectoId && proyectoId !== 'null') {

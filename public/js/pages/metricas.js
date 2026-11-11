@@ -20,9 +20,6 @@ import { iniciarUmbral } from './metricas/umbral.js';
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
 const selectSprint = document.getElementById('filtro-sprint');
-const selectProyecto = document.getElementById('filtro-proyecto');
-const cajaProyecto = document.getElementById('selector-proyecto');
-const avisoError = document.getElementById('metricas-error');
 const contDistribucion = document.getElementById('distribucion-contenido');
 
 // 1. Inyección de filtros en la cabecera general (Vista e Integrante Principal)
@@ -70,25 +67,13 @@ const CLAVE_PROYECTO = 'proyectoActivo';
 let datosAvanceActual = null;
 
 /**
- * Leer el ID del proyecto directamente de los parámetros de la URL (?proyecto=ID).
- * @returns {number|null} Identificador numérico del proyecto, o null si no es válido.
+ * Leer el proyecto elegido en el Dashboard (localStorage 'proyectoActivo').
+ * @returns {number|null} ID del proyecto, o null si no se eligió ninguno.
  */
-function proyectoDeLaUrl() {
-  const id = Number(new URLSearchParams(window.location.search).get('proyecto'));
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
-
-/**
- * Guardar el proyecto elegido en la URL (sin recargar la página) y en el localStorage.
- * Esto asegura que al volver al dashboard o refrescar, el sistema recuerde el proyecto.
- * @param {number} proyectoId - Identificador del proyecto activo.
- * @returns {void}
- */
-function recordarProyecto(proyectoId) {
-  const url = new URL(window.location.href);
-  url.searchParams.set('proyecto', proyectoId);
-  window.history.replaceState(null, '', url);
-  try { window.localStorage.setItem(CLAVE_PROYECTO, String(proyectoId)); } catch { }
+function proyectoActivo() {
+  let guardado = null;
+  try { guardado = Number(window.localStorage.getItem(CLAVE_PROYECTO)); } catch { }
+  return Number.isInteger(guardado) && guardado > 0 ? guardado : null;
 }
 
 /**
@@ -106,29 +91,6 @@ function manejarTabUrl() {
   if (hash === '#avance') {
     document.getElementById('seccion-avance')?.scrollIntoView();
   }
-}
-
-/**
- * Consultar la API para obtener los proyectos a los que pertenece el usuario.
- * Llenar el selector desplegable y elegir un proyecto inicial por defecto.
- * @returns {Promise<number|null>} El ID del proyecto seleccionado o null si no tiene ninguno.
- */
-async function elegirProyecto() {
-  const proyectos = await api('/metricas/mis-proyectos');
-  if (proyectos.length === 0) return null;
-
-  if (selectProyecto) {
-    selectProyecto.innerHTML = proyectos.map((p) => `<option value="${p.id}">${escaparHtml(p.nombre)}</option>`).join('');
-  }
-  if (cajaProyecto) {
-    cajaProyecto.hidden = proyectos.length < 2;
-  }
-
-  let recordado = null;
-  try { recordado = Number(window.localStorage.getItem(CLAVE_PROYECTO)); } catch { }
-  const elegido = proyectos.find((p) => p.id === (proyectoDeLaUrl() || recordado)) || proyectos[0];
-  if (selectProyecto) selectProyecto.value = String(elegido.id);
-  return elegido.id;
 }
 
 /**
@@ -250,7 +212,7 @@ async function cargarAvance(proyectoId, sprintId = null) {
     const consulta = sprintId ? `?sprintId=${sprintId}` : '';
     datosAvanceActual = await api(`/metricas/proyectos/${proyectoId}/avance${consulta}`);
     const seccionExportar = document.getElementById('seccion-exportar');
-    if (seccionExportar) seccionExportar.style.display = datosAvanceActual.esScrumMaster ? '' : 'none';
+    if (seccionExportar) seccionExportar.hidden = !datosAvanceActual.esScrumMaster;
 
     llenarSelectorSprints(datosAvanceActual.sprints, datosAvanceActual.sprintId);
 
@@ -326,19 +288,14 @@ function cargarTodo(proyectoId) {
 }
 
 /**
- * Mostrar un mensaje de alerta genérica que bloquea toda la pantalla (ej. No hay acceso a ningún proyecto).
- * @param {string} texto - Texto del aviso.
+ * Sin proyecto activo: oculta toda la página (por CSS) y muestra el aviso "Selecciona un proyecto",
+ * igual que en curso-scrum.
  * @returns {void}
  */
-function mostrarAvisoGeneral(texto) {
-  if (avisoError) {
-    avisoError.textContent = texto;
-    avisoError.hidden = false;
-  }
-  const secVelocity = document.getElementById('seccion-velocity');
-  const secAvance = document.getElementById('seccion-avance');
-  if (secVelocity) secVelocity.hidden = true;
-  if (secAvance) secAvance.hidden = true;
+function mostrarAvisoSeleccionarProyecto() {
+  document.querySelector('main.principal')?.classList.add('metricas--sin-proyecto');
+  const aviso = document.getElementById('aviso-proyecto');
+  if (aviso) aviso.hidden = false;
 }
 
 /**
@@ -348,33 +305,13 @@ function mostrarAvisoGeneral(texto) {
  */
 async function iniciar() {
   await montarLayout();
-  let proyectoId;
-
-  try {
-    proyectoId = proyectoDeLaUrl() || await elegirProyecto();
-  } catch (error) {
-    return mostrarAvisoGeneral(mensajeDeError(error));
-  }
-
-  if (!proyectoId) return mostrarAvisoGeneral('No perteneces a ningún proyecto todavía.');
-
-  recordarProyecto(proyectoId);
+  // El proyecto se elige únicamente en el Dashboard; aquí solo se lee el proyecto activo
+  const proyectoId = proyectoActivo();
+  if (!proyectoId) return mostrarAvisoSeleccionarProyecto();
   
   // Refrescar qué botones mostrar según los permisos del usuario para este proyecto
   cargarPermisos(proyectoId).catch(() => { /* Silenciar error si aún no hay backend de permisos conectado */ });
   manejarTabUrl();
-
-  if (selectProyecto && selectProyecto.options.length === 0) {
-    try { await elegirProyecto(); selectProyecto.value = String(proyectoId); } catch { }
-  }
-
-  selectProyecto?.addEventListener('change', () => {
-    proyectoId = Number(selectProyecto.value);
-    recordarProyecto(proyectoId);
-    cargarPermisos(proyectoId).catch(() => {});
-    if (selectSprint) selectSprint.value = '';
-    cargarTodo(proyectoId);
-  });
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));

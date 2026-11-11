@@ -23,19 +23,19 @@ export async function iniciarUmbral(proyectoId) {
   const avisar = (texto, tipo) => {
     mensaje.textContent = texto;
     mensaje.className = `alerta alerta--${tipo}`;
-    mensaje.style.display = '';
+    mensaje.hidden = false;
   };
 
   // 1. Cargar el valor vigente; solo el Scrum Master ve la sección
   try {
     const { umbral, puedeEditar } = await api(`/metricas/proyectos/${proyectoId}/umbral`);
-    seccion.style.display = puedeEditar ? '' : 'none';
+    seccion.hidden = !puedeEditar;
     input.value = umbral;
   } catch {
-    seccion.style.display = 'none';
+    seccion.hidden = true;
     return;
   }
-  mensaje.style.display = 'none';
+  mensaje.hidden = true;
 
   // 2. Guardar con la misma validación que el servidor: entero entre 0 y 100
   form.onsubmit = async (e) => {

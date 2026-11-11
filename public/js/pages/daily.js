@@ -15,7 +15,7 @@
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
 import { escaparHtml, pluralizar } from '../core/utils.js';
-import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
+import { resolverProyecto, conectarTiempoReal, mostrarSinProyecto } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
 // Insertar la barra superior de navegación
@@ -454,8 +454,7 @@ async function iniciar() {
   }
 
   if (!eleccion.id) {
-    el.contenido.hidden = true;
-    mostrarAviso('advertencia', 'Todavía no perteneces a ningún proyecto.');
+    mostrarSinProyecto(!eleccion.proyectos.length);
     return;
   }
 

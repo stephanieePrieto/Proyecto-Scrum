@@ -17,7 +17,9 @@
  *  - "X la está editando": aviso en memoria que caduca solo (SEGUNDOS_EDICION) y se difunde por Socket.io. En una
  *    nota anónima el aviso dice "Alguien" para no revelar al autor.
  *  - HU-14: las acciones sin completar de retros de sprints cerrados se muestran como recordatorio mientras haya un
- *    sprint activo. Al vencer, se avisa una sola vez al Scrum Master (notificación) y se marcan como vencidas.
+ *    sprint activo. El Scrum Master recibe una notificación diaria con el total pendiente y otra, una sola vez,
+ *    por cada acción vencida.
+ *  - Solo se vota en "Qué mejorar" (COLUMNA_VOTABLE); lo que salió bien no se prioriza.
  *
  * @author Diego Rafael Jimenez Trujano
  */
@@ -29,6 +31,7 @@ import { enTransaccion } from '../../middlewares/auditar.js';
 import { relojDe } from '../daily/daily.service.js';
 import {
   MAX_VOTOS,
+  COLUMNA_VOTABLE,
   SEGUNDOS_EDICION,
   MAX_TEXTO_ITEM,
   validarItem,
@@ -52,6 +55,7 @@ const ENTERO_MAXIMO = 2147483647;
 
 const ENLACE_RETRO = '/pages/retrospectiva.html';
 const TIPO_ESCALACION = 'retro_accion_vencida';
+const TIPO_RECORDATORIO = 'retro_recordatorio';
 
 /** Quién está editando cada nota: itemId → { usuarioId, hasta }. Vive en memoria y caduca solo. */
 const edicionesActivas = new Map();
@@ -118,7 +122,7 @@ async function cargarRetro(retroId) {
  */
 async function cargarItem(itemId) {
   const { rows: [item] } = await consulta(
-    `SELECT i.id, i.retro_id, i.autor_id, i.anonimo, r.estado, s.proyecto_id
+    `SELECT i.id, i.retro_id, i.columna, i.autor_id, i.anonimo, r.estado, s.proyecto_id
        FROM retro_items i JOIN retros r ON r.id = i.retro_id JOIN sprints s ON s.id = r.sprint_id
       WHERE i.id = $1`,
     [itemId],
@@ -207,7 +211,7 @@ export async function consultar(actor, proyectoId, sprintTexto) {
     ),
     consulta(
       `SELECT COUNT(*)::int AS n FROM retro_votos v JOIN retro_items i ON i.id = v.item_id
-        WHERE i.retro_id = $1 AND v.usuario_id = $2`,
+        WHERE i.retro_id = $1 AND v.usuario_id = $2 AND i.columna = '${COLUMNA_VOTABLE}'`,
       [retro.id, actor.id],
     ),
     // Para elegir al responsable de una acción
@@ -327,12 +331,13 @@ export async function eliminarItem(actor, itemId) {
  * @param {{id: number}} actor
  * @param {number|string} itemId
  * @returns {Promise<{votos: number, restantes: number}>} Votos de la nota y votos que le quedan a la persona.
- * @throws {ErrorApp} 400 si ya usó todos sus votos; 409 si la retro está cerrada.
+ * @throws {ErrorApp} 400 si la nota no es de "Qué mejorar" o ya usó todos sus votos; 409 si la retro está cerrada.
  */
 export async function votar(actor, itemId) {
   const item = await cargarItem(leerId(itemId, 'El identificador del ítem no es válido.'));
   await exigirPermiso(actor, 'retro.participar', item.proyecto_id);
   exigirAbierta(item);
+  if (item.columna !== COLUMNA_VOTABLE) lanzar(400, 'Solo se vota en las notas de «Qué mejorar».');
 
   const resultado = await enTransaccion(async (cliente) => {
     // Candado por (retro, persona): dos pestañas votando a la vez no pueden pasarse del límite
@@ -341,7 +346,7 @@ export async function votar(actor, itemId) {
     if (!yaVoto) {
       const { rows: [usados] } = await cliente.query(
         `SELECT COUNT(*)::int AS n FROM retro_votos v JOIN retro_items i ON i.id = v.item_id
-          WHERE i.retro_id = $1 AND v.usuario_id = $2`,
+          WHERE i.retro_id = $1 AND v.usuario_id = $2 AND i.columna = '${COLUMNA_VOTABLE}'`,
         [item.retro_id, actor.id],
       );
       if (usados.n >= MAX_VOTOS) {
@@ -384,7 +389,7 @@ async function contarVotos(cliente, item, usuarioId) {
   const { rows: [r] } = await cliente.query(
     `SELECT (SELECT COUNT(*)::int FROM retro_votos WHERE item_id = $1) AS votos,
             (SELECT COUNT(*)::int FROM retro_votos v JOIN retro_items i ON i.id = v.item_id
-              WHERE i.retro_id = $2 AND v.usuario_id = $3) AS usados`,
+              WHERE i.retro_id = $2 AND v.usuario_id = $3 AND i.columna = '${COLUMNA_VOTABLE}') AS usados`,
     [item.id, item.retro_id, usuarioId],
   );
   return { votos: r.votos, restantes: votosRestantes(r.usados) };
@@ -561,36 +566,58 @@ export async function cerrarRetro(actor, retroId) {
  * ==================================================================== */
 
 /**
- * Avisar al Scrum Master, una sola vez por acción, de las acciones pendientes que ya vencieron.
- * Corre dentro de una transacción con un candado por proyecto para no duplicar el aviso si dos
- * personas consultan a la vez. Un fallo aquí nunca debe romper la consulta, por eso se captura fuera.
+ * Avisar al Scrum Master en el centro de notificaciones, con dos tipos de aviso:
+ *  - Escalación: una vez por cada acción pendiente que ya venció.
+ *  - Recordatorio: uno al día con cuántas acciones de retros anteriores siguen sin completar.
+ * Corre en una transacción con un candado por proyecto para no duplicar avisos si dos personas consultan
+ * a la vez. Un fallo aquí nunca debe romper a quien llama, por eso se captura fuera.
  *
  * @param {number} proyectoId
  * @param {string} hoy - "AAAA-MM-DD" de quien consulta.
  * @returns {Promise<number>} Cuántos avisos nuevos se crearon.
  */
-async function escalarVencidas(proyectoId, hoy) {
+export async function avisarAlScrumMaster(proyectoId, hoy) {
+  const columnas = 'id, usuario_id, tipo, titulo, mensaje, enlace, referencia_id, metadatos, leida, creado_en';
+  const scrumMasters = `(SELECT mp.usuario_id FROM miembros_proyecto mp JOIN usuarios us ON us.id = mp.usuario_id
+                          WHERE mp.proyecto_id = $1 AND mp.rol = 'scrum_master' AND us.activo = TRUE) sm`;
+  const desde = `FROM retro_acciones a
+         JOIN retros r ON r.id = a.retro_id
+         JOIN sprints s ON s.id = r.sprint_id`;
+
   const nuevos = await enTransaccion(async (cliente) => {
     await cliente.query('SELECT pg_advisory_xact_lock($1, $2)', [proyectoId, 14]);
-    const { rows } = await cliente.query(
+    const { rows: vencidas } = await cliente.query(
       `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, enlace, referencia_id)
        SELECT sm.usuario_id, $3, 'Acción de retro vencida',
               'La acción «' || a.texto || '» (responsable: ' || COALESCE(u.nombre, 'sin responsable') || ') venció el '
                 || to_char(a.fecha_limite, 'DD/MM/YYYY') || ' y sigue pendiente.',
               $4, a.id
-         FROM retro_acciones a
-         JOIN retros r ON r.id = a.retro_id
-         JOIN sprints s ON s.id = r.sprint_id
+         ${desde}
+         CROSS JOIN ${scrumMasters}
          LEFT JOIN usuarios u ON u.id = a.responsable_id
-         JOIN (SELECT mp.usuario_id FROM miembros_proyecto mp JOIN usuarios us ON us.id = mp.usuario_id
-                WHERE mp.proyecto_id = $1 AND mp.rol = 'scrum_master' AND us.activo = TRUE) sm ON TRUE
         WHERE s.proyecto_id = $1 AND a.completada = FALSE AND a.fecha_limite < $2::date
           AND NOT EXISTS (SELECT 1 FROM notificaciones n
                            WHERE n.tipo = $3 AND n.referencia_id = a.id AND n.usuario_id = sm.usuario_id)
-       RETURNING id, usuario_id, tipo, titulo, mensaje, enlace, referencia_id, metadatos, leida, creado_en`,
+       RETURNING ${columnas}`,
       [proyectoId, hoy, TIPO_ESCALACION, ENLACE_RETRO],
     );
-    return rows;
+    const { rows: recordatorios } = await cliente.query(
+      `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, enlace, referencia_id, metadatos)
+       SELECT sm.usuario_id, $3, 'Acciones de retro pendientes',
+              'Hay ' || p.total || CASE WHEN p.total = 1 THEN ' acción' ELSE ' acciones' END
+                || ' de retros anteriores sin completar' || CASE WHEN p.vencidas = 0 THEN '.' WHEN p.vencidas = 1 THEN ' (1 vencida).' ELSE ' (' || p.vencidas || ' vencidas).' END,
+              $4, $1, jsonb_build_object('dia', $2::text)
+         FROM (SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE a.fecha_limite < $2::date)::int AS vencidas
+                 ${desde}
+                WHERE s.proyecto_id = $1 AND s.estado = 'cerrado' AND a.completada = FALSE) p
+         CROSS JOIN ${scrumMasters}
+        WHERE p.total > 0
+          AND NOT EXISTS (SELECT 1 FROM notificaciones n
+                           WHERE n.tipo = $3 AND n.referencia_id = $1 AND n.usuario_id = sm.usuario_id AND n.metadatos->>'dia' = $2::text)
+       RETURNING ${columnas}`,
+      [proyectoId, hoy, TIPO_RECORDATORIO, ENLACE_RETRO],
+    );
+    return [...vencidas, ...recordatorios];
   });
   // Misma forma que usa la campana de notificaciones (ver notificaciones.service.js)
   for (const n of nuevos) {
@@ -606,7 +633,7 @@ async function escalarVencidas(proyectoId, hoy) {
  * Acciones de retros anteriores que siguen sin completar, para mostrarlas como recordatorio mientras haya
  * un sprint activo. El Scrum Master ve las de todo el equipo; cada integrante solo las suyas.
  * Sin sprint activo o sin pendientes devuelve una lista vacía (la pantalla no muestra el recordatorio).
- * Al consultar, las vencidas se escalan al Scrum Master (una notificación por acción).
+ * Al consultar, el Scrum Master recibe su recordatorio del día y la escalación de las vencidas (ver avisarAlScrumMaster).
  *
  * @param {{id: number}} actor
  * @param {number|string} proyectoId
@@ -625,9 +652,9 @@ export async function pendientes(actor, proyectoId) {
   if (!activo) return { sprint: null, verTodas, hoy, acciones: [] };
 
   try {
-    await escalarVencidas(idProyecto, hoy);
+    await avisarAlScrumMaster(idProyecto, hoy);
   } catch (error) {
-    console.error('[retros] No se pudo escalar las acciones vencidas:', error.message);
+    console.error('[retros] No se pudo avisar al Scrum Master:', error.message);
   }
 
   const { rows } = await consulta(

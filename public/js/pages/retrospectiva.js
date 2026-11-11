@@ -150,11 +150,13 @@ function restaurarBorradores() {
 
 /**
  * Pintar una nota con su contador de votos y sus botones, o su editor si yo la estoy editando.
+ * Solo las notas de "Qué mejorar" se votan.
  *
  * @param {Object} i - Ítem tal como lo devuelve la API.
+ * @param {string} columna - Columna a la que pertenece la nota.
  * @returns {string}
  */
-function pintarNota(i) {
+function pintarNota(i, columna) {
   const { esScrumMaster, votos } = ctx.datos;
   const abierta = estaAbierta();
   const otro = ctx.editando.get(i.id);
@@ -169,7 +171,7 @@ function pintarNota(i) {
        </div>`
     : `<p class="retro-nota__texto">${escaparHtml(i.texto)}</p>`;
 
-  const votar = `<button class="chip retro-nota__voto" type="button" data-votar="${i.id}" aria-pressed="${i.votoMio}"
+  const votar = columna !== 'mejorar' ? '' : `<button class="chip retro-nota__voto" type="button" data-votar="${i.id}" aria-pressed="${i.votoMio}"
       ${!abierta || (!i.votoMio && votos.restantes === 0) ? 'disabled' : ''} aria-label="${i.votoMio ? 'Quitar mi voto' : 'Votar'} (${i.votos} ${pluralizar(i.votos, 'voto', 'votos')})">
       ${i.votoMio ? 'Votado' : 'Votar'} · ${i.votos}</button>`;
   const acciones = abierta && !propia
@@ -196,7 +198,7 @@ function pintarNotas() {
   for (const columna of ['bien', 'mejorar']) {
     const items = ctx.datos.columnas[columna];
     el.notas[columna].innerHTML = items.length
-      ? items.map(pintarNota).join('')
+      ? items.map((i) => pintarNota(i, columna)).join('')
       : '<li class="retro-vacio">Aún no hay notas.</li>';
   }
 }

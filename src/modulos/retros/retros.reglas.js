@@ -8,6 +8,9 @@ import { esFechaValida } from '../daily/daily.reglas.js';
 /** Columnas de notas de la retro (la tercera, "Acciones", vive en su propia tabla). */
 export const COLUMNAS_ITEM = ['bien', 'mejorar'];
 
+/** Solo se vota en "Qué mejorar": lo que salió bien ya pasó y no hay nada que priorizar. */
+export const COLUMNA_VOTABLE = 'mejorar';
+
 /** Votos que dispone cada integrante en una retro. */
 export const MAX_VOTOS = 5;
 

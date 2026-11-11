@@ -218,6 +218,19 @@ function llenarFormulario() {
 }
 
 /**
+ * Dejar el formulario vacío después de registrar. Se marca como "sucio" para que la recarga que sigue
+ * al guardado no lo vuelva a llenar con lo recién registrado.
+ *
+ * @returns {void}
+ */
+function limpiarFormulario() {
+  el.form.reset();
+  ctx.tareasVinculadas = new Set();
+  ctx.sucio = true;
+  pintarErrores();
+}
+
+/**
  * Mostrar u ocultar el formulario según lo que la persona pueda hacer hoy.
  *
  * @returns {void}
@@ -297,7 +310,7 @@ el.form.addEventListener('submit', async (evento) => {
       },
     });
     borrarBorrador();
-    ctx.sucio = false;
+    limpiarFormulario();
     mostrarEstadoForm('exito', respuesta.mensaje);
     await cargar();
   } catch (error) {

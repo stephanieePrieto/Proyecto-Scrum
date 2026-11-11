@@ -27,6 +27,8 @@ import { sincronizarEventos } from '../calendario/calendario.service.js';
 import { faltantesParaIniciar, calcularResumen, validarCierre, ESTADOS_TERMINADA } from './ciclo-sprint.reglas.js';
 import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 import { recalcularVelocity } from '../reviews/reviews.service.js';
+import { avisarAlScrumMaster } from '../retros/retros.service.js';
+import { relojDe } from '../daily/daily.service.js';
 
 /** Nombres de los eventos en tiempo real (el cliente de la pantalla los escucha). */
 export const EVENTOS = { iniciado: 'sprint:iniciado', cerrado: 'sprint:cerrado' };
@@ -299,6 +301,11 @@ export async function iniciar(actor, sprintIdTexto, datos = {}) {
     await sincronizarEventos(sprint.proyecto_id, { id: sprint.id, nombre: sprint.nombre, fechaInicio: sprint.fecha_inicio, fechaFin: sprint.fecha_fin });
   } catch (error) {
     console.error('[ciclo-sprint] No se pudo generar el calendario:', error.message);
+  }
+  try {
+    await avisarAlScrumMaster(sprint.proyecto_id, (await relojDe(actor.id)).hoy);
+  } catch (error) {
+    console.error('[ciclo-sprint] No se pudo recordar las acciones de retro pendientes:', error.message);
   }
   emitirAProyecto(sprint.proyecto_id, EVENTOS.iniciado, { proyecto_id: sprint.proyecto_id, sprint_id: sprint.id });
   return sprint;

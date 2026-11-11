@@ -55,6 +55,8 @@ const MAX_TOASTS = 3;
 const ETIQUETAS_TIPO = Object.freeze({
   asignacion: 'Asignación',
   mencion: 'Mención',
+  retro_recordatorio: 'Retro',
+  retro_accion_vencida: 'Retro vencida',
 });
 
 /** Solo se permiten enlaces internos ("/pages/tablero.html"); nunca "//sitio" ni "javascript:". */
@@ -66,7 +68,7 @@ const instancias = new WeakMap();
 /**
  * @typedef {Object} Notificacion
  * @property {number} id
- * @property {'asignacion'|'mencion'} tipo
+ * @property {'asignacion'|'mencion'|'retro_recordatorio'|'retro_accion_vencida'} tipo
  * @property {string} titulo
  * @property {string} mensaje
  * @property {string|null} enlace - Ruta interna a la que lleva la notificación.

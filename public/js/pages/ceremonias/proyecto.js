@@ -1,9 +1,12 @@
-// Responsable: Diego - HU-10, HU-11: elegir el proyecto activo y conectar los avisos en tiempo real
 /**
- * Utilidades compartidas por las pantallas de ceremonias (Daily, impedimentos, ciclo, calendario, retrospectiva).
+ * @file proyecto.js
+ * @description Utilidades compartidas por las pantallas de ceremonias (Daily, impedimentos, ciclo, calendario, retrospectiva).
  * El proyecto es el que la persona abrió desde el dashboard: ?proyecto=ID o el último proyecto usado
  * (localStorage "proyectoActivo"). Estas pantallas no ofrecen cambiar de proyecto: si no hay uno elegido,
  * muestran un aviso para volver al dashboard (mostrarSinProyecto).
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { api } from '../../core/api.js';
 

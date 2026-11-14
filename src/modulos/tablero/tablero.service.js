@@ -1,6 +1,6 @@
 /**
  * @file tablero.service.js
- * @description Capa de servicio para la gestión de datos y persistencia del tablero del sprint (HU-17, HU-18, HU-22, HU-59).
+ * @description Capa de servicio para la gestión de datos y persistencia del tablero del sprint
  * 
  * @author Camila Mariné Crespo Zurita
  * @author Citlaly Morales Viveros

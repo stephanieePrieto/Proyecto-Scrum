@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-27: iniciar, pausar y detener el temporizador de horas
 /**
  * @file temporizador.js
  * @description Temporizador de horas reales (HU-27). El tiempo vive en el servidor, así que sobrevive
@@ -12,6 +11,8 @@
  * @example
  * const temporizador = inicializarTemporizador({ alCambiar: ({ tipo }) => console.log(tipo) });
  * await temporizador.iniciar(12);
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { api } from '../core/api.js';
@@ -39,7 +40,7 @@ function asegurarEstilos() {
  * @returns {{iniciar:function(number): Promise<Object>, refrescar:function(): Promise<void>,
  *            obtenerActual:function(): (Object|null), destruir:function(): void}}
  */
-export function inicializarTemporizador({ contenedor = document.body, alCambiar = () => {} } = {}) {
+export function inicializarTemporizador({ contenedor = document.body, alCambiar = () => { } } = {}) {
   asegurarEstilos();
 
   let actual = null;      // Último temporizador recibido del servidor
@@ -214,8 +215,10 @@ function confirmarTiempo(temporizador) {
   const muyCorto = temporizador.horasSugeridas <= 0;
   const campoHoras = crear('input', {
     clase: 'horas-entrada',
-    atributos: { id: 'temp-horas', type: 'number', min: 0.1, max: 24, step: 0.1, required: true,
-      value: muyCorto ? '' : Math.min(temporizador.horasSugeridas, 24), inputmode: 'decimal' },
+    atributos: {
+      id: 'temp-horas', type: 'number', min: 0.1, max: 24, step: 0.1, required: true,
+      value: muyCorto ? '' : Math.min(temporizador.horasSugeridas, 24), inputmode: 'decimal'
+    },
   });
   const campoFecha = crear('input', {
     clase: 'horas-entrada',

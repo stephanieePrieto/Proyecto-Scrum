@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-21: filtros y swimlanes
 /**
  * @file filtros.js
  * @description Filtros del tablero (persona, épica, etiqueta y estado), agrupación en carriles y persistencia
@@ -12,6 +11,8 @@
  *     conservan al volver al tablero y entre sesiones (criterio 1).
  *   - columnas.js avisa con el evento `tablero:cargado` cuando llegan datos; reconexion.js avisa con
  *     `tablero:cambio-en-vivo` cuando otra persona cambia una tarjeta (criterio 5).
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { api } from '../../core/api.js';

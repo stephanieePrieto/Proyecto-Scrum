@@ -2,6 +2,7 @@
  * @file calendario.test.js
  * @description Suite de pruebas unitarias para el calendario de eventos Scrum.
  * Compatible con Jest y ES Modules.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

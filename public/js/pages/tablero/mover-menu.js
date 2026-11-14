@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-52: menú "Mover a…" para mover tarjetas en pantallas táctiles y protección del arrastre
 /**
  * @file mover-menu.js
  * @description En pantallas táctiles el arrastre HTML5 es poco confiable, así que cada tarjeta muestra un botón
@@ -10,6 +9,8 @@
  *   - Lleva la cuenta de si hay un arrastre en curso (para que el sondeo no repinte a mitad de un arrastre) y,
  *     si la tablet gira o cambia de tamaño y el navegador no avisa el fin del arrastre, limpia su estado visual
  *     sin mover ni quitar la tarjeta (criterio 2).
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { api } from '../../core/api.js';

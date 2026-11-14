@@ -1,6 +1,7 @@
 /**
  * @file recuperacion.service.js
  * @description Lógica de negocio para el flujo de recuperación de cuenta cuando se pierde el 2FA.
+ * 
  * @author Citlaly Morales Viveros
  */
 

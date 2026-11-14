@@ -1,8 +1,8 @@
-// Responsable: Camila - HU-18, HU-23, HU-25: reglas, SQL y avisos por socket (mover, bloquear y control de version de tarjetas)
 /**
  * @file tarjetas.service.js
  * @description Reglas de negocio, control de concurrencia optimista (HU-25),
  * fusión automática de campos distintos, bloqueo (HU-23) y avisos por Socket.io (HU-18, HU-59).
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 
@@ -530,7 +530,7 @@ export async function actualizarTarjetaConVersion(tareaId, datos = {}, usuario) 
             camposFusionados
         };
     } catch (error) {
-        await cliente.query('ROLLBACK').catch(() => {});
+        await cliente.query('ROLLBACK').catch(() => { });
         throw error;
     } finally {
         cliente.release();
@@ -669,7 +669,7 @@ export async function cambiarBloqueoTarjeta(tareaId, datos = {}, usuario) {
         tareaActualizada = await consultarTarjetaCompleta(id, cliente);
         await cliente.query('COMMIT');
     } catch (error) {
-        await cliente.query('ROLLBACK').catch(() => {});
+        await cliente.query('ROLLBACK').catch(() => { });
         throw error;
     } finally {
         cliente.release();
@@ -820,7 +820,7 @@ export async function moverTarjetaConVersion(tareaId, datos = {}, usuario) {
         tareaActualizada = await consultarTarjetaCompleta(id, cliente);
         await cliente.query('COMMIT');
     } catch (error) {
-        await cliente.query('ROLLBACK').catch(() => {});
+        await cliente.query('ROLLBACK').catch(() => { });
         throw error;
     } finally {
         cliente.release();

@@ -1,4 +1,9 @@
-/** HU-05 · Estimación Fibonacci, votación grupal, revelación, rondas y cierre de sesiones. */
+/** 
+ * @file poker.service.js
+ * @description Estimación Fibonacci, votación grupal, revelación, rondas y cierre de sesiones.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { exigirPermiso } from '../../utils/permisos.js';
@@ -186,7 +191,7 @@ async function resumenPoker(cliente, usuario, proyecto, historia) {
       valor_final: sesion.valor_final, historia_id: sesion.historia_id,
       titulo: sesion.titulo, numero_hu: sesion.numero_hu,
       puntos_historia: sesion.puntos_historia,
-       cierre_automatico: sesion.ronda === 4 && sesion.estado === 'cerrada',
+      cierre_automatico: sesion.ronda === 4 && sesion.estado === 'cerrada',
       mi_voto: mapa.get(usuario.id) ?? null,
       votos_recibidos: integrantes.filter((p) => mapa.has(p.id)).length,
       total_participantes: integrantes.length,

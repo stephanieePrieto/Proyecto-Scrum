@@ -1,10 +1,12 @@
-import { obtenerTokenCsrf } from './seguridad.js';
-
 /**
  * Centralizar las peticiones HTTP al backend usando fetch.
  * Reutilizar la función "api" desde todas las páginas.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  * @author Citlaly Morales Viveros
+ * @author Jetzaly Josmery Tello Campos
  */
+import { obtenerTokenCsrf } from './seguridad.js';
 
 // Definir el prefijo común de todas las rutas del backend (mismo origen que la página)
 const BASE_API = '/api';

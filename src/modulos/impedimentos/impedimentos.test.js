@@ -2,6 +2,7 @@
  * @file impedimentos.test.js
  * @description Suite de pruebas unitarias para el registro e historial de impedimentos.
  * Compatible con Jest y ES Modules.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

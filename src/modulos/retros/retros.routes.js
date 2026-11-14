@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-13, HU-14: endpoints de retrospectiva y acciones de mejora
 /**
- * Rutas de la retrospectiva. app.js (BASE) monta este módulo solo, en /api/retros.
+ * @file retros.routes.js
+ * @description Rutas de la retrospectiva. app.js (BASE) monta este módulo solo, en /api/retros.
  * Todos los roles del proyecto participan; cerrar la retro y ver las acciones pendientes de todo el equipo
  * es del Scrum Master. Cada servicio comprueba el permiso contra el proyecto del recurso que se toca.
  *
@@ -16,6 +16,8 @@
  *   POST   /api/retros/:retroId/acciones                 crear una acción (texto, responsable y fecha límite)
  *   POST   /api/retros/acciones/:id/completar            marcar una acción como completada
  *   POST   /api/retros/:retroId/cerrar                   cerrar la retro (solo Scrum Master)
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';

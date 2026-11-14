@@ -10,6 +10,7 @@ import qrcode from 'qrcode';
 /**
  * @file auth.service.js
  * @description Lógica de negocio para autenticación, control de intentos y tokens.
+ * 
  * @author Citlaly Morales Viveros
  * @author Stephanie Elizdeth Hernández Prieto
  */

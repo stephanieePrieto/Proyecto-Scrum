@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-20: reglas y SQL de comentarios y menciones (@usuario)
 /**
  * @file comentarios.service.js
  * @description Persiste comentarios, valida que no esten vacios, detecta menciones `@usuario`

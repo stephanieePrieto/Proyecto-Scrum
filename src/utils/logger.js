@@ -1,6 +1,7 @@
 /**
  * @file logger.js
  * @description Utilidad centralizada de logging estructurado con sanitización de información sensible.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

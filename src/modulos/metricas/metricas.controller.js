@@ -1,8 +1,9 @@
 /**
  * @file metricas.controller.js
  * @description Recibir las peticiones HTTP del módulo de métricas y responder en JSON.
- * Delegar la lógica de cálculo en metricas.service.js (HU-29 a HU-33, HU-35, HU-36).
- * @author Dana
+ * Delegar la lógica de cálculo en metricas.service.js.
+ * 
+ * @author Dana Carmona Santamaria
  */
 
 import {
@@ -16,8 +17,8 @@ import {
   iniciarExportacion,
   consultarEstadoExportacion,
   obtenerArchivoExportado,
-  obtenerUmbral,   
-  guardarUmbral 
+  obtenerUmbral,
+  guardarUmbral
 } from './metricas.service.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 

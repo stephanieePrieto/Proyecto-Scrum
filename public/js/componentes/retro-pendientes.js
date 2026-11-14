@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-14: recordatorio de acciones pendientes de la retro (lo usan la retrospectiva y el ciclo del sprint)
 /**
- * Pintar el recordatorio de acciones de retros anteriores que siguen sin completar.
+ * @file retro-pendientes.js
+ * @description Pintar el recordatorio de acciones de retros anteriores que siguen sin completar.
  *   - Se muestra solo si hay un sprint activo y acciones pendientes; si no, el contenedor queda oculto.
  *   - Cada acción lleva su responsable y fecha; las vencidas se resaltan (el servidor las escala al Scrum Master).
  *   - El responsable (o el Scrum Master) la marca como completada y sale de los pendientes.

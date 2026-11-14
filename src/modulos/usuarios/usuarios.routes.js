@@ -1,12 +1,14 @@
 import { Router } from 'express';
-import { solicitarRecuperacion, restablecerPassword, definirPasswordController } from './usuarios.controller.js';
+import { solicitarRecuperacion, restablecerPassword, definirPasswordController, obtenerPerfil, actualizarFoto, obtenerFoto, actualizarZonaHoraria, actualizarPreferenciasNotificacion, actualizarPreferenciasApp } from './usuarios.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { autenticar } from '../../middlewares/autenticar.js';
 import * as authService from '../auth/auth.service.js';
-import * as recuperacionService from '../recuperacion/recuperacion.service.js'; // <-- AÑADIDO
+import * as recuperacionService from '../recuperacion/recuperacion.service.js';
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import QRCode from 'qrcode';
+import multer from 'multer';
+import { LIMITE_FOTO_BYTES, MENSAJE_FORMATO_FOTO, MIMES_FOTO } from './usuarios.service.js';
 
 /**
  * @file usuarios.routes.js
@@ -19,6 +21,74 @@ const router = Router();
 router.post('/recuperar-password', asyncHandler(solicitarRecuperacion));
 router.post('/restablecer-password', asyncHandler(restablecerPassword));
 router.post('/definir-password', asyncHandler(definirPasswordController));
+
+/**
+ * Devuelve los datos del perfil de la persona con sesión iniciada.
+ */
+router.get('/yo', autenticar, asyncHandler(obtenerPerfil));
+
+/**
+ * Recibe una sola foto en memoria, de máximo 2 MB. El contenido real se valida en el servicio.
+ */
+const subirFoto = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: LIMITE_FOTO_BYTES, files: 1 },
+    fileFilter: (req, file, cb) => {
+        if (!MIMES_FOTO.has(file.mimetype)) {
+            cb(new ErrorApp(MENSAJE_FORMATO_FOTO, 415));
+            return;
+        }
+        cb(null, true);
+    }
+}).single('foto');
+
+/**
+ * Ejecuta multer y traduce sus errores a mensajes claros en español.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function recibirFoto(req, res, next) {
+    subirFoto(req, res, (error) => {
+        if (!error) return next();
+        if (error instanceof multer.MulterError) {
+            if (error.code === 'LIMIT_FILE_SIZE') {
+                return next(new ErrorApp('La foto supera el límite de 2 MB. Elige una más pequeña.', 413));
+            }
+            if (error.code === 'LIMIT_UNEXPECTED_FILE' || error.code === 'LIMIT_FILE_COUNT') {
+                return next(new ErrorApp('Envía una sola foto.', 400));
+            }
+            return next(new ErrorApp('No se pudo procesar la foto.', 400));
+        }
+        return next(error);
+    });
+}
+
+/**
+ * Guarda la foto de perfil de la persona con sesión iniciada. La sesión se valida antes de recibir el archivo.
+ */
+router.put('/yo/foto', autenticar, recibirFoto, asyncHandler(actualizarFoto));
+
+/**
+ * Entrega una foto de perfil a las personas con sesión iniciada.
+ */
+router.get('/foto/:archivo', autenticar, asyncHandler(obtenerFoto));
+
+/**
+ * Guarda la zona horaria de la persona con la sesión iniciada.
+ */
+router.put('/yo/zona-horaria', autenticar, asyncHandler(actualizarZonaHoraria));
+
+/**
+ * Guarda las preferencias de notificación de la persona con la sesión iniciada.
+ */
+router.put('/yo/preferencias-notificacion', autenticar, asyncHandler(actualizarPreferenciasNotificacion));
+
+/**
+ * Guarda las preferencias de apariencia y accesibilidad de la persona con la sesión iniciada.
+ */
+router.put('/yo/preferencias-aplicacion', autenticar, asyncHandler(actualizarPreferenciasApp));
 
 /**
  * Obtiene el estado de 2FA del usuario.

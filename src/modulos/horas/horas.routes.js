@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-27: endpoints de registro de horas reales
 /**
  * @file horas.routes.js
- * @description Rutas de la HU-27, montadas en /api/horas (app.js carga la carpeta del módulo).
+ * @description Rutas montadas en /api/horas (app.js carga la carpeta del módulo).
  *              Todas exigen sesión; cada persona solo ve y modifica sus propias horas.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { Router } from 'express';

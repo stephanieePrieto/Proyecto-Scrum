@@ -1,4 +1,9 @@
-// Responsable: Diego - HU-12: recibe la peticion y responde (Sprint Review y aceptacion); sin logica de negocio
+/**
+ * @file reviews.controller.js
+ * @description Recibe la peticion y responde (Sprint Reviws y aceptación); sin lógica de negocio
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import * as servicio from './reviews.service.js';
 import { envolver } from '../../utils/envolverControlador.js';
 

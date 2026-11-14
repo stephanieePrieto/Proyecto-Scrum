@@ -1,9 +1,9 @@
-// Responsable: Jetz - HU-06: lógica de la pantalla de sprints
-
 /**
  * @file sprints.js
+ * @description Configuraciones del funcionamiento de los sprints
  * 
  * @author Jetzaly Josmery Tello Campos
+ * @author Diego Rafael Jiménez Trujano
  * @author Citlaly Morales Viveros
  */
 import { montarBarraSuperior } from '../core/layout.js';

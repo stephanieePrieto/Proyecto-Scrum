@@ -1,4 +1,9 @@
-// HU-04: épicas ligadas al proyecto, con permisos comprobados en servidor.
+/**
+ * @file epicas.service.js
+ * @description Épicas ligadas al proyecto, con permisos comprobados en servidor.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { tienePermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';

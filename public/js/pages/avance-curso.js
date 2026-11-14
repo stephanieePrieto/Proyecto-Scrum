@@ -1,6 +1,7 @@
 /**
  * @file avance-curso.js
  * @description Control de la interfaz para supervisar el avance global de los integrantes del equipo.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 
@@ -12,7 +13,7 @@ let interfazConstruida = false;
 
 async function inicializar() {
   montarBarraSuperior();
-  
+
   const proyectoGuardado = localStorage.getItem('proyectoActivo');
   if (!proyectoGuardado || proyectoGuardado === 'null' || proyectoGuardado === 'undefined') {
     mostrarAvisoSeleccionarProyecto();
@@ -91,11 +92,11 @@ async function cargarDatosAvance() {
     }
 
     actualizarMetricasResumen();
-    
+
     // Obtener los valores actuales de los selectores para mantener el filtro activo al actualizar
     const filtroRolActual = document.getElementById('filtro-rol')?.value || 'todos';
     const filtroEstadoActual = document.getElementById('filtro-estado')?.value || 'todos';
-    
+
     actualizarListaIntegrantes(filtroRolActual, filtroEstadoActual);
   } catch (error) {
     console.error('[avance-curso] Error:', error);
@@ -159,7 +160,7 @@ function construirEstructuraBase() {
 
 function actualizarMetricasResumen() {
   const total = datosIntegrantes.length;
-  
+
   const completado = datosIntegrantes.filter(i => {
     const totalLec = Number(i.total_lecciones) || 0;
     return totalLec > 0 &&
@@ -178,12 +179,12 @@ function actualizarMetricasResumen() {
 
   const promedio = total > 0
     ? Math.round(datosIntegrantes.reduce((sum, i) => {
-        const totalLec = Number(i.total_lecciones) || 1;
-        const porcentaje = Math.min(100, Math.round(
-          ((Number(i.lecciones_completadas) + Number(i.quizzes_aprobados)) / (totalLec * 2)) * 100
-        ));
-        return sum + porcentaje;
-      }, 0) / total)
+      const totalLec = Number(i.total_lecciones) || 1;
+      const porcentaje = Math.min(100, Math.round(
+        ((Number(i.lecciones_completadas) + Number(i.quizzes_aprobados)) / (totalLec * 2)) * 100
+      ));
+      return sum + porcentaje;
+    }, 0) / total)
     : 0;
 
   const elTotal = document.getElementById('resumen-total');
@@ -238,7 +239,7 @@ function actualizarListaIntegrantes(filtroRol = 'todos', filtroEstado = 'todos')
     const leccionesCompletadas = Number(integrante.lecciones_completadas) || 0;
     const quizzesAprobados = Number(integrante.quizzes_aprobados) || 0;
     const tieneCertificado = integrante.tiene_certificado || false;
-    
+
     const porcentaje = Math.min(100, Math.round(((leccionesCompletadas + quizzesAprobados) / (totalLecciones * 2)) * 100));
 
     return `

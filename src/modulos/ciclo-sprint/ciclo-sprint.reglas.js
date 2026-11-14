@@ -1,7 +1,9 @@
-// Responsable: Diego - HU-09: reglas puras de iniciar y cerrar un sprint (faltantes, resumen, velocity, decisiones)
 /**
- * Reglas del ciclo del sprint que no consultan la base de datos ni Express,
+ * @file ciclo-sprint.reglas.js
+ * @description Reglas del ciclo del sprint que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (ciclo-sprint.test.js).
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 
 /** Estados de una historia que cuentan como terminada para la velocity. */

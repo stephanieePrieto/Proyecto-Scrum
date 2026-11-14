@@ -1,6 +1,7 @@
 /**
  * @file curso-scrum.js
  * @description Interacción completa para módulos, pestañas de roles, quizzes y Quiz Final Integrador (20 preguntas).
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 
@@ -14,10 +15,10 @@ let usuarioId = null;
 
 async function inicializar() {
   montarBarraSuperior();
-  
+
   // Obtener el proyecto activo fijado al seleccionar un proyecto en el Dashboard
   const proyectoGuardado = localStorage.getItem('proyectoActivo');
-  
+
   // Si no hay proyecto seleccionado en localStorage, bloquear toda la vista y requerir uno
   if (!proyectoGuardado || proyectoGuardado === 'null' || proyectoGuardado === 'undefined') {
     mostrarAvisoSeleccionarProyecto();
@@ -34,7 +35,7 @@ async function inicializar() {
  */
 function mostrarAvisoSeleccionarProyecto() {
   const contenedorPrincipal = document.querySelector('main.curso-contenedor') || document.querySelector('main');
-  
+
   if (contenedorPrincipal) {
     contenedorPrincipal.innerHTML = `
       <div class="aviso aviso--vacio" style="text-align: center; padding: 50px 20px; background: var(--blanco, #ffffff); border-radius: 12px; border: 1px solid var(--borde, #e2e8f0); max-width: 650px; margin: 40px auto; box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.05));">
@@ -306,7 +307,7 @@ function mostrarQuiz(leccionId) {
   let html = '<div class="quiz-pregunta">Responde las siguientes preguntas:</div>';
   quizzesLeccion.forEach((quiz, index) => {
     let opcionesObj = quiz.opciones;
-    if (typeof opcionesObj === 'string') { try { opcionesObj = JSON.parse(opcionesObj); } catch(e) {} }
+    if (typeof opcionesObj === 'string') { try { opcionesObj = JSON.parse(opcionesObj); } catch (e) { } }
     html += `
       <div class="quiz-pregunta" style="margin-top: 20px;">${index + 1}. ${quiz.pregunta}</div>
       <div class="quiz-opciones" data-quiz-id="${quiz.id}">
@@ -340,7 +341,7 @@ function mostrarQuizFinal() {
 
   quizFinalData.preguntas.forEach((quiz, index) => {
     let opcionesObj = quiz.opciones;
-    if (typeof opcionesObj === 'string') { try { opcionesObj = JSON.parse(opcionesObj); } catch(e) {} }
+    if (typeof opcionesObj === 'string') { try { opcionesObj = JSON.parse(opcionesObj); } catch (e) { } }
     html += `
       <div class="quiz-pregunta" style="margin-top: 20px;">${index + 1}. ${quiz.pregunta}</div>
       <div class="quiz-opciones" data-quiz-id="${quiz.id}">

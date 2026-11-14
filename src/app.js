@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { consulta } from './config/db.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { manejoErrores, noEncontrado } from './middlewares/manejoErrores.js';
-import { sanitizarEntrada } from './middlewares/seguridad.js';
+import { sanitizarEntrada, cabecerasSeguridad as cabecerasHelmet } from './middlewares/seguridad.js';
 import { proteccionCsrf } from './middlewares/csrf.js';
 import { registrarPeticiones } from './middlewares/registrarPeticiones.js';
 import { configurarSwagger } from './config/swagger.js';
@@ -77,7 +77,8 @@ export async function crearApp() {
   app.disable('x-powered-by');
 
   // Aplicar cabeceras de seguridad HTTP (Helmet, CSP restrictiva, HSTS)
-  app.use(cabecerasSeguridad);
+  // Se usa la CSP de seguridad.js; la función cabecerasSeguridad de este archivo quedó sin uso.
+  app.use(cabecerasHelmet);
   app.use(cors());
 
   // Registrar logs solo en modo debug
@@ -119,8 +120,8 @@ export async function crearApp() {
   const carpetaModulos = path.join(aqui, 'modulos');
   const modulos = fs.existsSync(carpetaModulos)
     ? fs.readdirSync(carpetaModulos, { withFileTypes: true })
-        .filter((e) => e.isDirectory())
-        .map((e) => e.name)
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
     : [];
 
   for (const nombre of modulos) {

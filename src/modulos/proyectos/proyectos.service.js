@@ -299,6 +299,7 @@ export async function crear(datos, usuario) {
         await notificar({
           usuarioId: inv.usuarioId,
           tipo: TIPOS.ASIGNACION,
+          transaccional: true,
           titulo: 'Invitación a proyecto',
           mensaje: `Has sido invitado al proyecto "${limpio.nombre}" con el rol de ${inv.rol}. Revisa tu correo o haz clic aquí para aceptar.`,
           enlace: `/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`

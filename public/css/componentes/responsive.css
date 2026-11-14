@@ -28,6 +28,7 @@ video {
    Celular (menos de 768 px)
    =========================================================================== */
 @media (max-width: 767.98px) {
+
   /* Ningún elemento debe ensanchar la página. "clip" (y no "hidden") conserva la barra superior fija */
   body {
     overflow-x: clip;
@@ -95,8 +96,8 @@ video {
   }
 
   /* Encabezado del sprint: el título, el estado y los botones bajan de línea en vez de desbordar */
-  #contenedor-tablero > div:first-child,
-  #contenedor-tablero > div:first-child > div {
+  #contenedor-tablero>div:first-child,
+  #contenedor-tablero>div:first-child>div {
     flex-wrap: wrap;
     gap: 8px !important;
   }
@@ -118,7 +119,7 @@ video {
     scroll-snap-type: x proximity;
   }
 
-  #tablero-contenedor > [data-columna-id] {
+  #tablero-contenedor>[data-columna-id] {
     min-width: min(320px, 85vw);
     scroll-snap-align: start;
   }
@@ -212,7 +213,7 @@ video {
     padding: 6px;
   }
 
-  .barra-superior__enlaces > .barra-superior__enlace > svg {
+  .barra-superior__enlaces>.barra-superior__enlace>svg {
     display: none;
   }
 }
@@ -228,6 +229,7 @@ video {
    Pantallas táctiles
    =========================================================================== */
 @media (pointer: coarse) {
+
   .btn,
   .boton,
   .barra-superior__enlace,
@@ -254,6 +256,7 @@ video {
     font-weight: 600;
     cursor: pointer;
   }
+
   /* A quien no puede mover tarjetas, permisos-ui.js le oculta el botón con display: none en línea */
 }
 

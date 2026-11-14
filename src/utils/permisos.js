@@ -1,5 +1,3 @@
-// BASE (no modificar sin avisar al equipo) - HU-42: revisa membresia y rol por proyecto (lo escribe Citlaly)
-
 /**
  * @file permisos.js
  * @description Comprobaciones de permisos centralizadas. Todas consultan la base de datos y no el

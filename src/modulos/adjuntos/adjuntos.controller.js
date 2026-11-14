@@ -1,7 +1,8 @@
-// Responsable: Alfonso - HU-20: recibe la peticion y responde (adjuntos); sin logica de negocio
 /**
  * @file adjuntos.controller.js
  * @description Controladores HTTP de adjuntos. Respuesta: `{ ok: true, datos }`.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import * as servicio from './adjuntos.service.js';
 import { leerId } from '../detalle-tarjeta/detalle-tarjeta.service.js';
@@ -44,7 +45,7 @@ export const subir = asyncHandler(async (req, res) => {
 
 /** GET /:id/descargar — Descarga el archivo con su nombre original. */
 export const descargar = asyncHandler(async (req, res) => {
-  const { ruta, nombre } = await servicio.obtenerParaDescarga(leerAdjuntoId(req));
+  const { ruta, nombre } = await servicio.obtenerParaDescarga(leerAdjuntoId(req), req.user);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.download(ruta, nombre, (error) => {
     if (error && !res.headersSent) {

@@ -1,6 +1,7 @@
 /**
  * @file recuperacion.routes.js
  * @description Definición de rutas para el flujo de recuperación de cuenta (2FA).
+ * 
  * @author Citlaly Morales Viveros
  */
 

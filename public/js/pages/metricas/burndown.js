@@ -1,7 +1,8 @@
 /**
  * @file burndown.js
- * @description Dibujar la gráfica de Burndown del proyecto por cierre de sprint (HU-29).
- * @author Dana
+ * @description Dibujar la gráfica de Burndown del proyecto por cierre de sprint.
+ * 
+ * @author Dana Carmona Santamaria
  */
 
 import { escaparHtml } from '../../core/utils.js';
@@ -50,7 +51,7 @@ export function dibujarBurndown(contenedor, datos) {
 
   const horasIniciales = datos.horasIniciales || puntos[0]?.horasRestantes || 100;
   const maxRestantes = Math.max(...puntos.map(p => p.horasRestantes ?? 0), horasIniciales, 10);
-  
+
   const pasoY = maxRestantes <= 100 ? 20 : 50;
   const maxEscala = Math.max(pasoY, Math.ceil(maxRestantes / pasoY) * pasoY);
 
@@ -89,7 +90,7 @@ export function dibujarBurndown(contenedor, datos) {
     const x = xPos(i);
     const p = puntos[i];
     const nombreLabel = p ? p.nombre : `Sprint ${i}`;
-    
+
     etiquetasX += `<line x1="${x}" x2="${x}" y1="${yPos(0)}" y2="${yPos(0) + 6}" stroke="#94a3b8" stroke-width="1.5" />
       <text x="${x}" y="${yPos(0) + 24}" text-anchor="middle" font-size="12" fill="#334155">${escaparHtml(nombreLabel)}</text>`;
 
@@ -99,7 +100,7 @@ export function dibujarBurndown(contenedor, datos) {
       puntosReal.push(`${x},${y}`);
 
       const txtReal = valReal % 1 === 0 ? valReal.toFixed(0) : valReal.toFixed(1);
-      
+
       circulosReal += `<circle cx="${x}" cy="${y}" r="5" fill="#1F5A67" stroke="#ffffff" stroke-width="2">
         <title>${escaparHtml(nombreLabel)}: ${txtReal} h restantes</title>
       </circle>`;

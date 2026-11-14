@@ -2,6 +2,7 @@
  * @file daily.test.js
  * @description Suite de pruebas unitarias para el registro de Daily Scrum.
  * Compatible con Jest y ES Modules.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

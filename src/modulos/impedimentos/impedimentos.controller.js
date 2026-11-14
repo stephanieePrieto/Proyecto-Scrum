@@ -1,4 +1,9 @@
-// Responsable: Diego - HU-11: recibe la peticion y responde (impedimentos); sin logica de negocio
+/**
+ * @file impedimentos.controller.js
+ * @description Recibe la peticion y responde (impedimentos); sin logica de negocio.
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import * as servicio from './impedimentos.service.js';
 import { envolver } from '../../utils/envolverControlador.js';
 

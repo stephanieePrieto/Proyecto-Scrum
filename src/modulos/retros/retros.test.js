@@ -2,6 +2,8 @@
  * @file retros.test.js
  * @description Pruebas unitarias de las reglas de la retrospectiva (HU-13) y del recordatorio de acciones (HU-14).
  * Compatible con Jest y ES Modules.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { describe, test, expect } from '@jest/globals';
 import {

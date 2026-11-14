@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-20: adjuntos del detalle de tarjeta (limite de 10 MB por archivo)
 /**
  * @file adjuntos.js
  * @description Lista, sube, descarga y elimina adjuntos. Valida el límite de 10 MB y los tipos no permitidos
  *              antes de subir; si la subida falla conserva el archivo elegido y ofrece "Reintentar".
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import { api } from '../../core/api.js';
 import {
@@ -39,7 +40,7 @@ function validar(archivo) {
  * @param {number} tareaId Tarjeta.
  * @param {{alCambiar?: function(): void}} [opciones] `alCambiar` se llama tras subir o eliminar (refresca el historial).
  */
-export function montarAdjuntos(contenedor, tareaId, { alCambiar = () => {} } = {}) {
+export function montarAdjuntos(contenedor, tareaId, { alCambiar = () => { } } = {}) {
   let adjuntos = [];
   let pendiente = null;
   let subiendo = false;

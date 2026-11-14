@@ -1,9 +1,10 @@
-// Responsable: Alfonso - HU-20: comentarios y menciones (@usuario) del detalle de tarjeta
 /**
  * @file comentarios.js
  * @description Lista y publica comentarios. Impide envíos vacíos, sugiere menciones al escribir "@",
  *              y si la publicación falla conserva el texto y ofrece "Reintentar".
  *              Solo importa api.js y dom.js: no depende de utils.js.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import { api } from '../../core/api.js';
 import { crear, crearAviso, mensajeError, formatearFecha, iniciales, MAX_COMENTARIO } from './dom.js';
@@ -40,7 +41,7 @@ function textoConMenciones(texto, conocidos) {
  * @param {number} tareaId Tarjeta.
  * @param {{alCambiar?: function(): void}} [opciones] `alCambiar` se llama tras publicar (refresca el historial).
  */
-export function montarComentarios(contenedor, tareaId, { alCambiar = () => {} } = {}) {
+export function montarComentarios(contenedor, tareaId, { alCambiar = () => { } } = {}) {
   const idCampo = `dt-comentario-${tareaId}`;
   let comentarios = [];
   let mencionables = [];

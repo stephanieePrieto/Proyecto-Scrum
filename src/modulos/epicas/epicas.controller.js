@@ -1,4 +1,9 @@
-// HU-04: capa HTTP para la gestión de épicas.
+/**
+ * @file epicas.controller.js
+ * @description Controlador de las capa HTTP para la gestión de épicas.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as servicio from './epicas.service.js';
 

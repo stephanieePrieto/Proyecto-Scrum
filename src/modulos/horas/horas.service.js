@@ -1,5 +1,3 @@
-// Responsable: Alfonso - HU-27: reglas, SQL y avisos por socket (registro de horas reales)
-
 /**
  * @file horas.service.js
  * @description Núcleo de la HU-27. Responsabilidades:
@@ -49,7 +47,8 @@ const ROLES_SIN_RESTRICCION = new Set(['scrum_master', 'product_owner']);
 const SIN_TRANSACCION = { query: (sql, parametros) => consulta(sql, parametros) };
 
 /** Zona horaria de la persona (si la guardada no existe en PostgreSQL se usa UTC). */
-const SQL_ZONA = `COALESCE((SELECT name FROM pg_timezone_names WHERE name = u.zona_horaria), 'UTC')`;
+// Sin zona guardada (NULL) se usa America/Mexico_City, el valor que tenía la columna por defecto.
+const SQL_ZONA = `COALESCE((SELECT name FROM pg_timezone_names WHERE name = COALESCE(u.zona_horaria, 'America/Mexico_City')), 'UTC')`;
 
 /** Temporizador de una persona con el tiempo transcurrido calculado por la base de datos. */
 const SQL_TEMPORIZADOR = `

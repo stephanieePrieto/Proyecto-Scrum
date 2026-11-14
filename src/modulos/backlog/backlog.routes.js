@@ -1,4 +1,3 @@
-// Responsable: Jetz - HU-02, HU-03, HU-05: endpoints de historias, orden de prioridad y puntos
 /**
  * @file backlog.routes.js
  * @description Rutas del Product Backlog. app.js (BASE) monta este módulo solo, en /api/backlog,

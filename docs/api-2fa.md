@@ -2,7 +2,7 @@
 
 **Versión:** 1.0  
 **Autor:** Citlaly Morales Viveros  
-**Fecha:** 2024  
+**Fecha:** 2024
 
 Este documento describe los endpoints de la API para la funcionalidad de autenticación en dos pasos (2FA) de ScrumFlow.
 
@@ -29,6 +29,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Descripción:** Inicia sesión con correo y contraseña. Si el usuario tiene 2FA activado, devuelve un token temporal que requiere verificación de segundo factor.
 
 **Request Body:**
+
 ```json
 {
   "correo": "usuario@example.com",
@@ -39,6 +40,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK - 2FA no requerido:**
+
   ```json
   {
     "mensaje": "Inicio de sesión exitoso",
@@ -50,9 +52,11 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
     "requiere2fa": false
   }
   ```
-  *Cookies:* `accessToken`, `refreshToken` (sesión completa)
+
+  _Cookies:_ `accessToken`, `refreshToken` (sesión completa)
 
 - **202 Accepted - 2FA requerido:**
+
   ```json
   {
     "mensaje": "Se requiere verificación en dos pasos",
@@ -62,9 +66,11 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
     "tokenTemporalExpiraEn": "2024-12-01T14:30:00Z"
   }
   ```
-  *Cookies:* `token2faTemporal` (token temporal, no es sesión válida)
+
+  _Cookies:_ `token2faTemporal` (token temporal, no es sesión válida)
 
 - **401 Unauthorized:**
+
   ```json
   {
     "mensaje": "Credenciales incorrectas o cuenta bloqueada"
@@ -124,6 +130,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "secreto": "JBSWY3DPEHPK3PXP",
@@ -131,7 +138,8 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
     "codigoQr": "data:image/svg+xml;base64,..."
   }
   ```
-  *Nota:* El secreto se devuelve en texto plano SOLO en esta respuesta. El frontend debe mostrar el QR y luego el usuario debe confirmar con un código generado.
+
+  _Nota:_ El secreto se devuelve en texto plano SOLO en esta respuesta. El frontend debe mostrar el QR y luego el usuario debe confirmar con un código generado.
 
 - **400 Bad Request:**
   ```json
@@ -149,6 +157,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token de acceso válido
 
 **Request Body:**
+
 ```json
 {
   "codigo": "123456"
@@ -160,6 +169,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "TOTP configurado correctamente",
@@ -168,6 +178,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
   ```
 
 - **400 Bad Request:**
+
   ```json
   {
     "mensaje": "Código inválido o expirado. Genera un nuevo secreto."
@@ -192,6 +203,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Descripción:** Desactiva la autenticación TOTP para el usuario. Requiere confirmación de contraseña.
 
 **Request Body:**
+
 ```json
 {
   "password": "contraseñaActual123"
@@ -201,6 +213,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "TOTP desactivado correctamente",
@@ -209,6 +222,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
   ```
 
 - **401 Unauthorized:**
+
   ```json
   {
     "mensaje": "Contraseña incorrecta"
@@ -251,6 +265,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token de acceso válido
 
 **Request Body:**
+
 ```json
 {
   "password": "contraseñaActual123"
@@ -260,6 +275,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Autenticación por correo desactivada",
@@ -268,6 +284,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
   ```
 
 - **401 Unauthorized:**
+
   ```json
   {
     "mensaje": "Contraseña incorrecta"
@@ -293,6 +310,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Descripción:** Activa o desactiva completamente el 2FA para la cuenta. Cuando está deshabilitado, ningún método de 2FA se solicitará al iniciar sesión.
 
 **Request Body (para deshabilitar):**
+
 ```json
 {
   "password": "contraseñaActual123"
@@ -302,6 +320,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "2FA habilitado/deshabilitado correctamente",
@@ -327,6 +346,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token temporal (cookie `token2faTemporal`)
 
 **Request Body:**
+
 ```json
 {
   "codigo": "123456"
@@ -338,6 +358,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Verificación exitosa",
@@ -348,9 +369,11 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
     }
   }
   ```
-  *Cookies:* `accessToken`, `refreshToken` (sesión completa)
+
+  _Cookies:_ `accessToken`, `refreshToken` (sesión completa)
 
 - **401 Unauthorized:**
+
   ```json
   {
     "mensaje": "Código inválido o expirado"
@@ -377,6 +400,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Código enviado a tu correo electrónico"
@@ -384,6 +408,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
   ```
 
 - **400 Bad Request:**
+
   ```json
   {
     "mensaje": "Método de correo no disponible. Configúralo primero."
@@ -406,6 +431,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token temporal (cookie `token2faTemporal`)
 
 **Request Body:**
+
 ```json
 {
   "codigo": "123456"
@@ -417,6 +443,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Verificación exitosa",
@@ -427,9 +454,11 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
     }
   }
   ```
-  *Cookies:* `accessToken`, `refreshToken` (sesión completa)
+
+  _Cookies:_ `accessToken`, `refreshToken` (sesión completa)
 
 - **401 Unauthorized:**
+
   ```json
   {
     "mensaje": "Código inválido o expirado"
@@ -452,6 +481,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token temporal (cookie `token2faTemporal`)
 
 **Request Body:**
+
 ```json
 {
   "codigo": "ABC-123-XYZ"
@@ -463,6 +493,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Verificación exitosa",
@@ -474,9 +505,11 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
     "codigosRestantes": 9
   }
   ```
-  *Cookies:* `accessToken`, `refreshToken` (sesión completa)
+
+  _Cookies:_ `accessToken`, `refreshToken` (sesión completa)
 
 - **401 Unauthorized:**
+
   ```json
   {
     "mensaje": "Código inválido o ya utilizado"
@@ -505,17 +538,15 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Códigos de respaldo generados",
-    "codigos": [
-      "ABC-123-XYZ",
-      "DEF-456-UVW",
-      "..."
-    ]
+    "codigos": ["ABC-123-XYZ", "DEF-456-UVW", "..."]
   }
   ```
-  *Importante:* Los códigos se muestran una sola vez. El frontend debe guardarlos de forma segura o permitir su descarga.
+
+  _Importante:_ Los códigos se muestran una sola vez. El frontend debe guardarlos de forma segura o permitir su descarga.
 
 - **400 Bad Request:**
   ```json
@@ -589,6 +620,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Descripción:** Registra el dispositivo actual como de confianza, permitiendo omitir el 2FA durante 14 días.
 
 **Request Body:**
+
 ```json
 {
   "nombre": "Mi PC Personal"
@@ -618,6 +650,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token de acceso válido
 
 **Request Body:**
+
 ```json
 {
   "dispositivoId": "uuid"
@@ -629,6 +662,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Dispositivo revocado correctamente"
@@ -651,6 +685,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Autenticación:** Requiere token de acceso válido
 
 **Request Body:**
+
 ```json
 {
   "password": "contraseñaActual123"
@@ -662,6 +697,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Todos los dispositivos revocados",
@@ -687,6 +723,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Descripción:** Inicia el proceso de recuperación cuando el usuario ha perdido acceso a todos sus métodos de 2FA. Envía un enlace de recuperación por correo.
 
 **Request Body:**
+
 ```json
 {
   "correo": "usuario@example.com"
@@ -711,6 +748,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Descripción:** Verifica el token de recuperación recibido por correo y desactiva temporalmente el 2FA para permitir el acceso.
 
 **Request Body:**
+
 ```json
 {
   "token": "token-de-recuperacion"
@@ -720,6 +758,7 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 **Responses:**
 
 - **200 OK:**
+
   ```json
   {
     "mensaje": "Token válido. El 2FA ha sido desactivado temporalmente. Inicia sesión nuevamente.",
@@ -741,16 +780,16 @@ Este documento describe los endpoints de la API para la funcionalidad de autenti
 
 ### Códigos de error comunes
 
-| Código | Mensaje | Descripción |
-|--------|---------|-------------|
-| 400 | `Código inválido o expirado` | El código OTP/TOTP/correo/respaldo no es válido o ya expiró |
-| 401 | `Contraseña incorrecta` | La contraseña proporcionada no coincide |
-| 401 | `No has iniciado sesión` | No hay token de acceso válido |
-| 401 | `Token inválido o expirado` | El token JWT o temporal no es válido |
-| 403 | `No puedes desactivar el único método` | Intento de desactivar el único método de 2FA activo |
-| 403 | `Acceso denegado` | El usuario no tiene permiso para esta acción |
-| 429 | `Demasiados intentos fallidos` | Se alcanzó el límite de intentos (5 para 2FA) |
-| 429 | `IP bloqueada temporalmente` | La IP fue bloqueada por múltiples intentos fallidos |
+| Código | Mensaje                                | Descripción                                                 |
+| ------ | -------------------------------------- | ----------------------------------------------------------- |
+| 400    | `Código inválido o expirado`           | El código OTP/TOTP/correo/respaldo no es válido o ya expiró |
+| 401    | `Contraseña incorrecta`                | La contraseña proporcionada no coincide                     |
+| 401    | `No has iniciado sesión`               | No hay token de acceso válido                               |
+| 401    | `Token inválido o expirado`            | El token JWT o temporal no es válido                        |
+| 403    | `No puedes desactivar el único método` | Intento de desactivar el único método de 2FA activo         |
+| 403    | `Acceso denegado`                      | El usuario no tiene permiso para esta acción                |
+| 429    | `Demasiados intentos fallidos`         | Se alcanzó el límite de intentos (5 para 2FA)               |
+| 429    | `IP bloqueada temporalmente`           | La IP fue bloqueada por múltiples intentos fallidos         |
 
 ### Estructura de error
 

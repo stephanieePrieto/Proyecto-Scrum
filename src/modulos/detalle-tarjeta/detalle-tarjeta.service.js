@@ -1,9 +1,10 @@
-// Responsable: Alfonso - HU-20: datos de la tarjeta, subtareas (checklist) e historial de cambios
 /**
  * @file detalle-tarjeta.service.js
  * @description Logica de negocio del detalle de tarjeta. Tambien exporta utilidades que reutilizan
  *              los modulos de comentarios y adjuntos (`leerId`, `enTransaccion`, `registrarHistorial`).
  * Tablas: tareas, historias, columnas_tablero, usuarios, registros_horas, checklist_items, historial_tareas.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import { pool, consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';

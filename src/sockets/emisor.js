@@ -1,4 +1,9 @@
-// BASE (no modificar sin avisar al equipo) - HU-47: funcion emitirAProyecto que usan los services para avisar cambios
+/**
+ * @file emisor.js
+ * @description funcion emitirAProyecto que usan los services para avisar cambios
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
 let ioInstancia = null;
 
 export const registrarIO = (io) => {

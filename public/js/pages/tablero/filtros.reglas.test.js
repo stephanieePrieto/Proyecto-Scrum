@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-21: pruebas de las reglas puras de filtros y carriles del tablero
 /**
  * @file filtros.reglas.test.js
  * @description Suite de pruebas unitarias de la lógica pura de la HU-21 (filtros y swimlanes).
  * Compatible con Jest y ES Modules. No usa DOM, localStorage ni base de datos.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { describe, test, expect } from '@jest/globals';

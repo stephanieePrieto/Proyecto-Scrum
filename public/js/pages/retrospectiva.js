@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-13, HU-14: logica de la pantalla de retrospectiva y acciones pendientes (llama a la API y escucha sockets)
 /**
- * Pintar la pantalla de retrospectiva:
+ * @file retrospectiva.js
+ * @description Pintar la pantalla de retrospectiva:
  *   - Tres columnas: "Qué salió bien", "Qué mejorar" y "Acciones". Cada nota puede publicarse de forma anónima.
  *   - Votar notas (máximo 5 votos por integrante) y ver el contador de cada una.
  *   - Crear acciones con responsable y fecha límite obligatorios; el Scrum Master cierra la retro.
@@ -378,7 +378,7 @@ async function iniciarEdicion(id) {
     id,
     texto: item.texto,
     // Mientras siga editando, se renueva el aviso para que no caduque
-    latido: setInterval(() => api(`/retros/items/${id}/edicion`, { metodo: 'PUT' }).catch(() => {}), INTERVALO_LATIDO_MS),
+    latido: setInterval(() => api(`/retros/items/${id}/edicion`, { metodo: 'PUT' }).catch(() => { }), INTERVALO_LATIDO_MS),
   };
   pintarNotas();
   document.querySelector(`[data-item="${id}"] [data-editor]`)?.focus();

@@ -1,11 +1,12 @@
-import { api } from '../core/api.js';
-import { mostrarAlerta } from '../core/auth.js';
-
 /**
  * @file registro.js
  * @description Lógica del lado del cliente para la página de registro de usuarios.
+ * 
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
+import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('form-registro');

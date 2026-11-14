@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-44: endpoints de capacidad individual
 /**
- * Rutas de capacidad individual. app.js (BASE) monta este módulo solo, en /api/capacidad,
+ * @file capacidad.routes.js
+ * @description Rutas de capacidad individual. app.js (BASE) monta este módulo solo, en /api/capacidad,
  * porque la carpeta se llama "capacidad" y este archivo exporta el router por defecto.
  *
  *   GET /api/capacidad/yo                              quién soy y a qué equipos pertenezco
@@ -8,6 +8,8 @@
  *   PUT /api/capacidad/usuarios/:usuarioId             guardar horas, notas y ausencias
  *   GET /api/capacidad/proyecto/:proyectoId/equipo     capacidad del equipo en un sprint (?sprint=ID); solo Scrum Master
  *   GET /api/capacidad/equipos/:equipoId               capacidad del equipo en un rango (?inicio=&fin=); solo Scrum Master
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { Router } from 'express';
 import { esModoDemo } from './capacidad.demo.js';

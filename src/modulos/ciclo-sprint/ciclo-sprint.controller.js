@@ -1,4 +1,9 @@
-// Responsable: Diego - HU-09: recibe la peticion y responde (iniciar y cerrar sprint); sin logica de negocio
+/**
+ * @file ciclo-sprint.controller.js
+ * @description Recibe la peticion y responde (iniciar y cerrar sprint); sin logica de negocio
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import * as servicio from './ciclo-sprint.service.js';
 import { envolver } from '../../utils/envolverControlador.js';
 

@@ -1,9 +1,8 @@
 /**
- * ===========================================================================
- * RUTAS DEL CURSO SCRUM
- * Autor: Stephanie Elizdeth Hernández Prieto
- * Descripción: Definición de rutas para el módulo del curso Scrum.
- * ===========================================================================
+ * @file curso-scrum.routes.js
+ * @description Definición de rutas para el módulo del curso Scrum.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import { Router } from 'express';
@@ -11,11 +10,7 @@ import * as controller from './curso-scrum-controller.js';
 import autenticar from '../../middlewares/autenticar.js';
 
 const router = Router();
-router.use(autenticar); 
-
-// ===========================================================================
-// RUTAS PRINCIPALES (Acceso para todos los usuarios autenticados)
-// ===========================================================================
+router.use(autenticar);
 
 // Obtener temario y progreso del curso para un proyecto
 router.get('/:proyectoId', controller.obtenerCursoProyecto);
@@ -43,9 +38,7 @@ router.post('/quiz-final', async (req, res, next) => {
   }
 });
 
-// ===========================================================================
 // RUTAS DE CERTIFICADO
-// ===========================================================================
 
 // Obtener información del certificado del usuario
 router.get('/certificado', controller.obtenerCertificado);
@@ -59,9 +52,7 @@ router.get('/certificado/download', controller.descargarCertificado);
 // Reiniciar progreso del curso
 router.post('/progreso/reset', controller.reiniciarProgreso);
 
-// ===========================================================================
 // RUTAS ADMIN (Solo para usuarios con rol 'admin')
-// ===========================================================================
 
 // Módulos
 router.get('/admin/modulos', controller.obtenerTodosModulos);

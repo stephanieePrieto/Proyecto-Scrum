@@ -1,6 +1,7 @@
 /**
  * @file server.js
  * @description Punto de entrada que inicia el servidor HTTPS con soporte TLS 1.2+ y redirección.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 import fs from 'fs';

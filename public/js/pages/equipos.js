@@ -4,6 +4,7 @@
  * crearlos, renombrarlos, eliminarlos, agregar integrantes (búsqueda, invitación o alta directa), cambiar administradores y quitar
  * integrantes resolviendo antes sus tareas abiertas y responsabilidades de Scrum. Los permisos
  * reales se validan en el servidor; la interfaz solo muestra lo que el servidor indica.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { api } from '../core/api.js';

@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
  * @file correo.js
  * @description Utilidad para el envío de correos electrónicos transaccionales.
  * Soporta envío por SMTP o simulación en consola para desarrollo.
+ * 
  * @author Citlaly Morales Viveros
  */
 

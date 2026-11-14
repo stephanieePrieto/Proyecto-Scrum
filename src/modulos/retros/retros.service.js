@@ -1,7 +1,6 @@
-// Responsable: Diego - HU-13, HU-14: reglas, SQL y avisos por socket (retrospectiva y acciones de mejora)
 /**
- * HU-13 · Retrospectiva (ítems, votos y acciones) y HU-14 · Recordatorio de acciones pendientes.
- *
+ * @file retros.service.js
+ * @description Retrospectiva (ítems, votos y acciones) y HU-14 · Recordatorio de acciones pendientes.
  * Tablas que usa (database/schema.sql): retros, retro_items, retro_votos, retro_acciones, sprints,
  * miembros_proyecto, usuarios y notificaciones.
  *

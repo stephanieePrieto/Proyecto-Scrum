@@ -1,6 +1,7 @@
 /**
  * @file arrastrar.js
  * @description Manejo interactivo de Drag & Drop, alertas WIP, sockets y resiliencia offline (HU-18, HU-22, HU-23).
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 

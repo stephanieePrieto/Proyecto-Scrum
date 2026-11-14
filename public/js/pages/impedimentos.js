@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-11: logica de la pantalla de impedimentos (llama a la API y escucha sockets)
 /**
- * Pintar la pantalla de impedimentos:
+ * @file impedimentos.js
+ * @description Pintar la pantalla de impedimentos:
  *   - Registrar un impedimento (título, severidad, responsable y tarea afectada) y mostrarlo como abierto.
  *   - Resolverlo; si otra persona lo resolvió antes, mostrar "Ya fue resuelto por X".
  *   - Resaltar en rojo los que llevan más de 3 días abiertos.
@@ -11,7 +11,7 @@
  */
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
-import { escaparHtml, pluralizar } from '../core/utils.js';
+import { escaparHtml, pluralizar, conZonaHoraria } from '../core/utils.js';
 import { resolverProyecto, conectarTiempoReal, mostrarSinProyecto } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
@@ -88,7 +88,7 @@ function formatoDuracion(horas) {
  * @param {string} iso
  * @returns {string}
  */
-const fechaCorta = (iso) => new Date(iso).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const fechaCorta = (iso) => new Date(iso).toLocaleString('es', conZonaHoraria({ day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }));
 
 /* ====================================================================
  * Lista

@@ -3,6 +3,8 @@
  * @description Declarar y registrar las rutas del módulo de notificaciones (HU-24).
  *              Se montan en /api/notificaciones (app.js carga la carpeta del módulo automáticamente).
  *              Todas exigen sesión iniciada: cada persona solo ve y marca sus propias notificaciones.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { Router } from 'express';

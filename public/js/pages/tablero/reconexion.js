@@ -1,7 +1,9 @@
 /**
  * @file reconexion.js
- * @description Gestión de eventos WebSockets, avisos visuales de red, cola local offline y resincronización (HU-18, HU-58).
+ * @description Gestión de eventos WebSockets, avisos visuales de red, cola local offline y resincronización.
+ * 
  * @author Camila Mariné Crespo Zurita
+ * @author Alfonso Mendoza Vasquez
  */
 
 import * as socketModule from '../../core/socket.js';

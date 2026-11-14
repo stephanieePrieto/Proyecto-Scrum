@@ -7,3 +7,5 @@ node_modules/
 certs/
 .claude/
 coverage/
+uploads/avatares/
+uploads/adjuntos/

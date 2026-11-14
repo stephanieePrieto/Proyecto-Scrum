@@ -2,7 +2,8 @@
  * @file velocity.js
  * @description Dibujar la gráfica de velocity por sprint cerrado (HU-30).
  * Columnas agrupadas (Comprometidos vs Aceptados/Completados) con tooltips y sin línea amarilla.
- * @author Dana
+ * 
+ * @author Dana Carmona Santamaria
  */
 
 import { escaparHtml } from '../../core/utils.js';
@@ -37,10 +38,10 @@ function construirSvg(sprints, individual) {
 
   const anchoUtil = ANCHO - MARGEN.izq - MARGEN.der;
   const altoUtil = ALTO - MARGEN.arriba - MARGEN.abajo;
-  const ranura = anchoUtil / sprints.length; 
+  const ranura = anchoUtil / sprints.length;
   const anchoBarraTotal = Math.min(56, ranura * 0.7);
   const anchoColumna = anchoBarraTotal / 2;
-  
+
   const limiteEtiqueta = Math.max(6, Math.floor(ranura / 7));
 
   const y = (valor) => MARGEN.arriba + altoUtil - (valor / maximo) * altoUtil;
@@ -59,19 +60,19 @@ function construirSvg(sprints, individual) {
     const altoComp = (s.puntosComprometidos / maximo) * altoUtil;
     const altoCompletado = (s.puntos / maximo) * altoUtil;
     const xBase = centro(i) - anchoBarraTotal / 2;
-    
+
     return `<g>
       <!-- Barra 1: Comprometidos (Azul grisáceo) -->
       <rect fill="#6A8CA0" x="${xBase}" y="${y(s.puntosComprometidos)}" width="${anchoColumna - 1}" height="${altoComp}" rx="3">
         <title>${etiquetaComp}: ${s.puntosComprometidos}</title>
       </rect>
-      <text class="grafica__valor" x="${xBase + anchoColumna/2}" y="${y(s.puntosComprometidos) - 6}" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">${s.puntosComprometidos}</text>
+      <text class="grafica__valor" x="${xBase + anchoColumna / 2}" y="${y(s.puntosComprometidos) - 6}" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">${s.puntosComprometidos}</text>
       
       <!-- Barra 2: Aceptados/Completados (Negro/Oscuro) -->
       <rect fill="#282828" x="${xBase + anchoColumna + 1}" y="${y(s.puntos)}" width="${anchoColumna - 1}" height="${altoCompletado}" rx="3">
         <title>${etiquetaCompl}: ${s.puntos}</title>
       </rect>
-      <text class="grafica__valor" x="${xBase + anchoColumna + 1 + anchoColumna/2}" y="${y(s.puntos) - 6}" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">${s.puntos}</text>
+      <text class="grafica__valor" x="${xBase + anchoColumna + 1 + anchoColumna / 2}" y="${y(s.puntos) - 6}" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">${s.puntos}</text>
       
       <text class="grafica__texto" x="${centro(i)}" y="${ALTO - MARGEN.abajo + 20}" text-anchor="middle" font-size="11" fill="#334155">${escaparHtml(acortar(s.nombre, limiteEtiqueta))}</text>
     </g>`;
@@ -98,9 +99,9 @@ export function dibujarVelocity(contenedor, datos) {
     contenedor.innerHTML = `<div class="aviso aviso--vacio">Aún no hay datos de velocity</div>`;
     return;
   }
-  
+
   const titulo = datos.individual ? 'Velocity individual por sprint' : 'Velocity por sprint';
-  const descripcion = datos.individual 
+  const descripcion = datos.individual
     ? 'Horas estimadas comprometidas frente a horas completadas por sprint cerrado'
     : 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado';
 

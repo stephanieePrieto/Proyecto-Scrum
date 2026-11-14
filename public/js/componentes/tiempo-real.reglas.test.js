@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-52: pruebas de las reglas puras de tiempo real y sondeo
 /**
  * @file tiempo-real.reglas.test.js
  * @description Suite de pruebas unitarias de la lógica pura de la HU-52 (criterio 5: WebSocket bloqueado,
  * sondeo cada 5 s y aviso de tiempo real limitado). Compatible con Jest y ES Modules. Sin DOM ni red.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { describe, test, expect } from '@jest/globals';

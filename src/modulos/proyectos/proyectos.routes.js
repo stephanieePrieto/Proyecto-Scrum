@@ -1,8 +1,9 @@
-// Responsable: Jetz - HU-01: endpoints de proyectos y Definition of Done
-
 /**
- * HU-01 · Rutas de proyectos. Montar en app.js (BASE, avisar al equipo):
+ * @file proyectos.routes.js
+ * @description Rutas de proyectos. Montar en app.js (BASE, avisar al equipo):
  *   app.use('/api/proyectos', require('./modulos/proyectos/proyectos.routes'));
+ * 
+ * @author Jetzaly Josmery Tello Campos
  */
 
 import { Router } from 'express';

@@ -6,6 +6,7 @@ import { autenticar } from '../../middlewares/autenticar.js';
 /**
  * @file auth.routes.js
  * @description Definición de rutas para autenticación y gestión de sesiones.
+ * 
  * @author Citlaly Morales Viveros
  * @author Stephanie Elizdeth Hernández Prieto
  */

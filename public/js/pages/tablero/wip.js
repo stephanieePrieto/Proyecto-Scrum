@@ -1,4 +1,9 @@
-// Responsable: Camila - HU-22: limite WIP por columna
+/**
+ * @file wip.js
+ * @desciption Formatea, evalua y validad las entradas a los formularios
+ * 
+ * @author Camila Mariné Crespo Zurita 
+ */
 /**
  * Formatea el texto del contador de tarjetas para el encabezado de la columna.
  * @param {number} totalTarjetas - Cantidad de tarjetas actualmente en la columna.
@@ -18,17 +23,17 @@ export const formatearContadorWIP = (totalTarjetas, limiteWip) => {
  */
 export const evaluarEstadoWIP = (totalTarjetas, limiteWip, esDuro) => {
     if (!limiteWip) return { permitido: true, alertaBlanda: false };
-    
+
     const excedeLimite = (totalTarjetas + 1) > limiteWip;
-    
+
     if (excedeLimite && esDuro) {
         return { permitido: false, alertaBlanda: false };
     }
-    
+
     if (excedeLimite && !esDuro) {
         return { permitido: true, alertaBlanda: true };
     }
-    
+
     return { permitido: true, alertaBlanda: false };
 };
 

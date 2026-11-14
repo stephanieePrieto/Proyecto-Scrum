@@ -1,4 +1,3 @@
--- @author: Citlaly Morales Viveros (Cliente / Programadora XP)
 -- BASE (no modificar sin avisar al equipo) - HU-47: crea todas las tablas del sistema
 -- VERSION 2: todos los usuarios son "base" (sin rol global). El rol existe SOLO en miembros_proyecto.rol.
 -- Para empezar de cero: database/reiniciar.sql
@@ -22,8 +21,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   es_admin BOOLEAN NOT NULL DEFAULT FALSE,
   activo BOOLEAN NOT NULL DEFAULT TRUE,
   foto_url TEXT,
-  zona_horaria TEXT NOT NULL DEFAULT 'America/Mexico_City',
-  preferencias_notif JSONB NOT NULL DEFAULT '{"asignaciones": true, "menciones": true, "correo": false}',
+  zona_horaria TEXT,
+  preferencias_notif JSONB NOT NULL DEFAULT '{"interna": {"asignacion": true, "mencion": true, "desviacion": true, "impedimento": true}, "correo": {"asignacion": false, "mencion": false, "desviacion": false, "impedimento": false}}',
   intentos_fallidos INTEGER NOT NULL DEFAULT 0,
   bloqueado_hasta TIMESTAMPTZ,
   acepto_privacidad_en TIMESTAMPTZ,

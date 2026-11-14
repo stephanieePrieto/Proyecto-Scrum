@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-21: carriles (swimlanes) del tablero y reasignación al arrastrar a otro carril
 /**
  * @file swimlanes.js
  * @description Dibuja el tablero en carriles horizontales (por historia o por persona) y se encarga de lo que
@@ -11,6 +10,8 @@
  *     toca y aquí se suman las tarjetas de la columna en todos los carriles.
  *   - Al soltar en otro carril, un escuchador en fase de captura se adelanta a arrastrar.js: si la decisión es
  *     reasignar, pide confirmación; si no se permite, avisa. En ambos casos detiene el evento.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { crearElementoTarjeta } from './tarjeta.js';

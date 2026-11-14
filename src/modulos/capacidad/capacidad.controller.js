@@ -1,7 +1,8 @@
-// Responsable: Diego - HU-44: recibe la peticion y responde (capacidad individual); sin logica de negocio
 /**
  * @file capacidad.controller.js
  * @description Controlador HTTP para la gestión de capacidad y ausencias.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import {
   ErrorCapacidad,

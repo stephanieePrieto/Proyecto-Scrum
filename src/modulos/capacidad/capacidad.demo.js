@@ -1,7 +1,10 @@
 /**
- * Proveer datos de ejemplo para que el módulo funcione sin base de datos.
+ * @file capacidad.demo.js
+ * @description Proveer datos de ejemplo para que el módulo funcione sin base de datos.
  * Imitar la misma interfaz que el acceso a PostgreSQL del service.
  * Eliminar este archivo (y sus usos en service y routes) cuando la base de datos esté disponible.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 
 /**

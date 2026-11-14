@@ -1,3 +1,10 @@
+/**
+ * @file autenticar.js
+ * @description Middleware para verificar y validar la sesión o token de usuario mediante cookies httpOnly.
+ * 
+ * @author Citlaly Morales Viveros
+ */
+
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { consulta } from '../config/db.js';
@@ -6,11 +13,6 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { evaluarSesion, errorDeSesion } from '../modulos/auth/auth.service.js';
 import { leerCookies, terminarSesion } from '../modulos/auth/auth.controller.js';
 
-/**
- * @file autenticar.js
- * @description Middleware para verificar y validar la sesión o token de usuario mediante cookies httpOnly.
- * @author Citlaly Morales Viveros
- */
 /**
  * Lee la cabecera con los segundos transcurridos desde la última interacción humana en el navegador.
  *

@@ -1,6 +1,12 @@
 <!DOCTYPE html>
-<!-- Responsable: Diego - HU-12: pantalla de Sprint Review (aceptar o rechazar historias). Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!--
+  @file review.html
+  @description Pantalla de Sprint Review (aceptar o rechazar historias). Solo el contenido del area de trabajo; el menu lo pone layout.js
+  
+  @author Diego Rafael Jiménez Trujano
+-->
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,6 +28,7 @@
   <link rel="stylesheet" href="../css/componentes/responsive.css" />
   <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
 
@@ -60,9 +67,11 @@
     </div>
 
     <!-- HU-12 · tarea 3: solo el Scrum Master delega la aceptación (permiso review.delegar) -->
-    <section class="tarjeta review-delegacion" id="panel-delegacion" data-permiso="review.delegar" aria-labelledby="titulo-delegacion" hidden>
+    <section class="tarjeta review-delegacion" id="panel-delegacion" data-permiso="review.delegar"
+      aria-labelledby="titulo-delegacion" hidden>
       <h2 class="daily__titulo" id="titulo-delegacion">Delegar la aceptación</h2>
-      <p class="daily__ayuda">Si el Product Owner no puede asistir a la Review, elige quién decidirá en su lugar y hasta qué día. La delegación y cada decisión quedan en la bitácora.</p>
+      <p class="daily__ayuda">Si el Product Owner no puede asistir a la Review, elige quién decidirá en su lugar y hasta
+        qué día. La delegación y cada decisión quedan en la bitácora.</p>
 
       <div id="delegacion-actual"></div>
 
@@ -80,7 +89,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="delegacion-motivo">Motivo <span class="review-opcional">(opcional)</span></label>
+          <label class="form-label" for="delegacion-motivo">Motivo <span
+              class="review-opcional">(opcional)</span></label>
           <input class="form-input" id="delegacion-motivo" name="motivo" type="text" maxlength="200" />
           <p class="daily-form__error" id="error-delegacion-motivo" hidden></p>
         </div>
@@ -109,4 +119,5 @@
   <script src="../socket.io/socket.io.js"></script>
   <script type="module" src="../js/pages/review.js"></script>
 </body>
+
 </html>

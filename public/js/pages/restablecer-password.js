@@ -1,11 +1,12 @@
-import { api } from '../core/api.js';
-import { mostrarAlerta } from '../core/auth.js';
-
 /**
  * @file restablecer-password.js
  * @description Lógica del lado del cliente para establecer una nueva contraseña mediante un token.
+ * 
  * @author Citlaly Morales Viveros
  */
+
+import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('form-restablecer');

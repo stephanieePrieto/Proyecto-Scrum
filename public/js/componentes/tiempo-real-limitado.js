@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-52: conexión en tiempo real del tablero y sondeo cada 5 s si el WebSocket está bloqueado
 /**
  * @file tiempo-real-limitado.js
  * @description Abre la conexión de Socket.io del tablero solo por WebSocket y, si un proxy o firewall la
@@ -11,6 +10,8 @@
  * al importar el módulo y se publica en window.socket porque reconexion.js la toma al cargarse y arrastrar.js
  * la lee de window.socket; por eso tablero.js importa este módulo antes que los demás. El cliente de Socket.io
  * (/socket.io/socket.io.js) lo carga tablero.html como script clásico, antes de los módulos.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import * as socketBase from '../core/socket.js';

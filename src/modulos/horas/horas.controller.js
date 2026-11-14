@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-27: recibe la peticion y responde (registro de horas reales); sin logica de negocio
 /**
  * @file horas.controller.js
- * @description Controladores HTTP de la HU-27. Toman el usuario autenticado (`req.user.id`), llaman al
+ * @description Controladores HTTP. Toman el usuario autenticado (`req.user.id`), llaman al
  *              servicio y responden `{ ok: true, datos }`. Los errores (ErrorApp) los formatea manejoErrores.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';

@@ -1,7 +1,10 @@
 /**
- * Centralizar las reglas que convierten un valor en un tono de semáforo.
+ * @file semaforo.js
+ * @description Centralizar las reglas que convierten un valor en un tono de semáforo.
  * Devolver siempre uno de: 'exito' | 'advertencia' | 'peligro' | 'info' | 'neutro'.
  * Modificar los umbrales aquí para cambiar los colores en todo el dashboard.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 /**

@@ -1,4 +1,9 @@
-// Responsable: Camila - HU-23: bloquear tarjeta y vincular impedimento
+/**
+ * @file bloqueo.js
+ * @description Valida, verifica y determina el estado de la tarjeta para bloquear su desplazamiento.
+ * 
+ * @author Camila Mariné Crespo Zurita
+ */
 /**
  * Valida que el desarrollador proporcione un motivo al bloquear una tarjeta.
  * @param {string} motivo - Texto explicativo del bloqueo.

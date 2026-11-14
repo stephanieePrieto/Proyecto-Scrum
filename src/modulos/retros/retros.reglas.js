@@ -1,7 +1,9 @@
-// Responsable: Diego - HU-13, HU-14: reglas puras de la retrospectiva (validar ítems y acciones, votos, vencimientos, avisos de edición)
 /**
- * Reglas de la retrospectiva que no consultan la base de datos ni Express,
+ * @file retros.reglas.js
+ * @description Reglas de la retrospectiva que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (retros.test.js).
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { esFechaValida } from '../daily/daily.reglas.js';
 

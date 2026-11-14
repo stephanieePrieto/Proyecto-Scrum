@@ -1,6 +1,7 @@
 /**
  * @file validar.js
  * @description Funciones de validación de datos de entrada.
+ * 
  * @author Citlaly Morales Viveros
  */
 

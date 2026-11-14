@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-09: reglas, SQL y avisos por socket (iniciar y cerrar sprint)
 /**
- * HU-09 · Iniciar y cerrar sprint.
+ * @file ciclo-sprint.service.js
+ * @description Iniciar y cerrar sprint.
  *
  * Tablas que usa (database/schema.sql): sprints, historias, tareas, columnas_tablero, miembros_proyecto, usuarios.
  *

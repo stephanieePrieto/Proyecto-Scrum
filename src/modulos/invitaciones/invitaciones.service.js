@@ -1,6 +1,7 @@
 /**
  * @file invitaciones.service.js
  * @description Lógica de negocio de las invitaciones a equipos, reglas, SQL y avisos por socket (invitar por correo y alta directa).
+ * 
  * @author Citlaly Morales Viveros
  */
 

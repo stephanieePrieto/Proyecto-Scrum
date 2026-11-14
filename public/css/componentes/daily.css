@@ -252,7 +252,7 @@
   gap: 8px;
 }
 
-.retro-form__fila > .form-group {
+.retro-form__fila>.form-group {
   flex: 1 1 140px;
   margin: 0;
 }

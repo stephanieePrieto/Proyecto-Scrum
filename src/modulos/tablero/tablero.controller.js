@@ -1,6 +1,7 @@
 /**
  * @file tablero.controller.js
  * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas) [HU-17, HU-18, HU-22].
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 
@@ -18,7 +19,7 @@ import { actualizarColumnas, moverTarjeta, obtenerEstructuraTablero } from './ta
  */
 export const obtenerTablero = asyncHandler(async (req, res) => {
     const proyectoId = req.params.proyectoId;
-    
+
     // Validar que el proyectoId exista
     if (!proyectoId || proyectoId === 'null') {
         return res.status(200).json({

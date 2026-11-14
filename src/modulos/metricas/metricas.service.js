@@ -164,7 +164,7 @@ async function impedimentosAbiertos(proyectoId, usuarioId) {
       WHERE proyecto_id = $1 AND estado = 'abierto' AND responsable_id = $2`,
     [proyectoId, usuarioId],
   );
-  
+
   const [filaTodos] = await consultar(
     `SELECT COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE severidad = 'alta')::int AS criticos
@@ -172,8 +172,8 @@ async function impedimentosAbiertos(proyectoId, usuarioId) {
       WHERE proyecto_id = $1 AND estado = 'abierto'`,
     [proyectoId],
   );
-  
-  return { 
+
+  return {
     mios: { valor: filaMios.total, criticos: filaMios.criticos },
     todos: { valor: filaTodos.total, criticos: filaTodos.criticos }
   };
@@ -201,7 +201,7 @@ async function desviacionAcumulada(proyectoId) {
   const estimado = aUnDecimal(fila.estimado);
   const real = aUnDecimal(fila.real);
   const valor = aUnDecimal(real - estimado);
-  
+
   // HU-33: Alertas por desviación (Evaluación contra el umbral)
   const porcentajeDesviacion = estimado > 0 ? Math.abs((valor / estimado) * 100) : 0;
   const superaUmbral = porcentajeDesviacion > fila.umbral_desviacion;
@@ -249,7 +249,7 @@ async function proyectoVacio(proyectoId) {
 export async function obtenerKpisDashboard(proyectoId, usuarioId) {
   const inicio = Date.now();
   const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
-  
+
   const resultados = await Promise.allSettled([
     proyectoVacio(proyectoId),
     avanceGlobal(proyectoId),
@@ -315,7 +315,7 @@ export function calcularPromedioMovil(valores, ventana = VENTANA_PROMEDIO) {
  */
 export async function obtenerVelocity(proyectoId, usuarioIdFiltro = null) {
   let filas;
-  
+
   if (usuarioIdFiltro) {
     // Velocity individual en horas (comprometidas vs completadas)
     filas = await consultar(
@@ -574,30 +574,30 @@ export async function obtenerBurndown(proyectoId, usuarioIdFiltro = null) {
 }
 
 // ===========================================================================
-  // HU-32: Distribución del tiempo
-  // ===========================================================================
+// HU-32: Distribución del tiempo
+// ===========================================================================
 
-  /**
-   * Obtener las horas reales registradas, detalladas por dimensiones para su distribución.
-   * El backend extrae el detalle plano y el frontend lo agrupa dinámicamente.
-   * 
-   * @param {number} proyectoId Identificador del proyecto.
-   * @param {number} usuarioId Identificador del usuario que consulta.
-   * @returns {Promise<{esScrumMaster: boolean, datos: Array}>}
-   */
-  export async function obtenerDistribucionTiempo(proyectoId, usuarioId) {
-    const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
-    const esScrumMaster = rol === 'scrum_master';
+/**
+ * Obtener las horas reales registradas, detalladas por dimensiones para su distribución.
+ * El backend extrae el detalle plano y el frontend lo agrupa dinámicamente.
+ * 
+ * @param {number} proyectoId Identificador del proyecto.
+ * @param {number} usuarioId Identificador del usuario que consulta.
+ * @returns {Promise<{esScrumMaster: boolean, datos: Array}>}
+ */
+export async function obtenerDistribucionTiempo(proyectoId, usuarioId) {
+  const rol = await exigirIntegranteProyecto(usuarioId, proyectoId);
+  const esScrumMaster = rol === 'scrum_master';
 
-    const params = [proyectoId];
-    let filtroUsuario = '';
-    
-    if (!esScrumMaster) {
-      filtroUsuario = ' AND r.usuario_id = $2';
-      params.push(usuarioId);
-    }
+  const params = [proyectoId];
+  let filtroUsuario = '';
 
-    const datos = await consultar(`
+  if (!esScrumMaster) {
+    filtroUsuario = ' AND r.usuario_id = $2';
+    params.push(usuarioId);
+  }
+
+  const datos = await consultar(`
       SELECT
         COALESCE(u.nombre, 'Usuario eliminado') AS persona,  -- LEFT JOIN: no perder horas de usuarios borrados
         COALESCE(h.titulo, 'Sin historia') AS historia,
@@ -613,8 +613,8 @@ export async function obtenerBurndown(proyectoId, usuarioIdFiltro = null) {
       GROUP BY u.id, u.nombre, h.id, h.titulo, e.id, e.nombre, t.etiquetas[1]  -- por id, no solo por nombre
     `, params);
 
-    return { esScrumMaster, datos };
-  }
+  return { esScrumMaster, datos };
+}
 // ===========================================================================
 // HU-36: Exportación Asíncrona de Reportes (CSV / PDF)
 // ===========================================================================

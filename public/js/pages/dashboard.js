@@ -7,9 +7,9 @@
  *   - Mostrar "—" en días restantes si no hay sprint activo.
  *   - Mostrar error solo en el KPI que falló y cargar los demás.
  *
- * @author Dana Carmona Santamaria
  * @author Jetzaly Josmery Tello Campos
- * @author Alfonso Mendoza Vasquez
+ * @author Dana Carmona Santamaria
+ * @author Stephanie Elizdeth Hernández Prieto
  * @author Citlaly Morales Viveros
  */
 

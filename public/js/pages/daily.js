@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-10: logica de la pantalla de Daily Scrum (llama a la API y escucha sockets)
 /**
- * Pintar la pantalla de Daily Scrum:
+ * @file daily.js
+ * @description Pintar la pantalla de Daily Scrum:
  *   - Registrar o editar MI Daily de hoy (ayer, hoy, impedimentos) y vincular tareas como chips.
  *   - Scrum Master: ver el estado de todo el equipo (Registrado, Tarde, Ausente o Pendiente).
  *     Los demás roles solo registran y ven su propio registro.

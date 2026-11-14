@@ -1,9 +1,9 @@
-// Responsable: Camila - HU-59: descartar eventos viejos y mantener el mismo estado para todos
 /**
  * @file convergencia.js
  * @description Convergencia de estado en tiempo real para el tablero Kanban (HU-59):
  * descarte de eventos duplicados o tardíos por número de versión, reversión de cambios
  * optimistas rechazados por el servidor y resincronización sin recargar la página.
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 

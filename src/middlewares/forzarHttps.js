@@ -1,6 +1,7 @@
 /**
  * @file forzarHttps.js
  * @description Redirección forzada de HTTP a HTTPS.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

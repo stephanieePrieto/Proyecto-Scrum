@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-27: utilidades compartidas por la pantalla "Mis horas" y el temporizador
 /**
  * @file horas-comun.js
  * @description Creación segura de elementos DOM, mensajes de error de la API y formato de horas/tiempo.
  *              Todo el texto dinámico entra con `textContent`, nunca como HTML.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 /**

@@ -1,4 +1,9 @@
-// HU-04: épicas del proyecto activo.
+/**
+ * @file epicas.routes.js
+ * @description Rutas del épicas del proyecto activo.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';
 import * as controller from './epicas.controller.js';

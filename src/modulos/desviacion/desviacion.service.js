@@ -1,5 +1,3 @@
-// Responsable: Alfonso - HU-28: reglas, SQL y avisos por socket (desviacion de horas)
-
 /**
  * @file desviacion.service.js
  * @description Núcleo de la HU-28 (RF-29): horas estimadas contra reales y su desviación por
@@ -11,6 +9,8 @@
  * Siempre se calcula desde `registros_horas`, así que una edición retroactiva de horas (HU-27) se refleja
  * sola en la siguiente consulta. El aviso en tiempo real lo emite el módulo `horas` con `horas:actualizadas`
  * a la sala del proyecto; este módulo no emite eventos porque solo lee.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { consulta } from '../../config/db.js';

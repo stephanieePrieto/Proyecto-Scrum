@@ -4,10 +4,13 @@
  * Reutilizar este módulo en todas las páginas para mantener un menú único.
  * Incluye la campana de notificaciones (HU-24) y carga su hoja de estilos de forma global.
  * 
+ * @author Alfonso Mendoza Vasquez
+ * @author Diego Rafael Jiménez Trujano
  * @author Citlaly Morales Viveros
  */
 import { escaparHtml, iniciales } from './utils.js';
 import { cargarPermisos } from './permisos-ui.js';
+import { api } from './api.js';
 
 /** Ruta pública de la hoja de estilos de la campana de notificaciones (HU-24). */
 const RUTA_CSS_NOTIFICACIONES = '/css/componentes/notificaciones.css';
@@ -240,6 +243,70 @@ function leerUsuario() {
   return { nombre: 'Usuario', rol: '' };
 }
 
+/**
+ * Obtener el primer nombre de la persona para mostrarlo en la barra.
+ *
+ * @param {string} nombre - Nombre completo.
+ * @returns {string} Primer nombre, o "Usuario" si no hay nombre.
+ */
+function primerNombre(nombre = '') {
+  return String(nombre).trim().split(/\s+/)[0] || 'Usuario';
+}
+
+/**
+ * Guardar o borrar un dato de la persona en localStorage sin tocar sus demás datos.
+ *
+ * @param {string} campo - Nombre del dato, por ejemplo "zonaHoraria".
+ * @param {*} valor - Valor a guardar; null, undefined o vacío lo borra.
+ * @returns {void}
+ */
+function guardarCampoLocal(campo, valor) {
+  try {
+    const guardado = JSON.parse(localStorage.getItem('usuario'));
+    const registro = guardado && typeof guardado === 'object' ? guardado : {};
+    if (valor === null || valor === undefined || valor === '') delete registro[campo];
+    else registro[campo] = valor;
+    localStorage.setItem('usuario', JSON.stringify(registro));
+  } catch { /* Sin almacenamiento: se usa la zona del navegador */ }
+}
+
+/**
+ * Guardar en localStorage los datos de la cuenta de la sesión que devuelve el servidor. Si el registro
+ * guardado pertenece a otra cuenta (mismo navegador), se reinicia para no mostrar sus datos.
+ *
+ * @param {{id: number, nombre: string, zonaHoraria: string|null}} usuario - Datos de /usuarios/yo.
+ * @returns {void}
+ */
+function sincronizarUsuarioLocal(usuario) {
+  try {
+    const guardado = JSON.parse(localStorage.getItem('usuario'));
+    let registro = guardado && typeof guardado === 'object' ? guardado : {};
+    if (registro.id !== undefined && Number(registro.id) !== Number(usuario.id)) registro = {};
+    registro.id = usuario.id;
+    if (usuario.nombre) registro.nombre = usuario.nombre;
+    if (usuario.zonaHoraria) registro.zonaHoraria = usuario.zonaHoraria;
+    else delete registro.zonaHoraria;
+    localStorage.setItem('usuario', JSON.stringify(registro));
+  } catch { /* Sin almacenamiento: se usa la zona del navegador */ }
+}
+
+/** Indica si ya se escucha el aviso de que la zona horaria cambió desde el perfil. */
+let escuchandoZona = false;
+
+/**
+ * Copiar en localStorage la zona horaria que la persona guarda desde el perfil, para que las fechas
+ * se muestren en esa zona sin esperar una nueva consulta.
+ *
+ * @returns {void}
+ */
+function escucharZonaPerfil() {
+  if (escuchandoZona) return;
+  escuchandoZona = true;
+  window.addEventListener('perfil:zona-actualizada', (evento) => {
+    guardarCampoLocal('zonaHoraria', evento.detail?.zonaHoraria ?? null);
+  });
+}
+
 /** Campana de notificaciones montada actualmente (para liberarla si la barra se redibuja). */
 let campana = null;
 
@@ -261,6 +328,117 @@ async function montarCampana() {
     });
   } catch (error) {
     console.warn('[layout] No se pudo montar la campana de notificaciones:', error);
+  }
+}
+
+/** Solo se muestran fotos servidas por este mismo sitio. */
+const PATRON_RUTA_FOTO = /^\/(?!\/)/;
+
+/** Consulta de la foto en curso; evita pedirla dos veces si la barra se dibuja de nuevo. */
+let consultaFoto = null;
+
+/** Indica si ya se escucha el aviso de que la foto cambió desde el perfil. */
+let escuchandoFoto = false;
+
+/** Sube con cada cambio de foto desde el perfil, para descartar respuestas viejas del servidor. */
+let versionFoto = 0;
+
+/**
+ * Dejar pasar solo rutas del mismo sitio como foto.
+ *
+ * @param {*} ruta - Valor a revisar.
+ * @returns {string|null} La ruta, o null si no es válida.
+ */
+function rutaFotoValida(ruta) {
+  return typeof ruta === 'string' && PATRON_RUTA_FOTO.test(ruta) ? ruta : null;
+}
+
+/**
+ * Leer la ruta de la foto que se guardó junto al usuario en localStorage.
+ *
+ * @returns {string|null} La ruta, o null si no hay foto guardada.
+ */
+function leerFotoGuardada() {
+  try {
+    return rutaFotoValida(JSON.parse(localStorage.getItem('usuario'))?.fotoUrl);
+  } catch { return null; }
+}
+
+/**
+ * Guardar la ruta de la foto junto al usuario en localStorage sin tocar sus demás datos.
+ * Se guarda ahí para que se borre junto con el usuario al cerrar sesión.
+ *
+ * @param {string|null} ruta - Ruta de la foto, o null si ya no tiene.
+ * @returns {void}
+ */
+function guardarFotoLocal(ruta) {
+  try {
+    const guardado = JSON.parse(localStorage.getItem('usuario'));
+    const registro = guardado && typeof guardado === 'object' ? guardado : {};
+    if (ruta) registro.fotoUrl = ruta;
+    else delete registro.fotoUrl;
+    localStorage.setItem('usuario', JSON.stringify(registro));
+  } catch { /* Sin almacenamiento: la foto se vuelve a pedir en la siguiente página */ }
+}
+
+/**
+ * Dibujar en la barra la foto indicada o, si no hay o no carga, las iniciales.
+ *
+ * @param {string|null} ruta - Ruta de la foto.
+ * @returns {void}
+ */
+function pintarFotoBarra(ruta) {
+  const avatar = document.querySelector('#barra-superior .barra-superior__avatar');
+  if (!avatar) return;
+
+  const mostrarIniciales = () => { avatar.textContent = iniciales(leerUsuario().nombre); };
+  if (!ruta) {
+    mostrarIniciales();
+    return;
+  }
+
+  const imagen = document.createElement('img');
+  imagen.alt = '';
+  imagen.style.cssText = 'display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+  imagen.addEventListener('error', mostrarIniciales, { once: true });
+  imagen.src = ruta;
+  avatar.replaceChildren(imagen);
+}
+
+/**
+ * Mostrar la foto de perfil en el avatar de la barra. Primero usa la que quedó guardada para no
+ * esperar y después la confirma con el servidor. También se actualiza cuando la persona cambia su
+ * foto desde el perfil (evento "perfil:foto-actualizada").
+ *
+ * @returns {void}
+ */
+function mostrarFotoBarra() {
+  if (!escuchandoFoto) {
+    escuchandoFoto = true;
+    window.addEventListener('perfil:foto-actualizada', (evento) => {
+      const ruta = rutaFotoValida(evento.detail?.fotoUrl);
+      versionFoto += 1;
+      guardarFotoLocal(ruta);
+      pintarFotoBarra(ruta);
+    });
+  }
+
+  pintarFotoBarra(leerFotoGuardada());
+
+  if (!consultaFoto) {
+    const versionInicial = versionFoto;
+    consultaFoto = api('/usuarios/yo').then((respuesta) => {
+      const usuario = respuesta?.usuario;
+      if (usuario) {
+        sincronizarUsuarioLocal(usuario);
+        const nombreBarra = document.querySelector('#barra-superior .barra-superior__usuario-nombre');
+        if (nombreBarra && usuario.nombre) nombreBarra.textContent = primerNombre(usuario.nombre);
+      }
+      if (versionInicial !== versionFoto) return;
+      const ruta = rutaFotoValida(usuario?.fotoUrl);
+      guardarFotoLocal(ruta);
+      pintarFotoBarra(ruta);
+    }).catch(() => { /* Sin respuesta: se queda con lo que ya se muestra */ });
   }
 }
 
@@ -302,7 +480,7 @@ export function montarBarraSuperior() {
 
       <a href="/pages/perfil.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;">
         <div class="barra-superior__usuario-texto">
-          <div class="barra-superior__usuario-nombre">${escaparHtml(usuario.nombre)}</div>
+          <div class="barra-superior__usuario-nombre">${escaparHtml(primerNombre(usuario.nombre))}</div>
           <div class="barra-superior__usuario-rol">${escaparHtml(usuario.rol)}</div>
         </div>
         <div class="barra-superior__avatar" aria-hidden="true">${escaparHtml(iniciales(usuario.nombre))}</div>
@@ -310,6 +488,9 @@ export function montarBarraSuperior() {
     </div>`;
 
   activarMenus(contenedor);
+
+  mostrarFotoBarra();
+  escucharZonaPerfil();
 
   // Montar la campana en todas las páginas que usen la barra
   montarCampana();

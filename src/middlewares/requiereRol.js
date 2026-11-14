@@ -1,10 +1,9 @@
-// BASE (no modificar sin avisar al equipo) - HU-42: revisa membresia y rol por proyecto (lo escribe Citlaly)
-
 /**
  * @file requiereRol.js
  * @description Middleware de autorización por rol dentro del proyecto. Se coloca después de autenticar
  * y comprueba la matriz de permisos de permisos.js con el rol vigente en la base de datos, de modo que
  * un cambio de rol se aplica en la siguiente petición sin cerrar sesión.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { consulta } from '../config/db.js';

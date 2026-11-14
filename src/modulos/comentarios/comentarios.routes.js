@@ -1,4 +1,9 @@
-// Responsable: Alfonso - HU-20: rutas de comentarios (se montan en /api/comentarios)
+/**
+ * @file comentarios.routes
+ * @description Rutas de comentarios (se montan en /api/comentarios)
+ * 
+ * @author Alfonso Mendoza Vasquez
+ */
 import { Router } from 'express';
 import { identificar } from '../../middlewares/identificar.js';
 import { requierePermiso } from '../../middlewares/requiereRol.js';

@@ -2,6 +2,7 @@
  * @file desviacion.test.js
  * @description Suite de pruebas unitarias para el cálculo de desviación de estimaciones (HU-28).
  * Compatible con Jest y ES Modules.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

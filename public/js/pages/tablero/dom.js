@@ -1,10 +1,14 @@
-// Responsable: Alfonso - HU-20: utilidades compartidas del detalle de tarjeta
 /**
  * @file dom.js
  * @description Creación de nodos DOM sin innerHTML (evita XSS), avisos con reintento, formato de fechas
  *              y tamaños, iniciales de nombres y mensajes de error del servidor.
  *              No importa ningún otro módulo: un fallo en otro archivo no impide cargar este.
+ * 
+ * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
+
+import { conZonaHoraria } from '../../core/utils.js';
 
 /** @constant {number} Peso máximo por adjunto (10 MB). */
 export const LIMITE_ADJUNTO_BYTES = 10 * 1024 * 1024;
@@ -106,7 +110,7 @@ export function crearAviso(clase = 'dt-aviso') {
 export function formatearFecha(valor) {
   const fecha = new Date(valor);
   if (Number.isNaN(fecha.getTime())) return '';
-  return fecha.toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return fecha.toLocaleString('es-MX', conZonaHoraria({ day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }));
 }
 
 /**

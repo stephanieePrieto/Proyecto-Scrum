@@ -3,7 +3,8 @@
  * @description Dibuja el porcentaje de avance mediante una gráfica de pastel (SVG)
  * y un resumen detallado a su izquierda. Muestra la información del equipo o 
  * de un integrante específico, con colores semánticos según el porcentaje.
- * @author Dana
+ * 
+ * @author Dana Carmona Santamaria
  */
 
 import { escaparHtml, pluralizar } from '../../core/utils.js';
@@ -22,10 +23,10 @@ const ETIQUETA_ROL = {
  * Se utilizan valores quemados para asegurar que el SVG los tome correctamente.
  */
 function colorPorPorcentaje(porcentaje) {
-  if (porcentaje === null) return '#e2e8f0'; 
+  if (porcentaje === null) return '#e2e8f0';
   if (porcentaje >= UMBRAL_EXITO) return '#10b981';
-  if (porcentaje >= UMBRAL_ADVERTENCIA) return '#f59e0b'; 
-  return '#ef4444'; 
+  if (porcentaje >= UMBRAL_ADVERTENCIA) return '#f59e0b';
+  return '#ef4444';
 }
 
 /**
@@ -34,7 +35,7 @@ function colorPorPorcentaje(porcentaje) {
 function dibujarPastel(porcentaje) {
   const dash = porcentaje === null ? 0 : porcentaje;
   const colorHex = colorPorPorcentaje(porcentaje);
-  
+
   return `
     <svg viewBox="0 0 36 36" width="180" height="180" style="display:block; margin: 0 auto; overflow:visible;">
       <!-- Círculo fondo -->
@@ -68,7 +69,7 @@ export function dibujarAvance(contenedor, datos, seleccionadoId = 'equipo') {
     entidad = datos.personas.find(p => String(p.usuarioId) === seleccionadoId) || datos.equipo;
   }
 
-    // 2. Avisos: mismo estilo de tarjeta que los impedimentos (imp--baja = azul, imp--media = ámbar)
+  // 2. Avisos: mismo estilo de tarjeta que los impedimentos (imp--baja = azul, imp--media = ámbar)
   const avisos = [];
   if (seleccionadoId === 'equipo') {
     if (datos.equipo.tareasSinEstimar > 0) {
@@ -82,13 +83,13 @@ export function dibujarAvance(contenedor, datos, seleccionadoId = 'equipo') {
   }
   const htmlAvisos = avisos.length
     ? `<ul class="imp-lista" style="margin-bottom: 16px;">${avisos.map((a) =>
-        `<li class="imp ${a.clase}" role="status"><div class="imp__titulo">${a.texto}</div></li>`).join('')}</ul>`
+      `<li class="imp ${a.clase}" role="status"><div class="imp__titulo">${a.texto}</div></li>`).join('')}</ul>`
     : '';
 
   // 3. Renderizar el diseño de 2 columnas (Resumen + Gráfica)
   const titulo = entidad.nombre || 'Avance del Equipo';
   const subtitulo = entidad.rol ? ETIQUETA_ROL[entidad.rol] : 'Consolidado del proyecto';
-  
+
   contenedor.innerHTML = `
     ${htmlAvisos}
     <div class="tarjeta" style="display:flex; flex-wrap:wrap; align-items:center; gap:32px; padding: 32px;">

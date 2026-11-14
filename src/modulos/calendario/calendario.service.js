@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-15: reglas, SQL y avisos por socket (eventos Scrum)
 /**
- * HU-15 · Calendario de eventos Scrum.
+ * @file calendario.service.js
+ * @description Calendario de eventos Scrum.
  *
  * Tablas que usa (database/schema.sql): eventos_calendario, sprints, miembros_proyecto, usuarios,
  * ausencias y notificaciones.
@@ -14,6 +14,8 @@
  *  - Las horas se guardan en UTC (TIMESTAMPTZ) definidas en ZONA_EVENTOS; la pantalla las muestra
  *    en la zona horaria del perfil de cada persona (usuarios.zona_horaria).
  *  - Los conflictos con ausencias del Scrum Master o Product Owner se calculan al consultar.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';

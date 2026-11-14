@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-21: reglas puras para filtrar el tablero, agruparlo en carriles y evaluar cambios en vivo
 /**
  * @file filtros.reglas.js
  * @description Lógica pura de la HU-21, sin DOM, sin localStorage y sin red, para poder probarla con Jest:
@@ -10,6 +9,8 @@
  *   - Decidir si una tarjeta que cambió en vivo debe salir de la vista (criterio 5).
  *
  * El "estado" de una tarea es la columna del tablero en la que está (columna_id).
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 /** Formas de agrupar el tablero. */

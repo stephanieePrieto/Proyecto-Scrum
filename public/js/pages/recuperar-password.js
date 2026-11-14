@@ -1,11 +1,11 @@
-import { api } from '../core/api.js';
-import { mostrarAlerta } from '../core/auth.js';
-
 /**
  * @file recuperar-password.js
  * @description Lógica del lado del cliente para solicitar el token de recuperación de contraseña.
+ * 
  * @author Citlaly Morales Viveros
  */
+import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('form-recuperar');

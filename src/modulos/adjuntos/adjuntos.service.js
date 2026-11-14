@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-20: reglas y SQL de adjuntos (archivos en disco, maximo 10 MB)
 /**
  * @file adjuntos.service.js
  * @description Guarda, lista, descarga y elimina adjuntos. El archivo vive en `uploads/adjuntos/`
@@ -72,7 +71,7 @@ export function nombreGuardado(original) {
  */
 async function borrarArchivo(nombre) {
   if (!nombre) return;
-  await fsp.unlink(path.join(CARPETA_ADJUNTOS, path.basename(nombre))).catch(() => {});
+  await fsp.unlink(path.join(CARPETA_ADJUNTOS, path.basename(nombre))).catch(() => { });
 }
 
 /**

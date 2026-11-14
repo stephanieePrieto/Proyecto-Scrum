@@ -1,6 +1,12 @@
 <!DOCTYPE html>
-<!-- Responsable: Diego - HU-13, HU-14: pantalla de retrospectiva y acciones pendientes. Solo el contenido del area de trabajo; el menu lo pone layout.js -->
+<!-- 
+  @file retrospectiva.html
+  @description Pantalla de retrospectiva y acciones pendientes. Solo el contenido del area de trabajo; el menu lo pone layout.js
+  
+  @author Diego Rafael Jiménez Trujano
+-->
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,6 +28,7 @@
   <link rel="stylesheet" href="../css/componentes/responsive.css" />
   <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
 </head>
+
 <body>
   <header id="barra-superior" class="barra-superior"></header>
 
@@ -51,10 +58,12 @@
         <h2 class="daily__titulo" id="titulo-bien">Qué salió bien</h2>
         <form class="retro-form" data-columna="bien" novalidate>
           <label class="solo-lectores" for="texto-bien">Nueva nota en Qué salió bien</label>
-          <textarea class="form-input" id="texto-bien" name="texto" rows="2" maxlength="500" placeholder="Algo que funcionó…"></textarea>
+          <textarea class="form-input" id="texto-bien" name="texto" rows="2" maxlength="500"
+            placeholder="Algo que funcionó…"></textarea>
           <p class="daily-form__error" id="error-bien" hidden></p>
           <div class="retro-form__fila">
-            <label class="retro-form__anonimo"><input type="checkbox" name="anonimo" /> Publicar de forma anónima</label>
+            <label class="retro-form__anonimo"><input type="checkbox" name="anonimo" /> Publicar de forma
+              anónima</label>
             <button class="boton boton--primario boton--pequeno" type="submit">Agregar</button>
           </div>
         </form>
@@ -65,10 +74,12 @@
         <h2 class="daily__titulo" id="titulo-mejorar">Qué mejorar</h2>
         <form class="retro-form" data-columna="mejorar" novalidate>
           <label class="solo-lectores" for="texto-mejorar">Nueva nota en Qué mejorar</label>
-          <textarea class="form-input" id="texto-mejorar" name="texto" rows="2" maxlength="500" placeholder="Algo que nos frenó…"></textarea>
+          <textarea class="form-input" id="texto-mejorar" name="texto" rows="2" maxlength="500"
+            placeholder="Algo que nos frenó…"></textarea>
           <p class="daily-form__error" id="error-mejorar" hidden></p>
           <div class="retro-form__fila">
-            <label class="retro-form__anonimo"><input type="checkbox" name="anonimo" /> Publicar de forma anónima</label>
+            <label class="retro-form__anonimo"><input type="checkbox" name="anonimo" /> Publicar de forma
+              anónima</label>
             <button class="boton boton--primario boton--pequeno" type="submit">Agregar</button>
           </div>
         </form>
@@ -79,7 +90,8 @@
         <h2 class="daily__titulo" id="titulo-acciones">Acciones</h2>
         <form class="retro-form" id="form-accion" novalidate>
           <label class="solo-lectores" for="accion-texto">Acción de mejora</label>
-          <textarea class="form-input" id="accion-texto" name="texto" rows="2" maxlength="300" placeholder="Qué haremos para mejorar…"></textarea>
+          <textarea class="form-input" id="accion-texto" name="texto" rows="2" maxlength="300"
+            placeholder="Qué haremos para mejorar…"></textarea>
           <p class="daily-form__error" id="error-accion-texto" hidden></p>
           <div class="retro-form__fila">
             <div class="form-group">
@@ -103,4 +115,5 @@
   <script src="../socket.io/socket.io.js"></script>
   <script type="module" src="../js/pages/retrospectiva.js"></script>
 </body>
+
 </html>

@@ -1,6 +1,7 @@
 /**
  * @file tablero.routes.js
  * @description Endpoints del tablero del sprint (HU-17, HU-18, HU-22).
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 

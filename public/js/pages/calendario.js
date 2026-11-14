@@ -1,13 +1,14 @@
-// Responsable: Diego - HU-15: logica de la pantalla del calendario de eventos Scrum (llama a la API y escucha sockets)
 /**
- * Pintar el calendario del sprint activo:
+ * @file calendario.js
+ * @description Pintar el calendario del sprint activo:
  *   - Vista mensual o semanal, con un color por tipo de evento.
  *   - Las horas se muestran en la zona horaria del perfil de la persona.
  *   - Avisa de los eventos que caen en una ausencia del Scrum Master o del Product Owner.
  *   - Sin sprint activo, muestra un mensaje.
  *   - Se actualiza sola cuando cambian las fechas del sprint (Socket.io).
  *
- * @author Citlaly Morales Viveros (Cliente / Programadora XP)
+ * @author Diego Rafael Jiménez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';

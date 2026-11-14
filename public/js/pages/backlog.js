@@ -1,7 +1,6 @@
-// Responsable: Jetz - HU-02, HU-03, HU-04, HU-05: logica de la pantalla del Product Backlog (modal de historia, arrastrar, epicas y filtros) (llama a la API y escucha sockets)
 /**
  * @file backlog.js
- * HU-02 · CRUD de historias  |  HU-03 · Priorizar arrastrando.
+ * @description CRUD de historias. Priorizar arrastrando.
  *
  * Qué hace esta pantalla:
  *   1. Carga la lista priorizada del proyecto activo y la mantiene al día
@@ -21,9 +20,7 @@ import { cargarPermisos, escucharCambiosDeRol, tienePermiso } from '../core/perm
 
 montarBarraSuperior();
 
-// ====================================================================
 // Estado y referencias
-// ====================================================================
 const $ = (id) => document.getElementById(id);
 const REFRESCO_MS = 5000;            // Recarga automática mientras los sockets de la base no estén listos
 const BORRADOR_PREFIJO = 'bl-borrador';
@@ -61,9 +58,7 @@ const el = {
 const CAMPOS = ['titulo', 'como', 'quiero', 'para', 'criterios', 'puntos', 'epica_id', 'etiquetas'];
 const ID_CAMPO = { titulo: 'f-titulo', como: 'f-como', quiero: 'f-quiero', para: 'f-para', criterios: 'f-criterios', puntos: 'f-puntos', epica_id: 'f-epica', etiquetas: 'f-etiquetas' };
 
-// ====================================================================
 // Utilidades
-// ====================================================================
 
 /**
  * Petición a la API que conserva el cuerpo de la respuesta aunque sea un error
@@ -167,9 +162,7 @@ function limpiarFiltros() {
   pintar();
 }
 
-// ====================================================================
 // Pintar la lista
-// ====================================================================
 
 function filaHtml(h, indice, total, permitirMover) {
   const epica = h.epica_nombre
@@ -282,9 +275,7 @@ function pintarCarga() {
   el.estadoLista.innerHTML = '<div class="esqueleto bl-carga"></div>'.repeat(5);
 }
 
-// ====================================================================
 // Carga y sincronización
-// ====================================================================
 
 /** Aplicar al estado local los datos que devolvió el servidor. */
 function aplicarDatos({ historias, epicas }) {
@@ -410,9 +401,7 @@ function conectarTiempoReal() {
   }
 }
 
-// ====================================================================
 // Selección, búsqueda y clics
-// ====================================================================
 
 function seleccionar(id) {
   ctx.seleccionadaId = id;
@@ -448,9 +437,7 @@ document.addEventListener('click', (e) => {
   if (accion === 'limpiar') limpiarFiltros();
 });
 
-// ====================================================================
-// HU-03 · Reordenar (arrastrar, teclado y botones)
-// ====================================================================
+// Reordenar (arrastrar, teclado y botones)
 
 /** Nueva lista con `id` colocado antes de `antesId` (null = al final). */
 function conMovimiento(historias, id, antesId) {
@@ -936,9 +923,7 @@ async function resolverPropuesta(aceptar) {
   if (r.estado === 404 || r.estado === 409) refrescar({ forzar: true });
 }
 
-// ====================================================================
-// HU-04 · Crear y editar épicas del proyecto seleccionado
-// ====================================================================
+// Crear y editar épicas del proyecto seleccionado
 const dlgEpicas = $('dialogo-epicas');
 const formEpica = $('formulario-epica');
 const avisoEpica = $('aviso-epica');
@@ -1088,9 +1073,7 @@ formEpica.addEventListener('submit', async (evento) => {
   mostrarAvisoEpica(id ? 'Épica actualizada correctamente.' : 'Épica creada correctamente.');
 });
 
-// ====================================================================
 // Arranque
-// ====================================================================
 
 async function iniciar() {
   pintarCarga();

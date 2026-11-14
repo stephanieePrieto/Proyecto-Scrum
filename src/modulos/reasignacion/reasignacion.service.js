@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-21: reglas, SQL y avisos por socket (reasignar una tarea al soltarla en el carril de otra persona)
 /**
  * @file reasignacion.service.js
  * @description Cambia el responsable de una tarea cuando un integrante la arrastra al carril de otra persona
@@ -10,6 +9,8 @@
  *   3. La persona destino debe ser integrante activo del proyecto (mismo criterio que HU-08).
  *   4. Si el cliente envía el responsable que veía, se comprueba que nadie lo cambió mientras tanto (409).
  *   5. Guarda el cambio y la auditoría en una transacción; después notifica a la persona y avisa por socket.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { consulta } from '../../config/db.js';

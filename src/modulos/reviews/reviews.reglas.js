@@ -1,7 +1,9 @@
-// Responsable: Diego - HU-12: reglas puras de la Sprint Review (decisiones, criterios, delegacion y velocity)
 /**
- * Reglas de la Sprint Review que no consultan la base de datos ni Express,
+ * @file reviews.reglas.js
+ * @description Reglas de la Sprint Review que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (reviews.test.js).
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { esFechaValida } from '../daily/daily.reglas.js';
 

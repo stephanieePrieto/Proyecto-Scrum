@@ -1,8 +1,9 @@
-// Responsable: Alfonso - HU-20: recibe la peticion y responde (detalle de tarjeta); sin logica de negocio
 /**
  * @file detalle-tarjeta.controller.js
  * @description Controladores HTTP del detalle de tarjeta. Respuesta: `{ ok: true, datos }`.
  *              Los errores (ErrorApp) los resuelve el middleware global `manejoErrores`.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import * as servicio from './detalle-tarjeta.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';

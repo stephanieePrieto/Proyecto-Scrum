@@ -1,5 +1,9 @@
-// Responsable: Jetz - HU-06, HU-07: endpoints de crear y planificar sprints
-
+/**
+ * @file sprints.routes.js
+ * @description Endpoints de crear y planificar sprints
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 
 import { Router } from 'express';
 import { autenticar } from '../../middlewares/autenticar.js';

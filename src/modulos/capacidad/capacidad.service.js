@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-44: reglas, SQL y avisos por socket (horas por dia y ausencias)
 /**
- * Aplicar las reglas de la capacidad individual: guardar horas por día y ausencias,
+ * @file capacidad.service.js
+ * @description Aplicar las reglas de la capacidad individual: guardar horas por día y ausencias,
  * y calcular la capacidad del equipo en un sprint.
  *
  * Tablas (database/schema.sql): usuarios, miembros_equipo, capacidad_usuarios y ausencias.
@@ -12,6 +12,8 @@
  *   - Capacidad de un proyecto por sprint: solo el Scrum Master del proyecto (permiso capacidad.equipo.ver).
  *
  * Los datos son reales (PostgreSQL). Solo con MODO_DEMO=true (pruebas automáticas) se usan los de capacidad.demo.js.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import pool from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';

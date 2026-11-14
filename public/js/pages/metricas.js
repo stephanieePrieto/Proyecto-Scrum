@@ -3,6 +3,7 @@
  * @description Orquestador de la vista de métricas. Controla los selectores y 
  * decide si muestra la Gráfica Velocity o el Burndown.
  * Carga la velocity (HU-30), el avance (HU-31) y la distribución (HU-32).
+ * 
  * @author Dana Carmona Santamaria
  * @author Citlaly Morales Viveros
  */
@@ -35,7 +36,7 @@ if (headerAcciones) {
     </select>`;
     headerAcciones.prepend(selectorTipo);
   }
-  
+
   // Luego inyectamos "Integrante" (al hacer prepend, queda a la izquierda de "Vista")
   if (!document.getElementById('filtro-integrante-principal')) {
     const selectorInt = document.createElement('label');
@@ -155,7 +156,7 @@ function mostrarCarga(contenedor) {
  */
 async function cargarGraficaPrincipal(proyectoId) {
   const selectTipo = document.getElementById('filtro-tipo-grafica');
-  const selectInt = document.getElementById('filtro-integrante-principal'); 
+  const selectInt = document.getElementById('filtro-integrante-principal');
   const tipo = selectTipo ? selectTipo.value : 'velocity';
   const integranteId = selectInt ? selectInt.value : '';
 
@@ -239,12 +240,12 @@ async function cargarAvance(proyectoId, sprintId = null) {
     const selectIntPrincipal = document.getElementById('filtro-integrante-principal');
     if (selectIntPrincipal) {
       const valActualPrin = selectIntPrincipal.value;
-      const opcionesPrin = datosAvanceActual.personas.map(p => 
+      const opcionesPrin = datosAvanceActual.personas.map(p =>
         `<option value="${p.usuarioId}">${escaparHtml(p.nombre)}</option>`
       ).join('');
-      
+
       selectIntPrincipal.innerHTML = '<option value="">Todo el equipo</option>' + opcionesPrin;
-      
+
       const existePrin = valActualPrin === '' || datosAvanceActual.personas.some(p => String(p.usuarioId) === valActualPrin);
       selectIntPrincipal.value = existePrin ? valActualPrin : '';
     }
@@ -308,14 +309,14 @@ async function iniciar() {
   // El proyecto se elige únicamente en el Dashboard; aquí solo se lee el proyecto activo
   const proyectoId = proyectoActivo();
   if (!proyectoId) return mostrarAvisoSeleccionarProyecto();
-  
+
   // Refrescar qué botones mostrar según los permisos del usuario para este proyecto
   cargarPermisos(proyectoId).catch(() => { /* Silenciar error si aún no hay backend de permisos conectado */ });
   manejarTabUrl();
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
-  
+
   const selectIntPrincipal = document.getElementById('filtro-integrante-principal');
   selectIntPrincipal?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
 
@@ -342,7 +343,7 @@ async function iniciar() {
     btnExportar.addEventListener('click', async () => {
       // Importamos exportar.js dinámicamente al hacer clic para optimizar la carga
       const moduloExportar = await import('./metricas/exportar.js');
-      
+
       const formato = document.getElementById('exportar-formato').value;
       const contProgreso = document.getElementById('exportar-progreso-contenedor');
       const avisoExp = document.getElementById('exportar-error');

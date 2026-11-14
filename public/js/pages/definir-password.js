@@ -1,6 +1,7 @@
 /**
  * @file definir-password.js
  * @description Lógica de la pantalla para definir la contraseña de una cuenta nueva mediante el enlace recibido por correo.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { api } from '../core/api.js';

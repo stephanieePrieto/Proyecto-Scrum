@@ -1,5 +1,4 @@
 import { env } from '../config/env.js';
-// BASE (no modificar sin avisar al equipo) - HU-47: inicia Socket.io, autentica conexiones y maneja las salas por proyecto
 
 /**
  * @file index.js

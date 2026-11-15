@@ -8,6 +8,7 @@
  * @author Diego Rafael Jiménez Trujano
  * @author Citlaly Morales Viveros
  */
+
 import { escaparHtml, iniciales } from './utils.js';
 import { cargarPermisos } from './permisos-ui.js';
 import { api } from './api.js';
@@ -17,6 +18,21 @@ const RUTA_CSS_NOTIFICACIONES = '/css/componentes/notificaciones.css';
 
 /** Ruta (relativa a este archivo) del componente de la campana. */
 const RUTA_MODULO_NOTIFICACIONES = '../componentes/notificaciones.js';
+
+/**
+ * Cargar apariencia.js si la página no lo incluyó en su <head>, para que el tema guardado
+ * se aplique en todas las pantallas de la aplicación y no solo en las que lo declaran.
+ *
+ * @returns {void}
+ */
+function cargarApariencia() {
+  if (window.ScrumApariencia || document.querySelector('script[src$="/js/core/apariencia.js"]')) return;
+  const script = document.createElement('script');
+  script.src = '/js/core/apariencia.js';
+  document.head.appendChild(script);
+}
+
+cargarApariencia();
 
 /**
  * Inyectar en el <head> la hoja de estilos de las notificaciones.
@@ -431,6 +447,10 @@ function mostrarFotoBarra() {
       const usuario = respuesta?.usuario;
       if (usuario) {
         sincronizarUsuarioLocal(usuario);
+        if (usuario.preferenciasApp && window.ScrumApariencia) {
+          window.ScrumApariencia.guardarLocal(usuario.preferenciasApp);
+          window.ScrumApariencia.aplicar(usuario.preferenciasApp);
+        }
         const nombreBarra = document.querySelector('#barra-superior .barra-superior__usuario-nombre');
         if (nombreBarra && usuario.nombre) nombreBarra.textContent = primerNombre(usuario.nombre);
       }

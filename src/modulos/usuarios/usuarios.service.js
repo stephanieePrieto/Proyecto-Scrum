@@ -16,9 +16,9 @@ import { enviarCorreo } from '../../utils/correo.js';
 import { leerPreferencias, normalizarPreferencias } from '../notificaciones/notificaciones.service.js';
 
 /** Valores por defecto de la apariencia y la accesibilidad de la persona. */
-export const PREFERENCIAS_APP_POR_DEFECTO = Object.freeze({ tema: 'sistema', textoGrande: false, altoContraste: false, reducirAnimaciones: false });
+export const PREFERENCIAS_APP_POR_DEFECTO = Object.freeze({ tema: 'claro', textoGrande: false, altoContraste: false, reducirAnimaciones: false });
 /** Temas que acepta la aplicación. */
-const TEMAS_APP = Object.freeze(['sistema', 'claro', 'oscuro']);
+const TEMAS_APP = Object.freeze(['claro', 'oscuro']);
 const CLAVES_APP_BOOLEANAS = Object.freeze(['textoGrande', 'altoContraste', 'reducirAnimaciones']);
 
 import { mkdirSync, promises as fsp } from 'fs';

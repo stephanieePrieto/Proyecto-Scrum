@@ -138,6 +138,7 @@ Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\autenticacion_2fa.sql"
 Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\autenticacion_2fa_intentos.sql"
 Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\autenticacion_2fa_recuperacion.sql"
 Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\preferencias_app.sql"
+Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\preferencias_app_tema.sql"
 Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\zona_horaria_opcional.sql"
 Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\notificaciones_preferencias_canales.sql"
 Ejecutar -Usuario $SUPER -Ruta "migraciones\aplicar\notificaciones_preferencias_tipo.sql"
@@ -195,6 +196,7 @@ Dentro de psql:
 \i migraciones/aplicar/autenticacion_2fa_intentos.sql
 \i migraciones/aplicar/autenticacion_2fa_recuperacion.sql
 \i migraciones/aplicar/preferencias_app.sql
+\i migraciones/aplicar/preferencias_app_tema.sql
 \i migraciones/aplicar/zona_horaria_opcional.sql
 \i migraciones/aplicar/notificaciones_preferencias_canales.sql
 \i migraciones/aplicar/notificaciones_preferencias_tipo.sql
@@ -242,22 +244,23 @@ Después de todo el proceso, `curso_lecciones` debe tener 5 filas (lecciones 1 a
 
 Las reversiones se ejecutan en este orden. Revertir borra datos de las tablas que se eliminan.
 
-| Paso | Archivo                                                                 | Qué borra                                     |
-| ---- | ----------------------------------------------------------------------- | --------------------------------------------- |
-| 1    | `migraciones/revertir/bitacora_inmutable_revertir.sql`                  | Solo el bloqueo de TRUNCATE                   |
-| 2    | `permisos_2fa_revertir.sql`                                             | Permisos de `scrumflow_app` sobre tablas 2FA  |
-| 3    | `migraciones/revertir/curso_scrum_revertir.sql`                         | Tablas del curso y su progreso                |
-| 4    | `migraciones/revertir/planning_poker_historial_revertir.sql`            | Índice parcial; restaura UNIQUE si es posible |
-| 5    | `migraciones/revertir/planning_poker_revertir.sql`                      | Tablas de Planning Poker y sus votos          |
-| 6    | `migraciones/revertir/columnas_tablero_predeterminadas_revertir.sql`    | Columnas predeterminadas sin tareas           |
-| 7    | `migraciones/revertir/notificaciones_preferencias_tipo_revertir.sql`    | Claves de desviación e impedimento            |
-| 8    | `migraciones/revertir/notificaciones_preferencias_canales_revertir.sql` | Vuelve a las claves globales                  |
-| 9    | `migraciones/revertir/zona_horaria_opcional_revertir.sql`               | Vuelve a poner zona horaria obligatoria       |
-| 10   | `migraciones/revertir/preferencias_app_revertir.sql`                    | No borra la columna ni sus datos              |
-| 11   | `migraciones/revertir/autenticacion_2fa_recuperacion_revertir.sql`      | Tabla de recuperación                         |
-| 12   | `migraciones/revertir/autenticacion_2fa_intentos_revertir.sql`          | Tabla de intentos por usuario                 |
-| 13   | `migraciones/revertir/autenticacion_2fa_revertir.sql`                   | Tablas 2FA                                    |
-| 14   | `migraciones/revertir/sesiones_revertir.sql`                            | Tabla de sesiones                             |
+| Paso | Archivo                                                                 | Qué borra                                                                         |
+| ---- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1    | `migraciones/revertir/bitacora_inmutable_revertir.sql`                  | Solo el bloqueo de TRUNCATE                                                       |
+| 2    | `permisos_2fa_revertir.sql`                                             | Permisos de `scrumflow_app` sobre tablas 2FA                                      |
+| 3    | `migraciones/revertir/curso_scrum_revertir.sql`                         | Tablas del curso y su progreso                                                    |
+| 4    | `migraciones/revertir/planning_poker_historial_revertir.sql`            | Índice parcial; restaura UNIQUE si es posible                                     |
+| 5    | `migraciones/revertir/planning_poker_revertir.sql`                      | Tablas de Planning Poker y sus votos                                              |
+| 6    | `migraciones/revertir/columnas_tablero_predeterminadas_revertir.sql`    | Columnas predeterminadas sin tareas                                               |
+| 7    | `migraciones/revertir/notificaciones_preferencias_tipo_revertir.sql`    | Claves de desviación e impedimento                                                |
+| 8    | `migraciones/revertir/notificaciones_preferencias_canales_revertir.sql` | Vuelve a las claves globales                                                      |
+| 9    | `migraciones/revertir/zona_horaria_opcional_revertir.sql`               | Vuelve a poner zona horaria obligatoria                                           |
+| 10   | `migraciones/revertir/preferencias_app_tema_revertir.sql`               | Restaura el `DEFAULT` anterior (tema "sistema"). No cambia los valores guardados. |
+| 11   | `migraciones/revertir/preferencias_app_revertir.sql`                    | No borra la columna ni sus datos                                                  |
+| 12   | `migraciones/revertir/autenticacion_2fa_recuperacion_revertir.sql`      | Tabla de recuperación                                                             |
+| 13   | `migraciones/revertir/autenticacion_2fa_intentos_revertir.sql`          | Tabla de intentos por usuario                                                     |
+| 14   | `migraciones/revertir/autenticacion_2fa_revertir.sql`                   | Tablas 2FA                                                                        |
+| 15   | `migraciones/revertir/sesiones_revertir.sql`                            | Tabla de sesiones                                                                 |
 
 Los permisos de `permisos_aplicacion.sql` y `bitacora_permisos.sql` no tienen reversión. Los datos de prueba (`seed*.sql`) no tienen reversión; se van junto con las tablas que llenan.
 

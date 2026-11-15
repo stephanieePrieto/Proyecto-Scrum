@@ -3,6 +3,7 @@
  * @description Aplica la apariencia y la accesibilidad elegidas por la persona antes de pintar la página.
  * Pone atributos en <html>: data-tema-efectivo (claro|oscuro), data-texto, data-contraste y
  * data-animaciones. Los estilos que dependen de ellos están en css/base.css.
+ * Solo hay dos temas: claro (por defecto) y oscuro.
  * Las preferencias se guardan en localStorage para que las páginas sin sesión (login, registro, etc.)
  * también las usen; layout.js y perfil.js las mantienen al día con la cuenta.
  * 
@@ -12,9 +13,8 @@
     'use strict';
 
     var CLAVE = 'preferenciasApp';
-    var POR_DEFECTO = { tema: 'sistema', textoGrande: false, altoContraste: false, reducirAnimaciones: false };
-    var TEMAS = ['sistema', 'claro', 'oscuro'];
-    var consultaOscuro = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    var POR_DEFECTO = { tema: 'claro', textoGrande: false, altoContraste: false, reducirAnimaciones: false };
+    var TEMAS = ['claro', 'oscuro'];
     var actual = POR_DEFECTO;
 
     /**
@@ -52,22 +52,12 @@
     }
 
     /**
-     * Tema que se ve en realidad: "sistema" sigue la configuración del dispositivo.
-     * @param {string} tema
-     * @returns {string} "claro" u "oscuro".
-     */
-    function temaEfectivo(tema) {
-        if (tema === 'claro' || tema === 'oscuro') return tema;
-        return consultaOscuro && consultaOscuro.matches ? 'oscuro' : 'claro';
-    }
-
-    /**
      * Traduce las preferencias a atributos de <html>.
      * @param {Object} preferencias
      */
     function pintar(preferencias) {
         var html = document.documentElement;
-        html.dataset.temaEfectivo = temaEfectivo(preferencias.tema);
+        html.dataset.temaEfectivo = preferencias.tema;
         html.dataset.texto = preferencias.textoGrande ? 'grande' : 'normal';
         html.dataset.contraste = preferencias.altoContraste ? 'alto' : 'normal';
         html.dataset.animaciones = preferencias.reducirAnimaciones ? 'reducidas' : 'normal';
@@ -80,11 +70,6 @@
     function aplicar(preferencias) {
         actual = normalizar(preferencias);
         pintar(actual);
-    }
-
-    // Con "sistema", si el dispositivo cambia de tema mientras la página está abierta, se ajusta de inmediato.
-    if (consultaOscuro && consultaOscuro.addEventListener) {
-        consultaOscuro.addEventListener('change', function () { pintar(actual); });
     }
 
     aplicar(leerLocal());

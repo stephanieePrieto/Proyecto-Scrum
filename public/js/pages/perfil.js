@@ -653,7 +653,7 @@ function normalizarApariencia(valor) {
   if (window.ScrumApariencia) return window.ScrumApariencia.normalizar(valor);
   const datos = valor !== null && typeof valor === 'object' ? valor : {};
   return {
-    tema: ['sistema', 'claro', 'oscuro'].includes(datos.tema) ? datos.tema : 'sistema',
+    tema: ['claro', 'oscuro'].includes(datos.tema) ? datos.tema : 'claro',
     textoGrande: datos.textoGrande === true,
     altoContraste: datos.altoContraste === true,
     reducirAnimaciones: datos.reducirAnimaciones === true,
@@ -665,7 +665,7 @@ function normalizarApariencia(valor) {
  * @returns {string}
  */
 function temaElegido() {
-  return document.querySelector('input[name="tema-app"]:checked')?.value ?? 'sistema';
+  return document.querySelector('input[name="tema-app"]:checked')?.value ?? 'claro';
 }
 
 /**

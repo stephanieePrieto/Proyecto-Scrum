@@ -20,6 +20,7 @@ import { sanitizarEntrada, cabecerasSeguridad as cabecerasHelmet } from './middl
 import { proteccionCsrf } from './middlewares/csrf.js';
 import { registrarPeticiones } from './middlewares/registrarPeticiones.js';
 import { configurarSwagger } from './config/swagger.js';
+import { obtenerReporteDisponibilidadMensual } from './services/respaldo.service.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const carpetaPublica = path.join(aqui, '..', 'public');
@@ -42,10 +43,6 @@ async function importarSiExiste(rutaAbsoluta) {
  * Permite Google Fonts, Font Awesome y recursos externos necesarios
  */
 export function cabecerasSeguridad(req, res, next) {
-  // Configuración de CSP que permite:
-  // - Google Fonts (fuentes)
-  // - Font Awesome (iconos)
-  // - Estilos y scripts locales
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
@@ -61,7 +58,6 @@ export function cabecerasSeguridad(req, res, next) {
     "frame-ancestors 'none'"
   );
 
-  // Otras cabeceras de seguridad (Helmet, CSP restrictiva, HSTS)
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -79,7 +75,6 @@ export async function crearApp() {
   app.disable('x-powered-by');
 
   // Aplicar cabeceras de seguridad HTTP (Helmet, CSP restrictiva, HSTS)
-  // Se usa la CSP de seguridad.js; la función cabecerasSeguridad de este archivo quedó sin uso.
   app.use(cabecerasHelmet);
   app.use(cors());
 
@@ -118,6 +113,20 @@ export async function crearApp() {
     }),
   );
 
+  /**
+   * @openapi
+   * /api/salud/disponibilidad:
+   *   get:
+   *     summary: Obtener el reporte mensual de disponibilidad del sistema
+   *     responses:
+   *       200:
+   *         description: Métricas de disponibilidad mensual.
+   */
+  app.get('/api/salud/disponibilidad', (req, res) => {
+    const reporte = obtenerReporteDisponibilidadMensual(req.query.mes);
+    res.json({ estado: 'ok', reporte });
+  });
+
   // Cargar módulos automáticamente
   const carpetaModulos = path.join(aqui, 'modulos');
   const modulos = fs.existsSync(carpetaModulos)
@@ -141,8 +150,6 @@ export async function crearApp() {
 
   /**
    * HU-43: Responder con la página 404.html (y estado 404) a cualquier otra ruta GET del frontend.
-   * Se omiten las rutas con extensión distinta de .html (css, js, imágenes) para no devolver HTML
-   * donde el navegador espera otro tipo de archivo.
    */
   app.use((req, res, next) => {
     const extension = path.extname(req.path);

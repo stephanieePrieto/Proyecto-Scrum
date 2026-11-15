@@ -8,7 +8,11 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --ci"
+    "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --ci",
+    "backup:crear": "node scripts/respaldo-cli.js crear",
+    "backup:listar": "node scripts/respaldo-cli.js listar",
+    "backup:limpiar": "node scripts/respaldo-cli.js limpiar",
+    "backup:restaurar": "node scripts/respaldo-cli.js restaurar"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

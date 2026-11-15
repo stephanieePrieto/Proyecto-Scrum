@@ -4,17 +4,10 @@
  * bloquea, cambia a sondeo periódico cada 5 s con el aviso "Tiempo real limitado" (HU-52, criterio 5).
  * Mientras está limitado sigue reintentando el WebSocket; al recuperarlo deja de sondear y sincroniza una vez.
  * Las decisiones están en tiempo-real.reglas.js (lógica pura con pruebas).
- *
- * Conexión: core/socket.js (BASE, HU-47) todavía no exporta una conexión compartida. Si algún día lo hace, este
- * módulo la usa; mientras tanto crea la del tablero, igual que hacen las demás pantallas por su cuenta. Se crea
- * al importar el módulo y se publica en window.socket porque reconexion.js la toma al cargarse y arrastrar.js
- * la lee de window.socket; por eso tablero.js importa este módulo antes que los demás. El cliente de Socket.io
- * (/socket.io/socket.io.js) lo carga tablero.html como script clásico, antes de los módulos.
  * 
  * @author Alfonso Mendoza Vasquez
  */
 
-import * as socketBase from '../core/socket.js';
 import {
   MODOS,
   EVENTOS,
@@ -26,12 +19,6 @@ import {
   decidirCicloSondeo,
 } from './tiempo-real.reglas.js';
 
-/**
- * Opciones de la conexión. Solo WebSocket: si está bloqueado se detecta como error y se usa el sondeo propio
- * cada 5 s. Se devuelve un objeto nuevo en cada llamada y sin congelar, porque el cliente de Socket.io le agrega
- * propiedades (path, query...) y con un objeto congelado lanza "Cannot add property path".
- * @returns {Object}
- */
 function opcionesSocket() {
   return {
     transports: ['websocket'],
@@ -43,16 +30,14 @@ function opcionesSocket() {
   };
 }
 
-/** Espera antes de reintentar una sincronización que se saltó (por ejemplo, durante un arrastre). */
 const REINTENTO_SINCRONIZACION_MS = 1000;
 
 /**
- * Obtiene la conexión: la compartida de core/socket.js si existe, la que ya esté en window.socket o una nueva.
+ * Obtiene la conexión ya existente en window.socket o crea una nueva con window.io.
  * @returns {Object|null} Socket de Socket.io, o null si el cliente no se pudo cargar.
  */
 function crearSocket() {
-  const compartido = socketBase.socket || socketBase.default || window.socket;
-  if (compartido) return compartido;
+  if (window.socket) return window.socket;
   if (typeof window.io !== 'function') return null;
   try {
     return window.io(opcionesSocket());
@@ -62,20 +47,9 @@ function crearSocket() {
   }
 }
 
-/** Conexión del tablero (null si el cliente de Socket.io no cargó, por ejemplo por un bloqueo). */
 export const socketTiempoReal = crearSocket();
 if (socketTiempoReal && !window.socket) window.socket = socketTiempoReal;
 
-/**
- * Inicia la vigilancia de la conexión y el sondeo de respaldo.
- *
- * @param {Object} opciones
- * @param {number|string} opciones.proyectoId - Proyecto cuya sala se sigue.
- * @param {() => Promise<*>} opciones.sondear - Consulta el servidor y actualiza la pantalla.
- * @param {() => {arrastrando?: boolean, modalAbierto?: boolean}} [opciones.obtenerContexto] - Si conviene saltar un ciclo.
- * @param {HTMLElement|null} [opciones.contenedorAviso] - Dónde mostrar el aviso de tiempo real limitado.
- * @returns {{obtenerModo: () => string}}
- */
 export function iniciarTiempoReal({ proyectoId, sondear, obtenerContexto = () => ({}), contenedorAviso = null }) {
   let estado = estadoInicial();
   let temporizador = null;
@@ -99,11 +73,6 @@ export function iniciarTiempoReal({ proyectoId, sondear, obtenerContexto = () =>
     aviso?.remove();
   }
 
-  /**
-   * Ejecuta un sondeo si las reglas lo permiten.
-   * @param {{forzar?: boolean}} [opciones] - forzar: sincronizar aunque ya no esté en modo limitado.
-   * @returns {Promise<void>}
-   */
   async function ejecutarSondeo({ forzar = false } = {}) {
     const contexto = obtenerContexto() || {};
     const decision = decidirCicloSondeo({
@@ -143,10 +112,6 @@ export function iniciarTiempoReal({ proyectoId, sondear, obtenerContexto = () =>
     temporizador = null;
   }
 
-  /**
-   * Aplica un evento de la conexión y ejecuta lo que corresponda al cambio de estado.
-   * @param {string} evento - Uno de EVENTOS.
-   */
   function registrar(evento) {
     const anterior = estado;
     estado = registrarEventoConexion(estado, evento);
@@ -158,7 +123,6 @@ export function iniciarTiempoReal({ proyectoId, sondear, obtenerContexto = () =>
     if (acciones.sincronizarUnaVez) ejecutarSondeo({ forzar: true });
   }
 
-  // Al volver a la pestaña con el tiempo real limitado, se actualiza de inmediato
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && estado.modo === MODOS.LIMITADO) ejecutarSondeo();
   });
@@ -169,10 +133,6 @@ export function iniciarTiempoReal({ proyectoId, sondear, obtenerContexto = () =>
     return { obtenerModo: () => estado.modo };
   }
 
-  /**
-   * Si el servidor rechazó la conexión (por ejemplo, con la sesión vencida) o la cerró él, Socket.io no reintenta
-   * por su cuenta: se reabre aquí con espera creciente. Entretanto, con dos fallos ya se sondea cada 5 s.
-   */
   let reintento = null;
   function reintentarSiNoLoHaceSocketIo() {
     if (socket.active) return;

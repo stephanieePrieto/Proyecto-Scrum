@@ -2,6 +2,10 @@
  * @file db.js
  * @description Conexión a PostgreSQL mediante pool con conmutación automática a réplica de solo lectura
  * y detección de caída de base de datos primaria.
+ * 
+ * @author Citlaly Morales Viveros
+ * @author Camila Mariné Crespo Zurita
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 import pkg from 'pg';
 import dotenv from 'dotenv';

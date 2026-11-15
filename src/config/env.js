@@ -1,3 +1,11 @@
+/**
+ * @file env.js
+ * @description Módulo centralizado para lectura y validación de variables de entorno.
+ * Centraliza las claves secretas y parámetros de red requeridos por el servidor y la BD.
+ * 
+ * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
 import dotenv from 'dotenv';
 
 // Cargar las variables definidas en el archivo .env a process.env
@@ -23,13 +31,7 @@ const leerSecreto = (nombre, valorDesarrollo) => {
   return valor || valorDesarrollo;
 };
 
-/**
- * @file env.js
- * @description Módulo centralizado para lectura y validación de variables de entorno.
- * Centraliza las claves secretas y parámetros de red requeridos por el servidor y la BD.
- * @author Citlaly Morales Viveros
- * @author Stephanie Elizdeth Hernández Prieto
- */
+
 export const env = {
   ES_PRODUCCION,
   PORT: parseInt(process.env.PORT, 10) || 3000,

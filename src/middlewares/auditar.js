@@ -6,6 +6,7 @@
  * valores anteriores y nuevos que se guardan en el detalle.
  * 
  * @author Citlaly Morales Viveros
+ * @author Diego Rafael Jiménez Trujano
  */
 import { pool } from '../config/db.js';
 import emisor from '../sockets/emisor.js';

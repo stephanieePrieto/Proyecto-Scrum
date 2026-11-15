@@ -1,6 +1,8 @@
 /**
  * @file respaldo.service.js
  * @description Servicio de respaldos automáticos de PostgreSQL, retención y monitoreo de disponibilidad.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import fs from 'fs';

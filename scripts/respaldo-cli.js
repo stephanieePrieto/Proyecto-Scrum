@@ -7,6 +7,8 @@
  *   node scripts/respaldo-cli.js listar
  *   node scripts/respaldo-cli.js limpiar [cantidadAConservar]
  *   node scripts/respaldo-cli.js restaurar <nombre-archivo.json>
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import '../src/config/env.js';

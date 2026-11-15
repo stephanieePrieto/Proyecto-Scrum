@@ -1,7 +1,6 @@
 /**
  * @file curso-scrum.js
- * @description Interacción completa para módulos, pestañas de roles, quizzes y Quiz Final Integrador (20 preguntas).
- * 
+ * @description Gestión de Drawer Retráctil, Ruta Lineal de lecciones, Guía Práctica de ScrumFlow, Roles y Quizzes renderizados inline.
  * @author Stephanie Elizdeth Hernández Prieto
  */
 
@@ -11,15 +10,17 @@ let lecciones = [];
 let quizzes = [];
 let quizFinalData = null;
 let proyectoId = null;
-let usuarioId = null;
+
+// Estado de navegación actual
+let vistaActiva = 'modulos'; // 'modulos' | 'guia-app' | 'roles' | 'quiz-final'
+let leccionActivaId = null;
+let modoLeccion = 'lectura'; // 'lectura' | 'quiz'
+let ultimoResultadoQuiz = null; // { aprobado, calificacion, mensaje }
 
 async function inicializar() {
   montarBarraSuperior();
 
-  // Obtener el proyecto activo fijado al seleccionar un proyecto en el Dashboard
   const proyectoGuardado = localStorage.getItem('proyectoActivo');
-
-  // Si no hay proyecto seleccionado en localStorage, bloquear toda la vista y requerir uno
   if (!proyectoGuardado || proyectoGuardado === 'null' || proyectoGuardado === 'undefined') {
     mostrarAvisoSeleccionarProyecto();
     return;
@@ -30,12 +31,8 @@ async function inicializar() {
   configurarEventos();
 }
 
-/**
- * Reemplaza todo el contenido del <main> si no hay un proyecto seleccionado en el Dashboard.
- */
 function mostrarAvisoSeleccionarProyecto() {
   const contenedorPrincipal = document.querySelector('main.curso-contenedor') || document.querySelector('main');
-
   if (contenedorPrincipal) {
     contenedorPrincipal.innerHTML = `
       <div class="aviso aviso--vacio" style="text-align: center; padding: 50px 20px; background: var(--blanco, #ffffff); border-radius: 12px; border: 1px solid var(--borde, #e2e8f0); max-width: 650px; margin: 40px auto; box-shadow: var(--sombra-sm, 0 1px 3px rgba(0,0,0,0.05));">
@@ -79,81 +76,46 @@ async function cargarCurso() {
     lecciones = datos.lecciones || [];
     quizzes = datos.quizzes || [];
     quizFinalData = datos.quizFinal || null;
-    usuarioId = window.usuarioActual?.id;
 
-    // Mostrar el botón "Avance del Equipo" solo si el rol en este proyecto activo es Scrum Master o Product Owner
+    // Mostrar botón "Avance del Equipo" solo a SM o PO
     const btnAvance = document.getElementById('btn-avance-equipo');
     if (btnAvance) {
       btnAvance.style.display = (datos.rolEnProyecto === 'scrum_master' || datos.rolEnProyecto === 'product_owner') ? 'inline-flex' : 'none';
     }
 
+    // Seleccionar la primera lección pendiente o la primera disponible si aún no hay ninguna activa
+    if (!leccionActivaId && lecciones.length > 0) {
+      const primeraPendiente = lecciones.find(l => !l.completada);
+      leccionActivaId = primeraPendiente ? primeraPendiente.id : lecciones[0].id;
+    }
+
     actualizarBarraProgreso(datos.porcentajeAvance);
-    renderizarContenido();
+    actualizarBadgeQuizFinal();
     verificarCertificado(datos.certificado?.tieneCertificado);
+    renderizarSidebarRuta();
+    renderizarVistaActual();
   } catch (error) {
     console.error('[curso-scrum] Error:', error);
   }
-}
-
-function renderizarContenido() {
-  const contenidoCurso = document.getElementById('contenido-curso');
-  if (!contenidoCurso) return;
-
-  const secciones = {};
-  lecciones.forEach(leccion => {
-    if (!secciones[leccion.seccion]) secciones[leccion.seccion] = [];
-    secciones[leccion.seccion].push(leccion);
-  });
-
-  let html = '';
-  for (const [seccion, leccionesSeccion] of Object.entries(secciones)) {
-    html += `
-      <div class="seccion">
-        <div class="seccion-titulo"><i class="fas fa-folder-open"></i> ${seccion}</div>
-        ${leccionesSeccion.map(renderizarLeccion).join('')}
-      </div>
-    `;
-  }
-
-  contenidoCurso.innerHTML = html;
-}
-
-function renderizarLeccion(leccion) {
-  const esCompletada = leccion.completada;
-  const quizAprobado = leccion.quiz_aprobado;
-  const tieneQuiz = quizzes.some(q => q.leccion_id === leccion.id);
-
-  return `
-    <div class="leccion ${esCompletada ? 'leccion-completada' : ''}" data-leccion-id="${leccion.id}">
-      <div class="leccion-header">
-        <div class="leccion-titulo">${leccion.orden}. ${leccion.titulo}</div>
-        <div class="leccion-estado">
-          ${esCompletada ? '<i class="fas fa-check-circle icono-completado" title="Lección completada"></i>' : '<i class="fas fa-circle icono-pendiente" title="Pendiente"></i>'}
-          ${tieneQuiz && quizAprobado ? '<i class="fas fa-star" style="color: var(--ambar-500, #d97706);" title="Quiz aprobado"></i>' : ''}
-        </div>
-      </div>
-      <div class="leccion-contenido">
-        ${decodeHtmlEntities(leccion.contenido).substring(0, 180)}...
-      </div>
-      <div class="leccion-acciones">
-        <button class="btn-curso btn-curso--primario btn-ver-leccion" data-leccion-id="${leccion.id}">
-          ${esCompletada ? 'Revisar' : 'Estudiar'} Lección
-        </button>
-        ${tieneQuiz ? `
-          <button class="btn-curso btn-curso--secundario btn-hacer-quiz" data-leccion-id="${leccion.id}">
-            ${quizAprobado ? 'Reintentar' : 'Hacer'} Quiz
-          </button>
-        ` : ''}
-      </div>
-    </div>
-  `;
 }
 
 function actualizarBarraProgreso(porcentaje) {
   const barra = document.getElementById('barra-progreso');
   const texto = document.getElementById('porcentaje-avance');
   if (barra) barra.style.width = `${porcentaje}%`;
-  if (texto) texto.textContent = `Avance Global: ${porcentaje}%`;
+  if (texto) texto.textContent = `${porcentaje}%`;
+}
+
+function actualizarBadgeQuizFinal() {
+  const badge = document.getElementById('badge-estado-quiz-final');
+  if (!badge || !quizFinalData) return;
+
+  if (quizFinalData.aprobado) {
+    badge.textContent = 'Aprobado';
+    badge.classList.add('aprobado');
+  } else if (quizFinalData.calificacion > 0) {
+    badge.textContent = `${quizFinalData.calificacion}%`;
+  }
 }
 
 function verificarCertificado(tieneCertificado) {
@@ -161,230 +123,378 @@ function verificarCertificado(tieneCertificado) {
   if (tieneCertificado && alerta) alerta.classList.add('visible');
 }
 
-function configurarEventos() {
-  const btnRegresar = document.querySelector('.boton-regresar');
-  if (btnRegresar) {
-    btnRegresar.addEventListener('click', () => localStorage.setItem('curso-scrum-scroll', window.scrollY));
-  }
+/* ===========================================================================
+   RENDERIZADO DEL SIDEBAR (BLOQUE 2: RUTA LINEAL / TIMELINE)
+   ========================================================================== */
+function renderizarSidebarRuta() {
+  const contenedorRuta = document.getElementById('sidebar-ruta-lecciones');
+  if (!contenedorRuta) return;
 
-  const btnDescargarCert = document.getElementById('btn-descargar-certificado');
-  if (btnDescargarCert) {
-    btnDescargarCert.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        const respuesta = await fetch('/api/curso-scrum/certificado/download');
-        if (!respuesta.ok) throw new Error('Debes aprobar el Quiz Final (mínimo 9.5) para descargar el certificado.');
-
-        const blob = await respuesta.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Certificado_ScrumFlow.pdf';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-  }
-
-  document.addEventListener('click', async (e) => {
-    const btnVer = e.target.closest('.btn-ver-leccion');
-    if (btnVer) await marcarLeccionComoCompletada(parseInt(btnVer.dataset.leccionId));
-
-    const btnQuiz = e.target.closest('.btn-hacer-quiz');
-    if (btnQuiz) mostrarQuiz(parseInt(btnQuiz.dataset.leccionId));
+  // Agrupar por sección conservando el orden
+  const secciones = {};
+  lecciones.forEach(leccion => {
+    const nombreSeccion = leccion.seccion || 'Módulos';
+    if (!secciones[nombreSeccion]) secciones[nombreSeccion] = [];
+    secciones[nombreSeccion].push(leccion);
   });
 
-  const btnIniciarQuizFinal = document.getElementById('btn-iniciar-quiz-final');
-  if (btnIniciarQuizFinal) {
-    btnIniciarQuizFinal.addEventListener('click', () => mostrarQuizFinal());
+  let html = '';
+  for (const [seccion, lista] of Object.entries(secciones)) {
+    html += `<div class="ruta-seccion-label">${seccion}</div>`;
+    html += lista.map(leccion => {
+      const esActiva = vistaActiva === 'modulos' && leccion.id === leccionActivaId;
+      const tieneQuiz = quizzes.some(q => q.leccion_id === leccion.id);
+
+      return `
+        <button type="button" class="ruta-item ${esActiva ? 'activa' : ''} ${leccion.completada ? 'completada' : ''}" data-leccion-id="${leccion.id}">
+          <span class="ruta-nodo">
+            ${leccion.completada ? '<i class="fas fa-check"></i>' : leccion.orden}
+          </span>
+          <div class="ruta-info">
+            <span class="ruta-titulo">${leccion.titulo}</span>
+            <div class="ruta-meta">
+              <span>${leccion.completada ? 'Completada' : 'Lectura'}</span>
+              ${tieneQuiz ? `
+                <span class="ruta-quiz-tag ${leccion.quiz_aprobado ? 'aprobado' : ''}">
+                  <i class="fas ${leccion.quiz_aprobado ? 'fa-star' : 'fa-question-circle'}"></i>
+                  ${leccion.quiz_aprobado ? 'Quiz OK' : 'Quiz'}
+                </span>
+              ` : ''}
+            </div>
+          </div>
+        </button>
+      `;
+    }).join('');
   }
 
-  const btnCerrarQuiz = document.getElementById('btn-cerrar-quiz');
-  if (btnCerrarQuiz) {
-    btnCerrarQuiz.addEventListener('click', () => document.getElementById('modal-quiz').style.display = 'none');
-  }
-
-  const btnEnviarQuiz = document.getElementById('btn-enviar-quiz');
-  if (btnEnviarQuiz) {
-    btnEnviarQuiz.addEventListener('click', async () => {
-      const esFinal = btnEnviarQuiz.dataset.esQuizFinal === 'true';
-      if (esFinal) {
-        await enviarQuizFinal();
-      } else {
-        await enviarQuiz(parseInt(btnEnviarQuiz.dataset.leccionId));
-      }
-    });
-  }
-
-  window.addEventListener('click', (e) => {
-    const modal = document.getElementById('modal-quiz');
-    if (e.target === modal) modal.style.display = 'none';
-  });
-
-  configurarPestanas();
-  configurarSubPestanasRoles();
+  contenedorRuta.innerHTML = html;
 }
 
-function configurarPestanas() {
-  const botonesPestana = document.querySelectorAll('.pestana-btn');
-  const contenidosPestana = document.querySelectorAll('.contenido-pestana');
+/* ===========================================================================
+   CONTROL DE VISTAS DEL PANEL PRINCIPAL
+   ========================================================================== */
+function cambiarVista(nuevaVista) {
+  vistaActiva = nuevaVista;
+  ultimoResultadoQuiz = null;
 
-  botonesPestana.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const pestanaObjetivo = btn.dataset.pestana;
-      botonesPestana.forEach(b => b.classList.remove('activa'));
-      contenidosPestana.forEach(c => c.classList.remove('activa'));
-      btn.classList.add('activa');
-      const panelObjetivo = document.getElementById(`seccion-${pestanaObjetivo}`);
-      if (panelObjetivo) panelObjetivo.classList.add('activa');
-    });
+  // Actualizar estado activo en Bloque 1 del Sidebar
+  document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
+    btn.classList.toggle('activa', btn.dataset.vista === nuevaVista);
   });
+
+  // Mostrar el panel correspondiente
+  document.querySelectorAll('.vista-panel').forEach(panel => {
+    panel.classList.toggle('activa', panel.id === `vista-${nuevaVista}`);
+  });
+
+  renderizarSidebarRuta();
+  renderizarVistaActual();
+  cerrarSidebarMovil();
 }
 
-function configurarSubPestanasRoles() {
-  const botonesRol = document.querySelectorAll('.rol-tab-btn');
-  const panelesRol = document.querySelectorAll('.panel-rol');
-
-  botonesRol.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const rolObjetivo = btn.dataset.rol;
-      botonesRol.forEach(b => b.classList.remove('activo'));
-      panelesRol.forEach(p => p.classList.remove('activo'));
-      btn.classList.add('activo');
-      const panelSeleccionado = document.getElementById(`panel-${rolObjetivo}`);
-      if (panelSeleccionado) panelSeleccionado.classList.add('activo');
-    });
-  });
+function renderizarVistaActual() {
+  if (vistaActiva === 'modulos') {
+    if (modoLeccion === 'quiz') {
+      renderizarQuizLeccionInline(leccionActivaId);
+    } else {
+      renderizarLeccionInline(leccionActivaId);
+    }
+  } else if (vistaActiva === 'quiz-final') {
+    renderizarPortadaQuizFinal();
+  }
 }
 
-async function marcarLeccionComoCompletada(leccionId) {
-  try {
-    const leccion = lecciones.find(l => l.id === leccionId);
-    if (!leccion) return;
+/* ===========================================================================
+   VISTA 1: LECTURA ENFOCADA Y QUIZ MODULAR INLINE
+   ========================================================================== */
+function renderizarLeccionInline(id) {
+  const visor = document.getElementById('visor-leccion');
+  if (!visor) return;
 
-    const modal = document.createElement('div');
-    modal.className = 'modal-leccion-overlay';
-    modal.innerHTML = `
-      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-        <div style="background: white; padding: 25px; border-radius: 12px; max-width: 800px; max-height: 80vh; overflow: auto; position: relative;">
-          <button id="cerrar-modal-lectura" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-          <h2>${leccion.titulo}</h2>
-          <div style="margin-top: 15px; line-height: 1.6;">${decodeHtmlEntities(leccion.contenido)}</div>
+  const indice = lecciones.findIndex(l => l.id === id);
+  const leccion = lecciones[indice];
+  if (!leccion) {
+    visor.innerHTML = '<p>No hay lecciones disponibles.</p>';
+    return;
+  }
+
+  const anterior = indice > 0 ? lecciones[indice - 1] : null;
+  const siguiente = indice < lecciones.length - 1 ? lecciones[indice + 1] : null;
+  const tieneQuiz = quizzes.some(q => q.leccion_id === leccion.id);
+
+  visor.innerHTML = `
+    <div class="leccion-top-bar">
+      <span class="leccion-breadcrumb">${leccion.seccion || 'Módulo'} · Lección ${leccion.orden} de ${lecciones.length}</span>
+      <div class="leccion-badges">
+        <span class="estado-pill ${leccion.completada ? 'estado-pill--completada' : 'estado-pill--pendiente'}">
+          <i class="fas ${leccion.completada ? 'fa-check-circle' : 'fa-clock'}"></i>
+          ${leccion.completada ? 'Completada' : 'Pendiente'}
+        </span>
+        ${tieneQuiz ? `
+          <span class="estado-pill ${leccion.quiz_aprobado ? 'estado-pill--quiz-ok' : 'estado-pill--pendiente'}">
+            <i class="fas ${leccion.quiz_aprobado ? 'fa-star' : 'fa-clipboard-check'}"></i>
+            ${leccion.quiz_aprobado ? 'Quiz Aprobado' : 'Quiz Pendiente'}
+          </span>
+        ` : ''}
+      </div>
+    </div>
+
+    <h2 class="visor-leccion-titulo">${leccion.orden}. ${leccion.titulo}</h2>
+
+    <div class="visor-leccion-cuerpo">
+      ${decodeHtmlEntities(leccion.contenido)}
+    </div>
+
+    <div class="visor-leccion-footer">
+      <div>
+        ${anterior ? `
+          <button type="button" class="boton boton--secundario" id="btn-leccion-anterior" data-id="${anterior.id}">
+            <i class="fas fa-arrow-left"></i> Anterior
+          </button>
+        ` : ''}
+      </div>
+
+      <div class="visor-leccion-footer__derecha">
+        ${tieneQuiz ? `
+          <button type="button" class="boton boton--secundario" id="btn-abrir-quiz-inline" data-id="${leccion.id}">
+            <i class="fas fa-tasks"></i> ${leccion.quiz_aprobado ? 'Reintentar Quiz' : 'Evaluar Lección (Quiz)'}
+          </button>
+        ` : ''}
+
+        <button type="button" class="boton boton--primario" id="btn-completar-continuar" data-id="${leccion.id}" data-siguiente-id="${siguiente ? siguiente.id : ''}">
+          <i class="fas fa-check"></i> ${siguiente ? 'Completar y Continuar' : 'Completar Lección'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderizarQuizLeccionInline(id) {
+  const visor = document.getElementById('visor-leccion');
+  const leccion = lecciones.find(l => l.id === id);
+  if (!visor || !leccion) return;
+
+  const quizzesLeccion = quizzes.filter(q => q.leccion_id === id);
+
+  let bannerHtml = '';
+  if (ultimoResultadoQuiz) {
+    bannerHtml = `
+      <div class="quiz-resultado-banner ${ultimoResultadoQuiz.aprobado ? 'aprobado' : 'reprobado'}">
+        <div>
+          <strong>${ultimoResultadoQuiz.aprobado ? '¡Excelente trabajo!' : 'Sigue practicando'}</strong>
+          <div>${ultimoResultadoQuiz.mensaje}</div>
+        </div>
+        <button type="button" class="boton boton--secundario" id="btn-volver-lectura">
+          <i class="fas fa-book-open"></i> Volver a la lección
+        </button>
+      </div>
+    `;
+  }
+
+  let preguntasHtml = quizzesLeccion.map((quiz, index) => {
+    let opcionesObj = quiz.opciones;
+    if (typeof opcionesObj === 'string') {
+      try { opcionesObj = JSON.parse(opcionesObj); } catch (e) { }
+    }
+    return `
+      <div class="quiz-bloque-pregunta">
+        <div class="quiz-pregunta">${index + 1}. ${quiz.pregunta}</div>
+        <div class="quiz-opciones" data-quiz-id="${quiz.id}">
+          ${Object.entries(opcionesObj).map(([key, valor]) => `
+            <div class="quiz-opcion" data-opcion="${key}" data-quiz-id="${quiz.id}">
+              ${String.fromCharCode(65 + parseInt(key, 10))}. ${valor}
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
-    document.body.appendChild(modal);
-    document.getElementById('cerrar-modal-lectura').addEventListener('click', () => modal.remove());
+  }).join('');
 
-    await fetch('/api/curso-scrum/progreso', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-csrf-token': obtenerTokenCsrf() },
-      body: JSON.stringify({ leccionId, completada: true, posicionScroll: window.scrollY })
-    });
-    await cargarCurso();
-  } catch (error) {
-    console.error('[curso-scrum] Error al marcar lección:', error);
+  visor.innerHTML = `
+    <div class="quiz-inline-header">
+      <div>
+        <span class="leccion-breadcrumb">Evaluación del Módulo</span>
+        <h2>Quiz: ${leccion.titulo}</h2>
+      </div>
+      <button type="button" class="boton boton--secundario" id="btn-volver-lectura">
+        <i class="fas fa-arrow-left"></i> Volver a la Lectura
+      </button>
+    </div>
+
+    ${bannerHtml}
+    ${preguntasHtml}
+
+    <div class="visor-leccion-footer">
+      <button type="button" class="boton boton--primario" id="btn-enviar-quiz-inline" data-leccion-id="${id}">
+        <i class="fas fa-paper-plane"></i> Enviar Respuestas
+      </button>
+    </div>
+  `;
+
+  activarOpcionesQuiz();
+}
+
+/* ===========================================================================
+   VISTA 4: QUIZ FINAL INTEGRADOR (PORTADA Y PREGUNTAS INLINE)
+   ========================================================================== */
+function renderizarPortadaQuizFinal() {
+  const contenedor = document.getElementById('contenedor-quiz-final');
+  if (!contenedor) return;
+
+  const califActual = quizFinalData?.calificacion || 0;
+  const aprobado = quizFinalData?.aprobado || false;
+
+  contenedor.innerHTML = `
+    <div class="quiz-final-portada">
+      <i class="fas fa-award icono-quiz-final"></i>
+      <h2>Evaluación Final de Certificación</h2>
+      <p style="color: var(--texto-suave);">Demuestra tus conocimientos integrales sobre la metodología Scrum en ScrumFlow.</p>
+
+      <div class="requisitos-quiz-final">
+        <div class="requisito-item">
+          <i class="fas fa-check-circle" style="color: var(--esmeralda-500);"></i>
+          <span><strong>Requisito de Aprobación:</strong> Puntuación mínima de <strong>9.5 / 10 (95%)</strong>.</span>
+        </div>
+        <div class="requisito-item">
+          <i class="fas fa-list-ol" style="color: var(--primario);"></i>
+          <span><strong>Formato:</strong> 20 preguntas integradoras de los 4 módulos.</span>
+        </div>
+        <div class="requisito-item">
+          <i class="fas fa-redo" style="color: var(--ambar-500);"></i>
+          <span><strong>Intentos:</strong> Ilimitados (se conserva tu calificación más alta).</span>
+        </div>
+        ${califActual > 0 ? `
+          <div class="requisito-item">
+            <i class="fas fa-chart-bar" style="color: ${aprobado ? 'var(--esmeralda-500)' : 'var(--primario)'};"></i>
+            <span><strong>Tu mejor calificación registrada:</strong> ${califActual}% ${aprobado ? '(Certificado desbloqueado)' : ''}</span>
+          </div>
+        ` : ''}
+      </div>
+
+      <button id="btn-iniciar-quiz-final" type="button" class="boton boton--primario boton--lg">
+        <i class="fas fa-play-circle"></i> ${califActual > 0 ? 'Reintentar Quiz Final Integrador' : 'Iniciar Quiz Final Integrador'}
+      </button>
+    </div>
+  `;
+}
+
+function renderizarPreguntasQuizFinalInline() {
+  const contenedor = document.getElementById('contenedor-quiz-final');
+  if (!contenedor || !quizFinalData?.preguntas) return;
+
+  let bannerHtml = '';
+  if (ultimoResultadoQuiz) {
+    bannerHtml = `
+      <div class="quiz-resultado-banner ${ultimoResultadoQuiz.aprobado ? 'aprobado' : 'reprobado'}">
+        <div>
+          <strong>${ultimoResultadoQuiz.aprobado ? '¡Certificación Aprobada!' : 'Calificación insuficiente'}</strong>
+          <div>${ultimoResultadoQuiz.mensaje}</div>
+        </div>
+        <button type="button" class="boton boton--secundario" id="btn-cancelar-quiz-final">
+          Ver resumen
+        </button>
+      </div>
+    `;
   }
-}
 
-function mostrarQuiz(leccionId) {
-  const modal = document.getElementById('modal-quiz');
-  const quizContenido = document.getElementById('quiz-contenido');
-  const btnEnviar = document.getElementById('btn-enviar-quiz');
-
-  const leccion = lecciones.find(l => l.id === leccionId);
-  if (!leccion) return;
-
-  const quizzesLeccion = quizzes.filter(q => q.leccion_id === leccionId);
-  document.getElementById('quiz-leccion-titulo').textContent = leccion.titulo;
-  btnEnviar.dataset.leccionId = leccionId;
-  btnEnviar.dataset.esQuizFinal = 'false';
-
-  let html = '<div class="quiz-pregunta">Responde las siguientes preguntas:</div>';
-  quizzesLeccion.forEach((quiz, index) => {
+  const preguntasHtml = quizFinalData.preguntas.map((quiz, index) => {
     let opcionesObj = quiz.opciones;
-    if (typeof opcionesObj === 'string') { try { opcionesObj = JSON.parse(opcionesObj); } catch (e) { } }
-    html += `
-      <div class="quiz-pregunta" style="margin-top: 20px;">${index + 1}. ${quiz.pregunta}</div>
-      <div class="quiz-opciones" data-quiz-id="${quiz.id}">
-        ${Object.entries(opcionesObj).map(([key, valor]) => `
-          <div class="quiz-opcion" data-opcion="${key}" data-quiz-id="${quiz.id}">
-            ${String.fromCharCode(65 + parseInt(key))}. ${valor}
-          </div>
-        `).join('')}
+    if (typeof opcionesObj === 'string') {
+      try { opcionesObj = JSON.parse(opcionesObj); } catch (e) { }
+    }
+    return `
+      <div class="quiz-bloque-pregunta">
+        <div class="quiz-pregunta">${index + 1}. ${quiz.pregunta}</div>
+        <div class="quiz-opciones" data-quiz-id="${quiz.id}">
+          ${Object.entries(opcionesObj).map(([key, valor]) => `
+            <div class="quiz-opcion" data-opcion="${key}" data-quiz-id="${quiz.id}">
+              ${String.fromCharCode(65 + parseInt(key, 10))}. ${valor}
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
-  });
+  }).join('');
 
-  quizContenido.innerHTML = html;
-  btnEnviar.style.display = 'inline-flex';
-  modal.style.display = 'flex';
-
-  activarOpcionesQuiz();
-}
-
-function mostrarQuizFinal() {
-  if (!quizFinalData || !quizFinalData.preguntas) return;
-
-  const modal = document.getElementById('modal-quiz');
-  const quizContenido = document.getElementById('quiz-contenido');
-  const btnEnviar = document.getElementById('btn-enviar-quiz');
-
-  document.getElementById('quiz-leccion-titulo').textContent = 'Quiz Final Integrador (20 Preguntas)';
-  btnEnviar.dataset.esQuizFinal = 'true';
-
-  let html = '<div class="aviso avisos--info">Responde las 20 preguntas. Mínimo 95% de acierto para obtener el certificado.</div>';
-
-  quizFinalData.preguntas.forEach((quiz, index) => {
-    let opcionesObj = quiz.opciones;
-    if (typeof opcionesObj === 'string') { try { opcionesObj = JSON.parse(opcionesObj); } catch (e) { } }
-    html += `
-      <div class="quiz-pregunta" style="margin-top: 20px;">${index + 1}. ${quiz.pregunta}</div>
-      <div class="quiz-opciones" data-quiz-id="${quiz.id}">
-        ${Object.entries(opcionesObj).map(([key, valor]) => `
-          <div class="quiz-opcion" data-opcion="${key}" data-quiz-id="${quiz.id}">
-            ${String.fromCharCode(65 + parseInt(key))}. ${valor}
-          </div>
-        `).join('')}
+  contenedor.innerHTML = `
+    <div class="quiz-inline-header">
+      <div>
+        <span class="leccion-breadcrumb">Certificación Oficial ScrumFlow</span>
+        <h2>Quiz Final Integrador (20 Preguntas)</h2>
       </div>
-    `;
-  });
+      <button type="button" class="boton boton--secundario" id="btn-cancelar-quiz-final">
+        <i class="fas fa-times"></i> Salir del Quiz
+      </button>
+    </div>
 
-  quizContenido.innerHTML = html;
-  btnEnviar.style.display = 'inline-flex';
-  modal.style.display = 'flex';
+    <div class="aviso avisos--info" style="margin-bottom: 20px;">
+      Responde las 20 preguntas. Necesitas al menos <strong>95% (19 de 20 aciertos)</strong> para obtener tu certificado en PDF.
+    </div>
+
+    ${bannerHtml}
+    ${preguntasHtml}
+
+    <div class="visor-leccion-footer">
+      <button type="button" class="boton boton--primario boton--lg" id="btn-enviar-quiz-final-inline">
+        <i class="fas fa-paper-plane"></i> Finalizar y Calificar Examen
+      </button>
+    </div>
+  `;
 
   activarOpcionesQuiz();
+  contenedor.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function activarOpcionesQuiz() {
-  const opciones = document.querySelectorAll('.quiz-opcion');
-  opciones.forEach(opcion => {
+  document.querySelectorAll('.quiz-opcion').forEach(opcion => {
     opcion.addEventListener('click', () => {
       const quizId = opcion.dataset.quizId;
-      const opcionesQuiz = document.querySelectorAll(`.quiz-opcion[data-quiz-id="${quizId}"]`);
-      opcionesQuiz.forEach(o => o.classList.remove('seleccionada'));
+      document.querySelectorAll(`.quiz-opcion[data-quiz-id="${quizId}"]`).forEach(o => o.classList.remove('seleccionada'));
       opcion.classList.add('seleccionada');
     });
   });
 }
 
-async function enviarQuiz(leccionId) {
+/* ===========================================================================
+   ACCIONES DE PROGRESO Y ENVÍO DE QUIZZES
+   ========================================================================== */
+async function completarLeccionYContinuar(leccionId, siguienteId) {
+  try {
+    await fetch('/api/curso-scrum/progreso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': obtenerTokenCsrf() },
+      body: JSON.stringify({
+        leccionId,
+        completada: true,
+        posicionScroll: Math.round(window.scrollY)
+      })
+    });
+
+    if (siguienteId) {
+      leccionActivaId = parseInt(siguienteId, 10);
+      modoLeccion = 'lectura';
+    }
+
+    await cargarCurso();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (error) {
+    console.error('[curso-scrum] Error al completar lección:', error);
+    alert('No se pudo guardar el progreso de la lección.');
+  }
+}
+
+async function enviarQuizInline(leccionId) {
   const opcionesSeleccionadas = {};
-  const opciones = document.querySelectorAll('.quiz-opcion.seleccionada');
+  const seleccionadas = document.querySelectorAll('#visor-leccion .quiz-opcion.seleccionada');
   const quizzesLeccion = quizzes.filter(q => q.leccion_id === leccionId);
 
-  if (opciones.length !== quizzesLeccion.length) {
-    alert('Por favor, responde todas las preguntas antes de enviar.');
+  if (seleccionadas.length !== quizzesLeccion.length) {
+    alert(`Has respondido ${seleccionadas.length} de ${quizzesLeccion.length} preguntas. Por favor respóndelas todas.`);
     return;
   }
 
-  opciones.forEach(opcion => {
-    opcionesSeleccionadas[parseInt(opcion.dataset.quizId)] = parseInt(opcion.dataset.opcion);
+  seleccionadas.forEach(op => {
+    opcionesSeleccionadas[parseInt(op.dataset.quizId, 10)] = parseInt(op.dataset.opcion, 10);
   });
 
   try {
@@ -394,25 +504,33 @@ async function enviarQuiz(leccionId) {
       body: JSON.stringify({ leccionId, respuestas: opcionesSeleccionadas })
     });
     const datos = await respuesta.json();
-    alert(`Quiz finalizado. Calificación: ${datos.calificacion}%`);
-    document.getElementById('modal-quiz').style.display = 'none';
+
+    ultimoResultadoQuiz = {
+      aprobado: datos.aprobado,
+      calificacion: datos.calificacion,
+      mensaje: datos.aprobado
+        ? `Calificación obtenida: ${datos.calificacion}%. ¡Quiz aprobado!`
+        : `Calificación obtenida: ${datos.calificacion}%. Necesitas 100% para aprobar este módulo.`
+    };
+
     await cargarCurso();
+    document.getElementById('visor-leccion')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (error) {
-    alert('Error al enviar el quiz.');
+    alert('Error al enviar las respuestas del quiz.');
   }
 }
 
-async function enviarQuizFinal() {
+async function enviarQuizFinalInline() {
   const opcionesSeleccionadas = {};
-  const opciones = document.querySelectorAll('.quiz-opcion.seleccionada');
+  const seleccionadas = document.querySelectorAll('#contenedor-quiz-final .quiz-opcion.seleccionada');
 
-  if (opciones.length !== quizFinalData.preguntas.length) {
-    alert(`Has respondido ${opciones.length} de 20 preguntas. Por favor responde todas para enviar.`);
+  if (seleccionadas.length !== quizFinalData.preguntas.length) {
+    alert(`Has respondido ${seleccionadas.length} de ${quizFinalData.preguntas.length} preguntas. Responde todas antes de finalizar.`);
     return;
   }
 
-  opciones.forEach(opcion => {
-    opcionesSeleccionadas[parseInt(opcion.dataset.quizId)] = parseInt(opcion.dataset.opcion);
+  seleccionadas.forEach(op => {
+    opcionesSeleccionadas[parseInt(op.dataset.quizId, 10)] = parseInt(op.dataset.opcion, 10);
   });
 
   try {
@@ -421,20 +539,179 @@ async function enviarQuizFinal() {
       headers: { 'Content-Type': 'application/json', 'x-csrf-token': obtenerTokenCsrf() },
       body: JSON.stringify({ respuestas: opcionesSeleccionadas })
     });
-
     const datos = await respuesta.json();
 
-    if (datos.aprobado) {
-      alert(`¡FELICIDADES! Has aprobado el Quiz Final con ${datos.calificacion}%. Tu certificado ha sido emitido.`);
-    } else {
-      alert(`Puntuación: ${datos.calificacion}%. Se requiere mínimo 95% (9.5) para certificar. Puedes reintentarlo.`);
-    }
+    ultimoResultadoQuiz = {
+      aprobado: datos.aprobado,
+      calificacion: datos.calificacion,
+      mensaje: datos.aprobado
+        ? `Obtuviste ${datos.calificacion}%. Tu certificado en PDF ya está disponible arriba.`
+        : `Obtuviste ${datos.calificacion}%. Se requiere mínimo 95% (9.5) para certificar. Puedes intentarlo nuevamente.`
+    };
 
-    document.getElementById('modal-quiz').style.display = 'none';
     await cargarCurso();
+    // Mantener la vista de preguntas para mostrar el banner de resultado
+    renderizarPreguntasQuizFinalInline();
   } catch (error) {
     alert('Error al enviar el Quiz Final.');
   }
+}
+
+/* ===========================================================================
+   DRAWER RETRÁCTIL (DESKTOP + MÓVIL) Y DELEGACIÓN DE EVENTOS
+   ========================================================================== */
+function alternarSidebar() {
+  const layout = document.getElementById('curso-layout');
+  const sidebar = document.getElementById('curso-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  if (window.innerWidth <= 900) {
+    sidebar?.classList.toggle('abierto-movil');
+    overlay?.classList.toggle('visible');
+  } else {
+    layout?.classList.toggle('sidebar-colapsado');
+  }
+}
+
+function cerrarSidebarMovil() {
+  document.getElementById('curso-sidebar')?.classList.remove('abierto-movil');
+  document.getElementById('sidebar-overlay')?.classList.remove('visible');
+}
+
+function configurarEventos() {
+  // Toggle Drawer
+  document.getElementById('btn-toggle-sidebar')?.addEventListener('click', alternarSidebar);
+  document.getElementById('sidebar-overlay')?.addEventListener('click', cerrarSidebarMovil);
+
+  // Bloque 1 del Sidebar: Cambiar entre Módulos, Guía Práctica, Roles y Quiz Final
+  document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.vista === 'modulos') modoLeccion = 'lectura';
+      cambiarVista(btn.dataset.vista);
+    });
+  });
+
+  // Filtros de categorías en Guía Práctica de ScrumFlow
+  document.querySelectorAll('.guia-filtro-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filtro = btn.dataset.filtro;
+      document.querySelectorAll('.guia-filtro-btn').forEach(b => b.classList.remove('activo'));
+      btn.classList.add('activo');
+
+      document.querySelectorAll('#guia-pantallas-grid .guia-card').forEach(card => {
+        const coincide = filtro === 'todas' || card.dataset.categoria === filtro;
+        card.classList.toggle('oculta', !coincide);
+      });
+    });
+  });
+
+  // Sub-pestañas dentro de Roles (PO, SM, Developers)
+  document.querySelectorAll('.rol-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rolObjetivo = btn.dataset.rol;
+      document.querySelectorAll('.rol-tab-btn').forEach(b => b.classList.remove('activo'));
+      document.querySelectorAll('.panel-rol').forEach(p => p.classList.remove('activo'));
+      btn.classList.add('activo');
+      document.getElementById(`panel-${rolObjetivo}`)?.classList.add('activo');
+    });
+  });
+
+  // Descargar Certificado PDF
+  document.getElementById('btn-descargar-certificado')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const respuesta = await fetch('/api/curso-scrum/certificado/download');
+      if (!respuesta.ok) throw new Error('Debes aprobar el Quiz Final (mínimo 9.5) para descargar el certificado.');
+
+      const blob = await respuesta.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Certificado_ScrumFlow.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // Delegación global de clics dinámicos (Timeline, botones de lectura, quizzes)
+  document.addEventListener('click', async (e) => {
+    // Clic en un ítem del Timeline (Bloque 2 del Sidebar)
+    const itemRuta = e.target.closest('.ruta-item');
+    if (itemRuta) {
+      leccionActivaId = parseInt(itemRuta.dataset.leccionId, 10);
+      modoLeccion = 'lectura';
+      cambiarVista('modulos');
+      return;
+    }
+
+    // Botón "Anterior" en lección
+    const btnAnterior = e.target.closest('#btn-leccion-anterior');
+    if (btnAnterior) {
+      leccionActivaId = parseInt(btnAnterior.dataset.id, 10);
+      modoLeccion = 'lectura';
+      ultimoResultadoQuiz = null;
+      renderizarSidebarRuta();
+      renderizarLeccionInline(leccionActivaId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Botón "Completar y Continuar"
+    const btnCompletar = e.target.closest('#btn-completar-continuar');
+    if (btnCompletar) {
+      const id = parseInt(btnCompletar.dataset.id, 10);
+      const sig = btnCompletar.dataset.siguienteId;
+      await completarLeccionYContinuar(id, sig);
+      return;
+    }
+
+    // Abrir Quiz Modular inline
+    const btnQuizInline = e.target.closest('#btn-abrir-quiz-inline');
+    if (btnQuizInline) {
+      modoLeccion = 'quiz';
+      ultimoResultadoQuiz = null;
+      renderizarQuizLeccionInline(parseInt(btnQuizInline.dataset.id, 10));
+      return;
+    }
+
+    // Volver de Quiz Modular a la Lectura
+    if (e.target.closest('#btn-volver-lectura')) {
+      modoLeccion = 'lectura';
+      ultimoResultadoQuiz = null;
+      renderizarLeccionInline(leccionActivaId);
+      return;
+    }
+
+    // Enviar Quiz Modular inline
+    const btnEnviarQuiz = e.target.closest('#btn-enviar-quiz-inline');
+    if (btnEnviarQuiz) {
+      await enviarQuizInline(parseInt(btnEnviarQuiz.dataset.leccionId, 10));
+      return;
+    }
+
+    // Iniciar Quiz Final Integrador inline
+    if (e.target.closest('#btn-iniciar-quiz-final')) {
+      ultimoResultadoQuiz = null;
+      renderizarPreguntasQuizFinalInline();
+      return;
+    }
+
+    // Salir / Volver a portada del Quiz Final
+    if (e.target.closest('#btn-cancelar-quiz-final')) {
+      ultimoResultadoQuiz = null;
+      renderizarPortadaQuizFinal();
+      return;
+    }
+
+    // Enviar Quiz Final Integrador inline
+    if (e.target.closest('#btn-enviar-quiz-final-inline')) {
+      await enviarQuizFinalInline();
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', inicializar);

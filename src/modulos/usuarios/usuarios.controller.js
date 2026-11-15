@@ -1,12 +1,12 @@
-import * as usuariosService from './usuarios.service.js';
-import { ErrorApp } from '../../utils/ErrorApp.js';
-
 /**
  * @file usuarios.controller.js
  * @description Controladores para la gestión de usuarios, incluyendo la recuperación de contraseñas.
  * 
  * @author Citlaly Morales Viveros
  */
+
+import * as usuariosService from './usuarios.service.js';
+import { ErrorApp } from '../../utils/ErrorApp.js';
 
 /**
  * Procesa la solicitud de recuperación de contraseña.

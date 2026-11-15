@@ -3,6 +3,7 @@
  * @description Funciones de validación de datos de entrada.
  * 
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 /**

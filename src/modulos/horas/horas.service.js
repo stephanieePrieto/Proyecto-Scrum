@@ -13,6 +13,7 @@
  *
  * @author Alfonso Mendoza Vasquez
  * @author Citlaly Morales Viveros
+ * @author Dana Carmona Santamaria
  */
 
 import { consulta } from '../../config/db.js';
@@ -22,9 +23,7 @@ import { emitirAProyecto } from '../../sockets/emisor.js';
 import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { evaluarDesviacionTarea } from '../desviacion/desviacion.alertas.js';
 
-/*
- * Constantes
- */
+/* Constantes */
 
 /** Evento de socket que recibe la sala del proyecto cuando cambian las horas de una tarea. */
 const EVENTO_HORAS = 'horas:actualizadas';

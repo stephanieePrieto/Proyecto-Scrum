@@ -5,6 +5,8 @@
  * Cada función acepta opcionalmente el cliente de una transacción para consultar dentro de ella.
  * 
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Diego Rafael Jiménez Trujano
  */
 import { pool } from '../config/db.js';
 import { ErrorApp } from './ErrorApp.js';

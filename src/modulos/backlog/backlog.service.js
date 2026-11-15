@@ -15,6 +15,7 @@
  * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
  */
+
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';

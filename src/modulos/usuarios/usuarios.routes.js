@@ -1,3 +1,11 @@
+/**
+ * @file usuarios.routes.js
+ * @description Definición de rutas públicas y protegidas para la gestión de usuarios.
+ * 
+ * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
 import { Router } from 'express';
 import { solicitarRecuperacion, restablecerPassword, definirPasswordController, obtenerPerfil, actualizarFoto, obtenerFoto, actualizarZonaHoraria, actualizarPreferenciasNotificacion, actualizarPreferenciasApp } from './usuarios.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -10,12 +18,6 @@ import QRCode from 'qrcode';
 import multer from 'multer';
 import { LIMITE_FOTO_BYTES, MENSAJE_FORMATO_FOTO, MIMES_FOTO } from './usuarios.service.js';
 
-/**
- * @file usuarios.routes.js
- * @description Definición de rutas públicas y protegidas para la gestión de usuarios.
- * 
- * @author Citlaly Morales Viveros
- */
 const router = Router();
 
 router.post('/recuperar-password', asyncHandler(solicitarRecuperacion));

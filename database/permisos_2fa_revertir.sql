@@ -1,7 +1,10 @@
--- Revierte permisos de 2FA
--- Ejecutar para eliminar permisos de scrumflow_app sobre tablas de 2FA
---
--- @author Citlaly Morales Viveros
+/**
+    @file permisos_2fa_revertir.sql
+    @description Revierte permisos de 2FA
+    Ejecutar para eliminar permisos de scrumflow_app sobre tablas de 2FA
+
+    @author Citlaly Morales Viveros
+*/
 \set ON_ERROR_STOP on
 
 -- Revocar permisos sobre tablas de 2FA

@@ -8,10 +8,6 @@
 import * as servicio from './curso-scrum.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
-// ===========================================================================
-// CONTROLADORES EXISTENTES
-// ===========================================================================
-
 /**
  * Obtiene el temario y progreso del curso para un usuario en un proyecto.
  */
@@ -53,9 +49,7 @@ export async function enviarQuiz(req, res, next) {
   }
 }
 
-// ===========================================================================
 // CONTROLADORES DE CERTIFICADO
-// ===========================================================================
 
 /**
  * Obtiene la información del certificado de un usuario.
@@ -131,9 +125,7 @@ export const reiniciarProgreso = asyncHandler(async (req, res) => {
   res.json({ mensaje: 'Progreso del curso reiniciado correctamente' });
 });
 
-// ===========================================================================
 // CONTROLADORES ADMIN
-// ===========================================================================
 
 /**
  * Obtiene todos los módulos del curso (solo Admin).

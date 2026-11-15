@@ -1,3 +1,11 @@
+/**
+ * @file usuarios.service.js
+ * @description Lógica de negocio para la gestión de usuarios y recuperación de contraseñas.
+ * 
+ * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
 import { hashearPassword } from '../../utils/hash.js';
 import { esPasswordFuerte } from '../../utils/validar.js';
 import crypto from 'crypto';
@@ -16,13 +24,6 @@ const CLAVES_APP_BOOLEANAS = Object.freeze(['textoGrande', 'altoContraste', 'red
 import { mkdirSync, promises as fsp } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-/**
- * @file usuarios.service.js
- * @description Lógica de negocio para la gestión de usuarios y recuperación de contraseñas.
- * 
- * @author Citlaly Morales Viveros
- */
 
 /**
  * Genera un token de recuperación y lo envía por correo.

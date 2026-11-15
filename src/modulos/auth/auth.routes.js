@@ -1,8 +1,3 @@
-import { Router } from 'express';
-import { login, logout, renovarToken, latido, register, verificar2FA, solicitarCodigoOtp, verificarCodigoOtp } from './auth.controller.js';
-import { asyncHandler } from '../../utils/asyncHandler.js';
-import { autenticar } from '../../middlewares/autenticar.js';
-
 /**
  * @file auth.routes.js
  * @description Definición de rutas para autenticación y gestión de sesiones.
@@ -10,6 +5,12 @@ import { autenticar } from '../../middlewares/autenticar.js';
  * @author Citlaly Morales Viveros
  * @author Stephanie Elizdeth Hernández Prieto
  */
+
+import { Router } from 'express';
+import { login, logout, renovarToken, latido, register, verificar2FA, solicitarCodigoOtp, verificarCodigoOtp } from './auth.controller.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { autenticar } from '../../middlewares/autenticar.js';
+
 const router = Router();
 
 router.post('/login', asyncHandler(login));

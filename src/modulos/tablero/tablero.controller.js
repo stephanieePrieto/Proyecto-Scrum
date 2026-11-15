@@ -1,6 +1,6 @@
 /**
  * @file tablero.controller.js
- * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas) [HU-17, HU-18, HU-22].
+ * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas).
  * 
  * @author Camila Mariné Crespo Zurita
  */

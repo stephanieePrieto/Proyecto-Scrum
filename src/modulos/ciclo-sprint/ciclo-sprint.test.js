@@ -3,6 +3,7 @@
  * @description Suite de pruebas unitarias para el ciclo de vida del Sprint (HU-06 y HU-09).
  * Compatible con Jest y ES Modules.
  * 
+ * @author Diego Rafael Jiménez Trujano
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

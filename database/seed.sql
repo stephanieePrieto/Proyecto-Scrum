@@ -1,11 +1,20 @@
--- BASE (no modificar sin avisar al equipo) - HU-47: datos de prueba con el equipo ListiVerse
--- Ejecutar DESPUES de schema.sql. Es seguro correrlo varias veces: no duplica los datos.
---
--- Todos los usuarios son "base": ninguno tiene rol global. El rol existe solo DENTRO de un proyecto.
--- Contrasena de todos:  Scrum2026!   (correos personalizados)
---   Proyecto Demo Alfa: Stephy = Scrum Master, Citlaly = Product Owner, Dana / Diego = Developers
---   Proyecto Demo Beta: Dana = Scrum Master, Diego = Product Owner, Stephy / Citlaly = Developers
---   Al final: datos de prueba del Tablero (HU-17 a HU-23) en Proyecto Demo Alfa (el proyecto que abre el tablero por defecto), con su sprint activo.
+/**
+  @file seed.sql
+  @description BASE (no modificar sin avisar al equipo) - datos de prueba con el equipo ListiVerse
+  Ejecutar DESPUES de schema.sql. Es seguro correrlo varias veces: no duplica los datos.
+
+  Todos los usuarios son "base": ninguno tiene rol global. El rol existe solo DENTRO de un proyecto.
+  Contrasena de todos:  Scrum2026!   (correos personalizados)
+    Proyecto Demo Alfa: Stephy = Scrum Master, Citlaly = Product Owner, Dana / Diego = Developers
+    Proyecto Demo Beta: Dana = Scrum Master, Diego = Product Owner, Stephy / Citlaly = Developers
+    Al final: datos de prueba del Tablero en Proyecto Demo Alfa (el proyecto que abre el tablero por defecto), con su sprint activo.
+
+  @author Stephanie Elizdeth Hernández Prieto
+  @author Camila Mariné Crespo Zurita
+  @author Citlaly Morales Viveros
+  @author Alfonso Mendoza Vasquez
+  @author Jetzaly Josmery Tello Campos
+*/
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -119,7 +128,7 @@ CROSS JOIN (VALUES
 WHERE p.nombre = 'Proyecto Demo Alfa'
   AND NOT EXISTS (SELECT 1 FROM historias x WHERE x.proyecto_id = p.id);
 
--- DATOS DE PRUEBA DEL TABLERO (HU-17 a HU-23) - en "Proyecto Demo Alfa", el que abre el tablero por defecto
+-- DATOS DE PRUEBA DEL TABLERO - en "Proyecto Demo Alfa", el que abre el tablero por defecto
 DO $$
 DECLARE
   v_proyecto_nombre CONSTANT TEXT := 'Proyecto Demo Alfa';
@@ -183,7 +192,7 @@ BEGIN
   -- ---------------------------------------------------------------- Historias
 INSERT INTO historias (proyecto_id, numero_hu, epica_id, sprint_id, titulo, como, quiero, para, criterios, puntos, etiquetas, estado, orden, creada_por)
 SELECT v_proy, (SELECT COALESCE(MAX(x.numero_hu), 0) FROM historias x WHERE x.proyecto_id = v_proy) + h.orden, e.id, v_sprint, h.titulo, h.como, h.quiero, h.para, h.criterios, h.puntos, h.etiquetas, h.estado, 
-       (SELECT COALESCE(MAX(x.orden), 0) FROM historias x WHERE x.proyecto_id = v_proy) + h.orden, v_po
+  (SELECT COALESCE(MAX(x.orden), 0) FROM historias x WHERE x.proyecto_id = v_proy) + h.orden, v_po
   FROM (VALUES
     ('Inicio de sesion seguro',                 'Acceso y cuentas',    'usuario',       'iniciar sesion con mi correo',                            'acceder al sistema',                          'Con credenciales validas entro al dashboard',                            3, ARRAY['auth'],         'hecho',     1),
     ('Tablero con columnas configurables','Tablero Kanban',       'desarrollador', 'un tablero del sprint activo con columnas',                'ver el avance del trabajo',                   'El tablero carga en menos de 2 segundos con las columnas correspondientes', 8, ARRAY['tablero'],      'en_sprint', 2),
@@ -286,15 +295,15 @@ SELECT v_proy, (SELECT COALESCE(MAX(x.numero_hu), 0) FROM historias x WHERE x.pr
   -- ---------------------------------------------------------------- Impedimentos
   INSERT INTO impedimentos (proyecto_id, sprint_id, tarea_id, titulo, severidad, responsable_id, estado, creado_por)
   SELECT v_proy, v_sprint, t.id, 'Falta definir el icono de candado con el equipo de diseno', 'media',
-         (SELECT id FROM usuarios WHERE correo = 'stephanieehpr@gmail.com'), 'abierto',
-         (SELECT id FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com')
+    (SELECT id FROM usuarios WHERE correo = 'stephanieehpr@gmail.com'), 'abierto',
+    (SELECT id FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com')
   FROM tareas t
   WHERE t.sprint_id = v_sprint AND t.titulo = 'Badge de bloqueo con borde rosa y candado';
 
   RAISE NOTICE 'Listo: sprint "%" con 5 historias y 14 tarjetas en "%" (id de proyecto = %).', v_sprint_nombre, v_proyecto_nombre, v_proy;
 END $$;
 
-------------------------------------------------------------- HU-02: sincronizar el contador de historias por proyecto. GREATEST evita disminuir un contador que ya era mayor.
+------------------------------------------------------------- sincronizar el contador de historias por proyecto. GREATEST evita disminuir un contador que ya era mayor.
 UPDATE proyectos p
 SET ultimo_numero_hu = GREATEST(
     p.ultimo_numero_hu,

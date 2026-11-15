@@ -2,7 +2,8 @@
  * @file emisor.js
  * @description funcion emitirAProyecto que usan los services para avisar cambios
  * 
- * @author Stephanie Elizdeth Hernández Prieto
+ * @author Citlaly Morales Viveros
+ * @author Camila Mariné Crespo Zurita
  */
 let ioInstancia = null;
 

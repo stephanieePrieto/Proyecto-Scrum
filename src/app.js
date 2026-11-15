@@ -2,6 +2,8 @@
  * @file app.js
  * @description Configuración central de Express con ES Modules y middlewares de seguridad integrados (XSS y CSRF).
  *
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
  */
 

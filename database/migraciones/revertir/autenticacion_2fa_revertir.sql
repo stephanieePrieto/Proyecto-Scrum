@@ -1,6 +1,11 @@
--- Reversion: Autenticacion en dos pasos (2FA)
--- Deshace todos los cambios de autenticacion_2fa.sql
--- Ejecutar solo si es necesario revertir la migracion
+/**
+    @file autenticacion_2fa_revertir.sql
+    @description Reversion: Autenticacion en dos pasos (2FA)
+    Deshace todos los cambios de autenticacion_2fa.sql
+    Ejecutar solo si es necesario revertir la migracion
+
+    @author Citlaly Morales Viveros
+*/
 
 -- Eliminar indices
 DROP INDEX IF EXISTS ix_autenticacion_2fa_usuario;

@@ -13,6 +13,7 @@
  *
  * Los datos son reales (PostgreSQL). Solo con MODO_DEMO=true (pruebas automáticas) se usan los de capacidad.demo.js.
  * 
+ * @author Citlaly Morales Viveros
  * @author Diego Rafael Jiménez Trujano
  */
 import pool from '../../config/db.js';

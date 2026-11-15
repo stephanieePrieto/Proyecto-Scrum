@@ -5,6 +5,7 @@
  * al middleware global de Express evitando bloqueos en el servidor.
  * 
  * @author Stephanie Elizdeth Hernández Prieto
+ * @author Camila Mariné Crespo Zurita
  */
 
 /**

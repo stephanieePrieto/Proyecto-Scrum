@@ -4,6 +4,8 @@
  * 
  * @author Camila Mariné Crespo Zurita
  * @author Citlaly Morales Viveros
+ * @author Alfonso Mendoza Vasquez
+ * @author Dana Carmona Santamaria
  */
 
 import { consulta } from '../../config/db.js';

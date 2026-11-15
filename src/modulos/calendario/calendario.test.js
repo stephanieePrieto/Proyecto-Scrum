@@ -3,6 +3,7 @@
  * @description Suite de pruebas unitarias para el calendario de eventos Scrum.
  * Compatible con Jest y ES Modules.
  * 
+ * @author Diego Rafael Jiménez Trujano
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

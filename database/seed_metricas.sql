@@ -1,6 +1,11 @@
--- DATOS DE PRUEBA - HU-30 (velocity), HU-31 (avance) y HU-35 (dashboard).
--- NO es parte de la base: solo sirve para ver las métricas con información.
--- Ejecutar DESPUÉS de schema.sql y seed.sql. Es seguro correrlo varias veces (no duplica datos).
+/**
+    @file seed_metricas.sql
+    @description DATOS DE PRUEBA - velocity, avance y dashboard.
+    NO es parte de la base: solo sirve para ver las métricas con información.
+    Ejecutar DESPUÉS de schema.sql y seed.sql. Es seguro correrlo varias veces (no duplica datos).
+
+    @author Citlaly Morales Viveros
+*/
 
 DO $$
 DECLARE
@@ -45,7 +50,7 @@ BEGIN
   SELECT id INTO v_exmiembro FROM usuarios WHERE correo = 'marco.reyes.baja@example.com';
 
   -- ---------------------------------------------------------------------
-  -- 3 sprints cerrados (HU-30: Velocity)
+  -- 3 sprints cerrados (Velocity)
   -- ---------------------------------------------------------------------
   FOR v_i IN 1..3 LOOP
     INSERT INTO sprints (proyecto_id, nombre, objetivo, fecha_inicio, fecha_fin, capacidad_horas, estado, velocity, cerrado_en)
@@ -77,7 +82,7 @@ BEGIN
   END LOOP;
 
   -- ---------------------------------------------------------------------
-  -- 1 sprint activo con tareas (HU-31 Avance, HU-35 Dashboard)
+  -- 1 sprint activo con tareas (Avance, Dashboard)
   -- ---------------------------------------------------------------------
   UPDATE sprints SET estado = 'planificado' WHERE proyecto_id = v_proyecto AND estado = 'activo';
 
@@ -108,7 +113,7 @@ BEGIN
   END LOOP;
 
   -- ---------------------------------------------------------------------
-  -- HU-33: Datos para forzar alerta por desviación
+  -- Datos para forzar alerta por desviación
   -- ---------------------------------------------------------------------
   UPDATE proyectos SET umbral_desviacion = 10 WHERE id = v_proyecto;
 
@@ -120,7 +125,7 @@ BEGIN
   END LOOP;
 
   -- ---------------------------------------------------------------------
-  -- HU-29: Snapshots para la Gráfica Burndown
+  -- Snapshots para la Gráfica Burndown
   -- ---------------------------------------------------------------------
   -- Simulamos que el sprint ha estado activo los últimos 3 días.
   INSERT INTO snapshots_burndown (sprint_id, fecha, horas_restantes, puntos_restantes, alcance_modificado) VALUES

@@ -1,12 +1,13 @@
-import { env } from '../config/env.js';
-
 /**
  * @file index.js
  * @description Servidor de Socket.io: autentica las conexiones con el token de sesión y administra
  * las salas por proyecto y por persona.
  * 
+ * @author Stephanie Elizdeth Hernández Prieto
  * @author Citlaly Morales Viveros
  */
+
+import { env } from '../config/env.js';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { consulta } from '../config/db.js';

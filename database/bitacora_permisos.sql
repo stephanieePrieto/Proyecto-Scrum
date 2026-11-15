@@ -1,14 +1,17 @@
--- Separa al propietario de la bitacora del usuario con el que se conecta la aplicacion.
--- La aplicacion queda solo con SELECT e INSERT sobre la tabla y USAGE sobre su secuencia, de modo que no puede
--- hacer UPDATE, DELETE ni TRUNCATE, ni desactivar o eliminar el trigger, ni reemplazar su funcion, ni borrar la tabla.
---
--- Se ejecuta a mano con un rol que sea superusuario o miembro de ambos roles:
---   psql -d BASE -v rol_app=USUARIO_DE_LA_APP -v rol_propietario=ROL_PROPIETARIO -f bitacora_permisos.sql
---
--- Requisitos: ambos roles ya existen, son distintos, y rol_app no es superusuario ni miembro de rol_propietario.
--- Es seguro correrlo varias veces. No borra ni modifica registros.
---
--- @author Citlaly Morales Viveros
+/**
+    @file bitacora_permisos.sql
+    @description Separa al propietario de la bitacora del usuario con el que se conecta la aplicacion.
+    La aplicacion queda solo con SELECT e INSERT sobre la tabla y USAGE sobre su secuencia, de modo que no puede
+    hacer UPDATE, DELETE ni TRUNCATE, ni desactivar o eliminar el trigger, ni reemplazar su funcion, ni borrar la tabla.
+
+    Se ejecuta a mano con un rol que sea superusuario o miembro de ambos roles:
+      psql -d BASE -v rol_app=USUARIO_DE_LA_APP -v rol_propietario=ROL_PROPIETARIO -f bitacora_permisos.sql
+
+    Requisitos: ambos roles ya existen, son distintos, y rol_app no es superusuario ni miembro de rol_propietario.
+    Es seguro correrlo varias veces. No borra ni modifica registros.
+
+    @author Citlaly Morales Viveros
+*/
 \set ON_ERROR_STOP on
 
 SELECT set_config('bitacora.rol_app', :'rol_app', false);

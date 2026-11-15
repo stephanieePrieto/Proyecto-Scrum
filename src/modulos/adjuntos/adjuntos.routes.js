@@ -2,6 +2,7 @@
  * @file adjuntos.routes.js
  * @description Subida con multer (disco, 1 archivo, maximo 10 MB). El orden de los middlewares es:
  *              identificar -> permiso por proyecto -> multer -> controlador, para no recibir archivos de quien no tiene acceso.
+ * 
  * @author Alfonso Mendoza Vasquez
  */
 import { Router } from 'express';

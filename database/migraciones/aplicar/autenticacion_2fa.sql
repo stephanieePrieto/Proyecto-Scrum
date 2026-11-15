@@ -1,17 +1,19 @@
--- @author Citlaly Morales Viveros
--- Migracion: Autenticacion en dos pasos (2FA)
--- Aplicar DESPUES de schema.sql y sesiones.sql. Es seguro correrla varias veces (usa IF NOT EXISTS).
---
--- Tablas para soportar:
---   - Configuracion de 2FA por usuario (TOTP y correo)
---   - Codigos de respaldo (backup codes)
---   - Dispositivos de confianza
---   - Codigos OTP enviados por correo
---   - Bloqueo temporal por intentos fallidos de 2FA
+/**
+    @file autenticacion_2fa.sql
+    @description Migracion: Autenticacion en dos pasos (2FA)
+    Aplicar DESPUES de schema.sql y sesiones.sql. Es seguro correrla varias veces (usa IF NOT EXISTS).
 
--- ===========================================================================
+    Tablas para soportar:
+      - Configuracion de 2FA por usuario (TOTP y correo)
+      - Codigos de respaldo (backup codes)
+      - Dispositivos de confianza
+      - Codigos OTP enviados por correo
+      - Bloqueo temporal por intentos fallidos de 2FA
+
+    @author Citlaly Morales Viveros
+*/
+
 -- Configuracion general de 2FA por usuario
--- ===========================================================================
 CREATE TABLE IF NOT EXISTS autenticacion_2fa (
   usuario_id INTEGER PRIMARY KEY REFERENCES usuarios (id) ON DELETE CASCADE,
   -- TOTP (Google Authenticator)
@@ -35,9 +37,7 @@ COMMENT ON COLUMN autenticacion_2fa.secreto_totp_cifrado IS 'Secreto TOTP cifrad
 
 CREATE INDEX IF NOT EXISTS ix_autenticacion_2fa_usuario ON autenticacion_2fa (usuario_id);
 
--- ===========================================================================
 -- Codigos de respaldo (backup codes)
--- ===========================================================================
 CREATE TABLE IF NOT EXISTS codigos_respaldo (
   id SERIAL PRIMARY KEY,
   usuario_id INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
@@ -60,9 +60,7 @@ CREATE INDEX IF NOT EXISTS ix_codigos_respaldo_grupo ON codigos_respaldo (grupo_
 COMMENT ON TABLE codigos_respaldo IS 'Codigos de respaldo de un solo uso para 2FA. Cada usuario tiene 10 codigos activos.';
 COMMENT ON COLUMN codigos_respaldo.grupo_id IS 'Identificador del grupo de codigos. Al regenerar, todos los codigos del grupo anterior se invalidan.';
 
--- ===========================================================================
 -- Dispositivos de confianza
--- ===========================================================================
 CREATE TABLE IF NOT EXISTS dispositivos_confianza (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
@@ -93,9 +91,7 @@ CREATE INDEX IF NOT EXISTS ix_dispositivos_confianza_hash ON dispositivos_confia
 
 COMMENT ON TABLE dispositivos_confianza IS 'Dispositivos de confianza que pueden omitir el 2FA durante 14 dias.';
 
--- ===========================================================================
 -- Codigos OTP enviados por correo (para autenticacion 2FA)
--- ===========================================================================
 CREATE TABLE IF NOT EXISTS otp_correo (
   id SERIAL PRIMARY KEY,
   usuario_id INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,

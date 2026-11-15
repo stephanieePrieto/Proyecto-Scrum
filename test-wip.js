@@ -1,3 +1,10 @@
+/**
+ * @file test-wip.js
+ * @description Programa para las pruebas del limite wip
+ * 
+ * @author Camila Mariné Crespo Zurita
+ */
+
 import { formatearContadorWIP, evaluarEstadoWIP, validarInputLimite } from './public/js/pages/tablero/wip.js';
 
 console.log("--- PRUEBAS HU-22: Límite WIP ---");

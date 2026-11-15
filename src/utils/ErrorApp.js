@@ -3,6 +3,7 @@
  * @description Clase personalizada para el manejo de errores HTTP operacionales.
  * 
  * @author Citlaly Morales Viveros
+ * @author Camila Mariné Crespo Zurita
  */
 export class ErrorApp extends Error {
     /**

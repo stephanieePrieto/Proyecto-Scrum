@@ -1,5 +1,9 @@
--- Migracion: Tabla para recuperación de cuenta sin 2FA
--- @author Citlaly Morales Viveros
+/**
+    @file autenticacion_2fa_recuperacion.sql
+    @description Migracion: Tabla para recuperación de cuenta sin 2FA
+
+    @author Citlaly Morales Viveros
+*/
 
 CREATE TABLE IF NOT EXISTS recuperacion_2fa (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

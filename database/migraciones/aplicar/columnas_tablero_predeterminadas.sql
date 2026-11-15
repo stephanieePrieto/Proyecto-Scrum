@@ -1,7 +1,12 @@
--- Los limites WIP (5 y 3) deben coincidir con el INSERT de columnas por defecto de seed.sql. Si cambias uno, cambia el otro.
--- Columnas predeterminadas del tablero para los proyectos que todavía no tienen ninguna.
--- No borra ni modifica columnas existentes: un proyecto con columnas propias (aunque sea una sola)
--- queda intacto. Es seguro correrla varias veces. Va aparte de schema.sql porque solo agrega filas.
+/**
+    @file columnas_tablero_predeterminadas.sql
+    @description Los limites WIP (5 y 3) deben coincidir con el INSERT de columnas por defecto de seed.sql. Si cambias uno, cambia el otro.
+    Columnas predeterminadas del tablero para los proyectos que todavía no tienen ninguna.
+    No borra ni modifica columnas existentes: un proyecto con columnas propias (aunque sea una sola)
+    queda intacto. Es seguro correrla varias veces. Va aparte de schema.sql porque solo agrega filas.
+
+    @author Citlaly Morales Viveros
+*/
 INSERT INTO
   columnas_tablero (proyecto_id, nombre, orden, limite_wip, es_final)
 SELECT

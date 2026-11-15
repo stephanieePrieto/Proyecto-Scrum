@@ -1,31 +1,33 @@
--- ===========================================================================
--- SEED-BITACORA.SQL - Datos de prueba para la bitácora de auditoría (HU-46)
--- ===========================================================================
---
--- Inserta registros de ejemplo en la tabla bitacora para probar la consulta de la
--- bitácora. Es seguro correrlo varias veces: NO duplica registros.
---
--- REQUISITOS (en este orden):
---   1. database/schema.sql   -> crea las tablas
---   2. database/seed.sql     -> crea usuarios, equipos y proyectos base (Proyecto Demo Alfa / Beta)
---   Este archivo NO crea usuarios ni proyectos, solo registros de auditoría.
---
--- USO:
---   psql -U tu_usuario -d tu_base_de_datos -f database/seed-bitacora.sql
---
--- CÓMO FUNCIONA:
---   * Sin IDs fijos: los usuarios se buscan por correo y los proyectos por nombre, así que
---     funciona aunque los ids de la base sean otros (por ejemplo, tras borrar y repoblar).
---   * Sin duplicados: un registro se considera ya cargado si existe otro con el mismo
---     (proyecto_id, accion, creado_en). Las fechas de abajo son fijas a propósito, justo para eso.
---   * Si falta un usuario o un proyecto del seed.sql, avisa con un NOTICE y no inserta nada.
---   * Los objeto_id de épicas, historias, tareas, sprints, etc. son ilustrativos (la bitácora no
---     tiene llaves foráneas a propósito). Solo el id del proyecto y los ids de usuario son reales.
---
--- LA BITÁCORA ES INMUTABLE: no se puede hacer UPDATE, DELETE ni TRUNCATE sobre ella (triggers de
--- schema.sql y migraciones/bitacora_inmutable.sql). Por eso este archivo nunca limpia la tabla.
--- Para empezar de cero hay que recrear la base de desarrollo completa (schema.sql + seed.sql).
--- ===========================================================================
+/**
+    @file seed_bitacora.sql
+    @description Datos de prueba para la bitácora de auditoría
+
+    Inserta registros de ejemplo en la tabla bitacora para probar la consulta de la
+    bitácora. Es seguro correrlo varias veces: NO duplica registros.
+
+    REQUISITOS (en este orden):
+      1. database/schema.sql   -> crea las tablas
+      2. database/seed.sql     -> crea usuarios, equipos y proyectos base (Proyecto Demo Alfa / Beta)
+      Este archivo NO crea usuarios ni proyectos, solo registros de auditoría.
+
+    USO:
+      psql -U tu_usuario -d tu_base_de_datos -f database/seed-bitacora.sql
+
+    CÓMO FUNCIONA:
+      * Sin IDs fijos: los usuarios se buscan por correo y los proyectos por nombre, así que
+        funciona aunque los ids de la base sean otros (por ejemplo, tras borrar y repoblar).
+      * Sin duplicados: un registro se considera ya cargado si existe otro con el mismo
+        (proyecto_id, accion, creado_en). Las fechas de abajo son fijas a propósito, justo para eso.
+      * Si falta un usuario o un proyecto del seed.sql, avisa con un NOTICE y no inserta nada.
+      * Los objeto_id de épicas, historias, tareas, sprints, etc. son ilustrativos (la bitácora no
+        tiene llaves foráneas a propósito). Solo el id del proyecto y los ids de usuario son reales.
+
+    LA BITÁCORA ES INMUTABLE: no se puede hacer UPDATE, DELETE ni TRUNCATE sobre ella (triggers de
+    schema.sql y migraciones/bitacora_inmutable.sql). Por eso este archivo nunca limpia la tabla.
+    Para empezar de cero hay que recrear la base de desarrollo completa (schema.sql + seed.sql).
+
+    @author Citlaly Morales Viveros
+*/
 
 DO $$
 DECLARE

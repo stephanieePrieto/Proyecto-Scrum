@@ -3,6 +3,7 @@
  * @description Reglas y consultas de las tareas técnicas de una historia: crear, listar, editar y eliminar.
  * 
  * @author Jetzaly Josmery Tello Campos
+ * @author Alfonso Mendoza Vasquez
  * @author Citlaly Morales Viveros
  */
 

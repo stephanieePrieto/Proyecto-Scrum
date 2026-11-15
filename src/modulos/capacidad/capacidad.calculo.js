@@ -8,6 +8,7 @@
  * desfases por zona horaria.
  * 
  * @author Diego Rafael Jiménez Trujano
+ * @author Citlaly Morales Viveros
  */
 
 const MAX_HORAS_POR_DIA = 24;

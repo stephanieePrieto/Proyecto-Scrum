@@ -5,6 +5,7 @@
  * por eso las rutas de aquí no repiten "metricas".
  * 
  * @author Dana Carmona Santamaria
+ * @author Citlaly Morales Viveros
  */
 
 import { Router } from 'express';

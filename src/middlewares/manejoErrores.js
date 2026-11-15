@@ -1,3 +1,11 @@
+/**
+ * @file manejoErrores.js
+ * @description Middlewares globales para la captura y respuesta de errores HTTP y conmutación a mantenimiento ante caída de BD.
+ * 
+ * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { env } from '../config/env.js';
@@ -5,12 +13,6 @@ import { esErrorCaidaBD } from '../config/db.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const paginaMantenimiento = path.join(aqui, '..', '..', 'public', 'pages', 'mantenimiento.html');
-
-// BASE (no modificar sin avisar al equipo) - HU-47: convierte cualquier error en una respuesta JSON uniforme
-/**
- * @file manejoErrores.js
- * @description Middlewares globales para la captura y respuesta de errores HTTP y conmutación a mantenimiento ante caída de BD.
- */
 
 /**
  * Middleware para capturar rutas /api no encontradas (404).

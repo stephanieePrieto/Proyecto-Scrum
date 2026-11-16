@@ -1,6 +1,6 @@
-// Responsable: Jetz - HU-02, HU-03, HU-05: reglas, SQL y avisos por socket (historias, orden de prioridad y puntos)
 /**
- * HU-02 · CRUD de historias de usuario  |  HU-03 · Priorizar el backlog arrastrando.
+ * @file backlog.service.js
+ * @description CRUD de historias de usuario. Priorizar el backlog arrastrando.
  *
  * Tablas que usa (database/schema.sql): historias, epicas, sprints, usuarios, proyectos,
  * miembros_equipo y miembros_proyecto. Los puntos (HU-05) ya se validan aquí con la escala Fibonacci.
@@ -15,6 +15,7 @@
  * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
  */
+
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';

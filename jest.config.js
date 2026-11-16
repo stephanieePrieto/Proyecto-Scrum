@@ -3,6 +3,7 @@
  * @description Configuración centralizada del ejecutable de pruebas Jest para entornos Node.js con ES Modules.
  * Establece la recolección automática de cobertura de código (code coverage) y fija un umbral mínimo 
  * obligatorio del 70% en líneas, funciones, declaraciones y ramas para validar la calidad de la lógica de negocio.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

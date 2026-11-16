@@ -1,10 +1,11 @@
-// TEMPORAL - HU-20 (Alfonso): identifica a la persona de la petición mientras no todos los módulos usan `autenticar`.
 /**
  * @file identificar.js
  * @description Deja a la persona de la petición en `req.user`.
  *  - Con USUARIO_DEMO_ID definido en el .env (y NODE_ENV distinto de "production"), usa ese usuario.
  *  - En cualquier otro caso delega en `autenticar` (cookie httpOnly o Bearer).
  *  Exporta `identificar` con nombre y por defecto.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import { autenticar } from './autenticar.js';
 

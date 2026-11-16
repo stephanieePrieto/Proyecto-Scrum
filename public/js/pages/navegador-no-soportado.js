@@ -1,9 +1,10 @@
-// Responsable: Alfonso - HU-52: muestra qué le falta al navegador y permite volver a intentar o continuar (script clásico ES5)
 /**
  * @file navegador-no-soportado.js
  * @description Completa la página de aviso con lo que detectó compatibilidad.js (parámetro "faltan") y prepara
  * los botones para volver a la página de origen (parámetro "volver"). Usa solo sintaxis ES5 porque se ejecuta
  * justo en navegadores antiguos.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 (function () {
   'use strict';

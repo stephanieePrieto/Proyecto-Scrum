@@ -1,7 +1,6 @@
-// Responsable: Jetz - HU-01: logica de la pantalla de editar, archivar y Definition of Done del proyecto (llama a la API y escucha sockets)
-
 /**
- * HU-01 · Crear/editar proyecto, Definition of Done y archivado.
+ * @file configuracion-proyecto.js
+ * @description Crear/editar proyecto, Definition of Done y archivado.
  *  - /configuracion-proyecto.html          -> crear
  *  - /configuracion-proyecto.html?id=7     -> editar el proyecto 7
  *

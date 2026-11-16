@@ -1,5 +1,3 @@
-// Responsable: Alfonso - HU-24: reglas, SQL y avisos por socket (notificaciones dentro de la aplicacion)
-
 /**
  * @file notificaciones.service.js
  * @description Núcleo de la HU-24 (Notificaciones). Responsabilidades:
@@ -20,13 +18,24 @@
 import { consulta } from '../../config/db.js';
 import * as modCorreo from '../../utils/correo.js';
 import websocket from '../../sockets/emisor.js';
+import { env } from '../../config/env.js';
 
 /*
  * Constantes
  */
 
 /** @constant {Readonly<{ASIGNACION:string, MENCION:string}>} Tipos de notificación válidos. */
-export const TIPOS = Object.freeze({ ASIGNACION: 'asignacion', MENCION: 'mencion' });
+export const TIPOS = Object.freeze({ ASIGNACION: 'asignacion', MENCION: 'mencion', DESVIACION: 'desviacion', IMPEDIMENTO: 'impedimento' });
+// Desde la etapa 6 TIPOS también incluye DESVIACION e IMPEDIMENTO, ambos configurables por canal.
+
+/**
+ * Valores por defecto de cada canal y tipo. Es la misma forma que guarda `usuarios.preferencias_notif`.
+ * @constant {Readonly<{interna: Readonly<Object<string,boolean>>, correo: Readonly<Object<string,boolean>>}>}
+ */
+export const PREFERENCIAS_POR_DEFECTO = Object.freeze({
+  interna: Object.freeze({ asignacion: true, mencion: true, desviacion: true, impedimento: true }),
+  correo: Object.freeze({ asignacion: false, mencion: false, desviacion: false, impedimento: false }),
+});
 
 /** @constant {string} Evento de WebSocket consumido por el frontend. */
 const EVENTO_WS = 'notificacion:nueva';
@@ -55,6 +64,12 @@ const COLUMNAS =
 
 /** Página del tablero. Con `?tarea=ID` el detalle de tarjeta abre esa tarjeta (detalle-tarjeta.js). */
 const RUTA_TABLERO = '/pages/tablero.html';
+
+/** Página de inicio, usada si un aviso no tiene una pantalla más específica. */
+const RUTA_DASHBOARD = '/pages/dashboard.html';
+
+/** Página donde la persona cambia sus preferencias de notificación (sección Notificaciones). */
+const RUTA_PERFIL = '/pages/perfil.html';
 
 /** Solo se aceptan enlaces internos ("/pages/tablero.html"); nunca "//otro-sitio" ni "javascript:". */
 const PATRON_ENLACE = /^\/(?![\\/])[\w\-./?=&#%]*$/;
@@ -136,7 +151,7 @@ function validarEvento(evento) {
   if (!evento || typeof evento !== 'object') {
     throw new ErrorValidacion('Evento de notificación inválido.');
   }
-  const { usuarioId, tipo, titulo, mensaje, referenciaId = null, enlace = null } = evento;
+  const { usuarioId, tipo, titulo, mensaje, referenciaId = null, enlace = null, transaccional = false } = evento;
   if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
     throw new ErrorValidacion('usuarioId inválido.');
   }
@@ -162,6 +177,7 @@ function validarEvento(evento) {
     mensaje: mensaje.trim().slice(0, MAX_MENSAJE),
     referenciaId,
     enlace,
+    transaccional: transaccional === true,
   };
 }
 
@@ -173,21 +189,72 @@ function validarEvento(evento) {
  * Obtiene las preferencias de notificación de un usuario activo.
  * Lee `usuarios.preferencias_notif` ({"asignaciones": true, "menciones": true, "correo": false}).
  * Si una clave no existe se asume: asignaciones y menciones activas, correo apagado.
+ * Desde la etapa 5 cada canal tiene su propio interruptor por tipo (ver PREFERENCIAS_POR_DEFECTO).
  * @param {number} usuarioId ID del usuario.
  * @returns {Promise<{correo:string, asignacion:boolean, mencion:boolean, correoActivo:boolean}|null>}
+ * Desde la etapa 5 devuelve {correo, nombre, interna, porCorreo} (ver PREFERENCIAS_POR_DEFECTO).
  *          Preferencias o `null` si el usuario no existe o está inactivo.
  */
 async function obtenerPreferencias(usuarioId) {
   const { rows } = await consulta(
-    `SELECT correo,
-            COALESCE((preferencias_notif->>'asignaciones')::boolean, TRUE) AS asignacion,
-            COALESCE((preferencias_notif->>'menciones')::boolean, TRUE)    AS mencion,
-            COALESCE((preferencias_notif->>'correo')::boolean, FALSE)      AS "correoActivo"
-       FROM usuarios
-      WHERE id = $1 AND activo = TRUE`,
+    'SELECT correo, nombre, preferencias_notif FROM usuarios WHERE id = $1 AND activo = TRUE',
     [usuarioId],
   );
-  return rows[0] ?? null;
+  const fila = rows[0];
+  if (!fila) return null;
+  const matriz = leerPreferencias(fila.preferencias_notif);
+  return {
+    correo: fila.correo,
+    nombre: fila.nombre,
+    interna: matriz.interna,
+    porCorreo: matriz.correo,
+  };
+}
+
+/**
+ * Convierte el valor guardado en usuarios.preferencias_notif en la matriz completa. Las claves que faltan
+ * (por ejemplo, tipos agregados después) y los valores que no son booleanos toman su valor por defecto.
+ * @param {*} guardado - Valor de la columna JSONB.
+ * @returns {{interna: Object<string,boolean>, correo: Object<string,boolean>}} Matriz completa.
+ */
+export function leerPreferencias(guardado) {
+  const bloques = guardado !== null && typeof guardado === 'object' && !Array.isArray(guardado) ? guardado : {};
+  const salida = {};
+  for (const canal of Object.keys(PREFERENCIAS_POR_DEFECTO)) {
+    const valores = bloques[canal] !== null && typeof bloques[canal] === 'object' ? bloques[canal] : {};
+    salida[canal] = {};
+    for (const tipo of Object.values(TIPOS)) {
+      salida[canal][tipo] = typeof valores[tipo] === 'boolean' ? valores[tipo] : PREFERENCIAS_POR_DEFECTO[canal][tipo];
+    }
+  }
+  return salida;
+}
+
+/**
+ * Valida la matriz de preferencias de notificación: un booleano por canal (interna y correo) y por tipo.
+ * Rechaza cualquier clave que no sea un canal o un tipo de TIPOS.
+ * @param {*} entrada - Valor sin confiar (por ejemplo, el cuerpo de la petición).
+ * @returns {{interna: Object<string,boolean>, correo: Object<string,boolean>}|null} Matriz limpia, o `null` si no es válida.
+ */
+export function normalizarPreferencias(entrada) {
+  const esObjeto = (valor) => valor !== null && typeof valor === 'object' && !Array.isArray(valor);
+  if (!esObjeto(entrada)) return null;
+
+  const canales = Object.keys(PREFERENCIAS_POR_DEFECTO);
+  const tipos = Object.values(TIPOS);
+  if (Object.keys(entrada).length !== canales.length) return null;
+
+  const salida = {};
+  for (const canal of canales) {
+    const bloque = entrada[canal];
+    if (!esObjeto(bloque) || Object.keys(bloque).length !== tipos.length) return null;
+    salida[canal] = {};
+    for (const tipo of tipos) {
+      if (typeof bloque[tipo] !== 'boolean') return null;
+      salida[canal][tipo] = bloque[tipo];
+    }
+  }
+  return salida;
 }
 
 /*
@@ -195,18 +262,62 @@ async function obtenerPreferencias(usuarioId) {
  */
 
 /**
- * Envía el correo de forma asíncrona; un fallo nunca afecta a la notificación in-app.
- * @param {string} destinatario Correo del usuario.
- * @param {Object} notificacion Contenido.
+ * Elige a qué pantalla lleva un aviso. Usa el enlace del emisor; si no lo trae, la pantalla que corresponde al tipo.
+ * @param {Object} datos Aviso con tipo, enlace y referenciaId.
+ * @returns {string} Ruta interna (empieza con "/").
  */
-function despacharCorreo(destinatario, notificacion) {
+function rutaDelAviso(datos) {
+  if (datos.enlace) return datos.enlace;
+  if (datos.tipo === TIPOS.ASIGNACION && datos.referenciaId) return `${RUTA_TABLERO}?tarea=${datos.referenciaId}`;
+  if (datos.tipo === TIPOS.ASIGNACION || datos.tipo === TIPOS.MENCION) return RUTA_TABLERO;
+  return RUTA_DASHBOARD;
+}
+
+/**
+ * Dirección base de la aplicación para los enlaces del correo, sin barra final.
+ * @returns {string} Por ejemplo "https://localhost:3000"; vacía si no está configurada.
+ */
+function baseDeLaApp() {
+  return String(env.APP_URL ?? '').replace(/\/+$/, '');
+}
+
+/**
+ * Envía el correo de forma asíncrona; un fallo nunca afecta a la notificación in-app.
+ * Incluye saludo, el aviso, un botón a la pantalla correspondiente y un enlace para cambiar las preferencias.
+ * @param {{correo: string, nombre?: string}} prefs Destinatario y su nombre.
+ * @param {Object} notificacion Contenido (titulo, mensaje, tipo, enlace o referenciaId).
+ */
+function despacharCorreo(prefs, notificacion) {
   Promise.resolve()
-    .then(() => typeof modCorreo.enviarCorreo === 'function' && modCorreo.enviarCorreo({
-      para: destinatario,
-      asunto: `[ScrumFlow] ${sinSaltosDeLinea(notificacion.titulo)}`,
-      texto: `${notificacion.titulo}\n\n${notificacion.mensaje}`,
-      html: `<h3>${escaparHtml(notificacion.titulo)}</h3><p>${escaparHtml(notificacion.mensaje)}</p>`,
-    }))
+    .then(() => {
+      if (typeof modCorreo.enviarCorreo !== 'function') return;
+      const base = baseDeLaApp();
+      const primerNombre = String(prefs.nombre ?? '').trim().split(/\s+/)[0];
+      const saludo = primerNombre ? `Hola, ${primerNombre}:` : 'Hola:';
+      const ruta = rutaDelAviso(notificacion);
+      const url = base ? `${base}${ruta}` : null;
+      const perfil = base ? `${base}${RUTA_PERFIL}` : null;
+      const pie = 'Recibiste este aviso porque activaste el correo para este tipo de notificación.';
+
+      const lineasTexto = [saludo, '', notificacion.titulo, notificacion.mensaje];
+      if (url) lineasTexto.push('', `Abrir en ScrumFlow: ${url}`);
+      if (perfil) lineasTexto.push('', `${pie} Puedes cambiarlo en tu perfil: ${perfil}`);
+      else lineasTexto.push('', pie);
+
+      const bloqueBoton = url
+        ? `<p><a href="${escaparHtml(url)}" style="display:inline-block;padding:10px 16px;background:#1f6feb;color:#fff;text-decoration:none;border-radius:6px">Abrir en ScrumFlow</a></p>`
+        : '';
+      const bloquePie = perfil
+        ? `<p style="color:#666;font-size:12px">${pie} Puedes cambiarlo en tu <a href="${escaparHtml(perfil)}">perfil</a>.</p>`
+        : `<p style="color:#666;font-size:12px">${pie}</p>`;
+
+      return modCorreo.enviarCorreo({
+        para: prefs.correo,
+        asunto: `[ScrumFlow] ${sinSaltosDeLinea(notificacion.titulo)}`,
+        texto: lineasTexto.join('\n'),
+        html: `<p>${escaparHtml(saludo)}</p><h3>${escaparHtml(notificacion.titulo)}</h3><p>${escaparHtml(notificacion.mensaje)}</p>${bloqueBoton}${bloquePie}`,
+      });
+    })
     .catch((error) => {
       console.error('[notificaciones] Falló el envío de correo:', error?.message ?? error);
     });
@@ -228,7 +339,7 @@ async function persistirYEmitir(datos, prefs) {
       datos.tipo,
       datos.titulo,
       datos.mensaje,
-      datos.enlace ?? null,
+      rutaDelAviso(datos),
       datos.referenciaId ?? null,
       JSON.stringify(datos.metadatos ?? {}),
     ],
@@ -243,8 +354,8 @@ async function persistirYEmitir(datos, prefs) {
     console.error('[notificaciones] Falló la emisión WebSocket:', error?.message ?? error);
   }
 
-  if (prefs?.correoActivo && prefs?.correo) {
-    despacharCorreo(prefs.correo, notificacion);
+  if (prefs?.correo && prefs?.porCorreo?.[datos.tipo] === true) {
+    despacharCorreo(prefs, notificacion);
   }
   return notificacion;
 }
@@ -344,8 +455,26 @@ export async function notificar(evento) {
   const datos = validarEvento(evento);
 
   const prefs = await obtenerPreferencias(datos.usuarioId);
-  if (!prefs || prefs[datos.tipo] !== true) {
+  if (!prefs) {
     return { estado: 'omitida' };
+  }
+
+  // Avisos transaccionales (invitaciones): siempre se guardan y se emiten; el correo lo envía quien los crea.
+  if (datos.transaccional) {
+    const notificacion = await persistirYEmitir(datos, { correo: null, interna: {}, porCorreo: {} });
+    return { estado: 'creada', notificacion };
+  }
+
+  const porInterna = prefs.interna[datos.tipo] === true;
+  const porCorreo = prefs.porCorreo[datos.tipo] === true && Boolean(prefs.correo);
+  if (!porInterna && !porCorreo) {
+    return { estado: 'omitida' };
+  }
+
+  // Solo correo: se envía en el momento, sin pasar por la campana ni por el buffer
+  if (!porInterna) {
+    despacharCorreo(prefs, datos);
+    return { estado: 'correo' };
   }
 
   if (TIPOS_AGRUPABLES.has(datos.tipo)) {

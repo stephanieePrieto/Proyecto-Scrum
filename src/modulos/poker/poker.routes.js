@@ -1,4 +1,9 @@
-/** HU-05 · Rutas de estimación Fibonacci y Planning Poker por proyecto. */
+/** 
+ * @file poker.routes.js
+ * @description Rutas de estimación Fibonacci y Planning Poker por proyecto.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';
 import * as controller from './poker.controller.js';

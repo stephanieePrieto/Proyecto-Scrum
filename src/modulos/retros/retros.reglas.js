@@ -1,12 +1,17 @@
-// Responsable: Diego - HU-13, HU-14: reglas puras de la retrospectiva (validar ítems y acciones, votos, vencimientos, avisos de edición)
 /**
- * Reglas de la retrospectiva que no consultan la base de datos ni Express,
+ * @file retros.reglas.js
+ * @description Reglas de la retrospectiva que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (retros.test.js).
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { esFechaValida } from '../daily/daily.reglas.js';
 
 /** Columnas de notas de la retro (la tercera, "Acciones", vive en su propia tabla). */
 export const COLUMNAS_ITEM = ['bien', 'mejorar'];
+
+/** Solo se vota en "Qué mejorar": lo que salió bien ya pasó y no hay nada que priorizar. */
+export const COLUMNA_VOTABLE = 'mejorar';
 
 /** Votos que dispone cada integrante en una retro. */
 export const MAX_VOTOS = 5;

@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-27: logica de la pantalla de registro de horas reales (llama a la API y escucha sockets)
 /**
  * @file mis-horas.js
  * @description Hoja semanal "Mis horas" (HU-27): tareas × días con horas reales, totales y meta semanal,

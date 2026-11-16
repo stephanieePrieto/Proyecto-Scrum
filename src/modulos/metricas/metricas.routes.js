@@ -3,7 +3,9 @@
  * @description Declarar las rutas del módulo de métricas y encadenar sus middlewares
  * app.js monta este router automáticamente en /api/metricas (el prefijo es el nombre de la carpeta),
  * por eso las rutas de aquí no repiten "metricas".
+ * 
  * @author Dana Carmona Santamaria
+ * @author Citlaly Morales Viveros
  */
 
 import { Router } from 'express';

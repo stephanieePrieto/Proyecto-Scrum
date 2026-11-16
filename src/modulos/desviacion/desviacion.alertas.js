@@ -1,7 +1,8 @@
 /**
  * @file desviacion.alertas.js
- * @description HU-33: regla del umbral de desviación y emisión de la alerta al Scrum Master.
+ * @description Regla del umbral de desviación y emisión de la alerta al Scrum Master.
  * No requiere tablas nuevas: el estado se calcula en vivo y la unicidad se verifica en notificaciones.
+ * 
  * @author Dana Carmona Santamaria
  */
 import { consulta } from '../../config/db.js';

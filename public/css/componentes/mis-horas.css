@@ -120,7 +120,8 @@
 
 /* ---------- Tabla ---------- */
 .mh-tabla-envoltura {
-  position: relative; /* Contiene el texto oculto (.mh-solo-lectores) para que no ensanche la página */
+  position: relative;
+  /* Contiene el texto oculto (.mh-solo-lectores) para que no ensanche la página */
   overflow-x: auto;
   border: 1px solid var(--slate-200, #e2e8f0);
   border-radius: var(--radio-lg, 12px);
@@ -279,8 +280,13 @@
 }
 
 @keyframes mh-brillo {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
 }
 
 /* ---------- Registros dentro del diálogo ---------- */
@@ -304,7 +310,7 @@
   padding: 8px 12px;
 }
 
-.mh-registros li + li {
+.mh-registros li+li {
   border-top: 1px solid #f1f5f9;
 }
 
@@ -335,6 +341,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mh-esqueleto { animation: none; }
-  .mh-barra__relleno { transition: none; }
+  .mh-esqueleto {
+    animation: none;
+  }
+
+  .mh-barra__relleno {
+    transition: none;
+  }
 }

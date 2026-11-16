@@ -1,4 +1,3 @@
-// Responsable: Diego - HU-09: logica de la pantalla para iniciar y cerrar un sprint (llama a la API y escucha sockets)
 /**
  * @file sprint-detalle.js
  * @description Pintar la pantalla del ciclo del sprint:

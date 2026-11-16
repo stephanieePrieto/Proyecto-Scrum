@@ -1,7 +1,8 @@
 /**
  * @file distribucion.js
- * @description HU-32: Gráfica de dona para la distribución del tiempo, con leyenda interactiva
+ * @description Gráfica de dona para la distribución del tiempo, con leyenda interactiva
  * y agrupación automática de categorías pequeñas en "Otros".
+ * 
  * @author Dana Carmona Santamaria
  */
 import { escaparHtml } from '../../core/utils.js';

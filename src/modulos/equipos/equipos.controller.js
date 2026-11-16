@@ -1,11 +1,10 @@
-// Responsable: Citlaly - HU-40: recibe la peticion y responde (equipos y miembros); sin logica de negocio
-
 /**
  * @file equipos.controller.js
  * @description Adaptadores HTTP de los equipos. Todas las respuestas son JSON, incluida la baja,
  * que devuelve { ok: true, eliminado: id } en lugar de 204, para que el cliente pueda leer siempre
  * el cuerpo. Los errores que traen detalles (campos inválidos, pendientes por resolver) se
  * responden como { mensaje, detalles }.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { asyncHandler } from '../../utils/asyncHandler.js';

@@ -1,7 +1,9 @@
-// Responsable: Diego - HU-10: reglas puras del Daily Scrum (validar, marcar "tarde", estado del integrante)
 /**
- * Reglas del Daily Scrum que no consultan la base de datos ni Express,
+ * @file daily.relgas.js
+ * @description Reglas del Daily Scrum que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (daily.test.js).
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 
 /** Largo máximo de cada respuesta de la Daily. */

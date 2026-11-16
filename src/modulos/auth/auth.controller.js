@@ -1,10 +1,3 @@
-import { ErrorApp } from '../../utils/ErrorApp.js';
-import * as authService from './auth.service.js';
-import { env } from '../../config/env.js';
-import { consulta } from '../../config/db.js';
-import jwt from 'jsonwebtoken';
-import { cerrarSocketsDeSesion } from '../../sockets/index.js';
-
 /**
  * @file auth.controller.js
  * @description Controladores para gestionar peticiones HTTP de autenticación.
@@ -12,6 +5,13 @@ import { cerrarSocketsDeSesion } from '../../sockets/index.js';
  * @author Citlaly Morales Viveros
  * @author Stephanie Elizdeth Hernández Prieto
  */
+
+import { ErrorApp } from '../../utils/ErrorApp.js';
+import * as authService from './auth.service.js';
+import { env } from '../../config/env.js';
+import { consulta } from '../../config/db.js';
+import jwt from 'jsonwebtoken';
+import { cerrarSocketsDeSesion } from '../../sockets/index.js';
 
 const opcionesCookies = () => ({
     httpOnly: true,

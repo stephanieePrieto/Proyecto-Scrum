@@ -1,6 +1,7 @@
 /**
  * @file server.js
  * @description Punto de entrada que inicia el servidor HTTPS con soporte TLS 1.2+ y redirección.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 import fs from 'fs';
@@ -10,6 +11,7 @@ import { env } from './config/env.js';
 import { consulta } from './config/db.js';
 import { crearApp } from './app.js';
 import { iniciarSockets } from './sockets/index.js';
+import { iniciarPlanificadorRespaldosYMonitor } from './services/respaldo.service.js';
 
 try {
   await consulta('SELECT 1');
@@ -41,6 +43,7 @@ const puertoHttps = env.HTTPS_PUERTO || env.PORT || 3000;
 
 servidor.listen(puertoHttps, () => {
   console.log(`ScrumFlow seguro listo en https://localhost:${puertoHttps} (TLS 1.2+)`);
+  iniciarPlanificadorRespaldosYMonitor();
 });
 
 // Servidor HTTP opcional para redirección automática a HTTPS (si está habilitado)

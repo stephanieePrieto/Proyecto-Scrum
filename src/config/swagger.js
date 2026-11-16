@@ -1,6 +1,7 @@
 /**
  * @file swagger.js
  * @description Configuración centralizada de OpenAPI 3.0 / Swagger UI.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

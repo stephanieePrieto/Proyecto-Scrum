@@ -166,3 +166,215 @@ button {
   background: var(--acento);
   color: var(--carbon);
 }
+
+/* ==========================================================================
+    APARIENCIA Y ACCESIBILIDAD (preferencias de la persona)
+    Atributos en <html> que pone public/js/core/apariencia.js.
+   ========================================================================== */
+
+/* Tema oscuro: se redefinen los tokens; los componentes que usan variables lo heredan. */
+html[data-tema-efectivo="oscuro"] {
+  color-scheme: dark;
+  --carbon: #ECE8DF;
+  --hueso: #1C1B19;
+  --blanco: #262420;
+  --arena: #C9A66B;
+  --primario: #D9D3C6;
+  --primario-hover: #EFEAE0;
+  --primario-claro: #33302A;
+  --primario-texto: #E8D5AE;
+  --acento-hover: #B8925E;
+  --acento-claro: #33302A;
+  --acento-oscuro: #E0BE85;
+  --slate-50: #201F1C;
+  --slate-200: #3A3731;
+  --slate-300: #4A463F;
+  --slate-500: #A8A191;
+  --slate-800: #D9D3C6;
+  --esmeralda-50: #22302A;
+  --esmeralda-700: #A9CDB2;
+  --ambar-50: #332C1D;
+  --ambar-700: #E7C27E;
+  --rosa-50: #3A2521;
+  --rosa-700: #E8A398;
+  --celeste-50: #1F2A33;
+  --celeste-700: #A9C8D8;
+}
+
+/* Alto contraste: bordes y textos secundarios con el color del texto principal. */
+html[data-contraste="alto"] {
+  --borde: var(--texto);
+  --texto-suave: var(--texto);
+}
+
+/* Texto grande: el cuerpo pasa de 14px a 17px. Los componentes con tamaños fijos en px no cambian. */
+html[data-texto="grande"] body {
+  font-size: 17px;
+}
+
+/* Reducir animaciones y transiciones (además de la preferencia del sistema). */
+html[data-animaciones="reducidas"] *,
+html[data-animaciones="reducidas"] *::before,
+html[data-animaciones="reducidas"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ==========================================================================
+   TEMA OSCURO: reglas generadas para los colores fijos de la paleta original.
+   Solo cambian los colores neutros (grises y cálidos); los colores de marca se conservan.
+   ========================================================================== */
+
+/* componentes/auth.css */
+html[data-tema-efectivo="oscuro"] .verificacion-2fa__fondo {
+  background: rgba(199, 199, 199, 0.55);
+}
+
+/* componentes/backlog.css */
+html[data-tema-efectivo="oscuro"] #dialogo-eliminar::backdrop,
+html[data-tema-efectivo="oscuro"] #dialogo-devolver::backdrop {
+  background: rgba(230, 230, 230, 0.45);
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana {
+  color: #8B8B8B;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa {
+  color: #C6C6C6;
+  border-bottom-color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__indicador {
+  background: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] #dialogo-epicas::backdrop,
+html[data-tema-efectivo="oscuro"] #dialogo-eliminar-epica::backdrop {
+  background: rgba(230, 230, 230, .45);
+}
+
+/* componentes/curso-scrum.css */
+html[data-tema-efectivo="oscuro"] .pestana-btn:hover {
+  background: rgba(230, 230, 230, 0.03);
+}
+
+html[data-tema-efectivo="oscuro"] .modal {
+  background-color: rgba(199, 199, 199, 0.6) !important;
+}
+
+/* componentes/daily.css */
+html[data-tema-efectivo="oscuro"] .review-historia--aceptada {
+  border-color: #39573E;
+}
+
+/* componentes/dashboard.css */
+html[data-tema-efectivo="oscuro"] #dialogo-detalle-kpi::backdrop {
+  background: rgba(199, 199, 199, 0.6);
+}
+
+/* componentes/equipos.css */
+html[data-tema-efectivo="oscuro"] .eq-dialogo::backdrop {
+  background: rgba(199, 199, 199, .5);
+}
+
+/* componentes/horas-comun.css */
+html[data-tema-efectivo="oscuro"] .horas-dialogo {
+  background: #242424;
+}
+
+html[data-tema-efectivo="oscuro"] .horas-entrada {
+  background: #242424;
+}
+
+/* componentes/insignias.css */
+html[data-tema-efectivo="oscuro"] .insignia--exito {
+  border-color: #39573E;
+}
+
+/* componentes/metricas.css */
+html[data-tema-efectivo="oscuro"] .proy-dialogo-dash::backdrop {
+  background: rgba(199, 199, 199, 0.6);
+}
+
+/* componentes/mis-horas.css */
+html[data-tema-efectivo="oscuro"] .mh-resumen {
+  background: #242424;
+}
+
+html[data-tema-efectivo="oscuro"] .mh-tabla-envoltura {
+  background: #242424;
+}
+
+html[data-tema-efectivo="oscuro"] .mh-vacio {
+  background: #242424;
+}
+
+/* componentes/notificaciones.css */
+html[data-tema-efectivo="oscuro"] .toast__mensaje {
+  color: #5E543E;
+}
+
+/* componentes/perfil.css */
+html[data-tema-efectivo="oscuro"] .perfil-foto__vista {
+  color: #242424;
+}
+
+/* componentes/planificacion-sprint.css */
+html[data-tema-efectivo="oscuro"] #dialogo-eliminar-tarea::backdrop {
+  background: rgba(230, 230, 230, 0.45);
+}
+
+html[data-tema-efectivo="oscuro"] #dialogo-confirmar-planificacion::backdrop {
+  background: rgba(230, 230, 230, 0.45);
+}
+
+/* componentes/planning-poker.css */
+html[data-tema-efectivo="oscuro"] .pp-modal-fondo:not([hidden]) {
+  background: rgba(214, 209, 204, .48);
+}
+
+/* componentes/sprints.css */
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana {
+  color: #8B8B8B;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa {
+  color: #C6C6C6;
+  border-bottom-color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__indicador {
+  background: #C6C6C6;
+}
+
+/* componentes/tarjetas.css */
+html[data-tema-efectivo="oscuro"] .tarjeta-item.tarjeta-encargado--menta {
+  border-left-color: #72967A;
+}
+
+/* componentes/temporizador.css */
+html[data-tema-efectivo="oscuro"] .temp {
+  background: #242424;
+}
+
+/* layout.css */
+html[data-tema-efectivo="oscuro"] .sidebar__link {
+  color: #6B6456;
+}

@@ -1,9 +1,10 @@
-// Responsable: Alfonso - HU-28: recibe la peticion y responde (desviacion de horas); sin logica de negocio
 /**
  * @file desviacion.controller.js
  * @description Controladores HTTP de la HU-28. Toman el proyecto ya autorizado (`req.proyectoId`, lo deja
  *              `requierePermiso`), llaman al servicio y responden `{ ok: true, datos }`.
  *              Los errores (ErrorApp) los formatea manejoErrores.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';

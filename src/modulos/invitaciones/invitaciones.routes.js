@@ -1,6 +1,7 @@
 /**
  * @file invitaciones.routes.js
  * @description Rutas del módulo de invitaciones. 
+ * 
  * @author Citlaly Morales Viveros
  */
 import { Router } from 'express';

@@ -1,10 +1,9 @@
-// Responsable: Citlaly - HU-40: endpoints de equipos y miembros
-
 /**
  * @file equipos.routes.js
  * @description Rutas de los equipos, montadas automáticamente en /api/equipos. Todas exigen sesión
  * iniciada; los permisos de gestión se comprueban en el servicio y no solo en la interfaz.
  * La ruta de búsqueda de usuarios va antes de /:id para que no se confunda con un identificador.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { Router } from 'express';

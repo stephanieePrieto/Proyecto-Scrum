@@ -40,7 +40,7 @@
   gap: 10px;
 }
 
-.bl-encabezado__acciones > .boton {
+.bl-encabezado__acciones>.boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -48,7 +48,9 @@
 }
 
 @media (max-width: 720px) {
-  .bl-encabezado__herramientas { justify-content: flex-start; }
+  .bl-encabezado__herramientas {
+    justify-content: flex-start;
+  }
 }
 
 /* Aviso de borrador: botones de acción */
@@ -74,15 +76,36 @@
   align-items: end;
   gap: 12px;
 }
-.bl-filtros .grupo-formulario { min-width: 0; margin-bottom: 0; }
-.bl-filtros select, .bl-filtros input { width: 100%; }
-.bl-filtros #btn-limpiar-filtros { margin-bottom: 0; white-space: nowrap; }
-#resultado-filtros { margin: 8px 0 0; }
-@media (max-width: 1000px) {
-  .bl-filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.bl-filtros .grupo-formulario {
+  min-width: 0;
+  margin-bottom: 0;
 }
+
+.bl-filtros select,
+.bl-filtros input {
+  width: 100%;
+}
+
+.bl-filtros #btn-limpiar-filtros {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+#resultado-filtros {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 1000px) {
+  .bl-filtros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 520px) {
-  .bl-filtros { grid-template-columns: 1fr; }
+  .bl-filtros {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Disposición principal: lista priorizada + detalle */
@@ -668,10 +691,13 @@
     transition: none;
   }
 }
+
 /* HU-04 · Modales de épicas: misma estructura visual que "Nueva historia".
    Reutiliza .modal-header, .modal-body, .modal-footer y .bl-boton-cerrar. */
 #dialogo-epicas:not([open]),
-#dialogo-eliminar-epica:not([open]) { display: none !important; }
+#dialogo-eliminar-epica:not([open]) {
+  display: none !important;
+}
 
 #dialogo-epicas[open],
 #dialogo-eliminar-epica[open] {
@@ -688,12 +714,21 @@
   background: var(--fondo-tarjeta);
   color: var(--texto);
 }
-#dialogo-eliminar-epica[open] { max-width: 480px; }
+
+#dialogo-eliminar-epica[open] {
+  max-width: 480px;
+}
+
 #dialogo-epicas::backdrop,
-#dialogo-eliminar-epica::backdrop { background: rgba(0,0,0,.45); }
+#dialogo-eliminar-epica::backdrop {
+  background: rgba(0, 0, 0, .45);
+}
 
 #dialogo-epicas .modal-header,
-#dialogo-eliminar-epica .modal-header { flex: 0 0 auto; }
+#dialogo-eliminar-epica .modal-header {
+  flex: 0 0 auto;
+}
+
 #dialogo-epicas .modal-body,
 #dialogo-eliminar-epica .modal-body {
   flex: 1 1 auto;
@@ -701,20 +736,86 @@
   max-height: none;
   overflow-y: auto;
 }
+
 #dialogo-epicas .modal-footer,
-#dialogo-eliminar-epica .modal-footer { flex: 0 0 auto; }
-.bl-epicas-lista { display: grid; gap: 8px; margin: 16px 0 24px; }
-.bl-epica-fila { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--radio-lg); }
-.bl-epica-color { flex: 0 0 12px; height: 28px; border-radius: 5px; }
-.bl-epica-nombre { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
-.bl-epica-fila__acciones { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-#formulario-epica { display: flex; flex-direction: column; gap: 12px; }
-#formulario-epica .grupo-formulario { margin-bottom: 0; }
-#titulo-form-epica { margin: 0 0 4px; }
-#color-epica { width: 64px; height: 38px; padding: 3px; border: 1px solid var(--borde); border-radius: 7px; background: var(--fondo-tarjeta); }
-#texto-eliminar-epica { margin: 0 0 8px; }
-#grupo-destino-epica { margin-top: 16px; }
+#dialogo-eliminar-epica .modal-footer {
+  flex: 0 0 auto;
+}
+
+.bl-epicas-lista {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 24px;
+}
+
+.bl-epica-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+}
+
+.bl-epica-color {
+  flex: 0 0 12px;
+  height: 28px;
+  border-radius: 5px;
+}
+
+.bl-epica-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.bl-epica-fila__acciones {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+#formulario-epica {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#formulario-epica .grupo-formulario {
+  margin-bottom: 0;
+}
+
+#titulo-form-epica {
+  margin: 0 0 4px;
+}
+
+#color-epica {
+  width: 64px;
+  height: 38px;
+  padding: 3px;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  background: var(--fondo-tarjeta);
+}
+
+#texto-eliminar-epica {
+  margin: 0 0 8px;
+}
+
+#grupo-destino-epica {
+  margin-top: 16px;
+}
+
 @media (max-width: 520px) {
-  .bl-epica-fila { align-items: flex-start; flex-wrap: wrap; }
-  .bl-epica-fila__acciones { width: 100%; justify-content: flex-end; }
+  .bl-epica-fila {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .bl-epica-fila__acciones {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

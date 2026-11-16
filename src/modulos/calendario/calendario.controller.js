@@ -1,4 +1,9 @@
-// Responsable: Diego - HU-15: recibe la peticion y responde (eventos Scrum); sin logica de negocio
+/**
+ * @file calendario.controller.js
+ * @description Recibe la peticion y responde (eventos Scrum); sin logica de negocio
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import * as servicio from './calendario.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 

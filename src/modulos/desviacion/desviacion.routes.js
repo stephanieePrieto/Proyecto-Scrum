@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-28: endpoints de desviacion de horas
 /**
  * @file desviacion.routes.js
  * @description Rutas de la HU-28, montadas en /api/desviacion (app.js carga la carpeta del módulo).
@@ -12,6 +11,8 @@
  *   GET /api/desviacion/proyectos/:proyectoId/sprints/:sprintId/tareas    por tarea
  *   GET /api/desviacion/proyectos/:proyectoId/sprints/:sprintId/historias por historia
  *   GET /api/desviacion/proyectos/:proyectoId/sprints/:sprintId/personas  por persona
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { Router } from 'express';

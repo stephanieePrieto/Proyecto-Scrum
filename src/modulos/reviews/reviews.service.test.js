@@ -3,6 +3,8 @@
  * @description Pruebas del servicio de la Sprint Review (HU-12) con la base de datos simulada: permisos por rol,
  * "prevalece la primera decisión", criterios incompletos, delegación, auditoría y velocity.
  * Compatible con Jest y ES Modules.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 

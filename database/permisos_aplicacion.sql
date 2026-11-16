@@ -1,15 +1,18 @@
--- Crea, si no existen, el rol propietario de la estructura y el rol con el que se conecta la aplicacion.
--- Transfiere al propietario las tablas, vistas, secuencias y funciones del esquema public (excepto las de la bitacora, que
--- maneja bitacora_permisos.sql) y deja a la aplicacion solo con permisos de lectura y escritura de datos.
--- No define contrasenas: la del rol de la aplicacion se establece despues con \password.
---
--- Se ejecuta con un superusuario, antes de bitacora_permisos.sql:
---   psql -U postgres -d BASE -v rol_app=scrumflow_app -v rol_propietario=scrumflow_admin -f permisos_aplicacion.sql
---
--- Es seguro correrlo varias veces. Volver a correrlo, y despues bitacora_permisos.sql, cuando se agreguen tablas
--- nuevas al esquema. No borra ni modifica registros.
---
--- @author Citlaly Morales Viveros
+/**
+    @file permisos_aplicacion.sql
+    @description Crea, si no existen, el rol propietario de la estructura y el rol con el que se conecta la aplicacion.
+    Transfiere al propietario las tablas, vistas, secuencias y funciones del esquema public (excepto las de la bitacora, que
+    maneja bitacora_permisos.sql) y deja a la aplicacion solo con permisos de lectura y escritura de datos.
+    No define contrasenas: la del rol de la aplicacion se establece despues con \password.
+
+    Se ejecuta con un superusuario, antes de bitacora_permisos.sql:
+      psql -U postgres -d BASE -v rol_app=scrumflow_app -v rol_propietario=scrumflow_admin -f permisos_aplicacion.sql
+
+    Es seguro correrlo varias veces. Volver a correrlo, y despues bitacora_permisos.sql, cuando se agreguen tablas
+    nuevas al esquema. No borra ni modifica registros.
+
+    @author Citlaly Morales Viveros
+*/
 \set ON_ERROR_STOP on
 
 SELECT set_config('permisos.rol_app', :'rol_app', false);

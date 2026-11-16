@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-28: cálculo puro de la desviación de horas (sin base de datos ni Express)
 /**
  * @file desviacion.calculo.js
  * @description Funciones puras de la HU-28 (RF-29). No consultan la base de datos, por eso se prueban aisladas
@@ -9,6 +8,8 @@
  *
  * Toda la aritmética se hace en centésimas de hora (enteros) para evitar artefactos de coma flotante
  * como 0.1 + 0.2 = 0.30000000000000004. Las horas y el porcentaje se devuelven con máximo 2 decimales.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 /** Hasta este porcentaje (incluido) la desviación es aceptable: verde. */

@@ -1,5 +1,3 @@
-// BASE (no modificar sin avisar al equipo) - HU-42: revisa membresia y rol por proyecto (lo escribe Citlaly)
-
 /**
  * @file permisos.js
  * @description Comprobaciones de permisos centralizadas. Todas consultan la base de datos y no el
@@ -7,6 +5,8 @@
  * Cada función acepta opcionalmente el cliente de una transacción para consultar dentro de ella.
  * 
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Diego Rafael Jiménez Trujano
  */
 import { pool } from '../config/db.js';
 import { ErrorApp } from './ErrorApp.js';

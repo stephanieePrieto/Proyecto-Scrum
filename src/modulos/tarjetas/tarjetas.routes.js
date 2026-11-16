@@ -1,8 +1,8 @@
-// Responsable: Camila - HU-18, HU-23, HU-25: endpoints de mover, bloquear y control de version de tarjetas
 /**
  * @file tarjetas.routes.js
  * @description Rutas para edición con control de concurrencia optimista (HU-25),
  * aviso de presencia de edición en tiempo real, movimiento (HU-18) y bloqueo de tarjetas (HU-23).
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 

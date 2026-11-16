@@ -1,3 +1,11 @@
+/**
+ * @file auth.service.js
+ * @description Lógica de negocio para autenticación, control de intentos y tokens.
+ * 
+ * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
 import { verificarPassword, necesitaRehash, hashearPassword, gastarTiempoDeHash } from '../../utils/hash.js';
 import jwt from 'jsonwebtoken';
 import { consulta } from '../../config/db.js';
@@ -6,13 +14,6 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { randomUUID, randomInt, createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { enviarCorreo } from '../../utils/correo.js'; // Utilidad de correo existente en el proyecto
 import qrcode from 'qrcode';
-
-/**
- * @file auth.service.js
- * @description Lógica de negocio para autenticación, control de intentos y tokens.
- * @author Citlaly Morales Viveros
- * @author Stephanie Elizdeth Hernández Prieto
- */
 
 /**
  * Comprueba si la IP está bloqueada temporalmente por intentos fallidos.

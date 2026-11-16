@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-52: detecta si el navegador puede usar ScrumFlow y, si no, lo lleva al aviso de compatibilidad
 /**
  * @file compatibilidad.js
  * @description Script clásico (sintaxis ES5, sin import) que cada página carga en el <head>, antes de sus
@@ -11,6 +10,8 @@
  *   - Cookies habilitadas (la sesión viaja en cookies).
  * Si falta algo, reemplaza la página por navegador-no-soportado.html, indicando qué falta y a dónde volver.
  * Quien decida continuar de todos modos desde el aviso no vuelve a ser redirigido en esa pestaña.
+ * 
+ * @author Alfonoso Mendoza Vasquez
  */
 (function () {
   'use strict';

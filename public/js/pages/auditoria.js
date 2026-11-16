@@ -1,15 +1,15 @@
-// Responsable: Citlaly - HU-46: logica de la pantalla de bitacora de auditoria (llama a la API)
 /**
  * @file auditoria.js
  * @description Lógica de la pantalla de bitácora de auditoría. Consulta y muestra los registros de auditoría.
  * Incluye actualización en tiempo real mediante Socket.io.
  *
  * @author Citlaly Morales Viveros
+ * @author Diego Rafael Jiménez Trujano
  */
 
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
-import { escaparHtml } from '../core/utils.js';
+import { escaparHtml, conZonaHoraria } from '../core/utils.js';
 import { resolverProyecto, conectarTiempoReal } from '../pages/ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
@@ -86,13 +86,13 @@ function mostrarAviso(tono, texto) {
  */
 function formatearFecha(iso) {
     if (!iso) return '—';
-    return new Date(iso).toLocaleString('es-MX', {
+    return new Date(iso).toLocaleString('es-MX', conZonaHoraria({
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-    });
+    }));
 }
 
 /**

@@ -1,7 +1,6 @@
-// Responsable: Diego - HU-12: reglas, SQL y avisos por socket (Sprint Review y aceptacion)
 /**
- * HU-12 · Sprint Review y aceptación de historias.
- *
+ * @file reviews.service.js
+ * @description Sprint Review y aceptación de historias.
  * Tablas que usa (database/schema.sql): reviews_historias, review_delegaciones, historias, tareas,
  * columnas_tablero, sprints, miembros_proyecto, usuarios, notificaciones y bitacora (vía auditar.js).
  *

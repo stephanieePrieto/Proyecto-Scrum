@@ -1,6 +1,7 @@
 /**
  * @file hash.js
  * @description Hash y verificación de contraseñas utilizando exclusivamente Bcrypt.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

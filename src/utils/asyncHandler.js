@@ -1,9 +1,11 @@
 /**
  * @file asyncHandler.js
- * @description Middleware de utilería para el manejo de controladores asíncronos (HU-47).
+ * @description Middleware de utilería para el manejo de controladores asíncronos.
  * Captura automáticamente las promesas rechazadas y redirige los errores
  * al middleware global de Express evitando bloqueos en el servidor.
- * @author Stephanie Elizdeth Hernández Prieto (Tracker / Programadora XP)
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Camila Mariné Crespo Zurita
  */
 
 /**

@@ -1,4 +1,9 @@
-/** HU-05 · Controladores de estimación Fibonacci y sesiones de Planning Poker. */
+/**
+ * @file poker.controller.js
+ * @description Controladores de estimación Fibonacci y sesiones de Planning Poker.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as servicio from './poker.service.js';
 

@@ -1,9 +1,8 @@
-// Responsable: Citlaly - HU-41, HU-43: recibe la peticion y responde (rol por proyecto y aislamiento de datos por equipo); sin logica de negocio
-
 /**
  * @file miembros.controller.js
  * @description Controladores HTTP de los roles por proyecto. Solo traducen la petición a llamadas
  * del servicio; las reglas de negocio y los permisos se validan en miembros.service.js.
+ * 
  * @author Citlaly Morales Viveros
  */
 import { asyncHandler } from '../../utils/asyncHandler.js';

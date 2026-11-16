@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-13, HU-14: logica de la pantalla de retrospectiva y acciones pendientes (llama a la API y escucha sockets)
 /**
- * Pintar la pantalla de retrospectiva:
+ * @file retrospectiva.js
+ * @description Pintar la pantalla de retrospectiva:
  *   - Tres columnas: "Qué salió bien", "Qué mejorar" y "Acciones". Cada nota puede publicarse de forma anónima.
  *   - Votar notas (máximo 5 votos por integrante) y ver el contador de cada una.
  *   - Crear acciones con responsable y fecha límite obligatorios; el Scrum Master cierra la retro.
@@ -150,11 +150,13 @@ function restaurarBorradores() {
 
 /**
  * Pintar una nota con su contador de votos y sus botones, o su editor si yo la estoy editando.
+ * Solo las notas de "Qué mejorar" se votan.
  *
  * @param {Object} i - Ítem tal como lo devuelve la API.
+ * @param {string} columna - Columna a la que pertenece la nota.
  * @returns {string}
  */
-function pintarNota(i) {
+function pintarNota(i, columna) {
   const { esScrumMaster, votos } = ctx.datos;
   const abierta = estaAbierta();
   const otro = ctx.editando.get(i.id);
@@ -169,7 +171,7 @@ function pintarNota(i) {
        </div>`
     : `<p class="retro-nota__texto">${escaparHtml(i.texto)}</p>`;
 
-  const votar = `<button class="chip retro-nota__voto" type="button" data-votar="${i.id}" aria-pressed="${i.votoMio}"
+  const votar = columna !== 'mejorar' ? '' : `<button class="chip retro-nota__voto" type="button" data-votar="${i.id}" aria-pressed="${i.votoMio}"
       ${!abierta || (!i.votoMio && votos.restantes === 0) ? 'disabled' : ''} aria-label="${i.votoMio ? 'Quitar mi voto' : 'Votar'} (${i.votos} ${pluralizar(i.votos, 'voto', 'votos')})">
       ${i.votoMio ? 'Votado' : 'Votar'} · ${i.votos}</button>`;
   const acciones = abierta && !propia
@@ -196,7 +198,7 @@ function pintarNotas() {
   for (const columna of ['bien', 'mejorar']) {
     const items = ctx.datos.columnas[columna];
     el.notas[columna].innerHTML = items.length
-      ? items.map(pintarNota).join('')
+      ? items.map((i) => pintarNota(i, columna)).join('')
       : '<li class="retro-vacio">Aún no hay notas.</li>';
   }
 }
@@ -376,7 +378,7 @@ async function iniciarEdicion(id) {
     id,
     texto: item.texto,
     // Mientras siga editando, se renueva el aviso para que no caduque
-    latido: setInterval(() => api(`/retros/items/${id}/edicion`, { metodo: 'PUT' }).catch(() => {}), INTERVALO_LATIDO_MS),
+    latido: setInterval(() => api(`/retros/items/${id}/edicion`, { metodo: 'PUT' }).catch(() => { }), INTERVALO_LATIDO_MS),
   };
   pintarNotas();
   document.querySelector(`[data-item="${id}"] [data-editor]`)?.focus();

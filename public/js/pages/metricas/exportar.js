@@ -1,6 +1,7 @@
 /**
  * @file exportar.js
  * @description Lógica del cliente para HU-36 (Exportar reportes con barra de progreso).
+ * 
  * @author Dana Carmona Santamaria
  */
 import { api } from '../../core/api.js';

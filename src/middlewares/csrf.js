@@ -5,6 +5,7 @@
  * que modifican datos (POST/PUT/PATCH/DELETE) el cliente debe reenviarlo en la
  * cabecera X-CSRF-Token. Un sitio atacante no puede leer esa cookie, así que no
  * puede forjar la cabecera.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

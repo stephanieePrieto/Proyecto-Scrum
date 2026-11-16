@@ -1,6 +1,7 @@
 /**
  * @file invitaciones.controller.js
  * @description Controladores para las rutas del módulo de invitaciones.
+ * 
  * @author Citlaly Morales Viveros
  */
 

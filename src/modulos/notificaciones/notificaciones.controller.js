@@ -1,10 +1,11 @@
-// Responsable: Alfonso - HU-24: recibe la peticion y responde (notificaciones dentro de la aplicacion); sin logica de negocio
 /**
  * @file notificaciones.controller.js
  * @description Controladores HTTP de la HU-24. Traducen peticiones a llamadas del servicio, extraen el ID del usuario desde el middleware de
  *              autenticación (`req.user.id`) y devuelven respuestas uniformes sin filtrar detalles internos.
  *
  * Forma de respuesta: `{ ok: boolean, datos?: Object, error?: string }`.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import * as servicio from './notificaciones.service.js';

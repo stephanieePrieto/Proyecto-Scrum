@@ -1,6 +1,7 @@
 /**
  * @file tarjetas.controller.js
  * @description Controladores HTTP para el módulo de tarjetas (HU-18, HU-23, HU-25).
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 

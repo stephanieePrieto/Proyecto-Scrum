@@ -1,10 +1,8 @@
 /**
- * ===========================================================================
- * GENERADOR DE PDF PARA CERTIFICADOS - ScrumFlow
- * Autor: Stephanie Elizdeth Hernández Prieto
- * Descripción: Certificado de Diplomado en Azul Marino y Dorado con sello
- *              emblema institucional de excelencia (sin círculo azul).
- * ===========================================================================
+ * @file pdf-generador.js
+ * @description Certificado de Diplomado en Azul Marino y Dorado con sello emblema institucional de excelencia (sin círculo azul).
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -20,7 +18,7 @@ const fontPath = join(__dirname, '../fonts/Roboto-Regular.ttf');
 export async function generarPDF(nombre, fechaEmision, usuarioId = 1, calificacion = 9.8) {
   // Crear documento A4 horizontal (842 x 595 puntos)
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([842, 595]); 
+  const page = pdfDoc.addPage([842, 595]);
   const { width, height } = page.getSize();
 
   // Cargar fuentes

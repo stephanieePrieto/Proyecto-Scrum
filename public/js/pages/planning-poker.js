@@ -1,4 +1,9 @@
-/** HU-05 · Planning Poker grupal con estimación Fibonacci y cierre en cuatro rondas. */
+/** 
+ * @file planning-poker.js
+ * @desciption Planning Poker grupal con estimación Fibonacci y cierre en cuatro rondas.
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
 import { cargarPermisos, rolActual } from '../core/permisos-ui.js';
@@ -258,7 +263,7 @@ if (proyectoId && typeof window.io === 'function') {
   socketPoker.on('connect', () => socketPoker.emit('unirse_proyecto', Number(proyectoId)));
   socketPoker.on('poker:actualizado', (evento) => {
     if (String(evento?.proyecto_id) === String(proyectoId)
-        && String(evento?.historia_id) === String(historiaActual()?.id)) cargarRonda();
+      && String(evento?.historia_id) === String(historiaActual()?.id)) cargarRonda();
   });
   socketPoker.on('story:updated', async () => { await cargarHistorias(); await cargarRonda(); });
 }

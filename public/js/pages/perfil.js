@@ -3,10 +3,11 @@
  * @description Lógica de la pantalla de perfil: información del usuario, seguridad (2FA), preferencias y gestión de cuenta.
  * 
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import { api } from '../core/api.js';
-import { escaparHtml } from '../core/utils.js';
+import { escaparHtml, esZonaHorariaValida, detectarZonaNavegador, conZonaHoraria } from '../core/utils.js';
 
 // Funciones temporales para que el sistema no colapse al mostrar notificaciones
 function mostrarAviso(mensaje, tipo = 'info') {
@@ -46,27 +47,735 @@ function obtenerIniciales(nombre) {
 }
 
 /**
+ * Mostrar la foto del usuario en el avatar o, si no tiene o no carga, sus iniciales.
+ * Solo se aceptan rutas del mismo sitio para no pedir imágenes a otros orígenes.
+ *
+ * @param {{nombre: string, fotoUrl?: string|null}} usuario - Datos del perfil.
+ */
+function mostrarAvatar(usuario) {
+  const avatar = document.getElementById('perfil-avatar');
+  if (!avatar) return;
+
+  const mostrarIniciales = () => { avatar.textContent = obtenerIniciales(usuario.nombre); };
+  const ruta = usuario.fotoUrl;
+
+  if (typeof ruta !== 'string' || !/^\/(?!\/)/.test(ruta)) {
+    mostrarIniciales();
+    return;
+  }
+
+  const imagen = document.createElement('img');
+  imagen.className = 'perfil-avatar__imagen';
+  imagen.alt = `Foto de perfil de ${usuario.nombre}`;
+  imagen.addEventListener('error', mostrarIniciales, { once: true });
+  imagen.src = ruta;
+  avatar.replaceChildren(imagen);
+}
+
+/**
+ * Mostrar el aviso de error de carga con un botón para volver a intentarlo.
+ * @param {string} texto - Mensaje para la persona usuaria.
+ */
+function mostrarErrorCarga(texto) {
+  const aviso = document.getElementById('perfil-aviso');
+  if (!aviso) return;
+
+  const mensaje = document.createElement('p');
+  mensaje.textContent = texto;
+
+  const reintentar = document.createElement('button');
+  reintentar.type = 'button';
+  reintentar.className = 'boton boton--secundario boton--pequeno';
+  reintentar.textContent = 'Reintentar';
+  reintentar.addEventListener('click', cargarInformacionUsuario);
+
+  aviso.classList.add('aviso', 'aviso--peligro');
+  aviso.replaceChildren(mensaje, reintentar);
+  aviso.hidden = false;
+}
+
+/**
  * Cargar información del usuario y actualizar el encabezado del perfil.
  */
 async function cargarInformacionUsuario() {
   try {
-    const respuesta = await api('/capacidad/yo');
+    const respuesta = await api('/usuarios/yo');
     const usuario = respuesta.usuario ?? respuesta.data?.usuario;
 
-    const avatar = document.getElementById('perfil-avatar');
     const nombre = document.getElementById('perfil-nombre');
     const correo = document.getElementById('perfil-correo');
+    const campoCorreo = document.getElementById('perfil-campo-correo');
+    const aviso = document.getElementById('perfil-aviso');
 
-    if (avatar) avatar.textContent = obtenerIniciales(usuario.nombre);
-    if (nombre) nombre.textContent = escaparHtml(usuario.nombre);
-    if (correo) correo.textContent = escaparHtml(usuario.correo);
+    mostrarAvatar(usuario);
+    usuarioActual = usuario;
+    mostrarFotoGuardada();
+    mostrarZonaHoraria();
+    mostrarPreferenciasNotificacion();
+    try {
+      mostrarPreferenciasApp();
+    } catch (error) {
+      console.error('[perfil] No se pudo mostrar la apariencia:', error);
+    }
+    if (nombre) nombre.textContent = usuario.nombre;
+    if (correo) correo.textContent = usuario.correo;
+    if (campoCorreo) campoCorreo.value = usuario.correo;
+    if (aviso) {
+      aviso.hidden = true;
+      aviso.replaceChildren();
+    }
   } catch (error) {
     console.error('[perfil] Error al cargar información del usuario:', error);
     const nombre = document.getElementById('perfil-nombre');
     const correo = document.getElementById('perfil-correo');
     if (nombre) nombre.textContent = 'Usuario';
-    if (correo) correo.textContent = 'Cargando...';
+    if (correo) correo.textContent = 'No disponible';
+    mostrarErrorCarga(mensajeDeError(error, 'No se pudo cargar tu perfil. Revisa tu conexión e inténtalo de nuevo.'));
   }
+}
+
+/** Peso máximo permitido para la foto de perfil. */
+const LIMITE_FOTO_BYTES = 2 * 1024 * 1024;
+
+/** Tipos de imagen que se aceptan como foto de perfil. */
+const TIPOS_FOTO_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
+
+/** Solo se muestran fotos servidas por este mismo sitio. */
+const PATRON_RUTA_INTERNA = /^\/(?!\/)/;
+
+/** Datos del perfil cargados desde el servidor; se usan para las iniciales y la foto guardada. */
+let usuarioActual = null;
+
+/** Foto elegida que todavía no se guarda. */
+let fotoSeleccionada = null;
+
+/** Evita guardar la foto dos veces mientras una petición sigue en curso. */
+let guardandoFoto = false;
+
+/** Zona horaria guardada y reconocida de la cuenta; null si todavía no tiene una o no se reconoce. */
+let zonaGuardada = null;
+
+/** Evita guardar la zona horaria dos veces mientras una petición sigue en curso. */
+let guardandoZona = false;
+
+/**
+ * Reconocer el formato real de una imagen por sus primeros bytes.
+ * El tipo que informa el navegador sale de la extensión y no basta para confiar en el archivo.
+ *
+ * @param {File} archivo - Archivo elegido.
+ * @returns {Promise<'jpeg'|'png'|'webp'|null>} El formato, o null si no es JPEG, PNG ni WebP.
+ */
+async function detectarFormatoFoto(archivo) {
+  const bytes = new Uint8Array(await archivo.slice(0, 12).arrayBuffer());
+  if (bytes.length < 12) return null;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpeg';
+  const firmaPng = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (firmaPng.every((valor, i) => bytes[i] === valor)) return 'png';
+  const texto = (inicio, fin) => String.fromCharCode(...bytes.slice(inicio, fin));
+  if (texto(0, 4) === 'RIFF' && texto(8, 12) === 'WEBP') return 'webp';
+  return null;
+}
+
+/**
+ * Validar la foto elegida antes de mostrarla o enviarla.
+ *
+ * @param {File} archivo - Archivo elegido.
+ * @returns {Promise<string|null>} El motivo del rechazo, o null si la foto es válida.
+ */
+async function validarFoto(archivo) {
+  if (archivo.size === 0) return 'La foto está vacía.';
+  if (archivo.size > LIMITE_FOTO_BYTES) {
+    const peso = (archivo.size / (1024 * 1024)).toFixed(1);
+    return `La foto pesa ${peso} MB y supera el límite de 2 MB.`;
+  }
+  if (!TIPOS_FOTO_PERMITIDOS.includes(archivo.type) || !(await detectarFormatoFoto(archivo))) {
+    return 'Formato no permitido. Usa una imagen JPEG, PNG o WebP.';
+  }
+  return null;
+}
+
+/**
+ * Dibujar en el recuadro de la sección la foto indicada o, si no hay, las iniciales.
+ *
+ * @param {string|null} fuente - Ruta del mismo sitio o data URL de la vista previa.
+ */
+function pintarVistaFoto(fuente) {
+  const vista = document.getElementById('foto-vista');
+  if (!vista) return;
+
+  const mostrarIniciales = () => { vista.textContent = obtenerIniciales(usuarioActual?.nombre); };
+  if (!fuente) {
+    mostrarIniciales();
+    return;
+  }
+
+  const imagen = document.createElement('img');
+  imagen.className = 'perfil-avatar__imagen';
+  imagen.alt = 'Vista de la foto de perfil';
+  imagen.addEventListener('error', mostrarIniciales, { once: true });
+  imagen.src = fuente;
+  vista.replaceChildren(imagen);
+}
+
+/**
+ * Mostrar en el recuadro de la sección la foto que ya está guardada.
+ */
+function mostrarFotoGuardada() {
+  const ruta = usuarioActual?.fotoUrl;
+  pintarVistaFoto(typeof ruta === 'string' && PATRON_RUTA_INTERNA.test(ruta) ? ruta : null);
+}
+
+/**
+ * Mostrar u ocultar un mensaje en el contenedor indicado de un apartado del perfil.
+ *
+ * @param {string} idContenedor - Id del contenedor del mensaje.
+ * @param {'exito'|'peligro'|'advertencia'|'info'|null} tipo - Estilo del aviso; null lo oculta.
+ * @param {string} [texto] - Mensaje para la persona usuaria.
+ */
+function mostrarMensajeEn(idContenedor, tipo, texto = '') {
+  const contenedor = document.getElementById(idContenedor);
+  if (!contenedor) return;
+
+  if (!tipo) {
+    contenedor.hidden = true;
+    contenedor.replaceChildren();
+    return;
+  }
+
+  const mensaje = document.createElement('p');
+  mensaje.textContent = texto;
+  contenedor.className = `perfil-mensaje aviso aviso--${tipo}`;
+  contenedor.setAttribute('role', tipo === 'peligro' ? 'alert' : 'status');
+  contenedor.replaceChildren(mensaje);
+  contenedor.hidden = false;
+}
+
+/**
+ * Mostrar un mensaje de éxito o de error en el apartado de la foto.
+ *
+ * @param {'exito'|'peligro'|null} tipo - Estilo del aviso; null lo oculta.
+ * @param {string} [texto] - Mensaje para la persona usuaria.
+ */
+function mostrarMensajeFoto(tipo, texto = '') {
+  mostrarMensajeEn('foto-mensaje', tipo, texto);
+}
+
+/**
+ * Sincronizar los botones del apartado de la foto con el estado actual.
+ */
+function actualizarBotonesFoto() {
+  const guardar = document.getElementById('btn-guardar-foto');
+  const cancelar = document.getElementById('btn-cancelar-foto');
+  const elegir = document.getElementById('btn-elegir-foto');
+  if (guardar) {
+    guardar.disabled = !fotoSeleccionada || guardandoFoto;
+    guardar.textContent = guardandoFoto ? 'Guardando...' : 'Guardar foto';
+  }
+  if (cancelar) {
+    cancelar.hidden = !fotoSeleccionada;
+    cancelar.disabled = guardandoFoto;
+  }
+  if (elegir) elegir.disabled = guardandoFoto;
+}
+
+/**
+ * Descartar la foto elegida y volver a mostrar la guardada.
+ */
+function descartarFotoSeleccionada() {
+  const entrada = document.getElementById('foto-archivo');
+  if (entrada) entrada.value = '';
+  fotoSeleccionada = null;
+  mostrarFotoGuardada();
+  actualizarBotonesFoto();
+}
+
+/**
+ * Validar la foto que eligió la persona y mostrar su vista previa sin guardarla.
+ * La vista previa usa una data URL porque la política de seguridad no permite blob:.
+ */
+async function alElegirFoto() {
+  const entrada = document.getElementById('foto-archivo');
+  const archivo = entrada?.files?.[0];
+  if (!archivo) return;
+
+  mostrarMensajeFoto(null);
+  const motivo = await validarFoto(archivo);
+  if (motivo) {
+    descartarFotoSeleccionada();
+    mostrarMensajeFoto('peligro', motivo);
+    return;
+  }
+
+  const lector = new FileReader();
+  lector.addEventListener('load', () => {
+    fotoSeleccionada = archivo;
+    pintarVistaFoto(String(lector.result));
+    actualizarBotonesFoto();
+  });
+  lector.addEventListener('error', () => {
+    descartarFotoSeleccionada();
+    mostrarMensajeFoto('peligro', 'No se pudo leer la imagen elegida. Prueba con otra.');
+  });
+  lector.readAsDataURL(archivo);
+}
+
+/**
+ * Enviar la foto elegida al servidor. El éxito solo se anuncia cuando el servidor confirma el guardado.
+ */
+async function guardarFoto() {
+  if (!fotoSeleccionada || guardandoFoto) return;
+
+  guardandoFoto = true;
+  mostrarMensajeFoto(null);
+  actualizarBotonesFoto();
+
+  try {
+    const datos = new FormData();
+    datos.append('foto', fotoSeleccionada);
+    const respuesta = await api('/usuarios/yo/foto', { metodo: 'PUT', cuerpo: datos });
+    const nuevaRuta = respuesta?.usuario?.fotoUrl;
+
+    if (typeof nuevaRuta !== 'string' || !PATRON_RUTA_INTERNA.test(nuevaRuta)) {
+      throw new Error('El servidor no confirmó el guardado de la foto.');
+    }
+
+    usuarioActual = { ...usuarioActual, fotoUrl: nuevaRuta };
+    mostrarAvatar(usuarioActual);
+    window.dispatchEvent(new CustomEvent('perfil:foto-actualizada', { detail: { fotoUrl: nuevaRuta } }));
+    descartarFotoSeleccionada();
+    mostrarMensajeFoto('exito', 'Foto de perfil actualizada correctamente.');
+  } catch (error) {
+    console.error('[perfil] Error al guardar la foto:', error);
+    mostrarMensajeFoto('peligro', mensajeDeError(error, 'No se pudo guardar la foto. Inténtalo de nuevo.'));
+  } finally {
+    guardandoFoto = false;
+    actualizarBotonesFoto();
+  }
+}
+
+/**
+ * Conectar los controles del apartado de la foto.
+ */
+function configurarFoto() {
+  const entrada = document.getElementById('foto-archivo');
+  document.getElementById('btn-elegir-foto')?.addEventListener('click', () => entrada?.click());
+  document.getElementById('btn-guardar-foto')?.addEventListener('click', guardarFoto);
+  document.getElementById('btn-cancelar-foto')?.addEventListener('click', () => {
+    mostrarMensajeFoto(null);
+    descartarFotoSeleccionada();
+  });
+  entrada?.addEventListener('change', alElegirFoto);
+}
+
+/** Zonas que se ofrecen si el navegador no puede listar todas las del estándar IANA. */
+const ZONAS_RESPALDO = [
+  'UTC', 'America/Mexico_City', 'America/Bogota', 'America/Lima', 'America/Santiago',
+  'America/Argentina/Buenos_Aires', 'America/New_York', 'America/Chicago', 'America/Los_Angeles',
+  'Europe/Madrid', 'Europe/London', 'Asia/Tokyo'
+];
+
+/**
+ * Listar las zonas horarias que se ofrecen en el selector.
+ *
+ * @returns {string[]}
+ */
+function listarZonasHorarias() {
+  let zonas = ZONAS_RESPALDO;
+  try {
+    if (typeof Intl.supportedValuesOf === 'function') zonas = Intl.supportedValuesOf('timeZone');
+  } catch { /* Se usa la lista de respaldo */ }
+  return zonas.includes('UTC') ? zonas : ['UTC', ...zonas];
+}
+
+/**
+ * Agregar una opción al selector si todavía no existe.
+ *
+ * @param {HTMLSelectElement} selector - Selector de la zona horaria.
+ * @param {string} zona - Identificador IANA.
+ */
+function asegurarOpcionZona(selector, zona) {
+  if ([...selector.options].some((opcion) => opcion.value === zona)) return;
+  const opcion = document.createElement('option');
+  opcion.value = zona;
+  opcion.textContent = zona.replaceAll('_', ' ');
+  selector.append(opcion);
+}
+
+/**
+ * Sincronizar el botón y el selector de la zona horaria con el estado actual.
+ * El botón solo se habilita cuando la zona elegida es distinta de la guardada.
+ */
+function actualizarBotonZona() {
+  const selector = document.getElementById('zona-selector');
+  const guardar = document.getElementById('btn-guardar-zona');
+  if (selector) selector.disabled = guardandoZona || !usuarioActual;
+  if (guardar) {
+    guardar.disabled = guardandoZona || !selector?.value || selector.value === zonaGuardada;
+    guardar.textContent = guardandoZona ? 'Guardando...' : 'Guardar zona horaria';
+  }
+}
+
+/**
+ * Mostrar la zona horaria de la cuenta. Si todavía no tiene una o la guardada no se reconoce,
+ * se propone la del navegador y se avisa, pero no se guarda hasta que la persona lo confirme.
+ */
+function mostrarZonaHoraria() {
+  const selector = document.getElementById('zona-selector');
+  if (!selector) return;
+
+  const guardada = usuarioActual?.zonaHoraria;
+  const navegador = detectarZonaNavegador();
+
+  zonaGuardada = esZonaHorariaValida(guardada) ? guardada : null;
+  const mostrada = zonaGuardada ?? navegador;
+  asegurarOpcionZona(selector, mostrada);
+  selector.value = mostrada;
+
+  if (zonaGuardada) {
+    mostrarMensajeEn('zona-aviso', null);
+  } else if (typeof guardada === 'string' && guardada.trim()) {
+    mostrarMensajeEn('zona-aviso', 'advertencia',
+      `La zona horaria guardada (${guardada}) no se reconoce. Se muestra la de tu navegador (${navegador}); guárdala para corregirla.`);
+  } else {
+    mostrarMensajeEn('zona-aviso', 'info',
+      `Todavía no tienes una zona horaria guardada. Se detectó la de tu navegador (${navegador}); guárdala para confirmarla.`);
+  }
+  actualizarBotonZona();
+}
+
+/**
+ * Enviar la zona horaria elegida al servidor. El éxito solo se anuncia cuando el servidor confirma el guardado.
+ */
+async function guardarZonaHoraria() {
+  const selector = document.getElementById('zona-selector');
+  const elegida = selector?.value;
+  if (guardandoZona || !esZonaHorariaValida(elegida)) {
+    if (!guardandoZona) mostrarMensajeEn('zona-mensaje', 'peligro', 'Elige una zona horaria válida de la lista.');
+    return;
+  }
+
+  guardandoZona = true;
+  mostrarMensajeEn('zona-mensaje', null);
+  actualizarBotonZona();
+
+  try {
+    const respuesta = await api('/usuarios/yo/zona-horaria', { metodo: 'PUT', cuerpo: { zonaHoraria: elegida } });
+    const confirmada = respuesta?.usuario?.zonaHoraria;
+
+    if (!esZonaHorariaValida(confirmada)) {
+      throw new Error('El servidor no confirmó el guardado de la zona horaria.');
+    }
+
+    usuarioActual = { ...usuarioActual, zonaHoraria: confirmada };
+    mostrarZonaHoraria();
+    window.dispatchEvent(new CustomEvent('perfil:zona-actualizada', { detail: { zonaHoraria: confirmada } }));
+    mostrarMensajeEn('zona-mensaje', 'exito', 'Zona horaria actualizada correctamente.');
+  } catch (error) {
+    console.error('[perfil] Error al guardar la zona horaria:', error);
+    mostrarMensajeEn('zona-mensaje', 'peligro', mensajeDeError(error, 'No se pudo guardar la zona horaria. Inténtalo de nuevo.'));
+  } finally {
+    guardandoZona = false;
+    actualizarBotonZona();
+  }
+}
+
+/**
+ * Conectar los controles del apartado de la zona horaria y llenar el selector.
+ */
+function configurarZona() {
+  const selector = document.getElementById('zona-selector');
+  if (!selector) return;
+
+  selector.replaceChildren();
+  listarZonasHorarias().forEach((zona) => asegurarOpcionZona(selector, zona));
+  selector.addEventListener('change', () => {
+    mostrarMensajeEn('zona-mensaje', null);
+    actualizarBotonZona();
+  });
+  document.getElementById('btn-guardar-zona')?.addEventListener('click', guardarZonaHoraria);
+}
+
+/** Canales y tipos de notificación que se configuran; el id de cada control sale de canal y tipo. */
+const CAMPOS_NOTIFICACION = [
+  { canal: 'interna', tipo: 'asignacion' },
+  { canal: 'interna', tipo: 'mencion' },
+  { canal: 'interna', tipo: 'desviacion' },
+  { canal: 'interna', tipo: 'impedimento' },
+  { canal: 'correo', tipo: 'asignacion' },
+  { canal: 'correo', tipo: 'mencion' },
+  { canal: 'correo', tipo: 'desviacion' },
+  { canal: 'correo', tipo: 'impedimento' },
+];
+
+/** Valor que se muestra si la cuenta todavía no tiene preferencias guardadas (mismo que el servidor). */
+const NOTIFICACION_POR_DEFECTO = { interna: true, correo: false };
+
+/** Indica si ya se está guardando la configuración de notificaciones. */
+let guardandoNotificaciones = false;
+
+/**
+ * Id del control de un canal y tipo de notificación.
+ * @param {{canal: string, tipo: string}} campo
+ * @returns {string}
+ */
+const idCampoNotificacion = ({ canal, tipo }) => `notif-${canal}-${tipo}`;
+
+/**
+ * Leer las preferencias de notificación que la persona tiene guardadas en el servidor.
+ * @returns {Object<string, Object<string, boolean>>} Matriz canal → tipo → activo.
+ */
+function preferenciasGuardadas() {
+  const guardadas = usuarioActual?.preferenciasNotif;
+  const salida = { interna: {}, correo: {} };
+  for (const { canal, tipo } of CAMPOS_NOTIFICACION) {
+    salida[canal][tipo] = guardadas?.[canal]?.[tipo] ?? NOTIFICACION_POR_DEFECTO[canal];
+  }
+  return salida;
+}
+
+/**
+ * Leer las preferencias de notificación tal como están marcadas en la pantalla.
+ * @returns {Object<string, Object<string, boolean>>} Matriz canal → tipo → activo.
+ */
+function preferenciasDesdeFormulario() {
+  const salida = { interna: {}, correo: {} };
+  for (const campo of CAMPOS_NOTIFICACION) {
+    salida[campo.canal][campo.tipo] = document.getElementById(idCampoNotificacion(campo))?.checked === true;
+  }
+  return salida;
+}
+
+/**
+ * Mostrar en la pantalla las preferencias guardadas y limpiar el aviso anterior.
+ */
+function mostrarPreferenciasNotificacion() {
+  const guardadas = preferenciasGuardadas();
+  for (const campo of CAMPOS_NOTIFICACION) {
+    const control = document.getElementById(idCampoNotificacion(campo));
+    if (control) control.checked = guardadas[campo.canal][campo.tipo];
+  }
+  mostrarMensajeEn('notif-mensaje', null);
+  actualizarBotonNotificaciones();
+}
+
+/**
+ * Indicar si la pantalla tiene cambios que aún no se guardaron.
+ * @returns {boolean}
+ */
+function hayCambiosNotificacion() {
+  const guardadas = preferenciasGuardadas();
+  const actuales = preferenciasDesdeFormulario();
+  return CAMPOS_NOTIFICACION.some(({ canal, tipo }) => guardadas[canal][tipo] !== actuales[canal][tipo]);
+}
+
+/**
+ * Sincronizar el botón de notificaciones. No se habilita si la configuración no se cargó, para no
+ * guardar valores que la persona no eligió.
+ */
+function actualizarBotonNotificaciones() {
+  const boton = document.getElementById('btn-guardar-notificaciones');
+  if (!boton) return;
+  const cargada = Boolean(usuarioActual?.preferenciasNotif);
+  boton.disabled = guardandoNotificaciones || !cargada || !hayCambiosNotificacion();
+  boton.textContent = guardandoNotificaciones ? 'Guardando...' : 'Guardar notificaciones';
+}
+
+/**
+ * Enviar las preferencias de notificación al servidor. El éxito solo se anuncia cuando el servidor
+ * confirma el guardado.
+ */
+async function guardarPreferenciasNotificacion() {
+  if (guardandoNotificaciones || !usuarioActual?.preferenciasNotif || !hayCambiosNotificacion()) return;
+
+  guardandoNotificaciones = true;
+  mostrarMensajeEn('notif-mensaje', null);
+  actualizarBotonNotificaciones();
+
+  try {
+    const respuesta = await api('/usuarios/yo/preferencias-notificacion', {
+      metodo: 'PUT',
+      cuerpo: preferenciasDesdeFormulario(),
+    });
+    const confirmadas = respuesta?.usuario?.preferenciasNotif;
+    if (!confirmadas || typeof confirmadas !== 'object') {
+      throw new Error('El servidor no confirmó el guardado de las notificaciones.');
+    }
+
+    usuarioActual = { ...usuarioActual, preferenciasNotif: confirmadas };
+    mostrarPreferenciasNotificacion();
+    mostrarMensajeEn('notif-mensaje', 'exito', 'Preferencias de notificación actualizadas correctamente.');
+  } catch (error) {
+    console.error('[perfil] Error al guardar las notificaciones:', error);
+    mostrarMensajeEn('notif-mensaje', 'peligro', mensajeDeError(error, 'No se pudieron guardar las preferencias. Inténtalo de nuevo.'));
+  } finally {
+    guardandoNotificaciones = false;
+    actualizarBotonNotificaciones();
+  }
+}
+
+/**
+ * Conectar los controles del apartado de notificaciones.
+ */
+function configurarNotificaciones() {
+  for (const campo of CAMPOS_NOTIFICACION) {
+    document.getElementById(idCampoNotificacion(campo))?.addEventListener('change', () => {
+      mostrarMensajeEn('notif-mensaje', null);
+      actualizarBotonNotificaciones();
+    });
+  }
+  document.getElementById('btn-guardar-notificaciones')?.addEventListener('click', guardarPreferenciasNotificacion);
+}
+
+/** Controles del tema y de la accesibilidad; cada uno se guarda por separado. */
+const CONTROLES_ACCESIBILIDAD = {
+  'acc-texto-grande': 'textoGrande',
+  'acc-alto-contraste': 'altoContraste',
+  'acc-reducir-animaciones': 'reducirAnimaciones',
+};
+
+/** Indica si ya se está guardando alguno de los dos bloques de apariencia. */
+let guardandoPreferenciasApp = false;
+
+/**
+ * Preferencias de apariencia que la persona tiene guardadas en el servidor (completadas con los valores por defecto).
+ * @returns {{tema: string, textoGrande: boolean, altoContraste: boolean, reducirAnimaciones: boolean}}
+ */
+function preferenciasAppGuardadas() {
+  return normalizarApariencia(usuarioActual?.preferenciasApp);
+}
+
+/**
+ * Normaliza las preferencias de apariencia. Si apariencia.js no cargó, usa los mismos valores por defecto.
+ * @param {*} valor
+ * @returns {{tema: string, textoGrande: boolean, altoContraste: boolean, reducirAnimaciones: boolean}}
+ */
+function normalizarApariencia(valor) {
+  if (window.ScrumApariencia) return window.ScrumApariencia.normalizar(valor);
+  const datos = valor !== null && typeof valor === 'object' ? valor : {};
+  return {
+    tema: ['claro', 'oscuro'].includes(datos.tema) ? datos.tema : 'claro',
+    textoGrande: datos.textoGrande === true,
+    altoContraste: datos.altoContraste === true,
+    reducirAnimaciones: datos.reducirAnimaciones === true,
+  };
+}
+
+/**
+ * Tema marcado en la pantalla.
+ * @returns {string}
+ */
+function temaElegido() {
+  return document.querySelector('input[name="tema-app"]:checked')?.value ?? 'claro';
+}
+
+/**
+ * Ajustes de accesibilidad marcados en la pantalla.
+ * @returns {{textoGrande: boolean, altoContraste: boolean, reducirAnimaciones: boolean}}
+ */
+function accesibilidadElegida() {
+  const salida = {};
+  for (const [id, clave] of Object.entries(CONTROLES_ACCESIBILIDAD)) {
+    salida[clave] = document.getElementById(id)?.checked === true;
+  }
+  return salida;
+}
+
+/**
+ * Mostrar en la pantalla lo que está guardado y limpiar los avisos anteriores.
+ */
+function mostrarPreferenciasApp() {
+  const guardadas = preferenciasAppGuardadas();
+  for (const radio of document.querySelectorAll('input[name="tema-app"]')) {
+    radio.checked = radio.value === guardadas.tema;
+  }
+  for (const [id, clave] of Object.entries(CONTROLES_ACCESIBILIDAD)) {
+    const control = document.getElementById(id);
+    if (control) control.checked = guardadas[clave];
+  }
+  mostrarMensajeEn('apariencia-mensaje', null);
+  mostrarMensajeEn('accesibilidad-mensaje', null);
+  actualizarBotonesApp();
+}
+
+/**
+ * Sincronizar los botones de cada bloque. Ninguno se habilita sin datos cargados ni sin cambios.
+ */
+function actualizarBotonesApp() {
+  const cargada = Boolean(usuarioActual?.preferenciasApp);
+  const guardadas = preferenciasAppGuardadas();
+  const cambiosApariencia = temaElegido() !== guardadas.tema;
+  const cambiosAccesibilidad = Object.entries(accesibilidadElegida()).some(([clave, valor]) => guardadas[clave] !== valor);
+
+  const botonApariencia = document.getElementById('btn-guardar-apariencia');
+  if (botonApariencia) botonApariencia.disabled = guardandoPreferenciasApp || !cargada || !cambiosApariencia;
+
+  const botonAccesibilidad = document.getElementById('btn-guardar-accesibilidad');
+  if (botonAccesibilidad) botonAccesibilidad.disabled = guardandoPreferenciasApp || !cargada || !cambiosAccesibilidad;
+}
+
+/**
+ * Guardar un bloque (apariencia o accesibilidad). El otro bloque se envía con sus valores guardados,
+ * así que guardar uno no cambia el otro. El éxito solo se anuncia cuando el servidor confirma.
+ * @param {'apariencia'|'accesibilidad'} bloque
+ */
+async function guardarPreferenciasApp(bloque) {
+  const esApariencia = bloque === 'apariencia';
+  const mensajeId = esApariencia ? 'apariencia-mensaje' : 'accesibilidad-mensaje';
+  if (guardandoPreferenciasApp || !usuarioActual?.preferenciasApp) return;
+
+  const guardadas = preferenciasAppGuardadas();
+  const hayCambios = esApariencia
+    ? temaElegido() !== guardadas.tema
+    : Object.entries(accesibilidadElegida()).some(([clave, valor]) => guardadas[clave] !== valor);
+  if (!hayCambios) return;
+
+  guardandoPreferenciasApp = true;
+  mostrarMensajeEn(mensajeId, null);
+  actualizarBotonesApp();
+
+  try {
+    const enviadas = esApariencia
+      ? { ...guardadas, tema: temaElegido() }
+      : { ...guardadas, ...accesibilidadElegida() };
+    const respuesta = await api('/usuarios/yo/preferencias-aplicacion', { metodo: 'PUT', cuerpo: enviadas });
+    const confirmadas = respuesta?.usuario?.preferenciasApp;
+    if (!confirmadas || typeof confirmadas !== 'object') {
+      throw new Error('El servidor no confirmó el guardado de la apariencia.');
+    }
+
+    usuarioActual = { ...usuarioActual, preferenciasApp: confirmadas };
+    window.ScrumApariencia?.guardarLocal(confirmadas);
+    window.ScrumApariencia?.aplicar(confirmadas);
+    mostrarPreferenciasApp();
+    mostrarMensajeEn(mensajeId, 'exito', esApariencia
+      ? 'Apariencia actualizada correctamente.'
+      : 'Accesibilidad actualizada correctamente.');
+  } catch (error) {
+    console.error('[perfil] Error al guardar la apariencia:', error);
+    mostrarMensajeEn(mensajeId, 'peligro', mensajeDeError(error, 'No se pudieron guardar los cambios. Inténtalo de nuevo.'));
+  } finally {
+    guardandoPreferenciasApp = false;
+    actualizarBotonesApp();
+  }
+}
+
+/**
+ * Conectar los controles de apariencia y accesibilidad.
+ */
+function configurarPreferenciasApp() {
+  const controles = [
+    ...document.querySelectorAll('input[name="tema-app"]'),
+    ...Object.keys(CONTROLES_ACCESIBILIDAD).map((id) => document.getElementById(id)),
+  ];
+  for (const control of controles) {
+    control?.addEventListener('change', () => {
+      mostrarMensajeEn('apariencia-mensaje', null);
+      mostrarMensajeEn('accesibilidad-mensaje', null);
+      actualizarBotonesApp();
+    });
+  }
+  document.getElementById('btn-guardar-apariencia')?.addEventListener('click', () => guardarPreferenciasApp('apariencia'));
+  document.getElementById('btn-guardar-accesibilidad')?.addEventListener('click', () => guardarPreferenciasApp('accesibilidad'));
 }
 
 /**
@@ -166,7 +875,7 @@ async function cargarSeccionSeguridad() {
                   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                       <div>
                           <h4 style="margin: 0 0 0.5rem 0; color: #721c24;">¡Recuperación de cuenta en proceso!</h4>
-                          <p style="margin: 0; font-size: 0.9rem; color: #721c24;">Se solicitó recuperar el acceso a esta cuenta el ${new Date(estado2FA.recuperacion.solicitado_en).toLocaleString()}. Si no fuiste tú, cancela la solicitud inmediatamente.</p>
+                          <p style="margin: 0; font-size: 0.9rem; color: #721c24;">Se solicitó recuperar el acceso a esta cuenta el ${new Date(estado2FA.recuperacion.solicitado_en).toLocaleString(undefined, conZonaHoraria())}. Si no fuiste tú, cancela la solicitud inmediatamente.</p>
                       </div>
                       <button class="boton boton--peligro boton--pequeno" id="btn-cancelar-recuperacion-perfil">Cancelar solicitud</button>
                   </div>
@@ -195,7 +904,7 @@ async function cargarSeccionSeguridad() {
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
                   <span class="insignia insignia--exito">Activado</span>
                   <span style="font-size: 0.8rem; color: var(--color-texto-secundario);">
-                    ${estado2FA.metodos.totp.activadoEn ? new Date(estado2FA.metodos.totp.activadoEn).toLocaleDateString() : ''}
+                    ${estado2FA.metodos.totp.activadoEn ? new Date(estado2FA.metodos.totp.activadoEn).toLocaleDateString(undefined, conZonaHoraria()) : ''}
                   </span>
                 </div>
                 <button class="boton boton--secundario boton--pequeno" id="btn-desactivar-totp" style="margin-right: 0.5rem;">Desactivar</button>
@@ -221,7 +930,7 @@ async function cargarSeccionSeguridad() {
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
                   <span class="insignia insignia--exito">Activado</span>
                   <span style="font-size: 0.8rem; color: var(--color-texto-secundario);">
-                    ${estado2FA.metodos.correo.activadoEn ? new Date(estado2FA.metodos.correo.activadoEn).toLocaleDateString() : ''}
+                    ${estado2FA.metodos.correo.activadoEn ? new Date(estado2FA.metodos.correo.activadoEn).toLocaleDateString(undefined, conZonaHoraria()) : ''}
                   </span>
                 </div>
                 <button class="boton boton--secundario boton--pequeno" id="btn-desactivar-correo">Desactivar</button>
@@ -709,7 +1418,7 @@ async function listarDispositivosConfianza() {
     const respuesta = await api('/usuarios/2fa/dispositivos');
     const { dispositivos } = respuesta;
     if (dispositivos.length === 0) { mostrarAviso('No tienes dispositivos de confianza registrados.', 'info'); return; }
-    const mensaje = dispositivos.map(d => `• ${d.nombre || 'Dispositivo sin nombre'} (${d.ipRegistro}) - ${new Date(d.expiraEn).toLocaleDateString()}`).join('\n');
+    const mensaje = dispositivos.map(d => `• ${d.nombre || 'Dispositivo sin nombre'} (${d.ipRegistro}) - ${new Date(d.expiraEn).toLocaleDateString(undefined, conZonaHoraria())}`).join('\n');
     alert(`Dispositivos de confianza:\n\n${mensaje}`);
 
   } catch (error) {
@@ -722,6 +1431,10 @@ async function listarDispositivosConfianza() {
  */
 function init() {
   cargarInformacionUsuario();
+  configurarFoto();
+  configurarZona();
+  configurarNotificaciones();
+  configurarPreferenciasApp();
   configurarNavegacion();
   configurarModalRespaldo();
 }

@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-44: logica de la pantalla de capacidad individual (horas por dia y ausencias) (llama a la API y escucha sockets)
 /**
- * Pintar la pantalla de capacidad individual:
+ * @file capacidad.js
+ * @description Pintar la pantalla de capacidad individual:
  *   - Cargar y guardar las horas por día, las notas y las ausencias de la persona (solo la propia).
  *   - Tras guardar, limpiar los campos para poder agregar más datos; lo ya guardado se muestra aparte.
  *   - Validar el formulario antes de enviarlo y mostrar el error junto a cada campo.

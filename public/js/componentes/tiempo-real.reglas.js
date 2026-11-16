@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-52: reglas puras para decidir entre tiempo real y sondeo cada 5 s
 /**
  * @file tiempo-real.reglas.js
  * @description Lógica pura de la HU-52 (criterio 5), sin DOM, sin red y sin localStorage, para probarla con Jest:
@@ -8,6 +7,8 @@
  *   - Cuándo saltar un ciclo de sondeo (arrastre en curso, pestaña oculta, petición pendiente, modal abierto).
  *   - Si un arrastre sigue vivo aunque el navegador no haya avisado que terminó (por ejemplo, al girar la tablet).
  *   - Si los datos del tablero cambiaron, para no repintar sin necesidad.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 /** Cada cuánto se consulta el servidor cuando el WebSocket está bloqueado. */

@@ -1,8 +1,8 @@
-// Responsable: Jetz - HU-08: endpoints de tareas de una historia
-
 /**
- * Responsable: Jetz
- * HU-08: Rutas para gestionar tareas técnicas.
+ * @file tareas.routes.js
+ * @description Rutas para gestionar tareas técnicas.
+ * 
+ * @author Jetzaly Josmery Tello Campos
  */
 
 import { Router } from 'express';

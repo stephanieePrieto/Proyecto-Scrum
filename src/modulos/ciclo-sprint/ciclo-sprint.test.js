@@ -2,18 +2,20 @@
  * @file ciclo-sprint.test.js
  * @description Suite de pruebas unitarias para el ciclo de vida del Sprint (HU-06 y HU-09).
  * Compatible con Jest y ES Modules.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import { describe, test, expect } from '@jest/globals';
 import { faltantesParaIniciar, calcularResumen, validarCierre } from './ciclo-sprint.reglas.js';
 
-const completo = { 
-  objetivo: 'Entregar el tablero', 
-  capacidad: 80, 
-  totalHistorias: 3, 
-  tieneScrumMaster: true, 
-  tieneProductOwner: true 
+const completo = {
+  objetivo: 'Entregar el tablero',
+  capacidad: 80,
+  totalHistorias: 3,
+  tieneScrumMaster: true,
+  tieneProductOwner: true
 };
 
 describe('Módulo Ciclo Sprint - Pruebas Unitarias', () => {
@@ -22,12 +24,12 @@ describe('Módulo Ciclo Sprint - Pruebas Unitarias', () => {
   });
 
   test('indica qué falta: objetivo, historias, capacidad y roles', () => {
-    const r = faltantesParaIniciar({ 
-      objetivo: '  ', 
-      capacidad: 0, 
-      totalHistorias: 0, 
-      tieneScrumMaster: false, 
-      tieneProductOwner: false 
+    const r = faltantesParaIniciar({
+      objetivo: '  ',
+      capacidad: 0,
+      totalHistorias: 0,
+      tieneScrumMaster: false,
+      tieneProductOwner: false
     });
     expect(r.faltantes.length).toBe(5);
     expect(Boolean(r.campos.objetivo && r.campos.capacidad_horas)).toBe(true);

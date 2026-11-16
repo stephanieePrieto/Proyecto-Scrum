@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-12: logica de la pantalla de Sprint Review (aceptar o rechazar historias) (llama a la API y escucha sockets)
 /**
- * Pintar la pantalla de Sprint Review:
+ * @file review.js
+ * @description Pintar la pantalla de Sprint Review:
  *   - Tarea 1: el Product Owner (o su delegado) acepta o rechaza cada historia terminada; rechazar exige comentario y
  *     aceptar con criterios incompletos (3 de 4) pide confirmación. El resto de los roles solo ve las decisiones.
  *   - Tarea 2: la velocity del sprint se muestra en vivo (puntos aceptados) y se guarda en el servidor con cada decisión.
@@ -8,10 +8,11 @@
  *   - Lo que se estaba escribiendo (comentarios y criterios marcados) se conserva aunque otra persona decida y la pantalla se recargue.
  *
  * @author Diego Rafael Jimenez Trujano
+ * @author Citlaly Morales Viveros
  */
 import { api } from '../core/api.js';
 import { montarBarraSuperior } from '../core/layout.js';
-import { escaparHtml, pluralizar } from '../core/utils.js';
+import { escaparHtml, pluralizar, conZonaHoraria } from '../core/utils.js';
 import { resolverProyecto, conectarTiempoReal, mostrarSinProyecto } from './ceremonias/proyecto.js';
 import { cargarPermisos, escucharCambiosDeRol } from '../core/permisos-ui.js';
 
@@ -105,8 +106,8 @@ function avisarError(error, respaldo) {
     : error.cuerpo?.mensaje || respaldo);
 }
 
-const fechaCorta = (valor) => new Date(valor).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
-const fechaHora = (valor) => new Date(valor).toLocaleString('es', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fechaCorta = (valor) => new Date(valor).toLocaleDateString('es', conZonaHoraria({ day: 'numeric', month: 'short', year: 'numeric' }));
+const fechaHora = (valor) => new Date(valor).toLocaleString('es', conZonaHoraria({ day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
 
 /** Último día de una delegación: el servidor guarda el inicio del día siguiente, así que se resta un minuto. */
 const ultimoDia = (hasta) => fechaCorta(new Date(new Date(hasta).getTime() - 60 * 1000));

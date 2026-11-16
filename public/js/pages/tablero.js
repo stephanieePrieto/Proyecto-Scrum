@@ -1,10 +1,10 @@
 /**
  * @file tablero.js
- * 
- * @fileoverview Lógica de la pantalla del tablero del sprint (HU-17 a HU-25, HU-58, HU-59).
+ * @description Lógica de la pantalla del tablero del sprint (HU-17 a HU-25, HU-58, HU-59).
  * Se arma con los módulos de tablero y maneja la comunicación inicial y filtros.
  * 
  * @author Camila Marine Crespo Zurita
+ * @author Alfonso Mendoza Vasquez
  * @author Citlaly Morales Viveros
  * 
  * @see {@link module:tablero/columnas}
@@ -36,7 +36,7 @@ function cargarDetalleTarjeta() {
  * Listener principal que se ejecuta una vez que el DOM ha sido completamente cargado.
  * @listens DOMContentLoaded
  */
-document.addEventListener('DOMContentLoaded', async() => {
+document.addEventListener('DOMContentLoaded', async () => {
     /**
      * Carga el detalle antes de validar el proyecto activo: el enlace ?tarea=ID de las
      * notificaciones debe abrir la tarjeta aunque no haya proyecto seleccionado.

@@ -1,8 +1,6 @@
-// Responsable: Diego - HU-11: reglas, SQL y avisos por socket (impedimentos)
 /**
- * HU-11 · Gestionar impedimentos.
- *
- * Tablas que usa (database/schema.sql): impedimentos, tareas, sprints, miembros_proyecto, usuarios
+ * @file impedimentos.service.js
+ * @description Gestionar impedimentos. Tablas que usa (database/schema.sql): impedimentos, tareas, sprints, miembros_proyecto, usuarios
  * y notificaciones.
  *
  * Decisiones importantes:
@@ -20,6 +18,7 @@
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto, emitirAUsuario } from '../../sockets/emisor.js';
+import { notificar, TIPOS } from '../notificaciones/notificaciones.service.js';
 import { exigirPermiso, obtenerRolProyecto, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import {
   SEVERIDADES,
@@ -105,13 +104,11 @@ async function obtenerUno(id) {
  */
 async function avisar(usuarioId, tipo, titulo, mensaje, enlace) {
   try {
-    const { rows: [aviso] } = await consulta(
-      `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, enlace)
-            VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, usuario_id, tipo, titulo, mensaje, enlace, leida, creado_en`,
-      [usuarioId, tipo, titulo, mensaje, enlace],
-    );
-    emitirAUsuario(usuarioId, EVENTOS.aviso, aviso);
+    // Pasa por notificar(): respeta las preferencias de la persona y envía el correo si lo tiene activo.
+    const resultado = await notificar({ usuarioId, tipo, titulo, mensaje, enlace });
+    if (resultado.estado === 'creada') {
+      emitirAUsuario(usuarioId, EVENTOS.aviso, resultado.notificacion);
+    }
   } catch (error) {
     console.error('[impedimentos] No se pudo guardar el aviso:', error.message);
   }
@@ -160,7 +157,7 @@ export async function reasignarDeBaja(proyectoId) {
   for (const fila of rows) {
     await avisar(
       fila.responsable_id,
-      'impedimento_reasignado',
+      TIPOS.IMPEDIMENTO,
       'Impedimento a tu cargo',
       `El impedimento «${fila.titulo}» quedó a tu cargo porque su responsable fue dado de baja.`,
       `/pages/impedimentos.html?proyecto=${proyectoId}`,
@@ -313,7 +310,7 @@ export async function crear(actor, proyectoId, datos) {
   if (valores.responsable_id !== actor.id) {
     await avisar(
       valores.responsable_id,
-      'impedimento_asignado',
+      TIPOS.IMPEDIMENTO,
       'Nuevo impedimento asignado',
       `Te asignaron el impedimento «${valores.titulo}».`,
       `/pages/impedimentos.html?proyecto=${proyectoId}`,

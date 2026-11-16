@@ -224,6 +224,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .tarjeta-item--saliendo,
   .tablero-aviso,
   .carril__lista {

@@ -1,11 +1,18 @@
 <!DOCTYPE html>
-<!-- HU-45, HU-57: Perfil de usuario con seccion de Seguridad y 2FA -->
+<!-- 
+  @file perfil.html
+  @description Perfil de usuario con seccion de Seguridad y 2FA
+
+  @author Citlaly Morales Viveros
+  @author Alfonso Mendoza Vasquez
+-->
 <html lang="es">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="/js/componentes/compatibilidad.js"></script>
+  <script src="/js/core/apariencia.js"></script>
   <title>Perfil · ScrumFlow</title>
 
   <!-- Fuentes -->
@@ -23,6 +30,7 @@
   <link rel="stylesheet" href="/css/componentes/formularios.css" />
   <link rel="stylesheet" href="/css/componentes/modales.css" />
   <link rel="stylesheet" href="/css/componentes/2fa.css" />
+  <link rel="stylesheet" href="/css/componentes/perfil.css" />
   <link rel="stylesheet" href="/css/componentes/responsive.css" />
   <link rel="stylesheet" href="/css/componentes/accesibilidad.css" />
 </head>
@@ -52,7 +60,50 @@
             <p>Gestiona tu información personal básica</p>
           </div>
           <div id="contenido-perfil">
-            <p>Contenido de informacion del perfil...</p>
+            <div id="perfil-aviso" class="perfil-aviso" role="alert" hidden></div>
+
+            <div class="perfil-datos">
+              <div class="perfil-bloque" id="bloque-foto">
+                <h3 class="perfil-bloque__titulo">Foto de perfil</h3>
+                <p class="perfil-ayuda">Formatos JPEG, PNG o WebP. Peso máximo: 2 MB.</p>
+                <div class="perfil-foto">
+                  <div class="perfil-foto__vista" id="foto-vista" role="img" aria-label="Vista de la foto de perfil">?
+                  </div>
+                  <div class="perfil-foto__acciones">
+                    <input type="file" id="foto-archivo" accept="image/jpeg,image/png,image/webp" hidden>
+                    <button type="button" class="boton boton--secundario" id="btn-elegir-foto">Elegir foto</button>
+                    <button type="button" class="boton boton--primario" id="btn-guardar-foto" disabled>Guardar
+                      foto</button>
+                    <button type="button" class="boton boton--secundario" id="btn-cancelar-foto"
+                      hidden>Cancelar</button>
+                  </div>
+                </div>
+                <div id="foto-mensaje" class="perfil-mensaje" role="status" hidden></div>
+              </div>
+
+              <div class="form-group">
+                <label for="perfil-campo-correo" class="form-label">Correo electrónico</label>
+                <input type="email" id="perfil-campo-correo" class="form-input" readonly placeholder="Cargando..."
+                  aria-describedby="perfil-correo-ayuda">
+                <p id="perfil-correo-ayuda" class="perfil-ayuda">El correo no se puede modificar desde aquí.</p>
+              </div>
+
+              <div class="perfil-bloque" id="bloque-zona">
+                <h3 class="perfil-bloque__titulo">Zona horaria</h3>
+                <p class="perfil-ayuda">Las fechas y horas se muestran en esta zona. Se guarda por separado de los demás
+                  datos.</p>
+                <div class="form-group">
+                  <label for="zona-selector" class="form-label">Zona horaria</label>
+                  <select id="zona-selector" class="form-input" aria-describedby="zona-aviso"></select>
+                </div>
+                <div class="perfil-foto__acciones">
+                  <button type="button" class="boton boton--primario" id="btn-guardar-zona" disabled>Guardar zona
+                    horaria</button>
+                </div>
+                <div id="zona-aviso" class="perfil-mensaje" role="status" hidden></div>
+                <div id="zona-mensaje" class="perfil-mensaje" role="status" hidden></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -72,7 +123,54 @@
             <p>Configura tus preferencias de notificaciones</p>
           </div>
           <div id="contenido-notificaciones">
-            <p>Contenido de notificaciones...</p>
+            <div class="perfil-bloque">
+              <p class="perfil-ayuda">Elige dónde quieres recibir cada tipo de aviso. Los cambios se aplican desde el
+                siguiente aviso.</p>
+              <div class="perfil-tabla-wrap">
+                <table class="perfil-notif-tabla" aria-label="Canales de notificación por tipo de aviso">
+                  <thead>
+                    <tr>
+                      <th scope="col">Tipo de aviso</th>
+                      <th scope="col">En la aplicación</th>
+                      <th scope="col">Por correo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">Asignación de tarea</th>
+                      <td><input type="checkbox" id="notif-interna-asignacion"
+                          aria-label="Asignación de tarea en la aplicación"></td>
+                      <td><input type="checkbox" id="notif-correo-asignacion"
+                          aria-label="Asignación de tarea por correo"></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Mención en comentario</th>
+                      <td><input type="checkbox" id="notif-interna-mencion" aria-label="Mención en la aplicación"></td>
+                      <td><input type="checkbox" id="notif-correo-mencion" aria-label="Mención por correo"></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Desviación de horas</th>
+                      <td><input type="checkbox" id="notif-interna-desviacion"
+                          aria-label="Desviación de horas en la aplicación"></td>
+                      <td><input type="checkbox" id="notif-correo-desviacion"
+                          aria-label="Desviación de horas por correo"></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Impedimento asignado</th>
+                      <td><input type="checkbox" id="notif-interna-impedimento"
+                          aria-label="Impedimento asignado en la aplicación"></td>
+                      <td><input type="checkbox" id="notif-correo-impedimento"
+                          aria-label="Impedimento asignado por correo"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="perfil-foto__acciones">
+                <button type="button" class="boton boton--primario" id="btn-guardar-notificaciones" disabled>Guardar
+                  notificaciones</button>
+              </div>
+              <div id="notif-mensaje" class="perfil-mensaje" role="status" hidden></div>
+            </div>
           </div>
         </div>
 
@@ -82,7 +180,33 @@
             <p>Configura tus preferencias de la aplicación</p>
           </div>
           <div id="contenido-preferencias">
-            <p>Contenido de preferencias...</p>
+            <div class="perfil-bloque" id="bloque-apariencia">
+              <h3 class="perfil-bloque__titulo">Apariencia</h3>
+              <p class="perfil-ayuda">Elige el tema de la aplicación. Por defecto se usa el claro.</p>
+              <fieldset class="perfil-opciones">
+                <legend class="solo-lectores">Tema</legend>
+                <label class="perfil-opcion"><input type="radio" name="tema-app" id="apariencia-claro" value="claro" checked> Claro</label>
+                <label class="perfil-opcion"><input type="radio" name="tema-app" id="apariencia-oscuro" value="oscuro"> Oscuro</label>
+              </fieldset>
+              <div class="perfil-foto__acciones">
+                <button type="button" class="boton boton--primario" id="btn-guardar-apariencia" disabled>Guardar apariencia</button>
+              </div>
+              <div id="apariencia-mensaje" class="perfil-mensaje" role="status" hidden></div>
+            </div>
+
+            <div class="perfil-bloque" id="bloque-accesibilidad">
+              <h3 class="perfil-bloque__titulo">Accesibilidad</h3>
+              <p class="perfil-ayuda">Ajustes para leer y navegar con más comodidad. Se aplican en todas las páginas.</p>
+              <div class="perfil-opciones">
+                <label class="perfil-opcion"><input type="checkbox" id="acc-texto-grande"> Texto más grande</label>
+                <label class="perfil-opcion"><input type="checkbox" id="acc-alto-contraste"> Alto contraste</label>
+                <label class="perfil-opcion"><input type="checkbox" id="acc-reducir-animaciones"> Reducir animaciones y transiciones</label>
+              </div>
+              <div class="perfil-foto__acciones">
+                <button type="button" class="boton boton--primario" id="btn-guardar-accesibilidad" disabled>Guardar accesibilidad</button>
+              </div>
+              <div id="accesibilidad-mensaje" class="perfil-mensaje" role="status" hidden></div>
+            </div>
           </div>
         </div>
       </div>

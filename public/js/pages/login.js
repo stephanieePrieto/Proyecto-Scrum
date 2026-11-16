@@ -1,12 +1,13 @@
-import { api } from '../core/api.js';
-import { mostrarAlerta } from '../core/auth.js';
-localStorage.removeItem('proyectoActivo');
-
 /**
  * @file login.js
  * @description Lógica del lado del cliente para la página de inicio de sesión y recuperación 2FA.
+ * 
  * @author Citlaly Morales Viveros
+ * @author Dana Carmona Santamaria
  */
+import { api } from '../core/api.js';
+import { mostrarAlerta } from '../core/auth.js';
+localStorage.removeItem('proyectoActivo');
 
 document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('form-login');

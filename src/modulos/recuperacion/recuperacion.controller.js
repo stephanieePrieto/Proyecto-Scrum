@@ -1,6 +1,7 @@
 /**
  * @file recuperacion.controller.js
- * @description Controladores para el flujo de recuperación de cuenta (Problema 10).
+ * @description Controladores para el flujo de recuperación de cuenta.
+ * 
  * @author Citlaly Morales Viveros
  */
 

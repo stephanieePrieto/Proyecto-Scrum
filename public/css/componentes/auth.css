@@ -78,13 +78,15 @@
 }
 
 .requisitos-password li {
-  color: #d9534f; /* Rojo por defecto */
+  color: #d9534f;
+  /* Rojo por defecto */
   margin-bottom: 2px;
   transition: color 0.3s ease;
 }
 
 .requisitos-password li.valido {
-  color: #28a745; /* Verde cuando cumple */
+  color: #28a745;
+  /* Verde cuando cumple */
 }
 
 .requisitos-password li.valido::before {

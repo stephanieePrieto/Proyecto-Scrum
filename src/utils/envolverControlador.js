@@ -1,4 +1,9 @@
-// Responsable: Diego - envoltorio de controladores que usan Daily, impedimentos, ciclo del sprint y retrospectiva
+/**
+ * @file envolverControlador.js
+ * @description Envoltorio de controladores que usan Daily, impedimentos, ciclo del sprint y retrospectiva
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import { asyncHandler } from './asyncHandler.js';
 
 /**

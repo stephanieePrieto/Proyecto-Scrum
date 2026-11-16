@@ -1,9 +1,10 @@
-// Responsable: Alfonso - HU-21: recibe la peticion y responde (reasignar tarea desde el tablero); sin logica de negocio
 /**
  * @file reasignacion.controller.js
  * @description Controlador HTTP de la reasignación por arrastre (HU-21, criterio 4). Toma el proyecto ya
  *              autorizado (`req.proyectoId`, lo deja `requierePermiso`), llama al servicio y responde
  *              `{ ok: true, datos }`. Los errores (ErrorApp) los formatea manejoErrores.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';

@@ -1,7 +1,9 @@
 /**
  * @file tablero.controller.js
- * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas) [HU-17, HU-18, HU-22].
+ * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas).
+ * 
  * @author Camila Mariné Crespo Zurita
+ * @author Dana Carmona Santamaria
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -18,7 +20,7 @@ import { actualizarColumnas, moverTarjeta, obtenerEstructuraTablero } from './ta
  */
 export const obtenerTablero = asyncHandler(async (req, res) => {
     const proyectoId = req.params.proyectoId;
-    
+
     // Validar que el proyectoId exista
     if (!proyectoId || proyectoId === 'null') {
         return res.status(200).json({
@@ -70,6 +72,10 @@ export const configurarColumnas = asyncHandler(async (req, res) => {
 export const moverTarjetaController = asyncHandler(async (req, res) => {
     const { proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version } = req.body;
     const usuarioNombre = req.usuario?.nombre || 'Un compañero';
+    // El id se guarda en el historial de cambios de columna (CFD). El tablero usa
+    // hoy un auth temporal (autenticarTemp en tablero.routes.js) con id 1, así que mientras
+    // no se conecte el auth real todos los movimientos quedarán a nombre de ese usuario.
+    const usuarioId = req.usuario?.id ?? null;
 
     const tareaActualizada = await moverTarjeta(
         proyectoId,
@@ -77,7 +83,8 @@ export const moverTarjetaController = asyncHandler(async (req, res) => {
         nuevaColumnaId,
         nuevoOrden,
         version,
-        usuarioNombre
+        usuarioNombre,
+        usuarioId
     );
 
     res.status(200).json({

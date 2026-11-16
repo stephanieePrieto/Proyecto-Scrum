@@ -1,10 +1,12 @@
-// Responsable: Diego - HU-11: endpoints de impedimentos
 /**
- * Rutas de impedimentos. app.js (BASE) monta este módulo solo, en /api/impedimentos.
+ * @file impedimentos.routes.js
+ * @description Rutas de impedimentos. app.js (BASE) monta este módulo solo, en /api/impedimentos.
  *
  *   GET  /api/impedimentos/proyecto/:proyectoId   lista (?estado=abierto|resuelto|todos&severidad=)
  *   POST /api/impedimentos/proyecto/:proyectoId   registrar uno nuevo
  *   POST /api/impedimentos/:id/resolver           marcarlo como resuelto
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';

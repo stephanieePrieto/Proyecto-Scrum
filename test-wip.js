@@ -1,3 +1,10 @@
+/**
+ * @file test-wip.js
+ * @description Programa para las pruebas del limite wip
+ * 
+ * @author Camila Mariné Crespo Zurita
+ */
+
 import { formatearContadorWIP, evaluarEstadoWIP, validarInputLimite } from './public/js/pages/tablero/wip.js';
 
 console.log("--- PRUEBAS HU-22: Límite WIP ---");
@@ -8,12 +15,12 @@ console.log("Contador sin límite:", formatearContadorWIP(3, null) === "3" ? "�
 
 // 2. Límite blando: permite el movimiento pero avisa
 // Simula meter la tarjeta 5 en una columna con límite de 4
-const pruebaBlando = evaluarEstadoWIP(4, 4, false); 
+const pruebaBlando = evaluarEstadoWIP(4, 4, false);
 console.log("Límite blando superado:", (pruebaBlando.permitido === true && pruebaBlando.alertaBlanda === true) ? "✅ Pasa" : "❌ Falla");
 
 // 3. Límite duro: bloquea el movimiento
 // Simula meter la tarjeta 5 en una columna con límite de 4
-const pruebaDuro = evaluarEstadoWIP(4, 4, true); 
+const pruebaDuro = evaluarEstadoWIP(4, 4, true);
 console.log("Límite duro superado:", (pruebaDuro.permitido === false && pruebaDuro.alertaBlanda === false) ? "✅ Pasa" : "❌ Falla");
 
 // 4. Validación de inputs (no permite 0 ni decimales ni negativos)

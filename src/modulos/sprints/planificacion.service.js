@@ -1,4 +1,9 @@
-// HU-07: comprometer historias en un sprint. Todas las comprobaciones son por proyecto.
+/**
+ * @file planificacion.service.js
+ * @description Comprometer historias en un sprint. Todas las comprobaciones son por proyecto
+ * 
+ * @author Jetzaly Josmery Tello Campos
+ */
 import { pool } from '../../config/db.js';
 import { obtenerRolProyecto, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
@@ -94,7 +99,7 @@ export async function comprometerHistoria(usuario, proyectoId, sprintId, histori
         ? 'La historia no tiene tareas u horas estimadas; no suma horas al medidor.' : null,
     };
   } catch (error) {
-    await cliente.query('ROLLBACK').catch(() => {});
+    await cliente.query('ROLLBACK').catch(() => { });
     throw error;
   } finally {
     cliente.release();
@@ -176,7 +181,7 @@ export async function devolverHistoriaPlanificada(usuario, proyectoId, sprintId,
         : null,
     };
   } catch (error) {
-    await cliente.query('ROLLBACK').catch(() => {});
+    await cliente.query('ROLLBACK').catch(() => { });
     throw error;
   } finally {
     cliente.release();

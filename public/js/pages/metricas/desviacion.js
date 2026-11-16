@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-28: horas estimadas contra reales y semaforo
 /**
  * @file desviacion.js
  * @description Componente autocontenido de la HU-28: horas estimadas contra reales y su desviación
@@ -13,6 +12,8 @@
  *
  * Los textos que vienen del usuario (títulos, nombres) se insertan siempre con textContent, nunca con innerHTML.
  * Estilos: css/componentes/desviacion.css, que se carga desde layout.css.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { api } from '../../core/api.js';

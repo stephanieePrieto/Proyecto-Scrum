@@ -1,4 +1,9 @@
-# BASE: lo que Git NO debe subir
+# @file .gitignore
+# @description Lo que Git NO debe subir
+# @author Stephanie Elizdeth Hernández Prieto
+# @author Alfonso Mendoza Vasquez
+# @author Citlaly Morales Viveros
+
 node_modules/
 .env
 *.log
@@ -7,3 +12,6 @@ node_modules/
 certs/
 .claude/
 coverage/
+uploads/avatares/
+uploads/adjuntos/
+backups/

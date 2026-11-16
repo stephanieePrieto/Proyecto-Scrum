@@ -1,4 +1,9 @@
-// Responsable: Diego - HU-13, HU-14: recibe la peticion y responde (retrospectiva y acciones de mejora); sin logica de negocio
+/**
+ * @file retros.controller.js
+ * @description Recibe la peticion y responde (retrospectiva y acciones de mejora); sin logica de negocio
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import * as servicio from './retros.service.js';
 import { envolver } from '../../utils/envolverControlador.js';
 

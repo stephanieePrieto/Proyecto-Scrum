@@ -1,4 +1,9 @@
-// Responsable: Diego - HU-10: recibe la peticion y responde (Daily Scrum); sin logica de negocio
+/**
+ * @file daily.controller.js 
+ * @description Recibe la peticion y responde (Daily Scrum); sin logica de negocio
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ */
 import * as servicio from './daily.service.js';
 import { envolver } from '../../utils/envolverControlador.js';
 

@@ -1,6 +1,7 @@
 /**
  * @file seguridad.js
  * @description Cabeceras de seguridad (Helmet/CSP/HSTS) y sanitización anti-XSS de la entrada.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

@@ -1,10 +1,14 @@
 /**
- * Reunir las funciones puras de capacidad: validar lo que captura el integrante,
+ * @file capacidad.calculo.js
+ * @description Reunir las funciones puras de capacidad: validar lo que captura el integrante,
  * fusionar ausencias y calcular las horas disponibles dentro de un sprint.
  * No consultar la base de datos ni Express, por eso se pueden probar de forma aislada.
  *
  * Las fechas viajan como texto "AAAA-MM-DD" y se calculan en UTC para evitar
  * desfases por zona horaria.
+ * 
+ * @author Diego Rafael Jiménez Trujano
+ * @author Citlaly Morales Viveros
  */
 
 const MAX_HORAS_POR_DIA = 24;

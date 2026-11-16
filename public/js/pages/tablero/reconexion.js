@@ -1,12 +1,12 @@
 /**
  * @file reconexion.js
- * @description Gestión de eventos WebSockets, avisos visuales de red, cola local offline y resincronización (HU-18, HU-58).
+ * @description Gestión de eventos WebSockets, avisos visuales de red, cola local offline y resincronización.
+ * 
  * @author Camila Mariné Crespo Zurita
+ * @author Alfonso Mendoza Vasquez
  */
 
-import * as socketModule from '../../core/socket.js';
 import { api } from '../../core/api.js';
-const socket = socketModule.socket || socketModule.default || window.socket;
 
 /**
  * Sincroniza la cola local de movimientos pendientes con el servidor al recuperar la red (HU-58).
@@ -17,7 +17,6 @@ const socket = socketModule.socket || socketModule.default || window.socket;
  */
 async function sincronizarMovimientosPendientes(proyectoId) {
     const colaGuardada = JSON.parse(localStorage.getItem('movimientos_pendientes') || '[]');
-    // Una sola petición por tarjeta: se conserva el último movimiento de cada una
     const cola = [...new Map(colaGuardada.map((m) => [Number(m.tareaId), m])).values()];
     if (cola.length === 0) return;
 
@@ -31,7 +30,6 @@ async function sincronizarMovimientosPendientes(proyectoId) {
 
     for (const movimiento of cola) {
         try {
-            // api() agrega el token CSRF; lanza error si la respuesta no es 2xx
             await api('/tablero/mover-tarjeta', { metodo: 'POST', cuerpo: movimiento });
         } catch (error) {
             console.error("Error al sincronizar movimiento pendiente:", error);
@@ -63,6 +61,7 @@ async function sincronizarMovimientosPendientes(proyectoId) {
  * @returns {void}
  */
 export function escucharMovimientosSocket(proyectoId) {
+    const socket = window.socket;
     if (socket) {
         socket.on('tablero:tarjeta_movida', (data) => {
             const elTarjeta = document.getElementById(`tarjeta-${data.tareaId}`);
@@ -79,7 +78,6 @@ export function escucharMovimientosSocket(proyectoId) {
                 setTimeout(() => aviso.remove(), 2500);
             }
 
-            // HU-21 (Alfonso): avisar a los filtros para sacar la tarjeta de la vista si ya no coincide (criterio 5)
             document.dispatchEvent(new CustomEvent('tablero:cambio-en-vivo', { detail: data }));
         });
 
@@ -103,7 +101,6 @@ export function escucharMovimientosSocket(proyectoId) {
         });
     }
 
-    // Escuchadores nativos de red del navegador (HU-58)
     window.addEventListener('offline', () => {
         const estadoRed = document.getElementById('sprint-estado');
         if (estadoRed) {

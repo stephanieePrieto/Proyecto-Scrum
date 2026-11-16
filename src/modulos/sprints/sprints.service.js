@@ -1,15 +1,14 @@
-// Responsable: Jetz - HU-06, HU-07: reglas, SQL y avisos por socket (crear y planificar sprints)
-
-import { consulta, pool } from '../../config/db.js';
-import { tienePermiso } from '../../utils/permisos.js';
-import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
-
 /**
  * @file sprints.service.js
+ * @description Reglas, SQL y avisos por socket (crear y planificar sprints)
  * 
  * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
  */
+
+import { consulta, pool } from '../../config/db.js';
+import { tienePermiso } from '../../utils/permisos.js';
+import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 // HU-06: Consultar los sprints existentes de un proyecto
 export async function obtenerSprintsProyecto(proyectoId) {

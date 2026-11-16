@@ -1,7 +1,3 @@
-// Responsable: Citlaly - HU-42: oculta en pantalla lo que el rol no puede usar
-
-import { api } from './api.js';
-
 /**
  * @file permisos-ui.js
  * @description Oculta en la interfaz lo que el rol de la persona no autoriza. Los elementos se marcan en el
@@ -9,8 +5,11 @@ import { api } from './api.js';
  * de permisos llega del servidor para el proyecto abierto, de modo que la pantalla nunca decide por su cuenta.
  * Mientras no se conocen los permisos, o si no se pudieron obtener, los elementos marcados quedan ocultos.
  * Ocultar es solo comodidad visual: cada petición se vuelve a validar en el servidor.
+ * 
  * @author Citlaly Morales Viveros
+ * @author Stephanie Elizdeth Hernández Prieto
  */
+import { api } from './api.js';
 
 // Atributo con el que cada pantalla marca los elementos que requieren un permiso
 const ATRIBUTO = 'data-permiso';

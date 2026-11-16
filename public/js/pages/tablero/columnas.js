@@ -1,7 +1,9 @@
 /**
  * @file columnas.js
  * @description Gestión, maquetación programática en DOM y configuración de columnas (HU-17).
+ * 
  * @author Camila Mariné Crespo Zurita
+ * @author Alfonso Mendoza Vasquez
  */
 
 import { renderizarTarjetasEnTablero } from './tarjeta.js';

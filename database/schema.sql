@@ -1,9 +1,19 @@
--- @author: Citlaly Morales Viveros (Cliente / Programadora XP)
--- BASE (no modificar sin avisar al equipo) - HU-47: crea todas las tablas del sistema
--- VERSION 2: todos los usuarios son "base" (sin rol global). El rol existe SOLO en miembros_proyecto.rol.
--- Para empezar de cero: database/reiniciar.sql
--- Es seguro correrlo varias veces: no borra nada que ya exista (usa IF NOT EXISTS).
--- Si necesitan cambiar una tabla, avisen al equipo y agreguen el cambio al final de este archivo.
+/**
+  @file schema.sql
+  @description BASE (no modificar sin avisar al equipo) - crea todas las tablas del sistema
+  VERSION 2: todos los usuarios son "base" (sin rol global). El rol existe SOLO en miembros_proyecto.rol.
+  Para empezar de cero: database/reiniciar.sql
+  Es seguro correrlo varias veces: no borra nada que ya exista (usa IF NOT EXISTS).
+  Si necesitan cambiar una tabla, avisen al equipo y agreguen el cambio al final de este archivo.
+
+  @author Stephanie Elizdeth Hernández Prieto
+  @author Citlaly Morales Viveros
+  @author Camila Mariné Crespo Zurita
+  @author Jetzaly Josmery Tello Campos
+  @author Alfonso Mendoza Vasquez
+  @author Diego Rafael Jiménez Trujano
+*/
+
 -- ===========================================================================
 -- Funcion compartida: los correos siempre se guardan en minusculas y sin espacios
 -- ===========================================================================
@@ -12,7 +22,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 -- ===========================================================================
--- Cuentas y equipos (HU-38, HU-39, HU-40, HU-45, HU-57)
+-- Cuentas y equipos
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS usuarios (
   id SERIAL PRIMARY KEY,
@@ -22,8 +32,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   es_admin BOOLEAN NOT NULL DEFAULT FALSE,
   activo BOOLEAN NOT NULL DEFAULT TRUE,
   foto_url TEXT,
-  zona_horaria TEXT NOT NULL DEFAULT 'America/Mexico_City',
-  preferencias_notif JSONB NOT NULL DEFAULT '{"asignaciones": true, "menciones": true, "correo": false}',
+  zona_horaria TEXT,
+  preferencias_notif JSONB NOT NULL DEFAULT '{"interna": {"asignacion": true, "mencion": true, "desviacion": true, "impedimento": true}, "correo": {"asignacion": false, "mencion": false, "desviacion": false, "impedimento": false}}',
   intentos_fallidos INTEGER NOT NULL DEFAULT 0,
   bloqueado_hasta TIMESTAMPTZ,
   acepto_privacidad_en TIMESTAMPTZ,
@@ -62,7 +72,7 @@ CREATE TABLE IF NOT EXISTS miembros_equipo (
 );
 CREATE INDEX IF NOT EXISTS ix_miembros_equipo_usuario ON miembros_equipo (usuario_id);
 -- ===========================================================================
--- Proyectos y roles por proyecto (HU-01, HU-41, HU-42, HU-43)
+-- Proyectos y roles por proyecto
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS proyectos (
   id SERIAL PRIMARY KEY,
@@ -145,7 +155,7 @@ CREATE TRIGGER tg_invitaciones_correo BEFORE
 INSERT
   OR
 UPDATE OF correo ON invitaciones FOR EACH ROW EXECUTE FUNCTION normalizar_correo();
--- Capacidad individual (HU-44)
+-- Capacidad individual
 CREATE TABLE IF NOT EXISTS capacidad_usuarios (
   usuario_id INTEGER PRIMARY KEY REFERENCES usuarios (id) ON DELETE CASCADE,
   horas_por_dia NUMERIC(4, 2) NOT NULL DEFAULT 6 CHECK (
@@ -172,7 +182,7 @@ CREATE TABLE IF NOT EXISTS ausencias (
 );
 CREATE INDEX IF NOT EXISTS ix_ausencias_usuario_fechas ON ausencias (usuario_id, fecha_inicio, fecha_fin);
 -- ===========================================================================
--- Backlog y sprints (HU-02 a HU-09)
+-- Backlog y sprints
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS epicas (
   id SERIAL PRIMARY KEY,
@@ -235,7 +245,7 @@ CREATE INDEX IF NOT EXISTS ix_historias_sprint ON historias (sprint_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_historias_proyecto_numero_hu
 ON historias (proyecto_id, numero_hu);
 -- ===========================================================================
--- Tablero y tarjetas (HU-08, HU-17 a HU-25)
+-- Tablero y tarjetas
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS columnas_tablero (
   id SERIAL PRIMARY KEY,
@@ -318,7 +328,7 @@ CREATE TABLE IF NOT EXISTS historial_tareas (
 );
 CREATE INDEX IF NOT EXISTS ix_historial_tarea ON historial_tareas (tarea_id, creado_en);
 -- ===========================================================================
--- Horas reales (HU-27, HU-28)
+-- Horas reales
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS registros_horas (
   id SERIAL PRIMARY KEY,
@@ -336,7 +346,7 @@ CREATE TABLE IF NOT EXISTS registros_horas (
 CREATE INDEX IF NOT EXISTS ix_horas_usuario_fecha ON registros_horas (usuario_id, fecha);
 CREATE INDEX IF NOT EXISTS ix_horas_tarea ON registros_horas (tarea_id);
 
--- HU-27 (Alfonso): temporizador de horas reales.
+-- Alfonso: temporizador de horas reales.
 -- Es seguro correrlo varias veces. Este mismo bloque debe ir tambien al FINAL de schema.sql
 -- para que una base nueva ya nazca con esta tabla.
 --
@@ -355,7 +365,7 @@ CREATE TABLE IF NOT EXISTS temporizadores (
 );
 CREATE INDEX IF NOT EXISTS ix_temporizadores_tarea ON temporizadores (tarea_id);
 -- ===========================================================================
--- Ceremonias Scrum (HU-10 a HU-15)
+-- Ceremonias Scrum
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS impedimentos (
   id SERIAL PRIMARY KEY,
@@ -409,7 +419,7 @@ CREATE TABLE IF NOT EXISTS reviews_historias (
     criterios_total INTEGER CHECK (criterios_total IS NULL OR criterios_total >= 0),
     UNIQUE (sprint_id, historia_id)
 );
--- HU-12: delegacion temporal de la aceptacion del Product Owner (la crea el Scrum Master)
+-- Delegacion temporal de la aceptacion del Product Owner (la crea el Scrum Master)
 CREATE TABLE IF NOT EXISTS review_delegaciones (
   id SERIAL PRIMARY KEY,
   proyecto_id INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
@@ -464,7 +474,7 @@ CREATE TABLE IF NOT EXISTS eventos_calendario (
   termina_en TIMESTAMPTZ NOT NULL
 );
 -- ===========================================================================
--- Notificaciones, metricas y bitacora (HU-24, HU-29, HU-46)
+-- Notificaciones, metricas y bitacora
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS notificaciones (
   id SERIAL PRIMARY KEY,
@@ -504,7 +514,7 @@ CREATE TABLE IF NOT EXISTS bitacora (
 );
 CREATE INDEX IF NOT EXISTS ix_bitacora_fecha ON bitacora (creado_en DESC);
 CREATE INDEX IF NOT EXISTS ix_bitacora_proyecto ON bitacora (proyecto_id, creado_en DESC);
--- La bitacora no se puede editar ni borrar (HU-46)
+-- La bitacora no se puede editar ni borrar
 CREATE OR REPLACE FUNCTION bloquear_cambios_bitacora() RETURNS TRIGGER AS $$ BEGIN RAISE EXCEPTION 'La bitacora de auditoria no se puede editar ni borrar';
 END;
 $$ LANGUAGE plpgsql;
@@ -512,7 +522,7 @@ DROP TRIGGER IF EXISTS tg_bitacora_inmutable ON bitacora;
 CREATE TRIGGER tg_bitacora_inmutable BEFORE
 UPDATE
   OR DELETE ON bitacora FOR EACH ROW EXECUTE FUNCTION bloquear_cambios_bitacora();
--- Planning Poker (HU-05) es OPCIONAL: si el equipo lo implementa, agregue aqui sus tablas.
+-- Planning Poker es OPCIONAL: si el equipo lo implementa, agregue aqui sus tablas.
 -- ===========================================================================
 -- Seguridad y autenticacion
 -- ===========================================================================
@@ -554,7 +564,7 @@ CREATE TABLE IF NOT EXISTS intentos_ip (
 -- Una base nueva ya nace con todo esto desde los CREATE TABLE de arriba. Estos pasos solo corrigen las
 -- bases creadas con una version anterior del archivo y no hacen nada si ya estan aplicados.
 
--- HU-24 (Alfonso): columnas que usa la campana de notificaciones. Sin datos de prueba.
+-- Alfonso: columnas que usa la campana de notificaciones. Sin datos de prueba.
 -- Es seguro correrlo varias veces. Este mismo bloque debe ir tambien al FINAL de schema.sql
 -- para que una base nueva ya nazca con estas columnas.
 
@@ -584,7 +594,7 @@ BEGIN
 END
 $$;
 
--- HU-12 (Diego): columnas de reviews_historias para bases que ya existian (la tabla review_delegaciones se crea arriba).
+-- Diego: columnas de reviews_historias para bases que ya existian (la tabla review_delegaciones se crea arriba).
 ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS como_delegado BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS criterios_cumplidos INTEGER CHECK (criterios_cumplidos IS NULL OR criterios_cumplidos >= 0);
 ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS criterios_total INTEGER CHECK (criterios_total IS NULL OR criterios_total >= 0);

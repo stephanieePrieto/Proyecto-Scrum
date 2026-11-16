@@ -273,6 +273,16 @@
   color: #5C4A2E;
 }
 
+.notif__item--retro_recordatorio .notif__tipo {
+  background: #E4EBDD;
+  color: #4A5E3A;
+}
+
+.notif__item--retro_accion_vencida .notif__tipo {
+  background: #F3DEDA;
+  color: #8A3B30;
+}
+
 .notif__titulo {
   grid-area: titulo;
   margin-top: 4px;

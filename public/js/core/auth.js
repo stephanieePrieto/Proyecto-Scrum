@@ -1,10 +1,11 @@
-import { api } from './api.js';
-
 /**
  * @file auth.js
  * @description Funciones centrales para la gestión de sesión en el frontend.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  * @author Citlaly Morales Viveros
  */
+import { api } from './api.js';
 
 /**
  * Cierra la sesión del usuario actual comunicándose con el backend y redirige al login.
@@ -16,7 +17,8 @@ export async function cerrarSesion() {
     } catch (error) {
         console.error('Error al cerrar sesión', error);
     } finally {
-        window.location.href = '/login.html';
+        try { localStorage.removeItem('usuario'); } catch { /* Sin almacenamiento: no hay datos que borrar */ }
+        window.location.href = '/pages/login.html';
     }
 }
 

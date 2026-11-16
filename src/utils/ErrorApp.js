@@ -1,9 +1,9 @@
-// BASE (no modificar sin avisar al equipo) - HU-47: error con codigo HTTP (403, 404, 409...)
-
 /**
  * @file ErrorApp.js
  * @description Clase personalizada para el manejo de errores HTTP operacionales.
+ * 
  * @author Citlaly Morales Viveros
+ * @author Camila Mariné Crespo Zurita
  */
 export class ErrorApp extends Error {
     /**

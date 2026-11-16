@@ -1,17 +1,12 @@
 /**
- * ===========================================================================
- * CONTROLADOR DEL CURSO SCRUM
- * Autor: Stephanie Elizdeth Hernández Prieto
- * Descripción: Controladores para las rutas del curso Scrum.
- * ===========================================================================
+ * @file curso-scrum-controller.js
+ * @description Controladores para las rutas del curso Scrum.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
  */
 
 import * as servicio from './curso-scrum.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
-
-// ===========================================================================
-// CONTROLADORES EXISTENTES
-// ===========================================================================
 
 /**
  * Obtiene el temario y progreso del curso para un usuario en un proyecto.
@@ -40,9 +35,9 @@ export async function enviarQuiz(req, res, next) {
   try {
     const usuarioId = req.user.id;
     const { leccionId, respuestas } = req.body;
-    
+
     const resultado = await servicio.calificarQuiz(usuarioId, leccionId, respuestas);
-    
+
     // Retornar directamente la propiedad calificacion y aprobado
     res.json({
       exito: true,
@@ -54,9 +49,7 @@ export async function enviarQuiz(req, res, next) {
   }
 }
 
-// ===========================================================================
 // CONTROLADORES DE CERTIFICADO
-// ===========================================================================
 
 /**
  * Obtiene la información del certificado de un usuario.
@@ -111,7 +104,7 @@ export async function descargarCertificado(req, res, next) {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="Certificado_ScrumFlow.pdf"');
     res.setHeader('Content-Length', pdfBuffer.length);
-    
+
     return res.end(Buffer.from(pdfBuffer));
   } catch (error) {
     next(error);
@@ -132,9 +125,7 @@ export const reiniciarProgreso = asyncHandler(async (req, res) => {
   res.json({ mensaje: 'Progreso del curso reiniciado correctamente' });
 });
 
-// ===========================================================================
 // CONTROLADORES ADMIN
-// ===========================================================================
 
 /**
  * Obtiene todos los módulos del curso (solo Admin).

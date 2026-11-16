@@ -1,7 +1,9 @@
-// Responsable: Diego - HU-11: reglas puras de impedimentos (validar, vencimiento a los 3 días)
 /**
- * Reglas de los impedimentos que no consultan la base de datos ni Express,
+ * @file impedimentos.reglas.js
+ * @description Reglas de los impedimentos que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (impedimentos.test.js).
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 
 /** Valores permitidos de severidad (coinciden con el CHECK de la tabla impedimentos). */

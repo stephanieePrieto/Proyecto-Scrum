@@ -1,6 +1,7 @@
 /**
  * @file curso-datos.js
  * @description Datos del curso de ScrumFlow
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

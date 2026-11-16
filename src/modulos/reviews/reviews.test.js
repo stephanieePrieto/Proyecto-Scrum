@@ -2,6 +2,8 @@
  * @file reviews.test.js
  * @description Pruebas unitarias de las reglas de la Sprint Review (HU-12): criterios, decisión, delegación y velocity.
  * Compatible con Jest y ES Modules.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { describe, test, expect } from '@jest/globals';
 import {

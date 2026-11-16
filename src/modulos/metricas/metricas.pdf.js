@@ -1,8 +1,9 @@
 /**
  * @file metricas.pdf.js
- * @description HU-36: Generador de PDF con diseño (encabezado, tarjetas de resumen, tablas con
+ * @description Generador de PDF con diseño (encabezado, tarjetas de resumen, tablas con
  * filas alternadas, negritas, cursivas y pie de página) sin dependencias externas.
  * Usa las fuentes estándar del PDF: Helvetica (normal), Helvetica-Bold y Helvetica-Oblique.
+ * 
  * @author Dana Carmona Santamaria
  */
 

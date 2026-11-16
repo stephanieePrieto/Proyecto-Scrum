@@ -1,9 +1,7 @@
-// Responsable: Diego - HU-10: reglas, SQL y avisos por socket (Daily Scrum)
 /**
- * HU-10 · Registrar Daily Scrum.
- *
- * Tablas que usa (database/schema.sql): dailies, daily_tareas, sprints, tareas, columnas_tablero,
- * miembros_proyecto, usuarios, ausencias y eventos_calendario.
+ * @file daily.service.js
+ * @description Registrar Daily Scrum. Tablas que usa (database/schema.sql): dailies, daily_tareas, sprints,
+ * tareas, columnas_tablero, miembros_proyecto, usuarios, ausencias y eventos_calendario.
  *
  * Decisiones importantes:
  *  - Hay UNA Daily por sprint, persona y día (UNIQUE en la tabla). Volver a guardar el mismo día

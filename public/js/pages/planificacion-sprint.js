@@ -1,9 +1,6 @@
-// Responsable: Jetz - HU-07, HU-08: logica de la pantalla de planificacion con medidor de capacidad y tareas (llama a la API y escucha sockets)
-
 /**
  * @file planificacion-sprint.js
- * HU-08: Planificación del Sprint
- * Navegación entre proyectos.
+ * @description Planificación del Sprint - Navegación entre proyectos.
  *
  * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
@@ -520,14 +517,14 @@ async function agregarHistoriaAlSprint(historia) {
       accion: 'Agregar historia'
     });
     if (!confirmacion || proyectoMovimiento !== String(proyectoId) ||
-        sprintMovimiento !== selectorSprint.value) return;
+      sprintMovimiento !== selectorSprint.value) return;
     confirmarSprintIniciado = true;
   }
   const mensaje = document.getElementById('mensaje-planificacion');
   let justificacion = '';
   compromisoEnCurso = true;
   try {
-    for (;;) {
+    for (; ;) {
       try {
         const respuesta = await api(`/sprints/proyectos/${proyectoMovimiento}/${sprintMovimiento}/historias/${historia.id}`, {
           metodo: 'POST',
@@ -550,7 +547,7 @@ async function agregarHistoriaAlSprint(historia) {
             requiereJustificacion: true
           });
           if (!confirmacion || proyectoMovimiento !== String(proyectoId) ||
-              sprintMovimiento !== selectorSprint.value) break;
+            sprintMovimiento !== selectorSprint.value) break;
           justificacion = confirmacion.valor;
           continue;
         }
@@ -603,7 +600,7 @@ async function devolverHistoriaAlBacklog(historia) {
     peligro: true
   });
   if (!confirmacion || proyectoMovimiento !== String(proyectoId) ||
-      sprintMovimiento !== selectorSprint.value) return;
+    sprintMovimiento !== selectorSprint.value) return;
   const confirmarSprintIniciado = sprint.estado === 'activo';
   devolucionEnCurso = true;
   try {
@@ -891,7 +888,7 @@ function mostrarHistoriasSprint(historias) {
 const destinoBacklog = document.getElementById('lista-historias-disponibles');
 destinoBacklog.addEventListener('dragover', evento => {
   if (!puedeComprometerHistoria() || !selectorSprint.value ||
-      !Array.from(evento.dataTransfer.types).includes('application/x-scrumflow-sprint-historia')) return;
+    !Array.from(evento.dataTransfer.types).includes('application/x-scrumflow-sprint-historia')) return;
   evento.preventDefault();
   evento.dataTransfer.dropEffect = 'move';
 });

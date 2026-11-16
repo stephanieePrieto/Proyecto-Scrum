@@ -4,7 +4,9 @@
  * la tabla bitacora con el mismo cliente de la transacción que realiza la acción: si el registro falla,
  * la transacción completa se revierte y la acción no se aplica. También ofrece utilidades para armar los
  * valores anteriores y nuevos que se guardan en el detalle.
+ * 
  * @author Citlaly Morales Viveros
+ * @author Diego Rafael Jiménez Trujano
  */
 import { pool } from '../config/db.js';
 import emisor from '../sockets/emisor.js';

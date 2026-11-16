@@ -1,7 +1,6 @@
-// Responsable: Jetz - HU-06, HU-07: recibe la peticion y responde (crear y planificar sprints); sin logica de negocio
-
 /**
  * @file sprints.controller.js
+ * @description Recibe la peticion y responde (crear y planificar sprints); sin lógica de negocio
  * 
  * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros

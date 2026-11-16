@@ -1,7 +1,10 @@
 /**
  * @file tarjeta.js
- * @description Construcción programática pura de tarjetas de tareas mediante DOM API (HU-18, HU-19, HU-22, HU-23, HU-25).
+ * @description Construcción programática pura de tarjetas de tareas mediante DOM API.
+ * 
  * @author Camila Mariné Crespo Zurita
+ * @author Alfonso Mendoza Vasquez
+ * @author Dana Carmona Santamaria
  */
 
 const CLASES_PASTEL_ROTATIVAS = [

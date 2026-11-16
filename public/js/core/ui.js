@@ -1,6 +1,10 @@
 /**
- * Generar el HTML de componentes visuales reutilizables.
+ * @file ui.js
+ * @description Generar el HTML de componentes visuales reutilizables.
  * Incluir la tarjeta KPI en sus 3 estados: carga, error y valor.
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Jetzaly Josmery Tello Campos
  */
 import { escaparHtml } from './utils.js';
 

@@ -1,22 +1,17 @@
 /**
- * ===========================================================================
- * SERVICIOS PARA EL MICROCURSO DE SCRUM
- * Autor: Stephanie Elizdeth Hernández Prieto
- * @author Citlaly Morales Viveros (Cliente / Programadora XP)
- * Descripción: Lecciones, Quizzes modulares, Quiz Final Integrador (20 preguntas) y Certificado (>= 9.5).
- * ===========================================================================
+ * @file curso-scrum.service.js
+ * @description Lecciones, Quizzes modulares, Quiz Final Integrador (20 preguntas) y Certificado (>= 9.5).
+ * 
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Citlaly Morales Viveros
  */
 
 import { consulta } from '../../config/db.js';
 import { generarPDF } from '../../utils/pdf-generator.js';
 
-// ===========================================================================
-// BANCO DE 20 PREGUNTAS INTEGRADORAS PARA EL QUIZ FINAL
-// ===========================================================================
+
 /**
  * BANCO DE 20 PREGUNTAS INTEGRADORAS (TEORÍA OFICIAL DE SCRUM)
- */
-/**
  * BANCO DE 20 PREGUNTAS INTEGRADORAS (DISTRIBUIDAS 5 POR MÓDULO DE ESTUDIO)
  */
 export const PREGUNTAS_QUIZ_FINAL = [

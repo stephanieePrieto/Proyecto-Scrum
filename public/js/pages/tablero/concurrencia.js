@@ -1,9 +1,9 @@
-// Responsable: Camila - HU-25: numero de version y aviso de conflicto
 /**
  * @file concurrencia.js
  * @description Control de concurrencia optimista (HU-25): indicadores en tiempo real
  * "X está editando", envío de edición con versión base, cola offline de ediciones
  * y modal interactivo para resolver conflictos HTTP 409 (Conservar mía, Aceptar la suya, Fusionar).
+ * 
  * @author Camila Mariné Crespo Zurita
  */
 

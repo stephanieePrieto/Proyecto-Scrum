@@ -1,4 +1,9 @@
-// Responsable: Alfonso - HU-20: rutas del detalle de tarjeta (se montan en /api/detalle-tarjeta)
+/**
+ * @file detalle-tarjeta.routes.js
+ * @description Rutas del detalle de tarjeta (se montan en /api/detalle-tarjeta)
+ * 
+ * @author Alfonso Mendoza Vasquez
+ */
 import { Router } from 'express';
 import { identificar } from '../../middlewares/identificar.js';
 import { requierePermiso } from '../../middlewares/requiereRol.js';

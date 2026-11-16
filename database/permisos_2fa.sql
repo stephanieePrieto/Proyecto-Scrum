@@ -1,7 +1,12 @@
--- Otorga permisos a scrumflow_app sobre las tablas de 2FA
--- Ejecutar DESPUES de autenticacion_2fa.sql como superusuario o scrumflow_admin
---
--- @author Citlaly Morales Viveros
+/**
+    @file permisos_2fa.sql
+    @description Otorga permisos a scrumflow_app sobre las tablas de 2FA
+    Ejecutar DESPUES de autenticacion_2fa.sql como superusuario o scrumflow_admin
+
+    @author Citlaly Morales Viveros
+    @author Dana Carmona Santamaria
+    @author Stephanie Elizdeth Hernández Prieto
+*/
 -- Transferir propiedad de tablas 2FA a scrumflow_admin
 ALTER TABLE IF EXISTS autenticacion_2fa OWNER TO scrumflow_admin;
 ALTER TABLE IF EXISTS codigos_respaldo OWNER TO scrumflow_admin;

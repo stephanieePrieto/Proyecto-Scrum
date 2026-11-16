@@ -1,4 +1,3 @@
-// Responsable: Alfonso - HU-24: campana, contador y lista de notificaciones
 /**
  * @file notificaciones.js
  * @description Componente de notificaciones de ScrumFlow (HU-24).
@@ -23,6 +22,10 @@
  *   contenedor: document.querySelector('#notificaciones-root'),
  * });
  * // notif.destruir() al cerrar sesión.
+ * 
+ * @author Alfonso Mendoza Vasquez
+ * @author Diego Rafael Jiménez Trujano
+ * @author Citlaly Morales Viveros
  */
 
 import { api } from '../core/api.js';
@@ -55,6 +58,10 @@ const MAX_TOASTS = 3;
 const ETIQUETAS_TIPO = Object.freeze({
   asignacion: 'Asignación',
   mencion: 'Mención',
+  desviacion: 'Desviación',
+  impedimento: 'Impedimento',
+  retro_recordatorio: 'Retro',
+  retro_accion_vencida: 'Retro vencida',
 });
 
 /** Solo se permiten enlaces internos ("/pages/tablero.html"); nunca "//sitio" ni "javascript:". */
@@ -66,7 +73,7 @@ const instancias = new WeakMap();
 /**
  * @typedef {Object} Notificacion
  * @property {number} id
- * @property {'asignacion'|'mencion'} tipo
+ * @property {'asignacion'|'mencion'|'retro_recordatorio'|'retro_accion_vencida'} tipo
  * @property {string} titulo
  * @property {string} mensaje
  * @property {string|null} enlace - Ruta interna a la que lleva la notificación.
@@ -186,7 +193,7 @@ export function formatearTiempoRelativo(iso) {
  * @returns {() => void} Función para cancelar la suscripción.
  */
 function suscribirSocket(socket, alRecibir) {
-  if (!socket) return () => {};
+  if (!socket) return () => { };
 
   if (typeof socket.on === 'function' && typeof socket.off === 'function') {
     socket.on(EVENTO_NUEVA, alRecibir);
@@ -210,7 +217,7 @@ function suscribirSocket(socket, alRecibir) {
     return () => socket.removeEventListener('message', manejador);
   }
 
-  return () => {};
+  return () => { };
 }
 
 /** Promesa compartida: el cliente de Socket.io se descarga una sola vez por página. */
@@ -670,7 +677,7 @@ export function inicializarNotificaciones({
   let socketActivo = socket || null;
   let socketPropio = null;
   let destruida = false;
-  let cancelarSocket = () => {};
+  let cancelarSocket = () => { };
 
   /** ¿Hay un canal en tiempo real conectado? Si no, se sondea la API. */
   const hayTiempoReal = () => Boolean(socketActivo) && socketActivo.connected !== false;

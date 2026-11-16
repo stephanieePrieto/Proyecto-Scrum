@@ -1,6 +1,8 @@
 /**
  * @file capacidad.test.js
  * @description Pruebas unitarias compatibles con Jest para el módulo de capacidad.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

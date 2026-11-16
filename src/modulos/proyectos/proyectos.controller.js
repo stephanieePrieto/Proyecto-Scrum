@@ -1,5 +1,3 @@
-// HU-01: recibe la peticion y responde (proyectos y Definition of Done); sin logica de negocio
-
 /**
  * @file proyectos.controller.js
  * @description Recibe la petición y responde (proyectos y Definition of Done); sin lógica de negocio.

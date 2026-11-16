@@ -1,5 +1,3 @@
-// Responsable: Citlaly - HU-41, HU-43: reglas, SQL y avisos por socket (rol por proyecto y aislamiento de datos por equipo)
-
 /**
  * @file miembros.service.js
  * @description Reglas de negocio de los roles por proyecto: consulta de la matriz de roles,

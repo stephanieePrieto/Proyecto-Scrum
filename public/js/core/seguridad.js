@@ -1,6 +1,7 @@
 /**
  * @file seguridad.js
  * @description Utilidades de seguridad del cliente: token CSRF y escape de HTML.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

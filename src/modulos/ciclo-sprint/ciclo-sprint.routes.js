@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-09: endpoints de iniciar y cerrar sprint
 /**
- * Rutas del ciclo del sprint. app.js (BASE) monta este módulo solo, en /api/ciclo-sprint.
+ * @file ciclo-sprint.routes.js
+ * @description Rutas del ciclo del sprint. app.js (BASE) monta este módulo solo, en /api/ciclo-sprint.
  *
  * Toda la pantalla del ciclo es solo del Scrum Master (permiso sprint.gestionar).
  *
@@ -8,6 +8,8 @@
  *   GET  /api/ciclo-sprint/sprint/:id/resumen     resumen de cierre (historias, velocity, tarjetas en revisión)
  *   POST /api/ciclo-sprint/sprint/:id/iniciar     iniciar (solo Scrum Master)
  *   POST /api/ciclo-sprint/sprint/:id/cerrar      cerrar (solo Scrum Master)
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';

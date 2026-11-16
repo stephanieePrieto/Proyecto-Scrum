@@ -1,7 +1,3 @@
-// Responsable: Jetz - HU-02, HU-03, HU-05: recibe la peticion y responde (historias, orden de prioridad y puntos); sin logica de negocio
-import * as servicio from './backlog.service.js';
-import { asyncHandler } from '../../utils/asyncHandler.js';
-
 /**
  * @file backlog.controller.js
  * @description Envolver un controlador asíncrono.
@@ -14,6 +10,10 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
  * @author Jetzaly Josmery Tello Campos
  * @author Citlaly Morales Viveros
  */
+
+import * as servicio from './backlog.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+
 const envolver = (funcion) => asyncHandler(async (req, res) => {
   try {
     await funcion(req, res);

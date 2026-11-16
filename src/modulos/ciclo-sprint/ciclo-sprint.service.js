@@ -1,6 +1,6 @@
-// Responsable: Diego - HU-09: reglas, SQL y avisos por socket (iniciar y cerrar sprint)
 /**
- * HU-09 · Iniciar y cerrar sprint.
+ * @file ciclo-sprint.service.js
+ * @description Iniciar y cerrar sprint.
  *
  * Tablas que usa (database/schema.sql): sprints, historias, tareas, columnas_tablero, miembros_proyecto, usuarios.
  *
@@ -27,6 +27,9 @@ import { sincronizarEventos } from '../calendario/calendario.service.js';
 import { faltantesParaIniciar, calcularResumen, validarCierre, ESTADOS_TERMINADA } from './ciclo-sprint.reglas.js';
 import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 import { recalcularVelocity } from '../reviews/reviews.service.js';
+import { avisarAlScrumMaster } from '../retros/retros.service.js';
+import { relojDe } from '../daily/daily.service.js';
+import { registrarCambioColumna } from '../burnup/burnup.registro.js';
 
 /** Nombres de los eventos en tiempo real (el cliente de la pantalla los escucha). */
 export const EVENTOS = { iniciado: 'sprint:iniciado', cerrado: 'sprint:cerrado' };
@@ -300,6 +303,11 @@ export async function iniciar(actor, sprintIdTexto, datos = {}) {
   } catch (error) {
     console.error('[ciclo-sprint] No se pudo generar el calendario:', error.message);
   }
+  try {
+    await avisarAlScrumMaster(sprint.proyecto_id, (await relojDe(actor.id)).hoy);
+  } catch (error) {
+    console.error('[ciclo-sprint] No se pudo recordar las acciones de retro pendientes:', error.message);
+  }
   emitirAProyecto(sprint.proyecto_id, EVENTOS.iniciado, { proyecto_id: sprint.proyecto_id, sprint_id: sprint.id });
   return sprint;
 }
@@ -358,6 +366,24 @@ export async function cerrar(actor, sprintIdTexto, decisiones = {}) {
         "UPDATE historias SET sprint_id = $2, estado = CASE WHEN $2::int IS NULL THEN 'backlog' ELSE 'en_sprint' END WHERE id = ANY($1::int[])",
         [pendientes, nuevoSprint],
       );
+      // CFD: si las historias vuelven al backlog, sus tarjetas salen de su columna
+      // actual (el UPDATE de abajo les pone columna_id = NULL). Se registra el cambio ANTES
+      // del UPDATE, dentro de la misma transacción; si pasan al siguiente sprint la columna
+      // se conserva y no hay nada que registrar.
+      if (nuevoSprint === null) {
+        const { rows: tarjetasDevueltas } = await cliente.query(
+          'SELECT id, columna_id FROM tareas WHERE historia_id = ANY($1::int[]) AND sprint_id = $2 AND columna_id IS NOT NULL',
+          [pendientes, sprint.id],
+        );
+        for (const tarjeta of tarjetasDevueltas) {
+          await registrarCambioColumna(cliente, {
+            tareaId: tarjeta.id,
+            usuarioId: actor.id,
+            anteriorId: tarjeta.columna_id,
+            nuevaId: null,
+          });
+        }
+      }
       await cliente.query(
         'UPDATE tareas SET sprint_id = $2, columna_id = CASE WHEN $2::int IS NULL THEN NULL ELSE columna_id END WHERE historia_id = ANY($1::int[]) AND sprint_id = $3',
         [pendientes, nuevoSprint, sprint.id],

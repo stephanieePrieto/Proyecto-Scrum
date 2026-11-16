@@ -1,5 +1,3 @@
-// Responsable: Alfonso - HU-27: reglas, SQL y avisos por socket (registro de horas reales)
-
 /**
  * @file horas.service.js
  * @description Núcleo de la HU-27. Responsabilidades:
@@ -15,6 +13,7 @@
  *
  * @author Alfonso Mendoza Vasquez
  * @author Citlaly Morales Viveros
+ * @author Dana Carmona Santamaria
  */
 
 import { consulta } from '../../config/db.js';
@@ -24,9 +23,7 @@ import { emitirAProyecto } from '../../sockets/emisor.js';
 import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { evaluarDesviacionTarea } from '../desviacion/desviacion.alertas.js';
 
-/*
- * Constantes
- */
+/* Constantes */
 
 /** Evento de socket que recibe la sala del proyecto cuando cambian las horas de una tarea. */
 const EVENTO_HORAS = 'horas:actualizadas';
@@ -49,7 +46,8 @@ const ROLES_SIN_RESTRICCION = new Set(['scrum_master', 'product_owner']);
 const SIN_TRANSACCION = { query: (sql, parametros) => consulta(sql, parametros) };
 
 /** Zona horaria de la persona (si la guardada no existe en PostgreSQL se usa UTC). */
-const SQL_ZONA = `COALESCE((SELECT name FROM pg_timezone_names WHERE name = u.zona_horaria), 'UTC')`;
+// Sin zona guardada (NULL) se usa America/Mexico_City, el valor que tenía la columna por defecto.
+const SQL_ZONA = `COALESCE((SELECT name FROM pg_timezone_names WHERE name = COALESCE(u.zona_horaria, 'America/Mexico_City')), 'UTC')`;
 
 /** Temporizador de una persona con el tiempo transcurrido calculado por la base de datos. */
 const SQL_TEMPORIZADOR = `

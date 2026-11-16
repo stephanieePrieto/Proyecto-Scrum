@@ -1,12 +1,14 @@
-// Responsable: Diego - HU-15: reglas puras del calendario (generar eventos del sprint, detectar conflictos)
 /**
- * Reglas del calendario Scrum que no consultan la base de datos ni Express,
+ * @file calendari.reglas.js
+ * @description Reglas del calendario Scrum que no consultan la base de datos ni Express,
  * por eso se pueden probar de forma aislada (calendario.test.js).
  *
  * Los eventos se generan a partir de las fechas del sprint, solo en días hábiles (lunes a viernes):
  *   - Planning: primer día hábil del sprint.
  *   - Daily: cada día hábil, salvo el de Planning y el de Review/Retro.
  *   - Review y Retro: último día hábil del sprint.
+ * 
+ * @author Diego Rafael Jiménez Trujano
  */
 
 /** Zona horaria en la que se definen los horarios de las reuniones; cada persona los ve en la suya. */

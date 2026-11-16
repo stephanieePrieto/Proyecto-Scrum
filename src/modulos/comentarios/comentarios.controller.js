@@ -1,7 +1,8 @@
-// Responsable: Alfonso - HU-20: recibe la peticion y responde (comentarios); sin logica de negocio
 /**
  * @file comentarios.controller.js
  * @description Controladores HTTP de comentarios. Respuesta: `{ ok: true, datos }`.
+ * 
+ * @author Alfonso Mendoza Vasquez
  */
 import * as servicio from './comentarios.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';

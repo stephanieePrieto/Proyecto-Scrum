@@ -1,8 +1,8 @@
-// Responsable: Jetz - HU-08: recibe la peticion y responde (tareas de una historia); sin logica de negocio
-
 /**
- * HU-08: Controlador de tareas técnicas.
- * Recibe las peticiones y llama al servicio.
+ * @file tareas.controller.js
+ * @description Controlador de tareas técnicas. Recibe las peticiones y llama al servicio.
+ * 
+ * @author Jetzaly Josmery Tello Campos
  */
 
 import * as servicio from './tareas.service.js';

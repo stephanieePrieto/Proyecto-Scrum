@@ -3,6 +3,7 @@
  * @description Lógica para la vista de resumen de proyecto (HU-35).
  * Se encarga de descargar la información básica, visión y Definition of Done (DoD) del proyecto actual,
  * además de configurar el enlace dinámico para la Capacitación Scrum.
+ * 
  * @author Dana Carmona Santamaria
  * @author Citlaly Morales Viveros
  * @author Stephanie Elizdeth Hernández Prieto

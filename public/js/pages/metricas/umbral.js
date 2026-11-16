@@ -1,6 +1,7 @@
 /**
  * @file umbral.js
- * @description HU-33: configuración del umbral de desviación (solo Scrum Master).
+ * @description Configuración del umbral de desviación (solo Scrum Master).
+ * 
  * @author Dana Carmona Santamaria
  */
 import { api } from '../../core/api.js';

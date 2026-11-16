@@ -1,6 +1,7 @@
 /**
  * @file registrarPeticiones.js
  * @description Middleware para el registro estructurado de peticiones HTTP con medición de tiempos de respuesta.
+ * 
  * @author Stephanie Elizdeth Hernández Prieto
  */
 

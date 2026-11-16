@@ -378,6 +378,7 @@ export async function crear(datos = {}, usuario) {
                 await notificar({
                     usuarioId: inv.usuarioId,
                     tipo: TIPOS.ASIGNACION,
+                    transaccional: true,
                     titulo: 'Invitación a nuevo equipo',
                     mensaje: `Has sido invitado a unirte al equipo "${nombre}". Revisa tu correo o haz clic aquí para aceptar.`,
                     enlace: `/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`
@@ -510,6 +511,7 @@ export async function agregarMiembros(equipoId, datos = {}, usuario) {
                 await notificar({
                     usuarioId: inv.usuarioId,
                     tipo: TIPOS.ASIGNACION,
+                    transaccional: true,
                     titulo: 'Invitación a equipo',
                     mensaje: `Has sido invitado a unirte al equipo "${equipo.nombre}". Revisa tu correo o haz clic aquí para aceptar.`,
                     enlace: `/pages/aceptar-invitacion.html?token=${inv.tokenPlano}`

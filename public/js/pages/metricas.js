@@ -13,6 +13,8 @@ import { escaparHtml } from '../core/utils.js';
 import { dibujarVelocity } from './metricas/velocity.js';
 import { dibujarAvance } from './metricas/avance.js';
 import { dibujarBurndown } from './metricas/burndown.js';
+import { dibujarBurnup } from './metricas/burnup.js';
+import { dibujarCfd } from './metricas/cfd.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { dibujarDistribucion } from './metricas/distribucion.js';
 import { procesarExportacionFront } from './metricas/exportar.js';
@@ -33,6 +35,8 @@ if (headerAcciones) {
     selectorTipo.innerHTML = `Vista <select id="filtro-tipo-grafica" class="metricas__selector">
       <option value="velocity" selected>Velocity</option>
       <option value="burndown">Burndown</option>
+      <option value="burnup">Burnup</option>
+      <option value="cfd">Flujo acumulado (CFD)</option>
     </select>`;
     headerAcciones.prepend(selectorTipo);
   }
@@ -78,7 +82,7 @@ function proyectoActivo() {
 }
 
 /**
- * Manejar el ancla (hash) de la URL para hacer scroll automático 
+ * Manejar el ancla (hash) de la URL para hacer scroll automático
  * y preseleccionar la pestaña/vista correcta (ej. #burndown o #avance).
  * @returns {void}
  */
@@ -87,6 +91,14 @@ function manejarTabUrl() {
   const selectTipo = document.getElementById('filtro-tipo-grafica');
   if (hash === '#burndown') {
     if (selectTipo) selectTipo.value = 'burndown';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
+  }
+  if (hash === '#burnup') {
+    if (selectTipo) selectTipo.value = 'burnup';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
+  }
+  if (hash === '#cfd') {
+    if (selectTipo) selectTipo.value = 'cfd';
     document.getElementById('seccion-velocity')?.scrollIntoView();
   }
   if (hash === '#avance') {
@@ -149,8 +161,9 @@ function mostrarCarga(contenedor) {
 }
 
 /**
- * Consultar al backend y renderizar la gráfica principal elegida (Velocity o Burndown).
- * Aplica automáticamente el filtro del integrante seleccionado.
+ * Consultar al backend y renderizar la gráfica principal elegida (Velocity, Burndown,
+ * Burnup o CFD). El filtro de integrante solo aplica a Velocity y Burndown; Burnup y CFD
+ * son del proyecto completo y lo ignoran.
  * @param {number} proyectoId - ID del proyecto activo.
  * @returns {Promise<void>}
  */
@@ -163,13 +176,19 @@ async function cargarGraficaPrincipal(proyectoId) {
   const titulo = document.getElementById('velocity-titulo');
   const subtitulo = titulo?.nextElementSibling;
 
+  const TITULOS = {
+    velocity: ['Velocity por sprint', 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado'],
+    burndown: ['Burndown chart', 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal'],
+    burnup: ['Burnup chart', 'Alcance total del proyecto frente al trabajo completado, en horas'],
+    cfd: ['Diagrama de flujo acumulado', 'Tarjetas en cada columna del tablero, día a día'],
+  };
+  const [textoTitulo, textoSubtitulo] = TITULOS[tipo] || TITULOS.velocity;
+
   if (titulo) {
-    titulo.textContent = tipo === 'velocity' ? 'Velocity por sprint' : 'Burndown chart';
+    titulo.textContent = textoTitulo;
   }
   if (subtitulo && subtitulo.classList.contains('subtitulo-pagina')) {
-    subtitulo.textContent = tipo === 'velocity'
-      ? 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado'
-      : 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal';
+    subtitulo.textContent = textoSubtitulo;
   }
 
   mostrarCarga(contVelocity);
@@ -177,8 +196,12 @@ async function cargarGraficaPrincipal(proyectoId) {
     const query = integranteId ? `?usuarioId=${integranteId}` : '';
     if (tipo === 'velocity') {
       dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity${query}`));
-    } else {
+    } else if (tipo === 'burndown') {
       dibujarBurndown(contVelocity, await api(`/metricas/proyectos/${proyectoId}/burndown${query}`));
+    } else if (tipo === 'burnup') {
+      dibujarBurnup(contVelocity, await api(`/burnup/proyectos/${proyectoId}/burnup`));
+    } else {
+      dibujarCfd(contVelocity, await api(`/burnup/proyectos/${proyectoId}/cfd`));
     }
   } catch (error) {
     mostrarErrorSeccion(contVelocity, error, 'grafica');

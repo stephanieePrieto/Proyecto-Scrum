@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  @file comparativo.html
+  @description Comparativo de métricas entre equipos (HU-2). Solo visible para el Scrum Master.
+  
+  @author Dana Carmona Santamaria
+-->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Comparativo entre equipos · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/impedimentos.css" />
+  <link rel="stylesheet" href="../css/componentes/notificaciones.css" />
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+
+  <!-- Estilos del comparativo (tabla de equipos y promedios) -->
+  <link rel="stylesheet" href="../css/componentes/comparativo.css" />
+
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="encabezado-pagina encabezado-pagina--filtros">
+      <div>
+        <h1 class="titulo-pagina">Comparativo entre equipos</h1>
+        <p class="subtitulo-pagina">Velocity, avance y desviación de tus equipos, en porcentaje</p>
+      </div>
+      <div class="encabezado-pagina__acciones">
+        <a class="boton boton--secundario btn btn--secondary" href="dashboard.html">Volver al dashboard</a>
+      </div>
+    </div>
+
+    <p id="comparativo-error" class="alerta alerta--error" role="alert" hidden></p>
+
+    <!-- Solo Scrum Master: el aviso se muestra cuando el backend responde 403 -->
+    <section id="aviso-sin-acceso" class="aviso aviso--vacio" hidden>
+      <h2 class="aviso__titulo">Solo el Scrum Master puede ver el comparativo</h2>
+      <p class="aviso__texto">Esta vista compara las métricas de los equipos que gestionas. Si eres Scrum Master
+        de algún proyecto y ves este mensaje, revisa que tu sesión siga activa.</p>
+      <a class="boton boton--primario" href="./dashboard.html">← Ir al Dashboard</a>
+    </section>
+
+    <section id="seccion-comparativo" class="tarjeta metricas__seccion" aria-labelledby="comparativo-titulo">
+      <div class="metricas__cabecera">
+        <div>
+          <h2 id="comparativo-titulo" class="metricas__titulo">Métricas por equipo</h2>
+          <p class="subtitulo-pagina">La velocity se expresa como porcentaje del equipo con mayor velocity; la
+            desviación, como porcentaje del estimado.</p>
+        </div>
+      </div>
+      <div id="comparativo-contenido" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script type="module" src="../js/pages/comparativo.js"></script>
+</body>
+
+</html>

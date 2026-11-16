@@ -72,6 +72,7 @@ const ENLACES = [
   { href: '/pages/calendario.html', etiqueta: 'Calendario', icono: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2"/>' },
   { href: '/pages/equipos.html', etiqueta: 'Equipo', icono: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>' },
   { href: '/pages/metricas.html', etiqueta: 'Métricas', icono: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
+  { href: '/pages/comparativo.html', etiqueta: 'Comparativo', icono: '<path d="M3 20h18M7 16v-5M12 16V6M17 16v-8"/>' },
   { href: '/pages/auditoria.html', etiqueta: 'Bitácora', permiso: 'auditoria.ver', icono: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>' },
 ];
 
@@ -94,7 +95,7 @@ const GRUPOS = [
   },
   {
     etiqueta: 'Seguimiento',
-    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/review.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html'],
+    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/comparativo.html', '/pages/review.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html'],
   },
   {
     etiqueta: 'Equipo',

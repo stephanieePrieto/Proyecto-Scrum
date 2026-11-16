@@ -3,6 +3,7 @@
  * @description Controladores para atender peticiones HTTP del tablero (obtención, configuración de columnas y movimiento de tarjetas).
  * 
  * @author Camila Mariné Crespo Zurita
+ * @author Dana Carmona Santamaria
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -71,6 +72,10 @@ export const configurarColumnas = asyncHandler(async (req, res) => {
 export const moverTarjetaController = asyncHandler(async (req, res) => {
     const { proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version } = req.body;
     const usuarioNombre = req.usuario?.nombre || 'Un compañero';
+    // El id se guarda en el historial de cambios de columna (CFD). El tablero usa
+    // hoy un auth temporal (autenticarTemp en tablero.routes.js) con id 1, así que mientras
+    // no se conecte el auth real todos los movimientos quedarán a nombre de ese usuario.
+    const usuarioId = req.usuario?.id ?? null;
 
     const tareaActualizada = await moverTarjeta(
         proyectoId,
@@ -78,7 +83,8 @@ export const moverTarjetaController = asyncHandler(async (req, res) => {
         nuevaColumnaId,
         nuevoOrden,
         version,
-        usuarioNombre
+        usuarioNombre,
+        usuarioId
     );
 
     res.status(200).json({

@@ -13,14 +13,14 @@ SET
     CAST(
       '{"asignacion": true, "mencion": true, "desviacion": true, "impedimento": true}' AS jsonb
     ) || COALESCE(
-      preferencias_notif - > 'interna',
+      preferencias_notif -> 'interna',
       CAST('{}' AS jsonb)
     ),
     'correo',
     CAST(
       '{"asignacion": false, "mencion": false, "desviacion": false, "impedimento": false}' AS jsonb
     ) || COALESCE(
-      preferencias_notif - > 'correo',
+      preferencias_notif -> 'correo',
       CAST('{}' AS jsonb)
     )
   )

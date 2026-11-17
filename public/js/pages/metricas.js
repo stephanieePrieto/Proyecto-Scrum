@@ -13,10 +13,14 @@ import { escaparHtml } from '../core/utils.js';
 import { dibujarVelocity } from './metricas/velocity.js';
 import { dibujarAvance } from './metricas/avance.js';
 import { dibujarBurndown } from './metricas/burndown.js';
+import { dibujarBurnup } from './metricas/burnup.js';
+import { dibujarCfd } from './metricas/cfd.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { dibujarDistribucion } from './metricas/distribucion.js';
 import { procesarExportacionFront } from './metricas/exportar.js';
 import { iniciarUmbral } from './metricas/umbral.js';
+import { iniciarDesviacion } from './metricas/desviacion.js';
+import { dibujarFlujo, dibujarAvisoNoAplica } from './metricas/flujo.js';
 
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
@@ -33,6 +37,9 @@ if (headerAcciones) {
     selectorTipo.innerHTML = `Vista <select id="filtro-tipo-grafica" class="metricas__selector">
       <option value="velocity" selected>Velocity</option>
       <option value="burndown">Burndown</option>
+      <option value="burnup">Burnup</option>
+      <option value="cfd">Flujo acumulado (CFD)</option>
+      <option value="flujo">Tiempos de flujo (Lead y Cycle Time)</option>
     </select>`;
     headerAcciones.prepend(selectorTipo);
   }
@@ -67,6 +74,27 @@ if (selectSprint && !selectIntegranteAvance) {
 const CLAVE_PROYECTO = 'proyectoActivo';
 let datosAvanceActual = null;
 
+/** HU-26: modo de trabajo del proyecto ('scrum' o 'continuo') y periodo elegido para los tiempos de flujo. */
+let modoFlujo = 'scrum';
+let diasFlujo = 30;
+
+/** HU-26: métricas que dependen de los sprints y no aplican en flujo continuo. */
+const METRICAS_DE_SPRINT = { velocity: 'Velocity', burndown: 'Burndown', burnup: 'Burnup' };
+
+/**
+ * HU-26: leer el modo de trabajo del proyecto. Si falla, se asume Scrum (comportamiento de siempre).
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @returns {Promise<string>} 'scrum' o 'continuo'.
+ */
+async function leerModoFlujo(proyectoId) {
+  try {
+    const respuesta = await api(`/proyectos/${proyectoId}`);
+    return respuesta?.proyecto?.modo_flujo === 'continuo' ? 'continuo' : 'scrum';
+  } catch {
+    return 'scrum';
+  }
+}
+
 /**
  * Leer el proyecto elegido en el Dashboard (localStorage 'proyectoActivo').
  * @returns {number|null} ID del proyecto, o null si no se eligió ninguno.
@@ -78,7 +106,7 @@ function proyectoActivo() {
 }
 
 /**
- * Manejar el ancla (hash) de la URL para hacer scroll automático 
+ * Manejar el ancla (hash) de la URL para hacer scroll automático
  * y preseleccionar la pestaña/vista correcta (ej. #burndown o #avance).
  * @returns {void}
  */
@@ -87,6 +115,18 @@ function manejarTabUrl() {
   const selectTipo = document.getElementById('filtro-tipo-grafica');
   if (hash === '#burndown') {
     if (selectTipo) selectTipo.value = 'burndown';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
+  }
+  if (hash === '#burnup') {
+    if (selectTipo) selectTipo.value = 'burnup';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
+  }
+  if (hash === '#cfd') {
+    if (selectTipo) selectTipo.value = 'cfd';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
+  }
+  if (hash === '#flujo') {
+    if (selectTipo) selectTipo.value = 'flujo';
     document.getElementById('seccion-velocity')?.scrollIntoView();
   }
   if (hash === '#avance') {
@@ -149,8 +189,9 @@ function mostrarCarga(contenedor) {
 }
 
 /**
- * Consultar al backend y renderizar la gráfica principal elegida (Velocity o Burndown).
- * Aplica automáticamente el filtro del integrante seleccionado.
+ * Consultar al backend y renderizar la gráfica principal elegida (Velocity, Burndown,
+ * Burnup o CFD). El filtro de integrante solo aplica a Velocity y Burndown; Burnup y CFD
+ * son del proyecto completo y lo ignoran.
  * @param {number} proyectoId - ID del proyecto activo.
  * @returns {Promise<void>}
  */
@@ -163,22 +204,48 @@ async function cargarGraficaPrincipal(proyectoId) {
   const titulo = document.getElementById('velocity-titulo');
   const subtitulo = titulo?.nextElementSibling;
 
+  const TITULOS = {
+    velocity: ['Velocity por sprint', 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado'],
+    burndown: ['Burndown chart', 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal'],
+    burnup: ['Burnup chart', 'Alcance total del proyecto frente al trabajo completado, en horas'],
+    cfd: ['Diagrama de flujo acumulado', 'Tarjetas en cada columna del tablero, día a día'],
+    flujo: ['Tiempos de flujo', 'Lead Time y Cycle Time de las tarjetas terminadas'],
+  };
+  const [textoTitulo, textoSubtitulo] = TITULOS[tipo] || TITULOS.velocity;
+
   if (titulo) {
-    titulo.textContent = tipo === 'velocity' ? 'Velocity por sprint' : 'Burndown chart';
+    titulo.textContent = textoTitulo;
   }
   if (subtitulo && subtitulo.classList.contains('subtitulo-pagina')) {
-    subtitulo.textContent = tipo === 'velocity'
-      ? 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado'
-      : 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal';
+    subtitulo.textContent = textoSubtitulo;
+  }
+
+  // HU-26: en flujo continuo, Velocity, Burndown y Burnup no aplican; se avisa en lugar de dibujar una gráfica vacía
+  if (modoFlujo === 'continuo' && METRICAS_DE_SPRINT[tipo]) {
+    dibujarAvisoNoAplica(contVelocity, METRICAS_DE_SPRINT[tipo], () => {
+      if (selectTipo) selectTipo.value = 'flujo';
+      cargarGraficaPrincipal(proyectoId);
+    });
+    return;
   }
 
   mostrarCarga(contVelocity);
   try {
     const query = integranteId ? `?usuarioId=${integranteId}` : '';
-    if (tipo === 'velocity') {
+    if (tipo === 'flujo') {
+      // HU-26: Lead Time y Cycle Time con filtro de periodo (últimos 30 días por defecto)
+      const respuesta = await api(`/flujo-continuo/proyectos/${proyectoId}/tiempos?dias=${diasFlujo}`);
+      dibujarFlujo(contVelocity, respuesta.datos, {
+        alCambiarDias: (dias) => { diasFlujo = dias; cargarGraficaPrincipal(proyectoId); },
+      });
+    } else if (tipo === 'velocity') {
       dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity${query}`));
-    } else {
+    } else if (tipo === 'burndown') {
       dibujarBurndown(contVelocity, await api(`/metricas/proyectos/${proyectoId}/burndown${query}`));
+    } else if (tipo === 'burnup') {
+      dibujarBurnup(contVelocity, await api(`/burnup/proyectos/${proyectoId}/burnup`));
+    } else {
+      dibujarCfd(contVelocity, await api(`/burnup/proyectos/${proyectoId}/cfd`));
     }
   } catch (error) {
     mostrarErrorSeccion(contVelocity, error, 'grafica');
@@ -274,6 +341,33 @@ async function cargarDistribucion(proyectoId) {
   }
 }
 
+/** HU-28: rol que puede ver la desviación de horas (el servidor lo exige igual, ROLES_PERMITIDOS en desviacion.service.js). */
+const ROL_DESVIACION = 'scrum_master';
+
+/** HU-28: componente de desviación montado, o null. */
+let desviacion = null;
+
+/**
+ * HU-28: mostrar la desviación de horas solo al Scrum Master y montarla una sola vez.
+ * Se vuelve a evaluar cada vez que cambian los permisos (evento "permisos:actualizados" de permisos-ui.js).
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @param {string|null} rol - Rol vigente de la persona en el proyecto.
+ * @returns {void}
+ */
+function actualizarDesviacion(proyectoId, rol) {
+  const seccion = document.getElementById('seccion-desviacion');
+  const contenedor = document.getElementById('desviacion-contenido');
+  if (!seccion || !contenedor) return;
+  const permitido = rol === ROL_DESVIACION;
+  seccion.hidden = !permitido;
+  if (permitido && !desviacion) {
+    desviacion = iniciarDesviacion({ contenedor, proyectoId });
+  } else if (!permitido && desviacion) {
+    desviacion.destruir();
+    desviacion = null;
+  }
+}
+
 /**
  * Ejecutar todas las llamadas de red para dibujar las métricas simultáneamente.
  * @param {number} proyectoId - ID del proyecto.
@@ -309,12 +403,21 @@ async function iniciar() {
   // El proyecto se elige únicamente en el Dashboard; aquí solo se lee el proyecto activo
   const proyectoId = proyectoActivo();
   if (!proyectoId) return mostrarAvisoSeleccionarProyecto();
+  
+  // HU-28: la desviación depende del rol; se escucha antes de pedir los permisos para no perder el aviso
+  window.addEventListener('permisos:actualizados', (evento) => {
+    if (evento.detail?.proyectoId === proyectoId) actualizarDesviacion(proyectoId, evento.detail.rol);
+  });
 
   // Refrescar qué botones mostrar según los permisos del usuario para este proyecto
   cargarPermisos(proyectoId).catch(() => { /* Silenciar error si aún no hay backend de permisos conectado */ });
   manejarTabUrl();
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
+
+  // HU-26: en flujo continuo la vista inicial es "Tiempos de flujo" (salvo que la URL pida otra)
+  modoFlujo = await leerModoFlujo(proyectoId);
+  if (modoFlujo === 'continuo' && selectTipo && !window.location.hash) selectTipo.value = 'flujo';
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
 
   const selectIntPrincipal = document.getElementById('filtro-integrante-principal');

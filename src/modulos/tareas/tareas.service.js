@@ -12,6 +12,10 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { notificarAsignacion } from '../notificaciones/notificaciones.service.js';
 import { exigirPermiso, ROLES, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { registrarAuditoria, enTransaccion, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
+import { emitirAProyecto } from '../../sockets/emisor.js';
+
+/** HU-26: modo de trabajo sin sprints (proyectos.modo_flujo). */
+const MODO_CONTINUO = 'continuo';
 
 // HU-08: Crear una tarea técnica para una historia del Sprint.
 export async function crear(datos = {}, usuario) {
@@ -50,9 +54,9 @@ export async function crear(datos = {}, usuario) {
 
   // Obtener la historia y comprobar su Sprint.
   const { rows: historias } = await query(
-    `SELECT h.id, h.proyecto_id, h.sprint_id, s.estado
+    `SELECT h.id, h.proyecto_id, h.sprint_id, h.estado AS estado_historia, s.estado, p.modo_flujo
      FROM historias h
-     JOIN sprints s ON s.id = h.sprint_id
+     LEFT JOIN sprints s ON s.id = h.sprint_id
        AND s.proyecto_id = h.proyecto_id
      JOIN proyectos p ON p.id = h.proyecto_id
      WHERE h.id = $1 AND p.archivado = FALSE`,
@@ -60,15 +64,25 @@ export async function crear(datos = {}, usuario) {
   );
 
   const historia = historias[0];
+  // HU-26: en modo continuo la historia puede no pertenecer a ningún Sprint.
+  const esContinuo = historia?.modo_flujo === MODO_CONTINUO;
+  const sinSprint = esContinuo && historia.sprint_id === null;
 
-  if (!historia) {
+  if (!historia || (!sinSprint && !historia.estado)) {
     throw new ErrorApp(
       'La historia no pertenece a un Sprint válido de un proyecto activo.',
       404
     );
   }
 
-  if (historia.estado !== 'planificado' &&
+  if (sinSprint) {
+    if (historia.estado_historia === 'aceptada' || historia.estado_historia === 'rechazada') {
+      throw new ErrorApp(
+        'No se pueden agregar tareas a una historia ya aceptada o rechazada.',
+        409
+      );
+    }
+  } else if (historia.estado !== 'planificado' &&
     historia.estado !== 'activo') {
     throw new ErrorApp(
       'No se pueden agregar tareas a un Sprint cerrado.',
@@ -117,9 +131,18 @@ export async function crear(datos = {}, usuario) {
        titulo,
        descripcion,
        responsable_id,
-       horas_estimadas
+       horas_estimadas,
+       columna_id,
+       orden
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     VALUES ($1, $2, $3, $4, $5, $6, $7,
+       -- HU-26: en modo continuo la tarea nace en la primera columna del tablero; en Scrum queda sin columna, como antes.
+       CASE WHEN $8::boolean THEN (SELECT c.id FROM columnas_tablero c WHERE c.proyecto_id = $2 ORDER BY c.orden, c.id LIMIT 1) END,
+       CASE WHEN $8::boolean THEN (
+         SELECT COALESCE(MAX(t2.orden), 0) + 1 FROM tareas t2
+         WHERE t2.proyecto_id = $2
+           AND t2.columna_id = (SELECT c.id FROM columnas_tablero c WHERE c.proyecto_id = $2 ORDER BY c.orden, c.id LIMIT 1)
+       ) ELSE 0 END)
      RETURNING *`,
       [
         historia.id,
@@ -128,7 +151,8 @@ export async function crear(datos = {}, usuario) {
         titulo,
         descripcion,
         responsableId,
-        horas
+        horas,
+        esContinuo
       ]
     );
 
@@ -142,6 +166,15 @@ export async function crear(datos = {}, usuario) {
     });
     return creadas;
   });
+
+  // HU-26: en modo continuo la tarjeta aparece de inmediato en los tableros abiertos.
+  if (esContinuo) {
+    emitirAProyecto(Number(historia.proyecto_id), 'tablero:tarea-creada', {
+      proyectoId: Number(historia.proyecto_id),
+      tareaId: rows[0].id,
+      columnaId: rows[0].columna_id,
+    });
+  }
 
   // HU-24: avisar al responsable. No se espera ni puede hacer fallar la creación de la tarea.
   notificarAsignacion({
@@ -257,12 +290,12 @@ export async function editar(tareaId, datos = {}, usuario) {
 
   // Buscar la tarea y comprobar que pertenece a un Sprint válido.
   const { rows: tareas } = await query(
-    `SELECT t.id, t.proyecto_id, s.estado
+    `SELECT t.id, t.proyecto_id, t.sprint_id, s.estado, p.modo_flujo
      FROM tareas t
      JOIN historias h ON h.id = t.historia_id
        AND h.proyecto_id = t.proyecto_id
-       AND h.sprint_id = t.sprint_id
-     JOIN sprints s ON s.id = t.sprint_id
+       AND h.sprint_id IS NOT DISTINCT FROM t.sprint_id
+     LEFT JOIN sprints s ON s.id = t.sprint_id
        AND s.proyecto_id = t.proyecto_id
      JOIN proyectos p ON p.id = t.proyecto_id
      WHERE t.id = $1
@@ -271,12 +304,14 @@ export async function editar(tareaId, datos = {}, usuario) {
   );
 
   const tarea = tareas[0];
+  // HU-26: en modo continuo una tarea puede no pertenecer a ningún Sprint.
+  const sinSprint = tarea?.modo_flujo === MODO_CONTINUO && tarea.sprint_id === null;
 
-  if (!tarea) {
+  if (!tarea || (!sinSprint && !tarea.estado)) {
     throw new ErrorApp('No se encontró la tarea técnica.', 404);
   }
 
-  if (tarea.estado !== 'planificado' && tarea.estado !== 'activo') {
+  if (!sinSprint && tarea.estado !== 'planificado' && tarea.estado !== 'activo') {
     throw new ErrorApp(
       'No se pueden editar tareas de un Sprint cerrado.',
       409
@@ -386,9 +421,9 @@ export async function eliminar(tareaId, usuario) {
 
   // Buscar la tarea y comprobar que su proyecto está activo.
   const { rows: tareas } = await query(
-    `SELECT t.id, t.proyecto_id, s.estado
+    `SELECT t.id, t.proyecto_id, t.sprint_id, s.estado, p.modo_flujo
      FROM tareas t
-     JOIN sprints s ON s.id = t.sprint_id
+     LEFT JOIN sprints s ON s.id = t.sprint_id
        AND s.proyecto_id = t.proyecto_id
      JOIN proyectos p ON p.id = t.proyecto_id
      WHERE t.id = $1
@@ -397,13 +432,15 @@ export async function eliminar(tareaId, usuario) {
   );
 
   const tarea = tareas[0];
+  // HU-26: en modo continuo una tarea puede no pertenecer a ningún Sprint.
+  const sinSprint = tarea?.modo_flujo === MODO_CONTINUO && tarea.sprint_id === null;
 
-  if (!tarea) {
+  if (!tarea || (!sinSprint && !tarea.estado)) {
     throw new ErrorApp('No se encontró la tarea técnica.', 404);
   }
 
   // No permitir cambios en Sprints cerrados.
-  if (tarea.estado !== 'planificado' && tarea.estado !== 'activo') {
+  if (!sinSprint && tarea.estado !== 'planificado' && tarea.estado !== 'activo') {
     throw new ErrorApp(
       'No se pueden eliminar tareas de un Sprint cerrado.',
       409

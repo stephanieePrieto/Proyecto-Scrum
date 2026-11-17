@@ -55,6 +55,81 @@ let tareasActivas = [];
 /** @type {number|string} */
 let proyectoIdActual = localStorage.getItem('proyectoActivo') || null;
 
+/** HU-26: evita registrar dos veces los avisos de tiempo real del flujo continuo. */
+let escuchandoFlujoContinuo = false;
+
+/**
+ * HU-26: ajusta el encabezado al modo de trabajo. En flujo continuo no hay sprint: se muestra
+ * "Flujo continuo" y se ocultan los días restantes. El modo queda en body[data-modo-flujo] para
+ * que el botón "+ Tarea" (tablero.js) sepa qué hacer.
+ *
+ * @param {{modo?: string}} datos - Respuesta de GET /api/tablero/:proyectoId.
+ * @returns {void}
+ */
+function aplicarModoEncabezado(datos) {
+    const continuo = datos?.modo === 'continuo';
+    document.body.dataset.modoFlujo = continuo ? 'continuo' : 'scrum';
+
+    const elNombre = document.getElementById('sprint-nombre');
+    const elEstado = document.getElementById('sprint-estado');
+    const elDias = document.getElementById('sprint-dias-restantes');
+    if (elEstado) {
+        elEstado.textContent = continuo ? 'Sin sprints' : 'Activo';
+        elEstado.className = `insignia ${continuo ? 'insignia--info' : 'insignia--exito'}`;
+    }
+    if (elDias) elDias.hidden = continuo;
+    if (continuo && elNombre) elNombre.textContent = 'Flujo continuo';
+}
+
+/**
+ * HU-26: tiempo real del flujo continuo.
+ *  - "tablero:tarea-creada": se sincroniza con el servidor sin redibujar todo, para que la tarjeta nueva aparezca.
+ *  - "proyecto:modo-cambiado": se recarga la página para tomar el modo nuevo. Si hay una ventana abierta
+ *    (por ejemplo, editando una tarjeta) no se interrumpe: se muestra un aviso con un botón para recargar.
+ * Si el WebSocket está bloqueado, el sondeo de HU-52 (sincronizarConServidor) ya trae las tarjetas nuevas.
+ *
+ * @returns {void}
+ */
+function escucharFlujoContinuo() {
+    if (escuchandoFlujoContinuo || !window.socket) return;
+    escuchandoFlujoContinuo = true;
+    const esDeEsteProyecto = (datos) => String(datos?.proyectoId) === String(proyectoIdActual);
+
+    window.socket.on('tablero:tarea-creada', async (datos) => {
+        if (!esDeEsteProyecto(datos)) return;
+        try {
+            const { sincronizarConServidor } = await import('./filtros.js');
+            await sincronizarConServidor();
+        } catch (error) {
+            console.error('[HU-26] No se pudo mostrar la tarea nueva:', error);
+        }
+    });
+
+    window.socket.on('proyecto:modo-cambiado', (datos) => {
+        if (!esDeEsteProyecto(datos)) return;
+        const hayVentanaAbierta = document.querySelector('.modal-overlay:not(.modal--hidden), dialog[open]');
+        if (!hayVentanaAbierta) {
+            window.location.reload();
+            return;
+        }
+        if (document.getElementById('aviso-modo-cambiado')) return;
+        const aviso = document.createElement('div');
+        aviso.id = 'aviso-modo-cambiado';
+        aviso.className = 'alerta alerta--advertencia';
+        aviso.setAttribute('role', 'status');
+        aviso.style.marginBottom = 'var(--espacio-4)';
+        const texto = document.createElement('span');
+        texto.textContent = `${datos.usuarioNombre || 'Alguien'} cambió el modo de trabajo del proyecto. `;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'btn btn--secondary';
+        boton.textContent = 'Recargar tablero';
+        boton.addEventListener('click', () => window.location.reload());
+        aviso.append(texto, boton);
+        document.getElementById('contenedor-tablero')?.prepend(aviso);
+    });
+}
+
 /**
  * Genera nodos esqueléticos (skeletons) mediante la API del DOM durante la carga.
  * 
@@ -176,6 +251,10 @@ export async function cargarTablero(proyectoId) {
         const respuesta = await API.get(`/api/tablero/${proyectoIdActual}`);
 
         if (respuesta && respuesta.data) {
+            // HU-26: encabezado según el modo (Scrum o flujo continuo) y avisos en tiempo real
+            aplicarModoEncabezado(respuesta.data);
+            escucharFlujoContinuo();
+
             if (respuesta.data.sprint) {
                 const elSprintNombre = document.getElementById('sprint-nombre');
                 if (elSprintNombre) elSprintNombre.textContent = respuesta.data.sprint.nombre;

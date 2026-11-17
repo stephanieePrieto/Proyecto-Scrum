@@ -394,13 +394,16 @@ const constructores = {
     const signo = k.valor > 0 ? '+' : '';
     // HU-33: umbral superado a nivel proyecto o con tareas en alerta -> tarjeta ámbar
     const alerta = k.superaUmbral || k.tareasEnAlerta > 0;
-    const estado = alerta ? 'Alerta por desviación' : k.valor < 0 ? 'Bajo presupuesto' : k.valor === 0 ? 'Dentro de lo estimado' : 'Sobre presupuesto';
+    const estado = alerta ? 'Alerta por desviación'
+      : !(k.real > 0) ? 'Sin horas registradas'
+        : !(k.estimado > 0) ? 'Sin horas estimadas (N/A)'
+          : k.valor < 0 ? 'Bajo presupuesto' : k.valor === 0 ? 'Dentro de lo estimado' : 'Sobre presupuesto';
     const detalle = k.tareasEnAlerta > 0
       ? ` · ${k.tareasEnAlerta} ${pluralizar(k.tareasEnAlerta, 'tarea sobre el umbral', 'tareas sobre el umbral')} (±${k.umbral}%)`
       : '';
 
     return tarjetaValor({
-      ...meta, tono: alerta ? 'advertencia' : tonoDesviacion(k.valor, k.estimado), valor: `${signo}${k.valor}`,
+      ...meta, tono: alerta ? 'advertencia' : tonoDesviacion(k.valor, k.estimado, k.real), valor: `${signo}${k.valor}`,
       unidad: 'h', pista: `${estado} · ${k.real} h reales de ${k.estimado} h${detalle}`,
     });
   },

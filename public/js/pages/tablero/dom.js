@@ -58,20 +58,8 @@ export function iniciales(nombre = '') {
   return String(nombre).split(' ').filter(Boolean).map((parte) => parte[0]).slice(0, 2).join('').toUpperCase();
 }
 
-/**
- * Devuelve un mensaje claro en español a partir de un error de `api()`.
- * @param {Error & {estado?: number, cuerpo?: Object|null}} error Error capturado.
- * @param {string} [porDefecto] Mensaje cuando el servidor no envía uno.
- * @returns {string}
- */
-export function mensajeError(error, porDefecto = 'Ocurrió un error inesperado. Inténtalo de nuevo.') {
-  if (!error) return porDefecto;
-  if (error.estado === undefined) {
-    return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
-  }
-  const mensaje = error.cuerpo?.error ?? error.cuerpo?.mensaje ?? error.cuerpo?.message;
-  return typeof mensaje === 'string' && mensaje.trim() ? mensaje : porDefecto;
-}
+// Re-exportar el helper central de errores para no romper las importaciones del tablero
+export { mensajeError } from '../../core/errores.js';
 
 /**
  * Crea una franja de aviso de error con botones de acción (por ejemplo "Reintentar").

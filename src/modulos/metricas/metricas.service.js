@@ -18,6 +18,7 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { exigirPermiso } from '../../utils/permisos.js';
 import { randomUUID } from 'node:crypto';
 import { generarPdf } from './metricas.pdf.js';
+import { generarXlsx } from './metricas.xlsx.js';
 import { evaluarDesviacionTarea, evaluarUmbral } from '../desviacion/desviacion.alertas.js';
 
 /**
@@ -624,7 +625,7 @@ const trabajosExportacion = new Map();
 
 // Valores permitidos que llegan desde el cliente
 const ALCANCES = ['avance', 'distribucion', 'todo'];
-const FORMATOS = ['csv', 'pdf'];
+const FORMATOS = ['csv', 'pdf', 'xlsx'];
 
 /**
  * Preparar un valor para una celda CSV: lo entrecomilla y neutraliza fórmulas de Excel
@@ -691,7 +692,7 @@ async function armarSecciones(proyectoId, usuarioId, alcance) {
  *
  * @param {number} proyectoId Identificador del proyecto.
  * @param {number} usuarioId Identificador del usuario que solicita.
- * @param {string} [formato='csv'] 'csv' o 'pdf'.
+ * @param {string} [formato='csv'] 'csv', 'pdf' o 'xlsx'.
  * @param {string} [alcance='todo'] 'avance', 'distribucion' o 'todo'.
  * @returns {Promise<{jobId: string}>} Identificador para consultar el progreso.
  */
@@ -703,7 +704,7 @@ export async function iniciarExportacion(proyectoId, usuarioId, formato = 'csv',
   }
 
   // 2. Validar lo que llega del cliente
-  if (!FORMATOS.includes(formato)) throw new ErrorApp('Formato no válido (usa csv o pdf).', 400);
+  if (!FORMATOS.includes(formato)) throw new ErrorApp('Formato no válido (usa csv, pdf o xlsx).', 400);
   if (!ALCANCES.includes(alcance)) throw new ErrorApp('Alcance no válido.', 400);
 
   // 3. No generar archivos vacíos
@@ -778,6 +779,7 @@ async function procesarArchivo(trabajo, proyectoId, usuarioId, formato, alcance)
   // 60%: armando el archivo
   trabajo.progreso = 60;
   const fecha = new Date().toISOString().slice(0, 10);
+  const textoAlcance = { todo: 'Todo el reporte', avance: 'Avance por integrante', distribucion: 'Distribución del tiempo' }[alcance];
   let contenido;
   let mime;
   let extension;
@@ -791,9 +793,17 @@ async function procesarArchivo(trabajo, proyectoId, usuarioId, formato, alcance)
     ].join('\n')).join('\n\n');
     mime = 'text/csv; charset=utf-8';
     extension = 'csv';
+  } else if (formato === 'xlsx') {
+    // Excel real (.xlsx) con el mismo diseño del PDF: genera un libro con estilos
+    contenido = await generarXlsx({
+      titulo: 'Reporte del proyecto',
+      subtitulo: `Proyecto ${proyectoId} - ${textoAlcance} - Generado el ${fecha}`,
+      secciones,
+    });
+    mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    extension = 'xlsx';
   } else {
     // PDF con diseño: el generador recibe las mismas secciones que el CSV
-    const textoAlcance = { todo: 'Todo el reporte', avance: 'Avance por integrante', distribucion: 'Distribución del tiempo' }[alcance];
     contenido = generarPdf({
       titulo: 'Reporte del proyecto',
       subtitulo: `Proyecto ${proyectoId} - ${textoAlcance} - Generado el ${fecha}`,

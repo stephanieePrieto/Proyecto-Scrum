@@ -69,7 +69,7 @@ function desviacionDeCentesimas(estimadas, reales) {
     return { ...base, desviacionHoras, desviacionPorcentaje: null, estado: ESTADOS.NA };
   }
 
-  // Porcentaje en centésimas de punto (18,75 % → 1875): el semáforo compara el mismo valor que se muestra
+  // Porcentaje en centésimas de punto (18.75 % → 1875): el semáforo compara el mismo valor que se muestra
   const porcentajeCentesimas = redondear((diferencia * 10000) / estimadas);
   const desviacionPorcentaje = porcentajeCentesimas / 100;
 

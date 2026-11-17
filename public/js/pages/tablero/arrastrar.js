@@ -7,6 +7,7 @@
 
 import { evaluarMovimientoBloqueo } from './bloqueo.js';
 import { api } from '../../core/api.js';
+import { mensajeError } from '../../core/errores.js';
 
 let tarjetaArrastrada = null;
 let columnaOrigenId = null;
@@ -225,7 +226,7 @@ export function inicializarDragAndDrop(proyectoId) {
                 }
                 actualizarContadoresYAlertasWip();
             }
-            alert("No se pudo guardar el movimiento de la tarjeta. Se ha revertido el cambio.");
+            alert(`No se pudo guardar el movimiento de la tarjeta. Se revirtió el cambio. ${mensajeError(error)}`);
         }
     });
 }

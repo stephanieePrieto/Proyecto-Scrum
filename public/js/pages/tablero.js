@@ -119,7 +119,13 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     const btnNuevaTarea = document.getElementById('btn-nueva-tarea');
     if (btnNuevaTarea) {
-        btnNuevaTarea.addEventListener('click', () => {
+        btnNuevaTarea.addEventListener('click', async () => {
+            // HU-26: en flujo continuo abre el formulario de tarea sin sprint (columnas.js marca el modo en el body)
+            if (document.body.dataset.modoFlujo === 'continuo') {
+                const { abrirTareaContinua } = await import('../componentes/tarea-continua.js');
+                abrirTareaContinua({ proyectoId: proyectoActivoId, alCrear: () => sincronizarConServidor() });
+                return;
+            }
             // Se activará cuando se integre el modal de creación de tareas
             console.log('Abrir modal para crear tarea');
         });

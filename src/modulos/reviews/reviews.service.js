@@ -245,7 +245,7 @@ export async function consultar(actor, proyectoId, sprintTexto) {
     ...base,
     sprint,
     historias,
-    resumen: resumirReview(historias),
+    resumen: resumirReview(historias.map((h) => ({ ...h, decision: h.decision?.decision ?? null }))),
     delegacion: vigente,
     delegaciones: puedeDelegar ? delegaciones : [],
     candidatos,

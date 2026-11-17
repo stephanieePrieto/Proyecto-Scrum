@@ -9,6 +9,7 @@
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
+import { mensajeError } from '../core/errores.js';
 
 montarBarraSuperior();
 
@@ -320,7 +321,7 @@ async function calcularCapacidadSprint() {
     console.error('Error al calcular capacidad:', error);
 
     textoCapacidad.textContent =
-      'No se pudo calcular la capacidad';
+      `No se pudo calcular la capacidad. ${mensajeError(error)}`;
   }
 }
 
@@ -330,11 +331,20 @@ async function calcularCapacidadSprint() {
 // ==========================================
 
 function validarCapacidadSprint() {
-  if (
-    capacidadCalculada === null ||
-    !Number.isFinite(capacidadCalculada) ||
-    capacidadCalculada <= 0
-  ) {
+  if (capacidadCalculada === null || !Number.isFinite(capacidadCalculada)) {
+    mostrarErrorSprint(
+      'No se pudo calcular la capacidad del equipo. Revisa tu conexión y vuelve a elegir las fechas.'
+    );
+
+    mensajeFormulario.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+
+    return false;
+  }
+
+  if (capacidadCalculada <= 0) {
     mostrarErrorSprint(
       'El sprint debe tener una capacidad mayor a 0 horas.'
     );

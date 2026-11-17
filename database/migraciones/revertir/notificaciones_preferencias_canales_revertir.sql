@@ -15,13 +15,13 @@ SET
       'asignacion',
       COALESCE(
         CAST(
-          preferencias_notif - > > 'asignaciones' AS boolean
+          preferencias_notif ->> 'asignaciones' AS boolean
         ),
         TRUE
       ),
       'mencion',
       COALESCE(
-        CAST(preferencias_notif - > > 'menciones' AS boolean),
+        CAST(preferencias_notif ->> 'menciones' AS boolean),
         TRUE
       )
     ),
@@ -30,21 +30,21 @@ SET
       'asignacion',
       COALESCE(
         CAST(
-          preferencias_notif - > > 'asignaciones' AS boolean
+          preferencias_notif ->> 'asignaciones' AS boolean
         ),
         TRUE
       )
       AND COALESCE(
-        CAST(preferencias_notif - > > 'correo' AS boolean),
+        CAST(preferencias_notif ->> 'correo' AS boolean),
         FALSE
       ),
       'mencion',
       COALESCE(
-        CAST(preferencias_notif - > > 'menciones' AS boolean),
+        CAST(preferencias_notif ->> 'menciones' AS boolean),
         TRUE
       )
       AND COALESCE(
-        CAST(preferencias_notif - > > 'correo' AS boolean),
+        CAST(preferencias_notif ->> 'correo' AS boolean),
         FALSE
       )
     )

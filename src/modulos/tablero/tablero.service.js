@@ -8,11 +8,12 @@
  * @author Dana Carmona Santamaria
  */
 
-import { consulta } from '../../config/db.js';
+import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 import { evaluarUmbral } from '../desviacion/desviacion.alertas.js';
+import { registrarCambioColumna } from '../burnup/burnup.registro.js';
 
 /**
  * Obtiene la estructura completa de columnas y tareas asociadas al proyecto.
@@ -79,18 +80,25 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
         [proyectoId]
     );
 
-    const umbralRes = await consulta('SELECT umbral_desviacion FROM proyectos WHERE id = $1', [proyectoId]);
+    const umbralRes = await consulta('SELECT umbral_desviacion, modo_flujo FROM proyectos WHERE id = $1', [proyectoId]);
     const umbral = umbralRes?.rows?.[0]?.umbral_desviacion ?? 20;
+    // HU-26: en modo continuo no hay sprint que mostrar, y las tarjetas que quedaron sin columna
+    // (por ejemplo, las que volvieron al backlog al cerrar un sprint) se muestran en la primera columna.
+    // Es solo para mostrarlas: la tarjeta no se modifica hasta que alguien la mueve.
+    const modo = umbralRes?.rows?.[0]?.modo_flujo === 'continuo' ? 'continuo' : 'scrum';
+    const primeraColumnaId = modo === 'continuo' ? (columnas[0]?.id ?? null) : null;
     const columnasFinales = new Set(columnas.filter((c) => c.es_final).map((c) => c.id));
     const tareas = (tarRes?.rows || []).map((t) => ({
         ...t,
+        columna_id: t.columna_id ?? primeraColumnaId,
         supera_umbral: evaluarUmbral({
             estimadas: t.horas_estimadas, reales: t.horas_reales, umbral, terminada: columnasFinales.has(t.columna_id),
         }).supera,
     }));
 
     return {
-        sprint: sprintActivo || { nombre: 'Sprint 1', diasRestantes: 7 },
+        modo,
+        sprint: modo === 'continuo' ? null : (sprintActivo || { nombre: 'Sprint 1', diasRestantes: 7 }),
         columnas,
         tareas
     };
@@ -132,7 +140,10 @@ export const actualizarColumnas = async (proyectoId, columnas) => {
 
 /**
  * Procesa el movimiento de una tarjeta entre columnas e incrementa su versión (HU-18, HU-59).
- * 
+ * Todo ocurre en una transacción: si el registro del cambio de columna (CFD) falla,
+ * el movimiento no se guarda. La columna anterior se lee con FOR UPDATE para que dos
+ * movimientos simultáneos de la misma tarjeta no registren la historia al revés.
+ *
  * @async
  * @function moverTarjeta
  * @param {number|string} proyectoId - ID del proyecto.
@@ -141,39 +152,72 @@ export const actualizarColumnas = async (proyectoId, columnas) => {
  * @param {number} nuevoOrden - Posición dentro de la columna.
  * @param {number} version - Versión de control para concurrencia.
  * @param {string} usuarioNombre - Nombre del usuario que realiza la acción.
+ * @param {number|null} [usuarioId] - ID del usuario (para el historial del CFD).
  * @returns {Promise<Object>} Datos de la tarjeta actualizada con su nueva versión.
  */
-export const moverTarjeta = async (proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version, usuarioNombre) => {
+export const moverTarjeta = async (proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version, usuarioNombre, usuarioId = null) => {
     const ordenSolicitado = Number.isInteger(Number(nuevoOrden)) && nuevoOrden !== null && nuevoOrden !== ''
         ? Number(nuevoOrden)
         : null;
 
-    const { rowCount, rows } = await consulta(
-        `UPDATE tareas 
-         SET columna_id = $1,
-             orden = COALESCE($2::int, (SELECT COALESCE(MAX(t2.orden), 0) + 1 FROM tareas t2 WHERE t2.columna_id = $1 AND t2.proyecto_id = $4)),
-             version = version + 1,
-             actualizado_en = NOW()
-         WHERE id = $3 AND proyecto_id = $4
-           AND EXISTS (SELECT 1 FROM columnas_tablero c WHERE c.id = $1 AND c.proyecto_id = $4)
-         RETURNING id, proyecto_id, columna_id, orden, version`,
-        [nuevaColumnaId, ordenSolicitado, tareaId, proyectoId]
-    );
-    if (rowCount === 0) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+    const cliente = await pool.connect();
+    try {
+        await cliente.query('BEGIN');
 
-    const actualizada = rows[0];
-    const eventoPayload = {
-        proyectoId: Number(proyectoId),
-        tareaId: Number(tareaId),
-        columnaId: Number(nuevaColumnaId),
-        nuevaColumnaId: Number(nuevaColumnaId),
-        orden: actualizada.orden,
-        version: actualizada.version,
-        usuarioNombre: usuarioNombre || 'Un compañero'
-    };
+        // Leer la columna actual antes de mover, bloqueando la fila (FOR UPDATE)
+        const { rows: filasActuales } = await cliente.query(
+            'SELECT columna_id FROM tareas WHERE id = $1 AND proyecto_id = $2 FOR UPDATE',
+            [tareaId, proyectoId]
+        );
+        if (filasActuales.length === 0) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+        const columnaAnteriorId = filasActuales[0].columna_id;
 
-    emitirAProyecto(Number(proyectoId), 'tablero:tarjeta_movida', eventoPayload);
-    emitirAProyecto(Number(proyectoId), 'tablero:tarjeta-movida', eventoPayload);
+        const { rowCount, rows } = await cliente.query(
+            `UPDATE tareas
+             SET columna_id = $1,
+                 orden = COALESCE($2::int, (SELECT COALESCE(MAX(t2.orden), 0) + 1 FROM tareas t2 WHERE t2.columna_id = $1 AND t2.proyecto_id = $4)),
+                 version = version + 1,
+                 actualizado_en = NOW()
+             WHERE id = $3 AND proyecto_id = $4
+               AND EXISTS (SELECT 1 FROM columnas_tablero c WHERE c.id = $1 AND c.proyecto_id = $4)
+             RETURNING id, proyecto_id, columna_id, orden, version`,
+            [nuevaColumnaId, ordenSolicitado, tareaId, proyectoId]
+        );
+        if (rowCount === 0) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
 
-    return actualizada;
+        const actualizada = rows[0];
+
+        // Registrar el cambio de columna para el CFD. Si la tarjeta ya estaba
+        // en esa columna (reordenar dentro de la misma columna), no hay cambio que contar.
+        if (Number(columnaAnteriorId) !== Number(nuevaColumnaId)) {
+            await registrarCambioColumna(cliente, {
+                tareaId: Number(tareaId),
+                usuarioId: usuarioId ?? null,
+                anteriorId: columnaAnteriorId === null ? null : Number(columnaAnteriorId),
+                nuevaId: Number(nuevaColumnaId),
+            });
+        }
+
+        await cliente.query('COMMIT');
+
+        const eventoPayload = {
+            proyectoId: Number(proyectoId),
+            tareaId: Number(tareaId),
+            columnaId: Number(nuevaColumnaId),
+            nuevaColumnaId: Number(nuevaColumnaId),
+            orden: actualizada.orden,
+            version: actualizada.version,
+            usuarioNombre: usuarioNombre || 'Un compañero'
+        };
+
+        emitirAProyecto(Number(proyectoId), 'tablero:tarjeta_movida', eventoPayload);
+        emitirAProyecto(Number(proyectoId), 'tablero:tarjeta-movida', eventoPayload);
+
+        return actualizada;
+    } catch (error) {
+        await cliente.query('ROLLBACK').catch(() => { });
+        throw error;
+    } finally {
+        cliente.release();
+    }
 };

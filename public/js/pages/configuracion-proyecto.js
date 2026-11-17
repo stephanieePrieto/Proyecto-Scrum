@@ -15,6 +15,7 @@ import { montarBarraSuperior } from '../core/layout.js';
 import { obtenerTokenCsrf } from '../core/seguridad.js';
 import { escaparHtml } from '../core/utils.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
+import { abrirAsistenteModo, NOMBRES_MODO } from '../componentes/asistente-modo.js';
 
 const $ = (id) => document.getElementById(id);
 const CAMPOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
@@ -158,6 +159,7 @@ async function iniciar() {
         return;
       }
       $('zona-archivar').hidden = false;
+      mostrarModo(proyecto);
     } else {
       await cargarEquipos();
     }
@@ -303,6 +305,25 @@ $('conflicto-conservar').addEventListener('click', () => {
   $('dialogo-conflicto').close();
   guardar({ ...leerFormulario(), version: versionServidor.version });
 });
+
+// ---------- Modo de trabajo (HU-26) ----------
+
+/** Muestra el modo actual del proyecto en la sección "Modo de trabajo". */
+function mostrarModo(proyecto) {
+  $('modo-actual').textContent = NOMBRES_MODO[proyecto.modo_flujo] || NOMBRES_MODO.scrum;
+  $('zona-modo').hidden = false;
+}
+
+$('cambiar-modo').addEventListener('click', () => abrirAsistenteModo({
+  proyectoId: id,
+  alCambiar: async (resultado) => {
+    // El cambio aumenta la versión del proyecto: se toma la nueva para que "Guardar" no choque con un conflicto falso.
+    // No se rellena el formulario, para no perder lo que la persona esté editando.
+    versionActual = resultado.version;
+    mostrarModo({ modo_flujo: resultado.modo });
+    avisar(`Listo: el proyecto ahora trabaja en ${(NOMBRES_MODO[resultado.modo] || resultado.modo).toLowerCase()}.`, 'exito');
+  },
+}));
 
 // ---------- Archivar ----------
 

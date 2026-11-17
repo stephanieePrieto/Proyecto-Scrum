@@ -29,6 +29,8 @@
 
   <!-- Estilos de métricas (gráfica, barras de avance y tarjetas KPI) -->
   <link rel="stylesheet" href="../css/componentes/metricas.css" />
+  <!-- HU-26: tiempos de flujo (Lead Time y Cycle Time) -->
+  <link rel="stylesheet" href="../css/componentes/modo-flujo.css" />
 
   <link rel="stylesheet" href="../css/componentes/responsive.css" />
   <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
@@ -41,7 +43,7 @@
     <div class="encabezado-pagina encabezado-pagina--filtros">
       <div>
         <h1 class="titulo-pagina">Métricas del proyecto</h1>
-        <p class="subtitulo-pagina">Velocity del equipo, avance y burndown</p>
+        <p class="subtitulo-pagina">Velocity del equipo, avance, burndown, burnup y flujo acumulado</p>
       </div>
       <div class="encabezado-pagina__acciones">
         <a class="boton boton--secundario btn btn--secondary" href="dashboard.html">Volver al dashboard</a>
@@ -96,6 +98,17 @@
       <div id="distribucion-contenido" aria-live="polite"></div>
     </section>
 
+    <!-- HU-28: Desviación de horas estimadas vs. reales (solo visible para el Scrum Master; lo arma metricas/desviacion.js) -->
+    <section id="seccion-desviacion" class="tarjeta metricas__seccion" aria-labelledby="desviacion-titulo" hidden>
+      <div class="metricas__cabecera">
+        <div>
+          <h2 id="desviacion-titulo" class="metricas__titulo">Desviación de horas</h2>
+          <p class="subtitulo-pagina">Horas estimadas contra reales por tarea, historia, persona y sprint</p>
+        </div>
+      </div>
+      <div id="desviacion-contenido"></div>
+    </section>
+
     <!-- HU-33: configuración del umbral de desviación (solo visible para el Scrum Master) -->
     <section id="seccion-umbral" class="tarjeta metricas__seccion" aria-labelledby="umbral-titulo" hidden>
       <h2 id="umbral-titulo" class="metricas__titulo">Alertas por desviación</h2>
@@ -125,6 +138,7 @@
         <label class="metricas__filtro">Formato:
           <select id="exportar-formato" class="metricas__selector">
             <option value="csv" selected>CSV (Excel)</option>
+            <option value="xlsx">XLSX (Excel)</option>
             <option value="pdf">PDF</option>
           </select>
         </label>

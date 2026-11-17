@@ -6,6 +6,7 @@
  */
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
+import { mensajeError } from '../core/errores.js';
 import { cargarPermisos, rolActual } from '../core/permisos-ui.js';
 
 montarBarraSuperior();
@@ -57,7 +58,7 @@ async function cargarHistorias(mantenerSeleccion = true) {
     if (!historias.length) avisar('Este proyecto no tiene historias disponibles para estimar.', 'advertencia');
     actualizarControles();
   } catch (error) {
-    avisar(error.cuerpo?.mensaje || error.message || 'No se pudieron cargar las historias.');
+    avisar(mensajeError(error, 'No se pudieron cargar las historias.'));
     actualizarControles();
   }
 }
@@ -170,7 +171,7 @@ async function cargarRonda() {
     sesionPoker = datos.sesion ?? null;
     pintarRonda();
   } catch (error) {
-    avisar(error.cuerpo?.mensaje || error.message || 'No se pudo consultar la ronda.');
+    avisar(mensajeError(error, 'No se pudo consultar la ronda.'));
   }
 }
 
@@ -188,7 +189,7 @@ async function ejecutarRonda(ruta, cuerpo) {
       avisar(sesionPoker?.cierre_automatico ? 'Cuarta ronda finalizada: se guardó la estimación Fibonacci calculada a partir de los votos recibidos.' : 'Estimación final guardada. Ya aparece en el Product Backlog.', 'exito');
     }
   } catch (error) {
-    avisar(error.cuerpo?.mensaje || error.message || 'No se pudo realizar la operación.');
+    avisar(mensajeError(error, 'No se pudo realizar la operación.'));
     await cargarRonda();
   } finally {
     procesandoRonda = false;

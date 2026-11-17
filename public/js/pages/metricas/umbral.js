@@ -5,6 +5,7 @@
  * @author Dana Carmona Santamaria
  */
 import { api } from '../../core/api.js';
+import { mensajeError } from '../../core/errores.js';
 
 /**
  * Mostrar el formulario si el usuario puede editar, cargar el valor actual y guardar con validación.
@@ -50,7 +51,7 @@ export async function iniciarUmbral(proyectoId) {
       await api(`/metricas/proyectos/${proyectoId}/umbral`, { metodo: 'PUT', cuerpo: { umbral: valor } });
       avisar(`Umbral guardado: ±${valor}%. Las tareas se reevaluaron con la nueva regla.`, 'exito');
     } catch (err) {
-      avisar(err.cuerpo?.mensaje || err.message || 'No se pudo guardar el umbral.', 'error');
+      avisar(mensajeError(err, 'No se pudo guardar el umbral.'), 'error');
     }
   };
 }

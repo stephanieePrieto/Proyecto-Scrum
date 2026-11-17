@@ -66,7 +66,7 @@ export const DOD_BASE = [
 
 const COLUMNAS = `p.id, p.equipo_id, e.nombre AS equipo_nombre, p.nombre, p.vision,
   p.fecha_inicio::text AS fecha_inicio, p.fecha_fin::text AS fecha_fin,
-  p.definition_of_done, p.archivado, p.version, p.creado_por, p.creado_en,
+  p.definition_of_done, p.archivado, p.version, p.modo_flujo, p.creado_por, p.creado_en,
   EXISTS (SELECT 1 FROM sprints s WHERE s.proyecto_id = p.id AND s.estado = 'activo') AS sprint_activo`;
 
 const DESDE = 'FROM proyectos p JOIN equipos e ON e.id = p.equipo_id';

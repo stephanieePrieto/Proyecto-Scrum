@@ -80,18 +80,25 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
         [proyectoId]
     );
 
-    const umbralRes = await consulta('SELECT umbral_desviacion FROM proyectos WHERE id = $1', [proyectoId]);
+    const umbralRes = await consulta('SELECT umbral_desviacion, modo_flujo FROM proyectos WHERE id = $1', [proyectoId]);
     const umbral = umbralRes?.rows?.[0]?.umbral_desviacion ?? 20;
+    // HU-26: en modo continuo no hay sprint que mostrar, y las tarjetas que quedaron sin columna
+    // (por ejemplo, las que volvieron al backlog al cerrar un sprint) se muestran en la primera columna.
+    // Es solo para mostrarlas: la tarjeta no se modifica hasta que alguien la mueve.
+    const modo = umbralRes?.rows?.[0]?.modo_flujo === 'continuo' ? 'continuo' : 'scrum';
+    const primeraColumnaId = modo === 'continuo' ? (columnas[0]?.id ?? null) : null;
     const columnasFinales = new Set(columnas.filter((c) => c.es_final).map((c) => c.id));
     const tareas = (tarRes?.rows || []).map((t) => ({
         ...t,
+        columna_id: t.columna_id ?? primeraColumnaId,
         supera_umbral: evaluarUmbral({
             estimadas: t.horas_estimadas, reales: t.horas_reales, umbral, terminada: columnasFinales.has(t.columna_id),
         }).supera,
     }));
 
     return {
-        sprint: sprintActivo || { nombre: 'Sprint 1', diasRestantes: 7 },
+        modo,
+        sprint: modo === 'continuo' ? null : (sprintActivo || { nombre: 'Sprint 1', diasRestantes: 7 }),
         columnas,
         tareas
     };

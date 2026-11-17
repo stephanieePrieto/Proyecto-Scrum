@@ -23,6 +23,8 @@
   <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
   <link rel="stylesheet" href="../css/componentes/formularios.css" />
   <link rel="stylesheet" href="../css/componentes/modales.css" />
+  <!-- HU-26: sección y asistente "Modo de trabajo" -->
+  <link rel="stylesheet" href="../css/componentes/modo-flujo.css" />
   <link rel="stylesheet" href="/css/componentes/responsive.css">
 </head>
 
@@ -110,6 +112,17 @@
         <p class="eq-error" id="error-archivar" role="alert"></p>
       </div>
       <button class="boton boton--secundario" type="button" id="archivar">Archivar proyecto</button>
+    </section>
+
+    <!-- HU-26: modo de trabajo (Scrum o flujo continuo). El botón solo aparece a quien puede gestionar el proyecto. -->
+    <section class="tarjeta modo-flujo__seccion" id="zona-modo" hidden>
+      <div>
+        <h2 class="eq-dialogo__titulo">Modo de trabajo</h2>
+        <p class="subtitulo-pagina">Scrum organiza el trabajo en sprints. Flujo continuo (Kanban) usa el tablero sin sprints
+          y mide Lead Time y Cycle Time. Cambiar de modo no borra ningún dato.</p>
+        <p class="modo-flujo__actual">Modo actual: <span class="insignia insignia--info" id="modo-actual">—</span></p>
+      </div>
+      <button class="boton boton--secundario" type="button" id="cambiar-modo" data-permiso="proyecto.gestionar">Cambiar modo</button>
     </section>
   </main>
 

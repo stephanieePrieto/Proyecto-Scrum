@@ -20,6 +20,7 @@ import { dibujarDistribucion } from './metricas/distribucion.js';
 import { procesarExportacionFront } from './metricas/exportar.js';
 import { iniciarUmbral } from './metricas/umbral.js';
 import { iniciarDesviacion } from './metricas/desviacion.js';
+import { dibujarFlujo, dibujarAvisoNoAplica } from './metricas/flujo.js';
 
 const contVelocity = document.getElementById('velocity-contenido');
 const contAvance = document.getElementById('avance-contenido');
@@ -38,6 +39,7 @@ if (headerAcciones) {
       <option value="burndown">Burndown</option>
       <option value="burnup">Burnup</option>
       <option value="cfd">Flujo acumulado (CFD)</option>
+      <option value="flujo">Tiempos de flujo (Lead y Cycle Time)</option>
     </select>`;
     headerAcciones.prepend(selectorTipo);
   }
@@ -72,6 +74,27 @@ if (selectSprint && !selectIntegranteAvance) {
 const CLAVE_PROYECTO = 'proyectoActivo';
 let datosAvanceActual = null;
 
+/** HU-26: modo de trabajo del proyecto ('scrum' o 'continuo') y periodo elegido para los tiempos de flujo. */
+let modoFlujo = 'scrum';
+let diasFlujo = 30;
+
+/** HU-26: métricas que dependen de los sprints y no aplican en flujo continuo. */
+const METRICAS_DE_SPRINT = { velocity: 'Velocity', burndown: 'Burndown', burnup: 'Burnup' };
+
+/**
+ * HU-26: leer el modo de trabajo del proyecto. Si falla, se asume Scrum (comportamiento de siempre).
+ * @param {number} proyectoId - ID del proyecto activo.
+ * @returns {Promise<string>} 'scrum' o 'continuo'.
+ */
+async function leerModoFlujo(proyectoId) {
+  try {
+    const respuesta = await api(`/proyectos/${proyectoId}`);
+    return respuesta?.proyecto?.modo_flujo === 'continuo' ? 'continuo' : 'scrum';
+  } catch {
+    return 'scrum';
+  }
+}
+
 /**
  * Leer el proyecto elegido en el Dashboard (localStorage 'proyectoActivo').
  * @returns {number|null} ID del proyecto, o null si no se eligió ninguno.
@@ -100,6 +123,10 @@ function manejarTabUrl() {
   }
   if (hash === '#cfd') {
     if (selectTipo) selectTipo.value = 'cfd';
+    document.getElementById('seccion-velocity')?.scrollIntoView();
+  }
+  if (hash === '#flujo') {
+    if (selectTipo) selectTipo.value = 'flujo';
     document.getElementById('seccion-velocity')?.scrollIntoView();
   }
   if (hash === '#avance') {
@@ -182,6 +209,7 @@ async function cargarGraficaPrincipal(proyectoId) {
     burndown: ['Burndown chart', 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal'],
     burnup: ['Burnup chart', 'Alcance total del proyecto frente al trabajo completado, en horas'],
     cfd: ['Diagrama de flujo acumulado', 'Tarjetas en cada columna del tablero, día a día'],
+    flujo: ['Tiempos de flujo', 'Lead Time y Cycle Time de las tarjetas terminadas'],
   };
   const [textoTitulo, textoSubtitulo] = TITULOS[tipo] || TITULOS.velocity;
 
@@ -192,10 +220,25 @@ async function cargarGraficaPrincipal(proyectoId) {
     subtitulo.textContent = textoSubtitulo;
   }
 
+  // HU-26: en flujo continuo, Velocity, Burndown y Burnup no aplican; se avisa en lugar de dibujar una gráfica vacía
+  if (modoFlujo === 'continuo' && METRICAS_DE_SPRINT[tipo]) {
+    dibujarAvisoNoAplica(contVelocity, METRICAS_DE_SPRINT[tipo], () => {
+      if (selectTipo) selectTipo.value = 'flujo';
+      cargarGraficaPrincipal(proyectoId);
+    });
+    return;
+  }
+
   mostrarCarga(contVelocity);
   try {
     const query = integranteId ? `?usuarioId=${integranteId}` : '';
-    if (tipo === 'velocity') {
+    if (tipo === 'flujo') {
+      // HU-26: Lead Time y Cycle Time con filtro de periodo (últimos 30 días por defecto)
+      const respuesta = await api(`/flujo-continuo/proyectos/${proyectoId}/tiempos?dias=${diasFlujo}`);
+      dibujarFlujo(contVelocity, respuesta.datos, {
+        alCambiarDias: (dias) => { diasFlujo = dias; cargarGraficaPrincipal(proyectoId); },
+      });
+    } else if (tipo === 'velocity') {
       dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity${query}`));
     } else if (tipo === 'burndown') {
       dibujarBurndown(contVelocity, await api(`/metricas/proyectos/${proyectoId}/burndown${query}`));
@@ -371,6 +414,10 @@ async function iniciar() {
   manejarTabUrl();
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
+
+  // HU-26: en flujo continuo la vista inicial es "Tiempos de flujo" (salvo que la URL pida otra)
+  modoFlujo = await leerModoFlujo(proyectoId);
+  if (modoFlujo === 'continuo' && selectTipo && !window.location.hash) selectTipo.value = 'flujo';
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
 
   const selectIntPrincipal = document.getElementById('filtro-integrante-principal');

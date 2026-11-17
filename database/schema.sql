@@ -601,3 +601,9 @@ ALTER TABLE reviews_historias ADD COLUMN IF NOT EXISTS criterios_total INTEGER C
 
 GRANT SELECT, INSERT, UPDATE ON review_delegaciones TO scrumflow_app;
 GRANT USAGE, SELECT ON SEQUENCE review_delegaciones_id_seq TO scrumflow_app;
+
+-- Alfonso: modo de trabajo del proyecto (Scrum o flujo continuo), para bases que ya existian.
+-- Mismo cambio que migraciones/aplicar/modo_flujo_continuo.sql. Es seguro correrlo varias veces.
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS modo_flujo TEXT NOT NULL DEFAULT 'scrum';
+ALTER TABLE proyectos DROP CONSTRAINT IF EXISTS proyectos_modo_flujo_check;
+ALTER TABLE proyectos ADD CONSTRAINT proyectos_modo_flujo_check CHECK (modo_flujo IN ('scrum', 'continuo'));

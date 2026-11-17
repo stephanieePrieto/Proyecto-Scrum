@@ -68,15 +68,18 @@
 
                 <div style="display: flex; gap: 8px;">
                     <a class="btn btn--secondary" id="btn-registrar-horas" href="./mis-horas.html">Registrar horas</a>
-                    <button class="btn btn--primary" id="btn-nueva-tarea">+ Tarea</button>
+                    <button class="btn btn--primary" id="btn-nueva-tarea" type="button" data-permiso="tarea.gestionar">+ Tarea</button>
                     <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
                 </div>
             </div>
 
-            <!-- Barra de Filtros (HU-21: persona, épica, etiqueta, estado y agrupación en carriles) -->
+            <!-- Barra de Filtros (HU-21: Sprint, persona, épica, etiqueta, estado y agrupación en carriles) -->
             <div class="tarjeta barra-filtros" role="search" aria-label="Filtros del tablero"
                 style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
                 <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
+                <select id="filtro-sprint" class="form-select" style="width: auto;" aria-label="Filtrar por Sprint">
+                    <option value="">Sprint: Todos</option>
+                </select>
                 <select id="filtro-persona" class="form-select" style="width: auto;" aria-label="Filtrar por persona">
                     <option value="">Persona: Todas</option>
                 </select>
@@ -115,6 +118,41 @@
         </div> <!-- Fin contenedor-tablero -->
     </div>
     </main>
+
+    <dialog id="dialogo-nueva-tarea" class="modal-card" aria-labelledby="titulo-dialogo-nueva-tarea">
+        <form id="formulario-nueva-tarea" novalidate>
+            <div class="modal-header">
+                <h2 id="titulo-dialogo-nueva-tarea" style="font-size: 18px; font-weight: 600; margin: 0;">Agregar tarea</h2>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <div id="error-nueva-tarea" class="alerta alerta--error" role="alert" hidden></div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-historia">Historia de usuario *</label>
+                    <select id="nueva-tarea-historia" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-titulo">Título *</label>
+                    <input id="nueva-tarea-titulo" class="form-input" type="text" maxlength="200" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-descripcion">Descripción</label>
+                    <textarea id="nueva-tarea-descripcion" class="form-input" rows="3" maxlength="1000"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-responsable">Asignar a *</label>
+                    <select id="nueva-tarea-responsable" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-horas">Horas estimadas *</label>
+                    <input id="nueva-tarea-horas" class="form-input" type="number" min="0.1" max="99999.9" step="0.1" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary" id="btn-cancelar-nueva-tarea">Cancelar</button>
+                <button type="submit" class="btn btn--primary" id="btn-guardar-nueva-tarea">Crear tarea</button>
+            </div>
+        </form>
+    </dialog>
 
     <!-- Modal de Configuración de Columnas -->
     <div id="overlay-configurar-columnas" class="modal-overlay modal--hidden">

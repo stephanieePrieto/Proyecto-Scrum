@@ -10,7 +10,7 @@
 import { consulta as query } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { notificarAsignacion } from '../notificaciones/notificaciones.service.js';
-import { exigirPermiso, ROLES, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { exigirPermiso, exigirPropietarioTarea, ROLES, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { registrarAuditoria, enTransaccion, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 
@@ -50,7 +50,7 @@ export async function crear(datos = {}, usuario) {
   // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la historia no existiera
   const { rows: ubicacion } = await query('SELECT proyecto_id FROM historias WHERE id = $1', [historiaId]);
   if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
-  const rolActor = await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
+  const rolActor = await exigirPermiso(usuario, 'tarea.gestionar', ubicacion[0].proyecto_id);
 
   // Obtener la historia y comprobar su Sprint.
   const { rows: historias } = await query(
@@ -90,17 +90,6 @@ export async function crear(datos = {}, usuario) {
     );
   }
 
-  // Solo un Scrum Master del proyecto puede planificar tareas.
-  if (rolActor !== ROLES.SCRUM_MASTER) {
-    throw new ErrorApp(
-      'Solo el Scrum Master puede crear tareas durante la planificación.',
-      403
-    );
-  }
-
-
-  // HU-08: Permitir cualquier rol activo del proyecto.
-  // TODO: Revisar los permisos definitivos con Stephy.
   const { rows: responsables } = await query(
     `SELECT 1
      FROM miembros_proyecto mp
@@ -120,39 +109,49 @@ export async function crear(datos = {}, usuario) {
     );
   }
 
+  if (rolActor !== ROLES.SCRUM_MASTER && responsableId !== Number(usuario.id)) {
+    throw new ErrorApp('Solo puedes asignarte tareas a ti mismo.', 403);
+  }
 
   // Guardar la tarea técnica.
   const rows = await enTransaccion(async (cliente) => {
+    const { rows: columnas } = await cliente.query(
+      `SELECT id FROM columnas_tablero
+       WHERE proyecto_id = $1 AND es_final = FALSE
+       ORDER BY orden, id LIMIT 1`,
+      [historia.proyecto_id]
+    );
+    if (!columnas.length) {
+      throw new ErrorApp('El tablero no tiene una columna de trabajo. Configura las columnas e inténtalo de nuevo.', 409);
+    }
+
     const { rows: creadas } = await cliente.query(
       `INSERT INTO tareas (
        historia_id,
        proyecto_id,
        sprint_id,
+       columna_id,
        titulo,
        descripcion,
        responsable_id,
        horas_estimadas,
-       columna_id,
        orden
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7,
-       -- HU-26: en modo continuo la tarea nace en la primera columna del tablero; en Scrum queda sin columna, como antes.
-       CASE WHEN $8::boolean THEN (SELECT c.id FROM columnas_tablero c WHERE c.proyecto_id = $2 ORDER BY c.orden, c.id LIMIT 1) END,
-       CASE WHEN $8::boolean THEN (
-         SELECT COALESCE(MAX(t2.orden), 0) + 1 FROM tareas t2
-         WHERE t2.proyecto_id = $2
-           AND t2.columna_id = (SELECT c.id FROM columnas_tablero c WHERE c.proyecto_id = $2 ORDER BY c.orden, c.id LIMIT 1)
-       ) ELSE 0 END)
+     VALUES (
+       $1, $2, $3, $4, $5, $6, $7, $8,
+       (SELECT COALESCE(MAX(t.orden), 0) + 1
+          FROM tareas t WHERE t.proyecto_id = $2 AND t.columna_id = $4)
+     )
      RETURNING *`,
       [
         historia.id,
         historia.proyecto_id,
         historia.sprint_id,
+        columnas[0].id,
         titulo,
         descripcion,
         responsableId,
-        horas,
-        esContinuo
+        horas
       ]
     );
 
@@ -286,11 +285,11 @@ export async function editar(tareaId, datos = {}, usuario) {
   // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la tarea no existiera
   const { rows: ubicacion } = await query('SELECT proyecto_id FROM tareas WHERE id = $1', [id]);
   if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
-  const rolActor = await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
+  const rolActor = await exigirPermiso(usuario, 'tarea.gestionar', ubicacion[0].proyecto_id);
 
   // Buscar la tarea y comprobar que pertenece a un Sprint válido.
   const { rows: tareas } = await query(
-    `SELECT t.id, t.proyecto_id, t.sprint_id, s.estado, p.modo_flujo
+    `SELECT t.id, t.proyecto_id, t.responsable_id, t.sprint_id, s.estado, p.modo_flujo
      FROM tareas t
      JOIN historias h ON h.id = t.historia_id
        AND h.proyecto_id = t.proyecto_id
@@ -311,24 +310,12 @@ export async function editar(tareaId, datos = {}, usuario) {
     throw new ErrorApp('No se encontró la tarea técnica.', 404);
   }
 
-  if (!sinSprint && tarea.estado !== 'planificado' && tarea.estado !== 'activo') {
-    throw new ErrorApp(
-      'No se pueden editar tareas de un Sprint cerrado.',
-      409
-    );
+  exigirPropietarioTarea(usuario, tarea, rolActor);
+
+  if (rolActor !== ROLES.SCRUM_MASTER && responsableId !== Number(usuario.id)) {
+    throw new ErrorApp('Solo puedes asignarte tareas a ti mismo.', 403);
   }
 
-  // Comprobar que el usuario puede planificar tareas.
-  if (rolActor !== ROLES.SCRUM_MASTER) {
-    throw new ErrorApp(
-      'No tienes permiso para editar tareas de este proyecto.',
-      403
-    );
-  }
-
-
-  // HU-08: Permitir cualquier rol activo del proyecto.
-  // TODO: Revisar los permisos definitivos con Stephy.
   const { rows: responsables } = await query(
     `SELECT 1
      FROM miembros_proyecto mp
@@ -348,19 +335,14 @@ export async function editar(tareaId, datos = {}, usuario) {
     );
   }
 
-  if (!responsables.length) {
-    throw new ErrorApp(
-      'El responsable debe ser un integrante activo del proyecto.',
-      400
-    );
-  }
-
   // Actualizar la tarea sin modificar su historia ni su Sprint.
   const rows = await enTransaccion(async (cliente) => {
     const { rows: anteriores } = await cliente.query(
       'SELECT titulo, descripcion, responsable_id, horas_estimadas FROM tareas WHERE id = $1 FOR UPDATE',
       [id]
     );
+    if (!anteriores.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+    exigirPropietarioTarea(usuario, anteriores[0], rolActor);
 
     const { rows: actualizadas } = await cliente.query(
       `UPDATE tareas
@@ -417,11 +399,11 @@ export async function eliminar(tareaId, usuario) {
   // Quien no tiene vínculo con el proyecto recibe el mismo 404 que si la tarea no existiera
   const { rows: ubicacion } = await query('SELECT proyecto_id FROM tareas WHERE id = $1', [id]);
   if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
-  const rolActor = await exigirPermiso(usuario, 'proyecto.ver', ubicacion[0].proyecto_id);
+  const rolActor = await exigirPermiso(usuario, 'tarea.gestionar', ubicacion[0].proyecto_id);
 
   // Buscar la tarea y comprobar que su proyecto está activo.
   const { rows: tareas } = await query(
-    `SELECT t.id, t.proyecto_id, t.sprint_id, s.estado, p.modo_flujo
+    `SELECT t.id, t.proyecto_id, t.responsable_id, t.sprint_id, s.estado, p.modo_flujo
      FROM tareas t
      LEFT JOIN sprints s ON s.id = t.sprint_id
        AND s.proyecto_id = t.proyecto_id
@@ -447,13 +429,7 @@ export async function eliminar(tareaId, usuario) {
     );
   }
 
-  // Verificar permisos del Scrum Master.
-  if (rolActor !== ROLES.SCRUM_MASTER) {
-    throw new ErrorApp(
-      'No tienes permiso para eliminar tareas de este proyecto.',
-      403
-    );
-  }
+  exigirPropietarioTarea(usuario, tarea, rolActor);
 
   // Evitar borrar tareas con horas reales registradas.
   const { rows: registros } = await query(
@@ -473,6 +449,13 @@ export async function eliminar(tareaId, usuario) {
 
   // Eliminar solamente la tarea indicada.
   const rows = await enTransaccion(async (cliente) => {
+    const { rows: actuales } = await cliente.query(
+      'SELECT responsable_id FROM tareas WHERE id = $1 AND proyecto_id = $2 FOR UPDATE',
+      [id, tarea.proyecto_id]
+    );
+    if (!actuales.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
+    exigirPropietarioTarea(usuario, actuales[0], rolActor);
+
     const { rows: eliminadas } = await cliente.query(
       `DELETE FROM tareas
      WHERE id = $1

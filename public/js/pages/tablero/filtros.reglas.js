@@ -1,7 +1,7 @@
 /**
  * @file filtros.reglas.js
  * @description Lógica pura de la HU-21, sin DOM, sin localStorage y sin red, para poder probarla con Jest:
- *   - Normalizar y depurar los filtros guardados (persona, épica, etiqueta, estado y agrupación).
+ *   - Normalizar y depurar los filtros guardados (Sprint, persona, épica, etiqueta, estado y agrupación).
  *   - Filtrar las tareas del tablero sin modificarlas (criterio 6: solo cambia la vista).
  *   - Construir las opciones de los selectores a partir de las tareas, las columnas y los miembros.
  *   - Agrupar las tareas en carriles (swimlanes) por historia o por persona (criterio 2).
@@ -27,10 +27,11 @@ export const SIN_ASIGNAR = 'sin-asignar';
 export const SIN_EPICA = 'sin-epica';
 
 /** Campos que se consideran filtros; la agrupación no filtra, solo reorganiza. */
-const CAMPOS_FILTRO = Object.freeze(['persona', 'epica', 'etiqueta', 'estado']);
+const CAMPOS_FILTRO = Object.freeze(['sprint', 'persona', 'epica', 'etiqueta', 'estado']);
 
 /** Filtros sin ningún valor: se muestra todo el tablero en columnas. */
 export const FILTROS_VACIOS = Object.freeze({
+  sprint: '',
   persona: '',
   epica: '',
   etiqueta: '',
@@ -130,6 +131,7 @@ export function hayFiltrosActivos(filtros) {
 export function cumpleFiltros(tarea, filtros) {
   if (!tarea || typeof tarea !== 'object') return false;
   const f = normalizarFiltros(filtros);
+  if (f.sprint && aTexto(tarea.sprint_id) !== f.sprint) return false;
   if (f.persona && clavePersona(tarea) !== f.persona) return false;
   if (f.epica && claveEpica(tarea) !== f.epica) return false;
   if (f.estado && aTexto(tarea.columna_id) !== f.estado) return false;
@@ -192,10 +194,38 @@ function listarPersonas(tareas, miembros) {
  * @param {Object} [catalogos]
  * @param {Object[]} [catalogos.columnas] - Columnas del tablero en su orden ({id, nombre}).
  * @param {Object[]} [catalogos.miembros] - Miembros del proyecto ({usuario_id, nombre, activo}).
- * @returns {{personas: Object[], epicas: Object[], etiquetas: Object[], estados: Object[]}}
+ * @param {Object[]} [catalogos.sprints] - Sprints del proyecto ordenados por fecha.
+ * @returns {{sprints: Object[], personas: Object[], epicas: Object[], etiquetas: Object[], estados: Object[]}}
  */
-export function construirOpciones(tareas, { columnas = [], miembros = [] } = {}) {
+export function construirOpciones(tareas, { columnas = [], miembros = [], sprints = [] } = {}) {
   const lista = Array.isArray(tareas) ? tareas : [];
+
+  const sprintsPorId = new Map();
+  const sprintsDelCatalogo = Array.isArray(sprints) ? sprints : [];
+  const idsSprintsConocidos = new Set();
+  for (const sprint of sprintsDelCatalogo) {
+    const id = aTexto(sprint?.id);
+    if (!id) continue;
+    idsSprintsConocidos.add(id);
+    if (aTexto(sprint.estado) === 'cerrado') continue;
+    const nombre = aTexto(sprint.nombre) || `Sprint #${id}`;
+    const estado = aTexto(sprint.estado);
+    const etiquetaEstado = {
+      activo: 'Activo',
+      planificado: 'Planificado',
+      cerrado: 'Cerrado',
+    }[estado];
+    sprintsPorId.set(id, {
+      valor: id,
+      etiqueta: etiquetaEstado ? `${nombre} · ${etiquetaEstado}` : nombre,
+    });
+  }
+  for (const tarea of lista) {
+    const id = aTexto(tarea?.sprint_id);
+    if (id && !idsSprintsConocidos.has(id)) {
+      sprintsPorId.set(id, { valor: id, etiqueta: `Sprint #${id}` });
+    }
+  }
 
   const personas = listarPersonas(lista, miembros);
   if (lista.some((t) => clavePersona(t) === SIN_ASIGNAR)) personas.push({ valor: SIN_ASIGNAR, etiqueta: 'Sin asignar' });
@@ -224,7 +254,7 @@ export function construirOpciones(tareas, { columnas = [], miembros = [] } = {})
     .filter((c) => aTexto(c?.id) !== '')
     .map((c) => ({ valor: aTexto(c.id), etiqueta: aTexto(c.nombre) || `Columna #${c.id}` }));
 
-  return { personas, epicas, etiquetas, estados };
+  return { sprints: [...sprintsPorId.values()], personas, epicas, etiquetas, estados };
 }
 
 /**
@@ -238,7 +268,13 @@ export function construirOpciones(tareas, { columnas = [], miembros = [] } = {})
  */
 export function depurarFiltros(filtros, opciones) {
   const resultado = normalizarFiltros(filtros);
-  const listas = { persona: opciones?.personas, epica: opciones?.epicas, etiqueta: opciones?.etiquetas, estado: opciones?.estados };
+  const listas = {
+    sprint: opciones?.sprints,
+    persona: opciones?.personas,
+    epica: opciones?.epicas,
+    etiqueta: opciones?.etiquetas,
+    estado: opciones?.estados,
+  };
   const descartados = [];
   for (const campo of CAMPOS_FILTRO) {
     if (resultado[campo] === '') continue;

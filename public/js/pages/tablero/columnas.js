@@ -8,39 +8,15 @@
 
 import { renderizarTarjetasEnTablero } from './tarjeta.js';
 import { inicializarDragAndDrop } from './arrastrar.js';
+import { api } from '../../core/api.js';
 
 /**
  * Cliente HTTP aislado para realizar peticiones.
  * @namespace API
  */
 const API = {
-    /**
-     * Petición HTTP GET.
-     * @async
-     * @param {string} url - Endpoint.
-     * @returns {Promise<Object>}
-     */
-    get: async (url) => {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Error en la petición GET');
-        return await res.json();
-    },
-    /**
-     * Petición HTTP PUT.
-     * @async
-     * @param {string} url - Endpoint.
-     * @param {Object} datos - Cuerpo de la petición.
-     * @returns {Promise<Object>}
-     */
-    put: async (url, datos) => {
-        const res = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
-        });
-        if (!res.ok) throw new Error('Error en la petición PUT');
-        return await res.json();
-    }
+    get: (url) => api(url),
+    put: (url, datos) => api(url, { metodo: 'PUT', cuerpo: datos })
 };
 
 const contenedorTablero = document.getElementById('tablero-contenedor');
@@ -248,7 +224,7 @@ export async function cargarTablero(proyectoId) {
     try {
         mostrarSkeletonsTablero();
 
-        const respuesta = await API.get(`/api/tablero/${proyectoIdActual}`);
+        const respuesta = await API.get(`/tablero/${proyectoIdActual}`);
 
         if (respuesta && respuesta.data) {
             // HU-26: encabezado según el modo (Scrum o flujo continuo) y avisos en tiempo real
@@ -280,7 +256,13 @@ export async function cargarTablero(proyectoId) {
 
             // HU-21: avisar a tablero/filtros.js que hay datos nuevos para aplicar filtros y carriles
             document.dispatchEvent(new CustomEvent('tablero:cargado', {
-                detail: { proyectoId: proyectoIdActual, columnas: respuesta.data.columnas || [], tareas: tareasActivas }
+                detail: {
+                    proyectoId: proyectoIdActual,
+                    sprint: respuesta.data.sprint || null,
+                    historias: respuesta.data.historias || [],
+                    columnas: respuesta.data.columnas || [],
+                    tareas: tareasActivas
+                }
             }));
         }
     } catch (error) {
@@ -373,7 +355,7 @@ export function iniciarConfiguracionColumnas() {
                 btnGuardarConfig.disabled = true;
                 btnGuardarConfig.textContent = "Guardando...";
 
-                await API.put(`/api/tablero/${proyectoIdActual}/columnas`, { columnas: nuevosNombres });
+                await API.put(`/tablero/${proyectoIdActual}/columnas`, { columnas: nuevosNombres });
 
                 if (modalConfig) modalConfig.classList.add('modal--hidden');
                 document.dispatchEvent(new CustomEvent('tablero:recargar'));

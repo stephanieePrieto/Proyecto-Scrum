@@ -171,6 +171,19 @@ export const ROLES = Object.freeze({
 
 const { SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER } = ROLES;
 
+/**
+ * Exige que una tarea pertenezca a la persona o que esta sea Scrum Master del proyecto.
+ * @param {{id: number}} usuario
+ * @param {{responsable_id: number|null}} tarea
+ * @param {string|null} rol
+ * @returns {void}
+ */
+export function exigirPropietarioTarea(usuario, tarea, rol) {
+    if (rol !== ROLES.SCRUM_MASTER && Number(tarea.responsable_id) !== Number(usuario.id)) {
+        throw new ErrorApp('Solo puedes modificar tus propias tareas.', 403);
+    }
+}
+
 /** Mensaje cuando el proyecto o el recurso no existe o la persona no tiene ningún vínculo con él. */
 export const MENSAJE_NO_ENCONTRADO = 'No se encontró el recurso solicitado.';
 

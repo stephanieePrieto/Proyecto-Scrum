@@ -12,6 +12,7 @@ import { crear, crearAviso, mensajeError, formatearFecha } from './dom.js';
 import { montarComentarios } from './comentarios.js';
 import { montarAdjuntos } from './adjuntos.js';
 import { validarMotivoBloqueo, debeSugerirDesbloqueo } from './bloqueo.js';
+import { tienePermiso, usuarioActualId } from '../../core/permisos-ui.js';
 
 const RUTA_CSS = '/css/componentes/detalle-tarjeta.css';
 const ENFOCABLES = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
@@ -303,6 +304,8 @@ function render({ tarea, checklist, historial }) {
 
   const seccionAdjuntos = crear('section', { clase: 'dt-seccion' });
   const seccionComentarios = crear('section', { clase: 'dt-seccion' });
+  const puedeGestionar = tienePermiso('tarea.gestionar') &&
+    (tienePermiso('tablero.configurar') || Number(tarea.responsable?.id) === Number(usuarioActualId()));
 
   const bloques = [];
   if (tarea.bloqueada) {
@@ -311,16 +314,31 @@ function render({ tarea, checklist, historial }) {
       crear('p', { texto: tarea.motivoBloqueo || 'Sin motivo registrado.' })
     ];
 
-    if (debeSugerirDesbloqueo(tarea.bloqueada, tarea.estadoImpedimento)) {
-      elementosBanner.push(crear('button', {
+    const avisoDesbloqueo = crearAviso();
+    if (puedeGestionar && debeSugerirDesbloqueo(tarea.bloqueada, tarea.estadoImpedimento)) {
+      const botonDesbloquear = crear('button', {
         clase: 'dt-boton dt-boton--secundario dt-boton--pequeno',
         texto: 'Desbloquear (Impedimento resuelto)',
-        eventos: { click: () => { /* Llamada a API de desbloqueo */ } }
-      }));
+        eventos: {
+          click: async (evento) => {
+            const boton = evento.currentTarget;
+            boton.disabled = true;
+            avisoDesbloqueo.ocultar();
+            try {
+              await api(`/tarjetas/${tarea.id}/bloqueo`, { metodo: 'PATCH', cuerpo: { bloqueada: false } });
+              await cargar(tarea.id);
+            } catch (error) {
+              avisoDesbloqueo.mostrar(mensajeError(error, 'No se pudo desbloquear la tarjeta. Resuelve primero el impedimento vinculado.'));
+              boton.disabled = false;
+            }
+          },
+        },
+      });
+      elementosBanner.push(botonDesbloquear, avisoDesbloqueo.nodo);
     }
 
     bloques.push(crear('div', { clase: 'dt-banner-bloqueo', atributos: { role: 'status' } }, elementosBanner));
-  } else {
+  } else if (puedeGestionar) {
     const inputMotivo = crear('input', {
       clase: 'dt-entrada',
       atributos: { type: 'text', placeholder: 'Motivo para bloquear...' }
@@ -331,13 +349,25 @@ function render({ tarea, checklist, historial }) {
       clase: 'dt-boton dt-boton--secundario',
       texto: 'Bloquear',
       eventos: {
-        click: () => {
+        click: async (evento) => {
+          const boton = evento.currentTarget;
           avisoBloqueo.ocultar();
           if (!validarMotivoBloqueo(inputMotivo.value)) {
             avisoBloqueo.mostrar('Ingrese un motivo para reportar el impedimento.');
             return;
           }
-          // Llamada a API para crear el impedimento
+          boton.disabled = true;
+          try {
+            await api(`/tarjetas/${tarea.id}/bloqueo`, {
+              metodo: 'PATCH',
+              cuerpo: { motivo: inputMotivo.value.trim() },
+            });
+            await cargar(tarea.id);
+          } catch (error) {
+            avisoBloqueo.mostrar(mensajeError(error, 'No se pudo registrar el impedimento. Revisa tu conexión e inténtalo de nuevo.'));
+          } finally {
+            boton.disabled = false;
+          }
         }
       }
     });
@@ -482,6 +512,12 @@ function iniciar() {
   asegurarEstilos();
   document.addEventListener('click', alHacerClic);
   document.addEventListener('keydown', alPresionarTecla);
+  window.socket?.on('impedimento:resuelto', ({ impedimento }) => {
+    if (tareaActual && Number(impedimento?.tarea_id) === tareaActual) cargar(tareaActual);
+  });
+  window.socket?.on('tarjeta:bloqueo_cambiado', (evento) => {
+    if (tareaActual && Number(evento?.tareaId) === tareaActual) cargar(tareaActual);
+  });
   const id = new URLSearchParams(window.location.search).get('tarea');
   if (id) abrirDetalleTarjeta(id);
 }

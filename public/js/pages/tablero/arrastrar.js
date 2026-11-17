@@ -12,6 +12,19 @@ import { mensajeError } from '../../core/errores.js';
 let tarjetaArrastrada = null;
 let columnaOrigenId = null;
 let posicionOrigen = null;
+let contenedorEventosRegistrado = null;
+let proyectoIdActual = null;
+let socketEventos = null;
+
+function manejarMovimientoSocket(datos) {
+    if (Number(datos.proyectoId) !== Number(proyectoIdActual)) return;
+    const tarjeta = document.querySelector(`[data-tarea-id="${datos.tareaId}"]`);
+    const listaDestino = document.querySelector(`[data-columna-id="${datos.nuevaColumnaId}"] [id^="lista-tarjetas-"]`);
+    if (tarjeta && listaDestino) {
+        listaDestino.appendChild(tarjeta);
+        actualizarContadoresYAlertasWip();
+    }
+}
 
 /**
  * Evalúa los límites WIP de cada columna y aplica alertas visuales si se superan (HU-22).
@@ -72,35 +85,24 @@ function guardarMovimientoPendiente(movimiento) {
 export function inicializarDragAndDrop(proyectoId) {
     const contenedorTablero = document.getElementById('tablero-contenedor');
     if (!contenedorTablero) return;
+    proyectoIdActual = proyectoId;
     actualizarContadoresYAlertasWip();
-    // 1. Validar permisos de usuario (Ejemplo: Restricción para PO o lectura)
-    const usuarioSesion = JSON.parse(localStorage.getItem('usuario_sesion') || '{"rol":"DEV"}');
-
-    // Escuchar eventos en tiempo real entrantes (WebSockets)
-    if (window.socket) {
-        window.socket.on('tablero:tarjeta-movida', (datos) => {
-            if (Number(datos.proyectoId) === Number(proyectoId)) {
-                const tarjeta = document.querySelector(`[data-tarea-id="${datos.tareaId}"]`);
-                const listaDestino = document.querySelector(`[data-columna-id="${datos.nuevaColumnaId}"] [id^="lista-tarjetas-"]`);
-                if (tarjeta && listaDestino) {
-                    listaDestino.appendChild(tarjeta);
-                    actualizarContadoresYAlertasWip();
-                }
-            }
-        });
+    if (window.socket && socketEventos !== window.socket) {
+        if (socketEventos) socketEventos.off('tablero:tarjeta-movida', manejarMovimientoSocket);
+        socketEventos = window.socket;
+        socketEventos.on('tablero:tarjeta-movida', manejarMovimientoSocket);
     }
+    if (contenedorEventosRegistrado === contenedorTablero) return;
+    contenedorEventosRegistrado = contenedorTablero;
 
     // DragStart
     contenedorTablero.addEventListener('dragstart', (e) => {
-        // Bloqueo por rol si el usuario no tiene permisos de edición
-        if (usuarioSesion.rol === 'READ_ONLY') {
-            e.preventDefault();
-            alert("Tu rol no tiene permisos para mover tarjetas en este tablero.");
-            return;
-        }
-
         const tarjeta = e.target.closest('.tarjeta-item');
         if (!tarjeta) return;
+        if (tarjeta.dataset.puedeEditar !== 'true') {
+            e.preventDefault();
+            return;
+        }
 
         tarjetaArrastrada = tarjeta;
         const columnaOrigen = tarjeta.closest('[data-columna-id]');
@@ -184,7 +186,7 @@ export function inicializarDragAndDrop(proyectoId) {
         if (!navigator.onLine) {
             tarjetaArrastrada.classList.add('border-dashed', 'border-amber-400');
             guardarMovimientoPendiente({
-                proyectoId: Number(proyectoId),
+                proyectoId: Number(proyectoIdActual),
                 tareaId: Number(tareaId),
                 nuevaColumnaId: Number(columnaDestinoId),
                 nuevoOrden: listaDestino.children.length
@@ -195,11 +197,9 @@ export function inicializarDragAndDrop(proyectoId) {
 
         try {
             // api() agrega el token CSRF y renueva la sesión; lanza error si la respuesta no es 2xx
-            await api('/tablero/mover-tarjeta', {
+            await api(`/tarjetas/${tareaId}/mover`, {
                 metodo: 'POST',
                 cuerpo: {
-                    proyectoId: Number(proyectoId),
-                    tareaId: Number(tareaId),
                     nuevaColumnaId: Number(columnaDestinoId),
                     nuevoOrden: listaDestino.children.length
                 }
@@ -208,7 +208,7 @@ export function inicializarDragAndDrop(proyectoId) {
             // Emitir evento por WebSockets para otros usuarios conectados (< 1s)
             if (window.socket) {
                 window.socket.emit('tablero:mover-tarjeta', {
-                    proyectoId: Number(proyectoId),
+                    proyectoId: Number(proyectoIdActual),
                     tareaId: Number(tareaId),
                     nuevaColumnaId: Number(columnaDestinoId)
                 });

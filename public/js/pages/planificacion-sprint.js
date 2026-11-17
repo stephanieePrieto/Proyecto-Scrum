@@ -9,7 +9,7 @@
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
 import { mensajeError } from '../core/errores.js';
-import { cargarPermisos, rolActual, tienePermiso } from '../core/permisos-ui.js';
+import { cargarPermisos, rolActual, tienePermiso, usuarioActualId } from '../core/permisos-ui.js';
 
 // Barra superior compartida de AgileDesk
 montarBarraSuperior();
@@ -39,7 +39,10 @@ function puedeEditarEnPlanificacion() {
 
 function prepararControlEdicion(boton) {
   boton.dataset.planificacionEditar = 'true';
-  const permitido = puedeEditarEnPlanificacion();
+  const responsableId = boton.dataset.responsableId;
+  const permitido = puedeEditarEnPlanificacion() &&
+    (responsableId === undefined || rolActual() === 'scrum_master' ||
+      Number(responsableId) === Number(usuarioActualId()));
   boton.style.display = permitido ? '' : 'none';
   boton.disabled = !permitido;
 }
@@ -47,8 +50,12 @@ function prepararControlEdicion(boton) {
 function actualizarModoPlanificacion() {
   const permitido = puedeEditarEnPlanificacion();
   document.querySelectorAll('[data-planificacion-editar]').forEach((boton) => {
-    boton.style.display = permitido ? '' : 'none';
-    boton.disabled = !permitido;
+    const responsableId = boton.dataset.responsableId;
+    const puedeEditarTarea = permitido &&
+      (responsableId === undefined || rolActual() === 'scrum_master' ||
+        Number(responsableId) === Number(usuarioActualId()));
+    boton.style.display = puedeEditarTarea ? '' : 'none';
+    boton.disabled = !puedeEditarTarea;
   });
 
   const aviso = document.getElementById('planificacion-aviso-lectura');
@@ -234,6 +241,9 @@ async function cargarTareasHistoria(historiaId, contenedor) {
       botonEditar.className =
         'boton boton--secundario boton--pequeno';
       botonEditar.textContent = 'Editar';
+      if (tarea.responsable_id !== null && tarea.responsable_id !== undefined) {
+        botonEditar.dataset.responsableId = String(tarea.responsable_id);
+      }
       prepararControlEdicion(botonEditar);
 
       botonEditar.addEventListener('click', async () => {
@@ -263,6 +273,9 @@ async function cargarTareasHistoria(historiaId, contenedor) {
       botonEliminar.className =
         'boton boton--secundario boton--pequeno';
       botonEliminar.textContent = 'Eliminar';
+      if (tarea.responsable_id !== null && tarea.responsable_id !== undefined) {
+        botonEliminar.dataset.responsableId = String(tarea.responsable_id);
+      }
       prepararControlEdicion(botonEliminar);
 
 
@@ -1044,31 +1057,27 @@ async function cargarResponsables(responsableSeleccionado = null) {
   const selector = document.getElementById('tarea-responsable');
 
   selector.replaceChildren();
+  if (rolActual() !== 'scrum_master') {
+    const usuarioId = usuarioActualId();
+    selector.replaceChildren(new Option('Asignarme la tarea', String(usuarioId ?? '')));
+    selector.value = String(usuarioId ?? '');
+    selector.disabled = true;
+    return;
+  }
+
   selector.add(new Option('Cargando responsables...', ''));
   selector.disabled = true;
 
   try {
-    // Consultar el proyecto seleccionado
-    const datosProyecto = await api(`/proyectos/${proyectoId}`);
-    const equipoId = datosProyecto.proyecto?.equipo_id;
-
-    if (!equipoId) {
-      throw new Error('El proyecto no tiene un equipo disponible.');
-    }
-
-    // Consultar los integrantes del equipo
-    const datosEquipo = await api(`/equipos/${equipoId}`);
-
-    // Mostrar solamente integrantes activos
-    const miembros = (datosEquipo.equipo?.miembros || [])
-      .filter(miembro => miembro.activo);
+    const datosMiembros = await api(`/miembros/proyecto/${proyectoId}`);
+    const miembros = (datosMiembros.miembros || []).filter(miembro => miembro.activo);
 
     selector.replaceChildren();
     selector.add(new Option('Selecciona un responsable', ''));
 
 
     miembros.forEach(miembro => {
-      selector.add(new Option(miembro.nombre, String(miembro.id)));
+      selector.add(new Option(miembro.nombre, String(miembro.usuario_id)));
     });
 
     // HU-08: Seleccionar al responsable actual al editar.

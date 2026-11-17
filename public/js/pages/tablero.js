@@ -20,6 +20,7 @@ import { montarBarraSuperior } from '../core/layout.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
 import { escucharMovimientosSocket } from './tablero/reconexion.js';
 import { iniciarControlConcurrencia, sincronizarEdicionesPendientes } from './tablero/concurrencia.js';
+import { inicializarCrearTarea } from './tablero/crear-tarea.js';
 
 /**
  * Carga diferida del detalle de tarjeta (HU-20).
@@ -74,21 +75,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     iniciarControlConcurrencia();
     await sincronizarEdicionesPendientes();
     /**
-     * Inicia la carga de las columnas, tarjetas y cálculo de días del sprint activo.
-     */
-    inicializarTablero(proyectoActivoId);
-
-    /**
      * Carga los permisos del proyecto activo para mostrar solo las acciones de su rol.
      */
     const permisos = cargarPermisos(Number(proyectoActivoId));
     permisos.catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
+    await permisos.catch(() => null);
 
     /**
      * Filtros, agrupación en carriles y su persistencia (HU-21). La respuesta de permisos trae el usuario
      * para guardar los filtros por proyecto y persona.
      */
     inicializarFiltros(proyectoActivoId, permisos);
+    inicializarCrearTarea(proyectoActivoId, permisos);
+
+    /**
+     * Inicia la carga de las columnas, tarjetas y cálculo de días del sprint activo.
+     */
+    inicializarTablero(proyectoActivoId);
 
     /**
      * Menú "Mover a…" para pantallas táctiles y seguimiento de arrastres (HU-52).
@@ -114,28 +117,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         contenedorAviso: document.getElementById('sprint-estado')?.parentElement || null,
     });
 
-    /**
-     * Configura los escuchadores de eventos para los botones de acción del encabezado.
-     */
-    const btnNuevaTarea = document.getElementById('btn-nueva-tarea');
-    if (btnNuevaTarea) {
-        btnNuevaTarea.addEventListener('click', async () => {
-            // HU-26: en flujo continuo abre el formulario de tarea sin sprint (columnas.js marca el modo en el body)
-            if (document.body.dataset.modoFlujo === 'continuo') {
-                const { abrirTareaContinua } = await import('../componentes/tarea-continua.js');
-                abrirTareaContinua({ proyectoId: proyectoActivoId, alCrear: () => sincronizarConServidor() });
-                return;
-            }
-            // Se activará cuando se integre el modal de creación de tareas
-            console.log('Abrir modal para crear tarea');
-        });
-    }
-
-    const btnConfigurar = document.getElementById('btn-configurar-tablero');
-    if (btnConfigurar) {
-        btnConfigurar.addEventListener('click', () => {
-            // Se activará con el modal de personalización de columnas (HU-17)
-            console.log('Abrir modal para personalizar columnas');
-        });
-    }
 });

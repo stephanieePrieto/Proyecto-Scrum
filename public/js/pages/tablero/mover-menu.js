@@ -272,7 +272,7 @@ export function inicializarMenuMover() {
     evento.preventDefault();
     evento.stopPropagation();
     const tarjeta = boton.closest('.tarjeta-item');
-    if (tarjeta) abrirMenu(tarjeta, boton);
+    if (tarjeta?.dataset.puedeEditar === 'true') abrirMenu(tarjeta, boton);
   });
 
   // Un doble toque sobre el botón no debe abrir la edición de la tarjeta (HU-25)

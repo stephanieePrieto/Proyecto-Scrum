@@ -7,6 +7,8 @@
  * @author Dana Carmona Santamaria
  */
 
+import { tienePermiso, usuarioActualId } from '../../core/permisos-ui.js';
+
 const CLASES_PASTEL_ROTATIVAS = [
     'tarjeta-encargado--naranja',
     'tarjeta-encargado--azul',
@@ -77,11 +79,14 @@ export function crearElementoTarjeta(tarea) {
     const contenedor = document.createElement('div');
     contenedor.id = `tarjeta-${tarea.id}`;
     contenedor.dataset.tareaId = tarea.id;
+    const puedeEditar = tienePermiso('tarea.gestionar') &&
+        (tienePermiso('tablero.configurar') || Number(tarea.responsable_id) === Number(usuarioActualId()));
 
     contenedor.dataset.version = String(tarea.version || 1);
     contenedor.dataset.orden = String(tarea.orden || 0);
 
-    contenedor.draggable = true;
+    contenedor.dataset.puedeEditar = String(puedeEditar);
+    contenedor.draggable = puedeEditar;
     contenedor.dataset.bloqueada = tarea.bloqueada ? 'true' : 'false';
 
     contenedor.tabIndex = 0;
@@ -132,8 +137,9 @@ export function crearElementoTarjeta(tarea) {
         candado.title = 'Tarea Bloqueada - Ver impedimento';
         candado.classList.add('text-rose-600', 'font-bold', 'text-xs', 'cursor-pointer', 'hover:opacity-80');
         candado.textContent = '🔒';
-        candado.href = tarea.idImpedimento ? `/impedimentos/${tarea.idImpedimento}` : '#';
+        candado.href = `/pages/impedimentos.html?proyecto=${encodeURIComponent(tarea.proyecto_id)}`;
         candado.target = '_blank';
+        candado.addEventListener('click', (evento) => evento.stopPropagation());
         cajaBadges.appendChild(candado);
     }
 
@@ -149,7 +155,7 @@ export function crearElementoTarjeta(tarea) {
             mod.abrirModalEditarTarjeta(tarea.id);
         });
     });
-    cajaBadges.appendChild(botonEditar);
+    if (puedeEditar) cajaBadges.appendChild(botonEditar);
 
     encabezado.appendChild(idPadre);
     encabezado.appendChild(cajaBadges);
@@ -198,11 +204,22 @@ export function crearElementoTarjeta(tarea) {
 
     // Horas
     const cajaHoras = document.createElement('div');
-    cajaHoras.classList.add('font-mono', 'text-[11px]', 'bg-slate-100', 'px-1.5', 'py-0.5', 'rounded', 'text-slate-600');
-    cajaHoras.title = 'Horas Reales';
-
-    const horasValor = (tarea.horas_reales && Number(tarea.horas_reales) > 0) ? `${tarea.horas_reales}h` : '—';
-    cajaHoras.textContent = `⏱️ ${horasValor}`;
+    cajaHoras.classList.add('font-mono', 'text-[10px]', 'bg-slate-100', 'px-1.5', 'py-0.5', 'rounded', 'text-slate-600', 'flex', 'flex-col', 'items-end');
+    cajaHoras.title = 'Horas estimadas y reales';
+    if (tarea.horas_estimadas !== null && tarea.horas_estimadas !== undefined &&
+        Number.isFinite(Number(tarea.horas_estimadas))) {
+        const horasEstimadas = document.createElement('span');
+        horasEstimadas.textContent = `⏱️ ${Number(tarea.horas_estimadas)}h est.`;
+        cajaHoras.appendChild(horasEstimadas);
+    }
+    if (Number(tarea.horas_reales) > 0) {
+        const horasReales = document.createElement('span');
+        horasReales.textContent = `${Number(tarea.horas_reales)}h real`;
+        cajaHoras.appendChild(horasReales);
+    }
+    if (!cajaHoras.hasChildNodes()) {
+        cajaHoras.textContent = '⏱️ —';
+    }
 
     pie.appendChild(cajaResponsable);
     pie.appendChild(cajaHoras);
@@ -215,7 +232,7 @@ export function crearElementoTarjeta(tarea) {
     botonMover.dataset.permiso = 'tarea.gestionar';
     botonMover.setAttribute('aria-label', `Mover «${tarea.titulo}» a otra columna`);
     botonMover.textContent = 'Mover a…';
-    pie.appendChild(botonMover);
+    if (puedeEditar) pie.appendChild(botonMover);
 
     contenedor.appendChild(pie);
 

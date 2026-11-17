@@ -33,6 +33,17 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
     );
     const sprintActivo = sprintRes?.rows?.[0] || null;
 
+    const historiasRes = sprintActivo
+        ? await consulta(
+            `SELECT h.id, h.numero_hu, h.titulo, e.nombre AS epica_nombre
+             FROM historias h
+             LEFT JOIN epicas e ON e.id = h.epica_id
+             WHERE h.proyecto_id = $1 AND h.sprint_id = $2
+             ORDER BY h.numero_hu NULLS LAST, h.id`,
+            [proyectoId, sprintActivo.id]
+        )
+        : { rows: [] };
+
     const colRes = await consulta(
         `SELECT id, nombre, orden, limite_wip, wip_duro, es_final
          FROM columnas_tablero 
@@ -43,14 +54,24 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
 
     let columnas = colRes?.rows || [];
 
-    // Si la BD responde vacía, se entregan las columnas por defecto
+    // Los proyectos sin configuración necesitan columnas persistentes para poder mover tareas.
     if (columnas.length === 0) {
-        columnas = [
-            { id: 1, nombre: 'Por hacer', orden: 1, limite_wip: 5, wip_duro: false, es_final: false },
-            { id: 2, nombre: 'En progreso', orden: 2, limite_wip: 3, wip_duro: false, es_final: false },
-            { id: 3, nombre: 'En revision', orden: 3, limite_wip: null, wip_duro: false, es_final: false },
-            { id: 4, nombre: 'Hecho', orden: 4, limite_wip: null, wip_duro: false, es_final: true }
-        ];
+        await consulta(
+            `INSERT INTO columnas_tablero (proyecto_id, nombre, orden, limite_wip, wip_duro, es_final)
+             VALUES
+               ($1, 'Por hacer', 1, 5, FALSE, FALSE),
+               ($1, 'En progreso', 2, 3, FALSE, FALSE),
+               ($1, 'En revisión', 3, NULL, FALSE, FALSE),
+               ($1, 'Hecho', 4, NULL, FALSE, TRUE)
+             ON CONFLICT (proyecto_id, nombre) DO NOTHING`,
+            [proyectoId]
+        );
+        const columnasPersistidas = await consulta(
+            `SELECT id, nombre, orden, limite_wip, wip_duro, es_final
+             FROM columnas_tablero WHERE proyecto_id = $1 ORDER BY orden ASC`,
+            [proyectoId]
+        );
+        columnas = columnasPersistidas.rows;
     }
 
     // Se incluye versión, horas estimadas, etiquetas, responsable y épica (HU-19, HU-21, HU-25, HU-59).
@@ -99,6 +120,7 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
     return {
         modo,
         sprint: modo === 'continuo' ? null : (sprintActivo || { nombre: 'Sprint 1', diasRestantes: 7 }),
+        historias: historiasRes.rows,
         columnas,
         tareas
     };

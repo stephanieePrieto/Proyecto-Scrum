@@ -29,6 +29,10 @@
   max-height: 90vh;
 }
 
+dialog.modal-card:not([open]) {
+  display: none;
+}
+
 .modal-header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--borde);

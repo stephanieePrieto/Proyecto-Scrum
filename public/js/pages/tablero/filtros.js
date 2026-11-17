@@ -1,6 +1,6 @@
 /**
  * @file filtros.js
- * @description Filtros del tablero (persona, épica, etiqueta y estado), agrupación en carriles y persistencia
+ * @description Filtros del tablero (Sprint, persona, épica, etiqueta y estado), agrupación en carriles y persistencia
  *              (HU-21). Reemplaza a la versión inicial que vivía en columnas.js (poblarFiltros y
  *              aplicarFiltrosTablero).
  *
@@ -16,6 +16,7 @@
  */
 
 import { api } from '../../core/api.js';
+import { tienePermiso } from '../../core/permisos-ui.js';
 import { renderizarColumnas } from './columnas.js';
 import { renderizarTarjetasEnTablero } from './tarjeta.js';
 import { actualizarContadoresYAlertasWip } from './arrastrar.js';
@@ -50,6 +51,7 @@ const DURACION_SALIDA_MS = 250;
 
 /** Id de cada selector de la barra de filtros. */
 const SELECTORES = Object.freeze({
+  sprint: 'filtro-sprint',
   persona: 'filtro-persona',
   epica: 'filtro-epica',
   etiqueta: 'filtro-etiqueta',
@@ -59,6 +61,7 @@ const SELECTORES = Object.freeze({
 
 /** Primera opción de cada selector (sin filtro). */
 const TEXTO_TODOS = Object.freeze({
+  sprint: 'Sprint: Todos',
   persona: 'Persona: Todas',
   epica: 'Épica: Todas',
   etiqueta: 'Etiqueta: Todas',
@@ -73,6 +76,8 @@ const estado = {
   columnas: [],
   tareas: [],
   miembros: [],
+  sprints: [],
+  sprintActivo: null,
   filtros: { ...FILTROS_VACIOS },
   /** La persona cambió un control antes de que se leyeran los filtros guardados. */
   tocado: false,
@@ -187,7 +192,7 @@ function actualizarContadores() {
 /** Actualiza el resumen, el botón de limpiar y el mensaje de "sin resultados" (criterio 3). */
 function actualizarEstadoFiltros() {
   const activos = hayFiltrosActivos(estado.filtros);
-  const total = estado.tareas.length;
+  const total = filtrarTareas(estado.tareas, { sprint: estado.filtros.sprint }).length;
   const visibles = filtrarTareas(estado.tareas, estado.filtros).length;
 
   const resumen = document.getElementById('filtros-resumen');
@@ -197,7 +202,7 @@ function actualizarEstadoFiltros() {
   if (botonLimpiar) botonLimpiar.disabled = !activos;
 
   const sinResultados = document.getElementById('tablero-sin-resultados');
-  if (sinResultados) sinResultados.hidden = !(activos && total > 0 && visibles === 0);
+  if (sinResultados) sinResultados.hidden = !(activos && estado.tareas.length > 0 && visibles === 0);
 }
 
 /**
@@ -223,11 +228,16 @@ function reflejarFiltrosEnControles() {
 
 /** Construye las opciones de los selectores con los datos actuales y descarta filtros que ya no existen. */
 function poblarControles() {
-  const opciones = construirOpciones(estado.tareas, { columnas: estado.columnas, miembros: estado.miembros });
+  const opciones = construirOpciones(estado.tareas, {
+    columnas: estado.columnas,
+    miembros: estado.miembros,
+    sprints: estado.sprints,
+  });
   const { filtros, descartados } = depurarFiltros(estado.filtros, opciones);
   estado.filtros = filtros;
   if (descartados.length) guardarFiltros();
 
+  llenarSelector('sprint', opciones.sprints);
   llenarSelector('persona', opciones.personas);
   llenarSelector('epica', opciones.epicas);
   llenarSelector('etiqueta', opciones.etiquetas);
@@ -245,6 +255,7 @@ function renderizarVista({ sincronizar = true } = {}) {
   const contenedor = obtenerContenedor();
   if (!contenedor || estado.columnas.length === 0) return;
 
+  actualizarEncabezadoSprint();
   if (sincronizar) sincronizarDesdeDom(contenedor);
   estado.cambiosEnVivo.clear();
 
@@ -261,6 +272,30 @@ function renderizarVista({ sincronizar = true } = {}) {
   }
 
   actualizarEstadoFiltros();
+}
+
+/** Refleja el Sprint elegido en el encabezado, y restaura el Sprint activo al quitar el filtro. */
+function actualizarEncabezadoSprint() {
+  const titulo = document.getElementById('sprint-nombre');
+  const estadoEl = document.getElementById('sprint-estado');
+  const dias = document.getElementById('sprint-dias-restantes');
+  const sprintSeleccionado = estado.filtros.sprint
+    ? estado.sprints.find((sprint) => String(sprint.id) === estado.filtros.sprint)
+    : null;
+
+  if (sprintSeleccionado) {
+    const estados = { activo: 'Activo', planificado: 'Planificado', cerrado: 'Cerrado' };
+    const estadoNombre = estados[sprintSeleccionado.estado] || '';
+    if (titulo) {
+      titulo.textContent = `${sprintSeleccionado.nombre}${estadoNombre ? ` · ${estadoNombre}` : ''}`;
+    }
+    if (estadoEl) estadoEl.hidden = true;
+    if (dias) dias.hidden = true;
+  } else {
+    if (titulo && estado.sprintActivo?.nombre) titulo.textContent = estado.sprintActivo.nombre;
+    if (estadoEl) estadoEl.hidden = false;
+    if (dias) dias.hidden = false;
+  }
 }
 
 /**
@@ -354,9 +389,10 @@ export async function sincronizarConServidor() {
  * @param {CustomEvent} evento
  */
 async function alCargarTablero(evento) {
-  const { columnas, tareas } = evento.detail || {};
+  const { columnas, tareas, sprint } = evento.detail || {};
   estado.columnas = Array.isArray(columnas) ? columnas : [];
   estado.tareas = Array.isArray(tareas) ? tareas.map((t) => ({ ...t })) : [];
+  estado.sprintActivo = sprint || null;
   estado.cambiosEnVivo.clear();
   await estado.preparacion;
   poblarControles();
@@ -426,6 +462,12 @@ async function alCambioEnVivo(evento) {
  * @param {string} nombreDestino
  */
 async function reasignarTarea(tarea, responsableId, nombreDestino) {
+  if (!tienePermiso('tablero.configurar') &&
+      (Number(tarea.responsable_id) !== Number(estado.usuarioId) ||
+        Number(responsableId) !== Number(estado.usuarioId))) {
+    mostrarAviso('Solo puedes asignarte tareas a ti mismo y modificar las que tienes asignadas.', 'error');
+    return;
+  }
   if (!navigator.onLine) {
     mostrarAviso('Sin conexión: la tarea no se reasignó. Intenta de nuevo cuando vuelva la red.', 'error');
     return;
@@ -463,12 +505,18 @@ async function reasignarTarea(tarea, responsableId, nombreDestino) {
  * @param {Promise<Object>} [promesaPermisos] - Respuesta de cargarPermisos (trae usuario_id).
  */
 async function preparar(proyectoId, promesaPermisos) {
-  const [permisos, miembros] = await Promise.all([
+  const [permisos, miembros, sprints] = await Promise.all([
     Promise.resolve(promesaPermisos).catch(() => null),
     api(`/miembros/proyecto/${proyectoId}`).then((r) => r?.miembros ?? []).catch(() => []),
+    api(`/sprints/proyectos/${proyectoId}`).then((r) => r?.sprints ?? []).catch((error) => {
+      console.error('[HU-21] No se pudieron cargar los Sprints del proyecto:', error);
+      mostrarAviso('No se pudieron cargar los Sprints para filtrar el tablero.', 'error');
+      return [];
+    }),
   ]);
   if (permisos?.usuario_id) estado.usuarioId = String(permisos.usuario_id);
   estado.miembros = Array.isArray(miembros) ? miembros : [];
+  estado.sprints = Array.isArray(sprints) ? sprints : [];
   if (!estado.tocado) estado.filtros = leerFiltrosGuardados();
 }
 

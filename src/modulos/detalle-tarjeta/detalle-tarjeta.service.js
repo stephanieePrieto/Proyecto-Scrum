@@ -122,6 +122,9 @@ export async function obtenerDetalle(tareaId) {
             t.version, t.creado_en, t.actualizado_en,
             t.horas_estimadas::float8 AS horas_estimadas,
             (SELECT COALESCE(SUM(r.horas), 0)::float8 FROM registros_horas r WHERE r.tarea_id = t.id) AS horas_reales,
+            (SELECT i.estado FROM impedimentos i
+              WHERE i.tarea_id = t.id
+              ORDER BY (i.estado = 'abierto') DESC, i.id DESC LIMIT 1) AS estado_impedimento,
             h.id AS historia_id, h.titulo AS historia_titulo,
             c.nombre AS columna, COALESCE(c.es_final, FALSE) AS terminada,
             p.umbral_desviacion,
@@ -153,6 +156,7 @@ export async function obtenerDetalle(tareaId) {
       actualizadaEn: f.actualizado_en,
       horasEstimadas: f.horas_estimadas,
       horasReales: f.horas_reales,
+      estadoImpedimento: f.estado_impedimento ?? null,
       // HU-19/HU-33: misma regla y umbral del proyecto que la tarjeta del tablero (tablero.service.js)
       superaUmbral: evaluarUmbral({
         estimadas: f.horas_estimadas, reales: f.horas_reales, umbral: f.umbral_desviacion ?? 20, terminada: f.terminada,

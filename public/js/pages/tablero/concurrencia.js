@@ -8,6 +8,7 @@
  */
 
 import { api } from '../../core/api.js';
+import { tienePermiso, usuarioActualId } from '../../core/permisos-ui.js';
 import {
     obtenerVersionTarjeta,
     obtenerEstadoConfirmadoTarjeta,
@@ -232,21 +233,31 @@ export async function abrirModalEditarTarjeta(tareaId) {
 
     // Poblar selector de responsable tomando las opciones del filtro del tablero
     if (selectResponsable) {
-        const filtroPersona = document.getElementById('filtro-persona');
         selectResponsable.replaceChildren();
-        const opSinAsignar = document.createElement('option');
-        opSinAsignar.value = '';
-        opSinAsignar.textContent = 'Sin asignar';
-        selectResponsable.appendChild(opSinAsignar);
+        if (tienePermiso('tablero.configurar')) {
+            const filtroPersona = document.getElementById('filtro-persona');
+            const opSinAsignar = document.createElement('option');
+            opSinAsignar.value = '';
+            opSinAsignar.textContent = 'Sin asignar';
+            selectResponsable.appendChild(opSinAsignar);
 
-        if (filtroPersona) {
-            Array.from(filtroPersona.options).forEach((op) => {
-                if (!op.value) return;
-                const nuevaOp = document.createElement('option');
-                nuevaOp.value = op.value;
-                nuevaOp.textContent = op.textContent;
-                selectResponsable.appendChild(nuevaOp);
-            });
+            if (filtroPersona) {
+                Array.from(filtroPersona.options).forEach((op) => {
+                    if (!op.value) return;
+                    const nuevaOp = document.createElement('option');
+                    nuevaOp.value = op.value;
+                    nuevaOp.textContent = op.textContent;
+                    selectResponsable.appendChild(nuevaOp);
+                });
+            }
+            selectResponsable.disabled = false;
+        } else {
+            const responsableId = Number(usuarioActualId());
+            const opcionPropia = document.createElement('option');
+            opcionPropia.value = String(responsableId);
+            opcionPropia.textContent = 'Yo';
+            selectResponsable.appendChild(opcionPropia);
+            selectResponsable.disabled = true;
         }
         selectResponsable.value = base.responsable_id ? String(base.responsable_id) : '';
     }

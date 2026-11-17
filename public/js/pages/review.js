@@ -279,12 +279,13 @@ function pintarHistorias() {
  * @returns {void}
  */
 function pintarRol() {
-  const { decideComo, yo } = ctx.datos;
+  const { decideComo, yo, puedeDelegar } = ctx.datos;
   el.insigniaRol.hidden = false;
-  el.insigniaRol.className = `insignia ${decideComo ? 'insignia--primario' : 'insignia--neutro'}`;
+  el.insigniaRol.className = `insignia ${decideComo || puedeDelegar ? 'insignia--primario' : 'insignia--neutro'}`;
   el.insigniaRol.textContent = decideComo === 'product_owner'
     ? 'Decides como Product Owner'
-    : decideComo === 'delegado' ? 'Decides como delegado' : `Solo lectura · ${ETIQUETA_ROL[yo.rol] ?? 'Sin rol'}`;
+    : decideComo === 'delegado' ? 'Decides como delegado'
+      : puedeDelegar ? 'Puedes delegar la aceptación' : `Solo lectura · ${ETIQUETA_ROL[yo.rol] ?? 'Sin rol'}`;
 }
 
 /**

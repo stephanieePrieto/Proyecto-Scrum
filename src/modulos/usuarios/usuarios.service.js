@@ -9,11 +9,12 @@
 import { hashearPassword } from '../../utils/hash.js';
 import { esPasswordFuerte } from '../../utils/validar.js';
 import crypto from 'crypto';
-import { consulta } from '../../config/db.js';
+import { consulta, pool } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { enviarCorreo } from '../../utils/correo.js';
 import { leerPreferencias, normalizarPreferencias } from '../notificaciones/notificaciones.service.js';
+import { exigirAvisoVigente, exigirPasswordVigente } from '../auth/auth.service.js';
 
 /** Valores por defecto de la apariencia y la accesibilidad de la persona. */
 export const PREFERENCIAS_APP_POR_DEFECTO = Object.freeze({ tema: 'claro', textoGrande: false, altoContraste: false, reducirAnimaciones: false });
@@ -90,9 +91,10 @@ export const restablecerPassword = async (tokenPlano, nuevaPassword) => {
  * Define la contraseña de un usuario nuevo (alta directa).
  * @param {string} tokenPlano - Token de recuperación (usado para definir contraseña).
  * @param {string} nuevaPassword - Nueva contraseña.
+ * @param {string} versionAviso - Versión del aviso de privacidad que la persona aceptó.
  * @returns {Promise<void>}
  */
-export const definirPassword = async (tokenPlano, nuevaPassword) => {
+export const definirPassword = async (tokenPlano, nuevaPassword, versionAviso) => {
     const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex');
 
     const { rows } = await consulta(
@@ -108,12 +110,17 @@ export const definirPassword = async (tokenPlano, nuevaPassword) => {
         throw new ErrorApp('El enlace para definir contraseña es inválido o ha expirado.', 400);
     }
 
+    await exigirAvisoVigente(versionAviso);
+
     if (!esPasswordFuerte(nuevaPassword)) {
         throw new ErrorApp('La contraseña no cumple los requisitos de seguridad.', 400);
     }
 
     const passwordHash = await hashearPassword(nuevaPassword);
-    await consulta('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [passwordHash, registroToken.usuario_id]);
+    await consulta(
+        'UPDATE usuarios SET password_hash = $1, version_aviso_privacidad = $3, acepto_privacidad_en = NOW() WHERE id = $2',
+        [passwordHash, registroToken.usuario_id, versionAviso]
+    );
     await consulta('UPDATE tokens_recuperacion SET usado = TRUE WHERE id = $1', [registroToken.id]);
 
     await enviarCorreo({
@@ -428,4 +435,143 @@ export const validarNombreFoto = (archivo) => {
         throw new ErrorApp('La foto no existe.', 404);
     }
     return archivo;
+};
+
+/** Frase fija que la persona escribe para confirmar la eliminación de su cuenta. */
+export const FRASE_ELIMINAR_CUENTA = 'ELIMINAR MI CUENTA';
+
+/** Correo de relleno de una cuenta anonimizada. Usa el identificador para que sea único. */
+const correoAnonimo = (usuarioId) => `eliminado-${usuarioId}@anonimo.invalid`;
+
+/**
+ * Lista los proyectos en los que la persona es Scrum Master o Product Owner, archivados o no.
+ * Esos roles deben transferirse antes de eliminar la cuenta.
+ *
+ * @param {number} usuarioId Identificador de la cuenta.
+ * @param {import('pg').Pool|import('pg').PoolClient} [cliente=pool] Conexión a usar.
+ * @returns {Promise<Array<{proyecto_id: number, nombre: string, rol: string, archivado: boolean}>>}
+ */
+export const rolesPorTransferir = async (usuarioId, cliente = pool) => {
+    const { rows } = await cliente.query(
+        `SELECT p.id AS proyecto_id, p.nombre, mp.rol, p.archivado
+           FROM miembros_proyecto mp
+           JOIN proyectos p ON p.id = mp.proyecto_id
+          WHERE mp.usuario_id = $1 AND mp.rol IN ('scrum_master', 'product_owner')
+          ORDER BY p.nombre`,
+        [usuarioId]
+    );
+    return rows;
+};
+
+/**
+ * Elimina la cuenta de la persona con sesión iniciada. Pide la frase de confirmación y la contraseña, y
+ * no procede si la persona es Scrum Master o Product Owner de algún proyecto.
+ *
+ * La fila de usuarios se conserva para que tareas, horas, comentarios, votos y métricas sigan apuntando a una
+ * cuenta válida. Los datos personales se borran o se reemplazan por valores genéricos en una sola transacción.
+ * La bitácora no se modifica desde aquí.
+ *
+ * @param {number} usuarioId Identificador de la cuenta (req.user.id).
+ * @param {{confirmacion: string, password: string}} datos Frase escrita y contraseña actual.
+ * @returns {Promise<{sids: string[]}>} Sesiones que estaban abiertas, para desconectar sus sockets.
+ * @throws {ErrorApp} 400 si falta la confirmación, 403 si la contraseña no coincide, 409 si hay roles por transferir.
+ */
+export const eliminarCuenta = async (usuarioId, { confirmacion, password }) => {
+    if (confirmacion !== FRASE_ELIMINAR_CUENTA) {
+        throw new ErrorApp(`Escribe exactamente ${FRASE_ELIMINAR_CUENTA} para confirmar.`, 400);
+    }
+    if (typeof password !== 'string' || !password) {
+        throw new ErrorApp('Escribe tu contraseña para confirmar.', 400);
+    }
+
+    await exigirPasswordVigente(usuarioId, password);
+
+    const pendientes = await rolesPorTransferir(usuarioId);
+    if (pendientes.length > 0) {
+        const error = new ErrorApp('Antes de eliminar tu cuenta transfiere tu rol de Scrum Master o Product Owner en los proyectos indicados.', 409);
+        error.detalles = { codigo: 'ROL_PENDIENTE_DE_TRANSFERIR', proyectos: pendientes };
+        throw error;
+    }
+
+    const cliente = await pool.connect();
+    let fotoAnterior = null;
+    let sids = [];
+    try {
+        await cliente.query('BEGIN');
+
+        const { rows: cuentas } = await cliente.query(
+            'SELECT correo, foto_url FROM usuarios WHERE id = $1 AND eliminado_en IS NULL FOR UPDATE',
+            [usuarioId]
+        );
+        if (cuentas.length === 0) {
+            throw new ErrorApp('La cuenta ya no está disponible.', 404);
+        }
+        const correoAnterior = cuentas[0].correo;
+        fotoAnterior = cuentas[0].foto_url;
+
+        const { rows: sesionesAbiertas } = await cliente.query('SELECT id FROM sesiones WHERE usuario_id = $1', [usuarioId]);
+        sids = sesionesAbiertas.map((fila) => fila.id);
+
+        // Datos de acceso, verificación y sesiones: se borran por completo
+        await cliente.query('DELETE FROM sesiones WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM tokens_recuperacion WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM dispositivos_confianza WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM otp_correo WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM codigos_respaldo WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM autenticacion_2fa WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM intentos_2fa_usuario WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM intentos_2fa WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM recuperacion_2fa WHERE usuario_id = $1', [usuarioId]);
+
+        // Datos personales de uso que no sirven para las métricas
+        await cliente.query('DELETE FROM notificaciones WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM temporizadores WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM capacidad_usuarios WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM curso_progreso_lecciones WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM curso_intentos_quizzes WHERE usuario_id = $1', [usuarioId]);
+        await cliente.query('DELETE FROM curso_certificados WHERE usuario_id = $1', [usuarioId]);
+
+        // Las ausencias conservan fechas para la capacidad histórica; el motivo puede ser sensible
+        await cliente.query('UPDATE ausencias SET motivo = NULL WHERE usuario_id = $1', [usuarioId]);
+
+        // Invitaciones dirigidas al correo original: se anonimiza y las pendientes dejan de poder aceptarse
+        await cliente.query(
+            `UPDATE invitaciones
+                SET correo = 'eliminado-inv-' || id || '@anonimo.invalid',
+                    estado = CASE WHEN estado = 'pendiente' THEN 'expirada' ELSE estado END,
+                    expira_en = LEAST(expira_en, NOW())
+              WHERE LOWER(correo) = LOWER($1)`,
+            [correoAnterior]
+        );
+
+        // La fila se conserva: nombre, correo, contraseña, foto y preferencias se reemplazan
+        await cliente.query(
+            `UPDATE usuarios
+                SET nombre = 'Usuario eliminado',
+                    correo = $2,
+                    password_hash = NULL,
+                    activo = FALSE,
+                    eliminado_en = NOW(),
+                    foto_url = NULL,
+                    zona_horaria = NULL,
+                    preferencias_notif = DEFAULT,
+                    preferencias_app = DEFAULT,
+                    intentos_fallidos = 0,
+                    bloqueado_hasta = NULL
+              WHERE id = $1`,
+            [usuarioId, correoAnonimo(usuarioId)]
+        );
+
+        await cliente.query('COMMIT');
+    } catch (error) {
+        await cliente.query('ROLLBACK');
+        throw error;
+    } finally {
+        cliente.release();
+    }
+
+    // La foto se borra después de confirmar la transacción; si falla, la cuenta ya quedó anonimizada
+    await borrarFoto(nombreDeFoto(fotoAnterior));
+
+    return { sids };
 };

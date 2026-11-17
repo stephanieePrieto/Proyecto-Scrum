@@ -10,7 +10,7 @@ import { env } from '../config/env.js';
 import { consulta } from '../config/db.js';
 import { ErrorApp } from '../utils/ErrorApp.js';
 import { asyncHandler } from '../utils/asyncHandler.js'
-import { evaluarSesion, errorDeSesion } from '../modulos/auth/auth.service.js';
+import { evaluarSesion, errorDeSesion, obtenerAvisoVigente } from '../modulos/auth/auth.service.js';
 import { leerCookies, terminarSesion } from '../modulos/auth/auth.controller.js';
 
 /**
@@ -27,7 +27,11 @@ const leerEdadInteraccion = (req) => {
   return segundos <= env.INACTIVIDAD_MINUTOS * 60 ? segundos : null;
 };
 
-export const autenticar = asyncHandler(async (req, res, next) => {
+/**
+ * Verifica la sesión: token vigente, sesión abierta y cuenta activa y no eliminada.
+ * No revisa el aviso de privacidad, por eso lo usan las rutas que permiten aceptarlo.
+ */
+export const autenticarSesion = asyncHandler(async (req, res, next) => {
   const cookies = leerCookies(req);
   let token = cookies.accessToken;
 
@@ -70,8 +74,40 @@ export const autenticar = asyncHandler(async (req, res, next) => {
       : errorDeSesion('Sesión finalizada o token inválido.', 'SESION_CERRADA'));
   }
 
+  // La cuenta se revisa en cada petición: una cuenta desactivada o eliminada pierde el acceso aunque su token siga firmado
+  const { rows: cuentas } = await consulta(
+    'SELECT activo, eliminado_en, version_aviso_privacidad FROM usuarios WHERE id = $1',
+    [decodificado.id]
+  );
+  const cuenta = cuentas[0];
+  if (!cuenta || !cuenta.activo || cuenta.eliminado_en) {
+    await terminarSesion(res, token, cookies.refreshToken);
+    return next(errorDeSesion('Sesión finalizada o token inválido.', 'SESION_CERRADA'));
+  }
+
   req.user = decodificado;
+  req.versionAvisoUsuario = cuenta.version_aviso_privacidad;
   next();
 });
+
+/**
+ * Exige que la cuenta haya aceptado la versión vigente del aviso de privacidad. Si no la aceptó,
+ * responde 403 con el código AVISO_PENDIENTE para que la interfaz lleve a la persona a la página del aviso.
+ */
+const exigirAvisoVigente = asyncHandler(async (req, res, next) => {
+  const vigente = await obtenerAvisoVigente();
+  if (vigente && req.versionAvisoUsuario !== vigente.version) {
+    const error = new ErrorApp('Debes aceptar la versión vigente del aviso de privacidad.', 403);
+    error.detalles = { codigo: 'AVISO_PENDIENTE' };
+    return next(error);
+  }
+  next();
+});
+
+/**
+ * Middleware completo para las rutas protegidas: sesión válida y aviso de privacidad aceptado.
+ * Se exporta como arreglo para que Express ejecute primero la sesión y después el aviso.
+ */
+export const autenticar = [autenticarSesion, exigirAvisoVigente];
 
 export default autenticar;

@@ -12,6 +12,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('form-registro');
     const alerta = document.getElementById('mensaje-alerta');
     const inputPassword = document.getElementById('password');
+    let avisoVigente = null;
+
+    /**
+     * Carga la versión vigente del aviso de privacidad. Sin ella no se puede completar el registro.
+     */
+    const cargarAviso = async () => {
+        try {
+            const respuesta = await api('/auth/aviso-privacidad');
+            avisoVigente = respuesta.aviso;
+        } catch (error) {
+            mostrarAlerta(alerta, 'error', 'No se pudo cargar el aviso de privacidad. Inténtalo más tarde.');
+            formulario.querySelector('button[type="submit"]').disabled = true;
+        }
+    };
+    cargarAviso();
 
     // Elementos de la lista de requisitos
     const reqLongitud = document.getElementById('req-longitud');
@@ -63,6 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = inputPassword.value;
             const confirmarPassword = document.getElementById('confirmar-password').value;
 
+            if (!avisoVigente) {
+                mostrarAlerta(alerta, 'error', 'El aviso de privacidad no está disponible. Inténtalo más tarde.');
+                return;
+            }
+
+            if (!document.getElementById('acepto-aviso').checked) {
+                mostrarAlerta(alerta, 'error', 'Debes aceptar el aviso de privacidad para crear tu cuenta.');
+                return;
+            }
+
             // Validar que las contraseñas coincidan
             if (password !== confirmarPassword) {
                 mostrarAlerta(alerta, 'error', 'Las contraseñas no coinciden.');
@@ -79,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const respuesta = await api('/auth/register', {
                     metodo: 'POST',
-                    cuerpo: { nombre, correo, password }
+                    cuerpo: { nombre, correo, password, aceptoAviso: true, versionAviso: avisoVigente.version }
                 });
 
                 mostrarAlerta(alerta, 'exito', respuesta.mensaje || 'Cuenta creada con éxito. Redirigiendo al inicio de sesión...');
@@ -91,6 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let texto = 'Error al registrar la cuenta. Inténtalo más tarde.';
                 if (error.estado === 400) {
                     texto = error.mensaje || 'Datos inválidos o el correo ya está registrado.';
+                }
+                if (error.estado === 409) {
+                    texto = 'El aviso de privacidad cambió. Recarga la página para revisarlo y aceptarlo.';
                 }
 
                 mostrarAlerta(alerta, 'error', texto);

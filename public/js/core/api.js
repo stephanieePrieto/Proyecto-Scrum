@@ -21,12 +21,16 @@ const INTERVALO_LATIDO_MS = 60 * 1000;
 // Códigos con los que el servidor avisa que la sesión ya terminó y no tiene caso renovarla
 const CODIGOS_SESION_TERMINADA = ['SESION_INACTIVA', 'SESION_CERRADA', 'SESION_INVALIDA'];
 
+// Página del aviso de privacidad para una cuenta que todavía no ha aceptado la versión vigente
+const RUTA_AVISO_PENDIENTE = '/pages/privacidad.html?pendiente=1';
+
 // Gestos de una persona real: los movimientos del ratón y las peticiones automáticas no cuentan
 const EVENTOS_INTERACCION = ['pointerdown', 'keydown', 'touchstart', 'wheel'];
 
 let ultimaInteraccion = Date.now();
 let renovacionEnCurso = null;
 let redirigiendoAlLogin = false;
+let redirigiendoAlAviso = false;
 let latidoIniciado = false;
 
 // Registrar el momento de la última interacción humana en esta pestaña
@@ -53,6 +57,16 @@ function irAlLogin() {
   if (redirigiendoAlLogin || window.location.pathname.endsWith('/login.html')) return;
   redirigiendoAlLogin = true;
   window.location.href = RUTA_LOGIN;
+}
+
+/**
+ * Llevar a la página del aviso una sola vez y nunca desde la propia página del aviso.
+ * @returns {void}
+ */
+function irAlAviso() {
+  if (redirigiendoAlAviso || window.location.pathname.endsWith('/privacidad.html')) return;
+  redirigiendoAlAviso = true;
+  window.location.href = RUTA_AVISO_PENDIENTE;
 }
 
 /**
@@ -160,6 +174,8 @@ export async function api(ruta, { metodo = 'GET', cuerpo, signal } = {}) {
     if (respuesta.status === 403) window.dispatchEvent(new CustomEvent('permisos:rechazado', { detail: { ruta } }));
     // Un 401 que no se pudo resolver significa que la sesión terminó: volver al login
     if (respuesta.status === 401 && !esRutaDeAutenticacion(ruta)) irAlLogin();
+    // Una cuenta que no aceptó la versión vigente del aviso debe hacerlo en su página antes de seguir
+    if (respuesta.status === 403 && cuerpoError?.detalles?.codigo === 'AVISO_PENDIENTE') irAlAviso();
     throw error;
   }
 

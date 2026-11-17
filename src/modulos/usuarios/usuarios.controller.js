@@ -7,6 +7,8 @@
 
 import * as usuariosService from './usuarios.service.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
+import { cerrarSocketsDeSesion } from '../../sockets/index.js';
+import { leerCookies, terminarSesion } from '../auth/auth.controller.js';
 
 /**
  * Procesa la solicitud de recuperación de contraseña.
@@ -50,13 +52,17 @@ export const restablecerPassword = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const definirPasswordController = async (req, res) => {
-    const { token, password } = req.body;
+    const { token, password, aceptoAviso, versionAviso } = req.body;
 
     if (typeof token !== 'string' || typeof password !== 'string') {
         throw new ErrorApp('Token y contraseña son obligatorios.', 400);
     }
 
-    await usuariosService.definirPassword(token, password);
+    if (aceptoAviso !== true) {
+        throw new ErrorApp('Debes aceptar el aviso de privacidad para definir tu contraseña.', 400);
+    }
+
+    await usuariosService.definirPassword(token, password, versionAviso);
     res.status(200).json({ mensaje: 'Contraseña definida correctamente.' });
 };
 
@@ -103,6 +109,23 @@ export const obtenerFoto = async (req, res) => {
             res.status(404).json({ mensaje: 'La foto ya no está disponible.' });
         }
     });
+};
+
+/**
+ * Elimina la cuenta de la persona con sesión iniciada y cierra todas sus sesiones. Antes de responder,
+ * desconecta los sockets de cada sesión y limpia las cookies de la sesión actual.
+ *
+ * @param {import('express').Request} req - Lleva la frase y la contraseña en req.body.
+ * @param {import('express').Response} res
+ */
+export const eliminarCuentaController = async (req, res) => {
+    const { sids } = await usuariosService.eliminarCuenta(req.user.id, req.body ?? {});
+
+    sids.forEach((sid) => cerrarSocketsDeSesion(sid));
+    const cookies = leerCookies(req);
+    await terminarSesion(res, cookies.accessToken, cookies.refreshToken, cookies.token2faTemporal);
+
+    res.status(200).json({ mensaje: 'Tu cuenta fue eliminada. Tus datos personales se borraron y tu historial quedó anonimizado.' });
 };
 
 /**

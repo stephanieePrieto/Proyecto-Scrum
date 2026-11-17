@@ -174,6 +174,37 @@
           </div>
         </div>
 
+        <div id="seccion-cuenta" class="perfil-seccion">
+          <div class="seccion-encabezado">
+            <h2>Cuenta</h2>
+            <p>Elimina tu cuenta y controla tus datos personales</p>
+          </div>
+          <div class="perfil-bloque" id="bloque-eliminar">
+            <h3>Eliminar mi cuenta</h3>
+            <p class="perfil-ayuda">Borraremos tu nombre, correo, contraseña, foto, sesiones y datos de verificación.
+              Tus tareas, horas y comentarios se conservan sin tu identidad, para que las métricas del equipo sigan
+              siendo correctas. La bitácora de auditoría se conserva durante el periodo definido en el aviso de
+              privacidad.</p>
+            <p class="perfil-ayuda">Si eres Scrum Master o Product Owner de algún proyecto, primero debes transferir ese
+              rol.</p>
+            <div id="eliminar-mensaje" class="perfil-mensaje" role="alert" hidden></div>
+            <div id="eliminar-pendientes" hidden></div>
+            <form id="form-eliminar-cuenta" novalidate>
+              <div class="form-group">
+                <label for="eliminar-confirmacion" class="form-label">Escribe <strong>ELIMINAR MI CUENTA</strong> para
+                  confirmar</label>
+                <input type="text" id="eliminar-confirmacion" class="form-input" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label for="eliminar-password" class="form-label">Contraseña actual</label>
+                <input type="password" id="eliminar-password" class="form-input" autocomplete="current-password">
+              </div>
+              <button type="submit" class="boton boton--peligro boton--bloque" id="btn-eliminar-cuenta"
+                disabled>Eliminar mi cuenta</button>
+            </form>
+          </div>
+        </div>
+
         <div id="seccion-preferencias" class="perfil-seccion">
           <div class="seccion-encabezado">
             <h2>Preferencias</h2>
@@ -185,25 +216,31 @@
               <p class="perfil-ayuda">Elige el tema de la aplicación. Por defecto se usa el claro.</p>
               <fieldset class="perfil-opciones">
                 <legend class="solo-lectores">Tema</legend>
-                <label class="perfil-opcion"><input type="radio" name="tema-app" id="apariencia-claro" value="claro" checked> Claro</label>
-                <label class="perfil-opcion"><input type="radio" name="tema-app" id="apariencia-oscuro" value="oscuro"> Oscuro</label>
+                <label class="perfil-opcion"><input type="radio" name="tema-app" id="apariencia-claro" value="claro"
+                    checked> Claro</label>
+                <label class="perfil-opcion"><input type="radio" name="tema-app" id="apariencia-oscuro" value="oscuro">
+                  Oscuro</label>
               </fieldset>
               <div class="perfil-foto__acciones">
-                <button type="button" class="boton boton--primario" id="btn-guardar-apariencia" disabled>Guardar apariencia</button>
+                <button type="button" class="boton boton--primario" id="btn-guardar-apariencia" disabled>Guardar
+                  apariencia</button>
               </div>
               <div id="apariencia-mensaje" class="perfil-mensaje" role="status" hidden></div>
             </div>
 
             <div class="perfil-bloque" id="bloque-accesibilidad">
               <h3 class="perfil-bloque__titulo">Accesibilidad</h3>
-              <p class="perfil-ayuda">Ajustes para leer y navegar con más comodidad. Se aplican en todas las páginas.</p>
+              <p class="perfil-ayuda">Ajustes para leer y navegar con más comodidad. Se aplican en todas las páginas.
+              </p>
               <div class="perfil-opciones">
                 <label class="perfil-opcion"><input type="checkbox" id="acc-texto-grande"> Texto más grande</label>
                 <label class="perfil-opcion"><input type="checkbox" id="acc-alto-contraste"> Alto contraste</label>
-                <label class="perfil-opcion"><input type="checkbox" id="acc-reducir-animaciones"> Reducir animaciones y transiciones</label>
+                <label class="perfil-opcion"><input type="checkbox" id="acc-reducir-animaciones"> Reducir animaciones y
+                  transiciones</label>
               </div>
               <div class="perfil-foto__acciones">
-                <button type="button" class="boton boton--primario" id="btn-guardar-accesibilidad" disabled>Guardar accesibilidad</button>
+                <button type="button" class="boton boton--primario" id="btn-guardar-accesibilidad" disabled>Guardar
+                  accesibilidad</button>
               </div>
               <div id="accesibilidad-mensaje" class="perfil-mensaje" role="status" hidden></div>
             </div>
@@ -261,6 +298,18 @@
                   <path d="M8 11a2 2 0 0 1 2 2" />
                 </svg>
                 Preferencias
+              </a>
+            </li>
+            <li>
+              <a href="#cuenta" class="perfil-enlace" data-seccion="cuenta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 3v3" />
+                  <path d="M5.6 6.6l2.1 2.1" />
+                  <path d="M18.4 6.6l-2.1 2.1" />
+                  <path d="M4 14h16" />
+                  <path d="M6 14v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" />
+                </svg>
+                Cuenta
               </a>
             </li>
           </ul>

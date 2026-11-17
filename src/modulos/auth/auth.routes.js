@@ -7,9 +7,9 @@
  */
 
 import { Router } from 'express';
-import { login, logout, renovarToken, latido, register, verificar2FA, solicitarCodigoOtp, verificarCodigoOtp } from './auth.controller.js';
+import { login, logout, renovarToken, latido, register, verificar2FA, solicitarCodigoOtp, verificarCodigoOtp, obtenerAvisoPrivacidad, aceptarAvisoPrivacidad } from './auth.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { autenticar } from '../../middlewares/autenticar.js';
+import { autenticar, autenticarSesion } from '../../middlewares/autenticar.js';
 
 const router = Router();
 
@@ -19,6 +19,10 @@ router.post('/register', asyncHandler(register));
 router.post('/logout', asyncHandler(logout));
 router.post('/refresh', asyncHandler(renovarToken));
 router.post('/actividad', autenticar, asyncHandler(latido));
+
+// Aviso de privacidad: la versión vigente es pública; aceptarla solo requiere sesión, sin exigir el aviso
+router.get('/aviso-privacidad', asyncHandler(obtenerAvisoPrivacidad));
+router.post('/aviso-privacidad/aceptar', autenticarSesion, asyncHandler(aceptarAvisoPrivacidad));
 
 router.get('/latido', autenticar, latido);
 

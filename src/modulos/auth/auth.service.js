@@ -369,10 +369,12 @@ export const renovarSesion = async (refreshToken) => {
  * @param {string} nombre Nombre del usuario.
  * @param {string} correo Correo electrónico único.
  * @param {string} password Contraseña en texto plano.
+ * @param {string} versionAviso Versión del aviso de privacidad que la persona aceptó.
  * @returns {Promise<Object>} Datos básicos del usuario creado.
  */
-export const registrarUsuario = async (nombre, correo, password) => {
+export const registrarUsuario = async (nombre, correo, password, versionAviso) => {
     const correoLimpio = correo.trim().toLowerCase();
+    await exigirAvisoVigente(versionAviso);
 
     // Validación de seguridad de contraseña en servidor (Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número)
     const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
@@ -391,10 +393,10 @@ export const registrarUsuario = async (nombre, correo, password) => {
 
     // Insertar el nuevo usuario
     const { rows } = await consulta(
-        `INSERT INTO usuarios (nombre, correo, password_hash, activo) 
-         VALUES ($1, $2, $3, true) 
+        `INSERT INTO usuarios (nombre, correo, password_hash, activo, version_aviso_privacidad, acepto_privacidad_en)
+         VALUES ($1, $2, $3, true, $4, NOW())
          RETURNING id, nombre, correo`,
-        [nombre.trim(), correoLimpio, passwordHash]
+        [nombre.trim(), correoLimpio, passwordHash, versionAviso]
     );
 
     const usuarioCreado = rows[0];
@@ -420,6 +422,59 @@ export const registrarUsuario = async (nombre, correo, password) => {
     }
 
     return usuarioCreado;
+};
+
+/**
+ * Obtiene la versión del aviso de privacidad vigente, la publicada más recientemente.
+ *
+ * @returns {Promise<{version: string, contenido: string, publicado_en: Date}|null>} Null si todavía no hay ninguna versión publicada.
+ */
+export const obtenerAvisoVigente = async () => {
+    const { rows } = await consulta(
+        'SELECT version, contenido, publicado_en FROM avisos_privacidad ORDER BY publicado_en DESC, version DESC LIMIT 1',
+        []
+    );
+    return rows[0] ?? null;
+};
+
+/**
+ * Comprueba que la versión recibida sea la vigente. Evita que alguien acepte una versión que ya fue reemplazada.
+ *
+ * @param {string} version Versión que la persona dice haber aceptado.
+ * @returns {Promise<{version: string, contenido: string, publicado_en: Date}>} La versión vigente.
+ * @throws {ErrorApp} 503 si no hay aviso publicado, 409 si la versión recibida ya no es la vigente.
+ */
+export const exigirAvisoVigente = async (version) => {
+    const vigente = await obtenerAvisoVigente();
+    if (!vigente) {
+        throw new ErrorApp('El aviso de privacidad no está disponible en este momento.', 503);
+    }
+    if (typeof version !== 'string' || version !== vigente.version) {
+        const error = new ErrorApp('El aviso de privacidad cambió. Revísalo y acéptalo de nuevo.', 409);
+        error.detalles = { codigo: 'AVISO_CAMBIADO' };
+        throw error;
+    }
+    return vigente;
+};
+
+/**
+ * Registra la aceptación de la versión vigente del aviso para una cuenta con sesión iniciada.
+ *
+ * @param {number} usuarioId Identificador de la cuenta.
+ * @param {string} version Versión que la persona acepta.
+ * @returns {Promise<void>}
+ * @throws {ErrorApp} 404 si la cuenta está desactivada o eliminada.
+ */
+export const aceptarAvisoPrivacidad = async (usuarioId, version) => {
+    await exigirAvisoVigente(version);
+    const resultado = await consulta(
+        `UPDATE usuarios SET version_aviso_privacidad = $1, acepto_privacidad_en = NOW()
+         WHERE id = $2 AND activo = TRUE AND eliminado_en IS NULL`,
+        [version, usuarioId]
+    );
+    if (resultado.rowCount === 0) {
+        throw new ErrorApp('La cuenta no está disponible.', 404);
+    }
 };
 
 /**

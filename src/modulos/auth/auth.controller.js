@@ -197,15 +197,51 @@ export const latido = (req, res) => {
     res.status(204).end();
 };
 
+/**
+ * Entrega la versión vigente del aviso de privacidad. No requiere sesión: también la leen las personas
+ * que todavía no tienen cuenta.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const obtenerAvisoPrivacidad = async (req, res) => {
+    const aviso = await authService.obtenerAvisoVigente();
+    if (!aviso) {
+        throw new ErrorApp('El aviso de privacidad no está disponible en este momento.', 404);
+    }
+
+    res.status(200).json({ aviso });
+};
+
+/**
+ * Registra la aceptación de la versión vigente del aviso para la persona con sesión iniciada.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const aceptarAvisoPrivacidad = async (req, res) => {
+    const { version } = req.body ?? {};
+    if (typeof version !== 'string') {
+        throw new ErrorApp('La versión del aviso es obligatoria.', 400);
+    }
+
+    await authService.aceptarAvisoPrivacidad(req.user.id, version);
+    res.status(200).json({ mensaje: 'Aviso de privacidad aceptado.' });
+};
+
 export const register = async (req, res) => {
-    const { nombre, correo, password } = req.body ?? {};
+    const { nombre, correo, password, aceptoAviso, versionAviso } = req.body ?? {};
 
     if (typeof nombre !== 'string' || typeof correo !== 'string' || typeof password !== 'string' ||
         !nombre.trim() || !correo.trim() || !password.trim()) {
         throw new ErrorApp('Nombre, correo y contraseña son obligatorios y deben ser válidos.', 400);
     }
 
-    const nuevoUsuario = await authService.registrarUsuario(nombre, correo, password);
+    if (aceptoAviso !== true) {
+        throw new ErrorApp('Debes aceptar el aviso de privacidad para crear tu cuenta.', 400);
+    }
+
+    const nuevoUsuario = await authService.registrarUsuario(nombre, correo, password, versionAviso);
 
     res.status(201).json({
         mensaje: 'Cuenta creada exitosamente. Ahora puedes iniciar sesión.',

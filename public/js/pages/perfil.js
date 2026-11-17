@@ -9,6 +9,12 @@
 import { api } from '../core/api.js';
 import { escaparHtml, esZonaHorariaValida, detectarZonaNavegador, conZonaHoraria } from '../core/utils.js';
 
+/** Frase que la persona debe escribir para eliminar su cuenta. Debe coincidir con el servidor. */
+const FRASE_ELIMINAR_CUENTA = 'ELIMINAR MI CUENTA';
+
+/** Página donde se transfieren los roles de Scrum Master y Product Owner. Confirmar la ruta exacta. */
+const RUTA_GESTION_MIEMBROS = '/pages/configuracion-proyecto.html';
+
 // Funciones temporales para que el sistema no colapse al mostrar notificaciones
 function mostrarAviso(mensaje, tipo = 'info') {
   alert(mensaje);
@@ -1427,6 +1433,88 @@ async function listarDispositivosConfianza() {
 }
 
 /**
+ * Activa el botón de eliminar solo cuando la frase y la contraseña están escritas.
+ */
+function actualizarBotonEliminar() {
+  const frase = document.getElementById('eliminar-confirmacion')?.value ?? '';
+  const password = document.getElementById('eliminar-password')?.value ?? '';
+  const boton = document.getElementById('btn-eliminar-cuenta');
+  if (boton) boton.disabled = frase !== FRASE_ELIMINAR_CUENTA || !password;
+}
+
+/**
+ * Muestra los proyectos en los que la persona debe transferir su rol antes de eliminar la cuenta.
+ * Los nombres se escriben con textContent para no interpretar HTML.
+ *
+ * @param {Array<{proyecto_id: number, nombre: string, rol: string}>} proyectos
+ */
+function mostrarRolesPorTransferir(proyectos) {
+  const contenedor = document.getElementById('eliminar-pendientes');
+  contenedor.replaceChildren();
+
+  const titulo = document.createElement('p');
+  titulo.textContent = 'Transfiere tu rol en estos proyectos y vuelve a intentarlo:';
+  contenedor.appendChild(titulo);
+
+  const lista = document.createElement('ul');
+  proyectos.forEach((proyecto) => {
+    const elemento = document.createElement('li');
+    const rol = proyecto.rol === 'scrum_master' ? 'Scrum Master' : 'Product Owner';
+    elemento.textContent = `${proyecto.nombre} (${rol})`;
+    lista.appendChild(elemento);
+  });
+  contenedor.appendChild(lista);
+
+  const enlace = document.createElement('a');
+  enlace.href = RUTA_GESTION_MIEMBROS;
+  enlace.className = 'enlace';
+  enlace.textContent = 'Ir a la gestión de miembros';
+  contenedor.appendChild(enlace);
+
+  contenedor.hidden = false;
+}
+
+/**
+ * Configura el flujo para eliminar la cuenta: confirmación, contraseña y llamada al servidor.
+ * Al terminar, el servidor ya cerró la sesión y limpió las cookies; se lleva a la persona al login.
+ */
+function configurarEliminarCuenta() {
+  const formulario = document.getElementById('form-eliminar-cuenta');
+  if (!formulario) return;
+
+  document.getElementById('eliminar-confirmacion').addEventListener('input', actualizarBotonEliminar);
+  document.getElementById('eliminar-password').addEventListener('input', actualizarBotonEliminar);
+
+  formulario.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const boton = document.getElementById('btn-eliminar-cuenta');
+    const mensaje = document.getElementById('eliminar-mensaje');
+    boton.disabled = true;
+    mensaje.hidden = true;
+    document.getElementById('eliminar-pendientes').hidden = true;
+
+    try {
+      await api('/usuarios/yo/eliminar', {
+        metodo: 'POST',
+        cuerpo: {
+          confirmacion: document.getElementById('eliminar-confirmacion').value,
+          password: document.getElementById('eliminar-password').value
+        }
+      });
+      window.location.href = '/pages/login.html';
+    } catch (error) {
+      const codigo = error.cuerpo?.detalles?.codigo;
+      if (codigo === 'ROL_PENDIENTE_DE_TRANSFERIR') {
+        mostrarRolesPorTransferir(error.cuerpo.detalles.proyectos);
+      }
+      mensaje.textContent = mensajeDeError(error, 'No se pudo eliminar la cuenta. Inténtalo de nuevo.');
+      mensaje.hidden = false;
+      actualizarBotonEliminar();
+    }
+  });
+}
+
+/**
  * Inicializar el perfil al cargar la pagina.
  */
 function init() {
@@ -1437,6 +1525,7 @@ function init() {
   configurarPreferenciasApp();
   configurarNavegacion();
   configurarModalRespaldo();
+  configurarEliminarCuenta();
 }
 
 // Inicializar cuando el DOM este listo

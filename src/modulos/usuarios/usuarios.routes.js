@@ -7,9 +7,9 @@
  */
 
 import { Router } from 'express';
-import { solicitarRecuperacion, restablecerPassword, definirPasswordController, obtenerPerfil, actualizarFoto, obtenerFoto, actualizarZonaHoraria, actualizarPreferenciasNotificacion, actualizarPreferenciasApp } from './usuarios.controller.js';
+import { solicitarRecuperacion, restablecerPassword, definirPasswordController, obtenerPerfil, actualizarFoto, obtenerFoto, actualizarZonaHoraria, actualizarPreferenciasNotificacion, actualizarPreferenciasApp, eliminarCuentaController } from './usuarios.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { autenticar } from '../../middlewares/autenticar.js';
+import { autenticar, autenticarSesion } from '../../middlewares/autenticar.js';
 import * as authService from '../auth/auth.service.js';
 import * as recuperacionService from '../recuperacion/recuperacion.service.js';
 import { env } from '../../config/env.js';
@@ -91,6 +91,11 @@ router.put('/yo/preferencias-notificacion', autenticar, asyncHandler(actualizarP
  * Guarda las preferencias de apariencia y accesibilidad de la persona con la sesión iniciada.
  */
 router.put('/yo/preferencias-aplicacion', autenticar, asyncHandler(actualizarPreferenciasApp));
+
+/**
+ * Elimina la cuenta. Usa autenticarSesion y no autenticar: la persona puede eliminar su cuenta aunque aún no haya aceptado el aviso.
+ */
+router.post('/yo/eliminar', autenticarSesion, asyncHandler(eliminarCuentaController));
 
 /**
  * Obtiene el estado de 2FA del usuario.

@@ -460,7 +460,7 @@ export async function obtenerAvance(proyectoId, sprintId = null, usuarioId) {
     consultar(
       `SELECT u.id AS usuario_id, u.nombre, mp.rol
          FROM miembros_proyecto mp
-         JOIN usuarios u ON u.id = mp.usuario_id AND u.activo = TRUE
+         JOIN usuarios u ON u.id = mp.usuario_id AND (u.activo = TRUE OR u.eliminado_en IS NOT NULL)
          JOIN proyectos p ON p.id = mp.proyecto_id
          JOIN miembros_equipo me ON me.equipo_id = p.equipo_id AND me.usuario_id = mp.usuario_id
         WHERE mp.proyecto_id = $1`,

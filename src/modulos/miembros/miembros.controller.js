@@ -46,6 +46,10 @@ export const asignarRol = asyncHandler(async (req, res) => {
  * @param {import('express').Request} req - Petición con proyectoId y usuarioId en la ruta.
  * @param {import('express').Response} res - Respuesta JSON con el resultado y la matriz actualizada.
  */
+export const transferirRol = asyncHandler(async (req, res) => {
+    res.json(await servicio.transferirRol(req.params.proyectoId, req.body, req.user));
+});
+
 export const quitarRol = asyncHandler(async (req, res) => {
     const confirmar = req.body?.confirmar === true || req.query?.confirmar === 'true';
     res.json(await servicio.quitarRol(req.params.proyectoId, req.params.usuarioId, { confirmar }, req.user));

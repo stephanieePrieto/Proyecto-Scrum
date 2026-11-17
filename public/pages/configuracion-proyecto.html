@@ -102,6 +102,17 @@
       </div>
     </form>
 
+    <section class="tarjeta" id="zona-transferir" style="max-width: 820px; margin: 24px auto 0;" hidden>
+      <h2 class="eq-dialogo__titulo">Transferir mi rol</h2>
+      <p class="subtitulo-pagina">Transfiere tu rol de Scrum Master o Product Owner a una persona del equipo. El cambio es inmediato: el proyecto nunca queda sin ese rol.</p>
+      <div class="form-group">
+        <label class="form-label" for="transferir-destino">Nueva persona</label>
+        <select class="form-select" id="transferir-destino"></select>
+      </div>
+      <p class="mensaje--error" id="error-transferir" hidden></p>
+      <button class="boton boton--primario" type="button" id="transferir-confirmar">Transferir rol</button>
+    </section>
+
     <section class="tarjeta"
       style="max-width: 820px; margin: 24px auto 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;"
       id="zona-archivar" hidden>

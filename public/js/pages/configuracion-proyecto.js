@@ -160,6 +160,7 @@ async function iniciar() {
       }
       $('zona-archivar').hidden = false;
       mostrarModo(proyecto);
+      cargarTransferencia().catch(() => { /* sin rol que transferir: la sección queda oculta */ });
     } else {
       await cargarEquipos();
     }
@@ -324,6 +325,52 @@ $('cambiar-modo').addEventListener('click', () => abrirAsistenteModo({
     avisar(`Listo: el proyecto ahora trabaja en ${(NOMBRES_MODO[resultado.modo] || resultado.modo).toLowerCase()}.`, 'exito');
   },
 }));
+
+// ---------- Transferir mi rol (Scrum Master o Product Owner) ----------
+
+/**
+ * Muestra la sección de transferencia solo a quien tiene rol de Scrum Master o Product Owner en el proyecto,
+ * con las personas del equipo que pueden recibirlo.
+ */
+async function cargarTransferencia() {
+  const permisos = await llamar(`/miembros/proyecto/${encodeURIComponent(id)}/mis-permisos`);
+  if (!permisos.ok || !['scrum_master', 'product_owner'].includes(permisos.datos.rol)) return;
+
+  const matriz = await llamar(`/miembros/proyecto/${encodeURIComponent(id)}`);
+  if (!matriz.ok) return;
+
+  const select = $('transferir-destino');
+  select.replaceChildren();
+  (matriz.datos.candidatos_transferencia ?? []).forEach((persona) => {
+    const opcion = document.createElement('option');
+    opcion.value = persona.id;
+    opcion.textContent = persona.rol ? `${persona.nombre} (Developer)` : persona.nombre;
+    select.appendChild(opcion);
+  });
+  $('transferir-confirmar').disabled = select.options.length === 0;
+  $('zona-transferir').hidden = false;
+}
+
+$('transferir-confirmar').addEventListener('click', async () => {
+  const destino = $('transferir-destino').value;
+  $('error-transferir').hidden = true;
+  if (!destino) return;
+  if (!window.confirm('¿Transferir tu rol a la persona seleccionada? Dejarás de tener ese rol en este proyecto.')) return;
+
+  $('transferir-confirmar').disabled = true;
+  const res = await llamar(`/miembros/proyecto/${encodeURIComponent(id)}/transferir`, {
+    metodo: 'POST',
+    cuerpo: { destino_usuario_id: Number(destino) },
+  });
+  if (res.ok) {
+    $('zona-transferir').hidden = true;
+    avisar('Transferiste tu rol. El proyecto mantiene su Scrum Master o Product Owner.', 'exito');
+    return;
+  }
+  $('error-transferir').textContent = res.datos?.mensaje || 'No se pudo transferir el rol. Inténtalo de nuevo.';
+  $('error-transferir').hidden = false;
+  $('transferir-confirmar').disabled = false;
+});
 
 // ---------- Archivar ----------
 

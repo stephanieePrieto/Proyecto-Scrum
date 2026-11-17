@@ -10,7 +10,7 @@
 import { Router } from 'express';
 import autenticar from '../../middlewares/autenticar.js';
 import { requierePermiso } from '../../middlewares/requiereRol.js';
-import { listar, misPermisos, asignarRol, quitarRol } from './miembros.controller.js';
+import { listar, misPermisos, asignarRol, quitarRol, transferirRol } from './miembros.controller.js';
 import { obtenerRolProyecto, puedeGestionarProyecto, puedeVerEquipo } from '../../utils/permisos.js';
 
 const router = Router();
@@ -28,5 +28,8 @@ router.put('/proyecto/:proyectoId/usuario/:usuarioId', asignarRol);
 
 /** Retira el rol de una persona en el proyecto. */
 router.delete('/proyecto/:proyectoId/usuario/:usuarioId', quitarRol);
+
+/** Transfiere el rol de Scrum Master o Product Owner de la persona autenticada a otra del equipo. */
+router.post('/proyecto/:proyectoId/transferir', transferirRol);
 
 export default router;

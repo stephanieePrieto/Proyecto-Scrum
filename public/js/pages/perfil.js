@@ -12,7 +12,7 @@ import { escaparHtml, esZonaHorariaValida, detectarZonaNavegador, conZonaHoraria
 /** Frase que la persona debe escribir para eliminar su cuenta. Debe coincidir con el servidor. */
 const FRASE_ELIMINAR_CUENTA = 'ELIMINAR MI CUENTA';
 
-/** Página donde se transfieren los roles de Scrum Master y Product Owner. Confirmar la ruta exacta. */
+/** Página donde la persona transfiere su rol de Scrum Master o Product Owner en cada proyecto. */
 const RUTA_GESTION_MIEMBROS = '/pages/configuracion-proyecto.html';
 
 // Funciones temporales para que el sistema no colapse al mostrar notificaciones
@@ -21,7 +21,7 @@ function mostrarAviso(mensaje, tipo = 'info') {
 }
 
 function mostrarError(mensaje) {
-  alert(mensaje);
+  alert('Error: ' + mensaje);
 }
 
 /**
@@ -1020,7 +1020,7 @@ function configurarEventosSeguridad() {
           estado2FA.habilitado = true;
         } catch (error) {
           e.target.checked = false;
-          mostrarError(mensajeDeError(error, 'No se pudo activar el 2FA. Inténtalo de nuevo.'));
+          mostrarError(mensajeDeError(error, 'Error al activar el 2FA.'));
         }
       } else {
         const password = prompt('Ingresa tu contraseña para desactivar el 2FA:');
@@ -1031,7 +1031,7 @@ function configurarEventosSeguridad() {
           estado2FA.habilitado = false;
         } catch (error) {
           e.target.checked = true;
-          mostrarError(mensajeDeError(error, 'No se pudo desactivar el 2FA. Inténtalo de nuevo.'));
+          mostrarError(mensajeDeError(error, 'Error al desactivar el 2FA.'));
         }
       }
     });
@@ -1056,7 +1056,7 @@ function configurarEventosSeguridad() {
         estado2FA.metodos.totp.activado = false;
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'No se pudo desactivar Google Authenticator. Inténtalo de nuevo.'));
+        mostrarError(mensajeDeError(error, 'Error al desactivar Google Authenticator.'));
       }
     });
   }
@@ -1077,7 +1077,7 @@ function configurarEventosSeguridad() {
         cargarSeccionSeguridad();
         avisarActivacionDeMetodo(resultado, 'Código por correo activado correctamente. Recibirás un código en tu próxima autenticación.');
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'No se pudo activar código por correo. Inténtalo de nuevo.'));
+        mostrarError(mensajeDeError(error, 'Error al activar código por correo.'));
       }
     });
   }
@@ -1095,7 +1095,7 @@ function configurarEventosSeguridad() {
         estado2FA.metodos.correo.activado = false;
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'No se pudo desactivar código por correo. Inténtalo de nuevo.'));
+        mostrarError(mensajeDeError(error, 'Error al desactivar código por correo.'));
       }
     });
   }
@@ -1130,7 +1130,7 @@ function configurarEventosSeguridad() {
         estado2FA.dispositivosConfianza = 0;
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'No se pudo revocar dispositivos. Inténtalo de nuevo.'));
+        mostrarError(mensajeDeError(error, 'Error al revocar dispositivos.'));
       }
     });
   }
@@ -1145,7 +1145,7 @@ function configurarEventosSeguridad() {
         mostrarAviso('Recuperación cancelada correctamente. Tu cuenta está segura.', 'exito');
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'No se pudo cancelar la recuperación. Inténtalo de nuevo.'));
+        mostrarError(mensajeDeError(error, 'Error al cancelar la recuperación.'));
       }
     });
   }
@@ -1359,7 +1359,7 @@ async function iniciarConfiguracionTotp() {
       }
     }
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'No se pudo iniciar configuración de Google Authenticator. Inténtalo de nuevo.'));
+    mostrarError(mensajeDeError(error, 'Error al iniciar configuración de Google Authenticator.'));
   }
 }
 
@@ -1394,7 +1394,7 @@ async function generarCodigosRespaldo() {
     mostrarAviso('Códigos de respaldo generados correctamente. Guárdalos en un lugar seguro.', 'exito');
 
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'No se pudo generar códigos de respaldo. Inténtalo de nuevo.'));
+    mostrarError(mensajeDeError(error, 'Error al generar códigos de respaldo.'));
   }
 }
 
@@ -1412,7 +1412,7 @@ async function registrarDispositivoConfianza() {
     cargarSeccionSeguridad();
 
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'No se pudo registrar dispositivo de confianza. Inténtalo de nuevo.'));
+    mostrarError(mensajeDeError(error, 'Error al registrar dispositivo de confianza.'));
   }
 }
 
@@ -1428,7 +1428,7 @@ async function listarDispositivosConfianza() {
     alert(`Dispositivos de confianza:\n\n${mensaje}`);
 
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'No se pudo obtener dispositivos de confianza. Inténtalo de nuevo.'));
+    mostrarError(mensajeDeError(error, 'Error al obtener dispositivos de confianza.'));
   }
 }
 
@@ -1460,16 +1460,17 @@ function mostrarRolesPorTransferir(proyectos) {
   proyectos.forEach((proyecto) => {
     const elemento = document.createElement('li');
     const rol = proyecto.rol === 'scrum_master' ? 'Scrum Master' : 'Product Owner';
-    elemento.textContent = `${proyecto.nombre} (${rol})`;
+    elemento.textContent = `${proyecto.nombre} (${rol}) · `;
+
+    const enlace = document.createElement('a');
+    enlace.href = `${RUTA_GESTION_MIEMBROS}?id=${encodeURIComponent(proyecto.proyecto_id)}`;
+    enlace.className = 'enlace';
+    enlace.textContent = 'Transferir rol';
+    elemento.appendChild(enlace);
+
     lista.appendChild(elemento);
   });
   contenedor.appendChild(lista);
-
-  const enlace = document.createElement('a');
-  enlace.href = RUTA_GESTION_MIEMBROS;
-  enlace.className = 'enlace';
-  enlace.textContent = 'Ir a la gestión de miembros';
-  contenedor.appendChild(enlace);
 
   contenedor.hidden = false;
 }

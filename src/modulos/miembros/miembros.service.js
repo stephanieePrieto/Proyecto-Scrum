@@ -297,6 +297,33 @@ export async function exigirScrumMaster(proyectoId, cliente = pool) {
 /* Consulta de la matriz de roles */
 
 /**
+ * Personas del equipo a quienes puede transferir su rol una persona con rol de Scrum Master o Product Owner:
+ * integrantes activos sin rol o con rol de Developer. Quien no tiene ese rol recibe una lista vacía.
+ *
+ * @param {{id: number, equipo_id: number}} proyecto - Proyecto consultado.
+ * @param {{id: number}} usuario - Usuario autenticado.
+ * @param {Array<{usuario_id: number, rol: string}>} miembros - Matriz actual del proyecto.
+ * @returns {Promise<Array<{id: number, nombre: string, correo: string, rol: string|null}>>}
+ */
+async function candidatosDeTransferencia(proyecto, usuario, miembros) {
+    const tieneRolQueTransferir = miembros.some(
+        (m) => m.usuario_id === usuario.id && (m.rol === 'scrum_master' || m.rol === 'product_owner'),
+    );
+    if (!tieneRolQueTransferir) return [];
+    const { rows } = await query(
+        `SELECT u.id, u.nombre, u.correo, mp.rol
+           FROM miembros_equipo me
+           JOIN usuarios u ON u.id = me.usuario_id
+           LEFT JOIN miembros_proyecto mp ON mp.proyecto_id = $2 AND mp.usuario_id = u.id
+          WHERE me.equipo_id = $1 AND u.activo = TRUE AND u.id <> $3
+            AND (mp.rol IS NULL OR mp.rol = 'developer')
+          ORDER BY LOWER(u.nombre)`,
+        [proyecto.equipo_id, proyecto.id, usuario.id],
+    );
+    return rows;
+}
+
+/**
  * Arma la matriz de roles del proyecto: integrantes agrupados por rol, personas del equipo que
  * todavía no participan y el estado de los roles clave.
  *
@@ -329,6 +356,7 @@ async function armarMatriz(proyecto, usuario) {
         miembros,
         matriz,
         candidatos,
+        candidatos_transferencia: await candidatosDeTransferencia(proyecto, usuario, miembros),
         etiquetas: ETIQUETA_ROL,
         sin_scrum_master: !matriz.scrum_master.some((m) => m.activo),
         sin_product_owner: matriz.product_owner.length === 0,
@@ -585,5 +613,77 @@ export async function quitarRol(proyectoId, usuarioId, datos = {}, usuario) {
         rol_nuevo: null,
         advertencias: advertenciasDe(cambio.sinScrumMaster),
         roles: await listar(ids.proyectoId, usuario),
+    };
+}
+
+
+/**
+ * Transfiere el rol de Scrum Master o Product Owner de la persona autenticada a otra persona del equipo.
+ * Es una sola transacción: la persona que deja el rol pierde su participación y la que lo recibe la
+ * obtiene en el mismo instante, de modo que el proyecto nunca queda sin ese rol para otros usuarios.
+ *
+ * Solo la persona que tiene el rol puede transferirlo. Se permite también en proyectos archivados,
+ * porque un proyecto archivado con un único SM o PO bloquea la eliminación de su cuenta (decisión 15).
+ * La persona que recibe el rol no puede tener ya un rol de SM o PO; si es Developer, su rol se reemplaza.
+ *
+ * @param {number} proyectoId - Identificador del proyecto.
+ * @param {{destino_usuario_id: number}} datos - Persona que recibe el rol.
+ * @param {{id: number}} usuario - Usuario autenticado, quien tiene el rol que se transfiere.
+ * @returns {Promise<{ok: boolean, transferido: boolean, rol: string, destino_usuario_id: number, roles: Object}>}
+ * @throws {ErrorApp} 409 si no tiene rol que transferir, si la persona destino ya tiene un rol de SM o PO,
+ * o si no pertenece al equipo del proyecto.
+ */
+export async function transferirRol(proyectoId, datos = {}, usuario) {
+    const id = validarProyectoId(proyectoId);
+    const destinoId = aEntero(datos?.destino_usuario_id);
+    if (!destinoId || destinoId === usuario.id) {
+        lanzar(400, 'Elige otra persona del equipo para transferirle el rol.', { campos: { destino_usuario_id: 'Persona no válida.' } });
+    }
+
+    const resultado = await enTransaccion(async (cliente) => {
+        const proyecto = await cargarProyecto(id, cliente, true);
+
+        const rolOrigen = await rolActual(id, usuario.id, cliente, true);
+        if (rolOrigen !== 'scrum_master' && rolOrigen !== 'product_owner') {
+            lanzar(409, 'No tienes un rol de Scrum Master ni de Product Owner que transferir en este proyecto.', { motivo: 'sin_rol_que_transferir' });
+        }
+
+        await exigirPersonaDelEquipo(proyecto, destinoId, cliente);
+
+        const rolDestino = await rolActual(id, destinoId, cliente, true);
+        if (rolDestino === 'scrum_master' || rolDestino === 'product_owner') {
+            lanzar(
+                409,
+                `La persona ya es ${ETIQUETA_ROL[rolDestino]} en este proyecto. Cambia su rol antes de transferirle el tuyo.`,
+                { motivo: 'destino_con_rol', rol_destino: rolDestino },
+            );
+        }
+
+        // Dentro de la transacción, primero se quita el rol de origen y después se asigna al destino:
+        // el índice único de SM o PO se respeta en todo momento y nadie ve el proyecto sin el rol
+        await cliente.query('DELETE FROM miembros_proyecto WHERE proyecto_id = $1 AND usuario_id = $2', [id, usuario.id]);
+        await cliente.query(
+            `INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol) VALUES ($1, $2, $3)
+                ON CONFLICT (proyecto_id, usuario_id) DO UPDATE SET rol = EXCLUDED.rol`,
+            [id, destinoId, rolOrigen],
+        );
+
+        const cambioOrigen = { proyecto, usuarioId: usuario.id, rolAnterior: rolOrigen, rolNuevo: null, sinScrumMaster: false };
+        const cambioDestino = { proyecto, usuarioId: destinoId, rolAnterior: rolDestino, rolNuevo: rolOrigen, sinScrumMaster: false };
+        await registrarCambioRol(cliente, usuario, cambioOrigen);
+        await registrarCambioRol(cliente, usuario, cambioDestino);
+        return { cambioOrigen, cambioDestino, rolOrigen, destinoId };
+    });
+
+    // Efectos posteriores solo después del COMMIT
+    await publicarCambioRol(resultado.cambioOrigen, usuario);
+    await publicarCambioRol(resultado.cambioDestino, usuario);
+
+    return {
+        ok: true,
+        transferido: true,
+        rol: resultado.rolOrigen,
+        destino_usuario_id: resultado.destinoId,
+        roles: await listar(id, usuario),
     };
 }

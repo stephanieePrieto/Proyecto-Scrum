@@ -5,6 +5,7 @@
  * @author Dana Carmona Santamaria
  */
 import { api } from '../../core/api.js';
+import { mensajeError } from '../../core/errores.js';
 
 /**
  * Iniciar la exportación asíncrona y consultar su avance cada 500 ms (polling).
@@ -44,7 +45,7 @@ export async function procesarExportacionFront(proyectoId, formato, alcance, btn
   try {
     ({ jobId } = await api(base, { metodo: 'POST', cuerpo: { formato, alcance } }));
   } catch (e) {
-    return fallar(e.cuerpo?.mensaje || e.message || 'Error al iniciar la exportación.');
+    return fallar(mensajeError(e, 'No se pudo iniciar la exportación.'));
   }
 
   // 2. Polling del progreso
@@ -73,7 +74,7 @@ export async function procesarExportacionFront(proyectoId, formato, alcance, btn
       }
     } catch (e) {
       clearInterval(timer);
-      fallar(e.cuerpo?.mensaje || e.message || 'Error al consultar el progreso.');
+      fallar(mensajeError(e, 'No se pudo consultar el progreso de la exportación.'));
     }
   }, 500);
 }

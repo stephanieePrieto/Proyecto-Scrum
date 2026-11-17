@@ -8,6 +8,7 @@
 
 import { montarBarraSuperior } from '../core/layout.js';
 import { api } from '../core/api.js';
+import { mensajeError } from '../core/errores.js';
 import { cargarPermisos, rolActual, tienePermiso } from '../core/permisos-ui.js';
 
 // Barra superior compartida de AgileDesk
@@ -303,9 +304,7 @@ async function cargarTareasHistoria(historiaId, contenedor) {
           console.error('Error al eliminar tarea técnica:', error);
 
           mensajeEliminarTarea.textContent =
-            error.cuerpo?.mensaje ||
-            error.message ||
-            'No se pudo eliminar la tarea técnica.';
+            mensajeError(error, 'No se pudo eliminar la tarea técnica.');
 
           mensajeEliminarTarea.hidden = false;
 
@@ -538,7 +537,7 @@ async function agregarHistoriaAlSprint(historia) {
         }
         break;
       } catch (error) {
-        const detalle = error.cuerpo?.mensaje || error.message || 'No se pudo planificar la historia.';
+        const detalle = mensajeError(error, 'No se pudo planificar la historia.');
         if (error.estado === 409 && detalle.includes('supera el 100 %') && rolActual() === 'scrum_master') {
           const confirmacion = await solicitarConfirmacionPlanificacion({
             titulo: 'Capacidad del sprint superada',
@@ -616,7 +615,7 @@ async function devolverHistoriaAlBacklog(historia) {
     }
   } catch (error) {
     mensaje.className = 'alerta alerta--error';
-    mensaje.textContent = error.cuerpo?.mensaje || error.message || 'No se pudo devolver la historia.';
+    mensaje.textContent = mensajeError(error, 'No se pudo devolver la historia.');
     mensaje.hidden = false;
     if (error.estado === 409) selectorSprint.dispatchEvent(new Event('change'));
   } finally {
@@ -1213,9 +1212,7 @@ formularioTarea.addEventListener('submit', async (evento) => {
     console.error('Error al guardar tarea técnica:', error);
 
     mensaje.textContent =
-      error.cuerpo?.mensaje ||
-      error.message ||
-      'No se pudo guardar la tarea técnica.';
+      mensajeError(error, 'No se pudo guardar la tarea técnica.');
     mensaje.hidden = false;
 
   } finally {

@@ -5,6 +5,7 @@
  */
 
 import { montarBarraSuperior } from '../core/layout.js';
+import { mensajeError } from '../core/errores.js';
 
 let lecciones = [];
 let quizzes = [];
@@ -479,7 +480,7 @@ async function completarLeccionYContinuar(leccionId, siguienteId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
     console.error('[curso-scrum] Error al completar lección:', error);
-    alert('No se pudo guardar el progreso de la lección.');
+    alert(mensajeError(error, 'No se pudo guardar el progreso de la lección. Inténtalo de nuevo.'));
   }
 }
 
@@ -516,7 +517,7 @@ async function enviarQuizInline(leccionId) {
     await cargarCurso();
     document.getElementById('visor-leccion')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (error) {
-    alert('Error al enviar las respuestas del quiz.');
+    alert(mensajeError(error, 'No se pudieron enviar las respuestas del quiz. Revisa tu conexión e inténtalo de nuevo.'));
   }
 }
 
@@ -553,7 +554,7 @@ async function enviarQuizFinalInline() {
     // Mantener la vista de preguntas para mostrar el banner de resultado
     renderizarPreguntasQuizFinalInline();
   } catch (error) {
-    alert('Error al enviar el Quiz Final.');
+    alert(mensajeError(error, 'No se pudo enviar el Quiz Final. Revisa tu conexión e inténtalo de nuevo.'));
   }
 }
 
@@ -633,7 +634,7 @@ function configurarEventos() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.message);
+      alert(mensajeError(err, 'No se pudo descargar el certificado. Inténtalo de nuevo.'));
     }
   });
 

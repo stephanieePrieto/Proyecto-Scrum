@@ -15,7 +15,7 @@ function mostrarAviso(mensaje, tipo = 'info') {
 }
 
 function mostrarError(mensaje) {
-  alert('Error: ' + mensaje);
+  alert(mensaje);
 }
 
 /**
@@ -1014,7 +1014,7 @@ function configurarEventosSeguridad() {
           estado2FA.habilitado = true;
         } catch (error) {
           e.target.checked = false;
-          mostrarError(mensajeDeError(error, 'Error al activar el 2FA.'));
+          mostrarError(mensajeDeError(error, 'No se pudo activar el 2FA. Inténtalo de nuevo.'));
         }
       } else {
         const password = prompt('Ingresa tu contraseña para desactivar el 2FA:');
@@ -1025,7 +1025,7 @@ function configurarEventosSeguridad() {
           estado2FA.habilitado = false;
         } catch (error) {
           e.target.checked = true;
-          mostrarError(mensajeDeError(error, 'Error al desactivar el 2FA.'));
+          mostrarError(mensajeDeError(error, 'No se pudo desactivar el 2FA. Inténtalo de nuevo.'));
         }
       }
     });
@@ -1050,7 +1050,7 @@ function configurarEventosSeguridad() {
         estado2FA.metodos.totp.activado = false;
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'Error al desactivar Google Authenticator.'));
+        mostrarError(mensajeDeError(error, 'No se pudo desactivar Google Authenticator. Inténtalo de nuevo.'));
       }
     });
   }
@@ -1071,7 +1071,7 @@ function configurarEventosSeguridad() {
         cargarSeccionSeguridad();
         avisarActivacionDeMetodo(resultado, 'Código por correo activado correctamente. Recibirás un código en tu próxima autenticación.');
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'Error al activar código por correo.'));
+        mostrarError(mensajeDeError(error, 'No se pudo activar código por correo. Inténtalo de nuevo.'));
       }
     });
   }
@@ -1089,7 +1089,7 @@ function configurarEventosSeguridad() {
         estado2FA.metodos.correo.activado = false;
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'Error al desactivar código por correo.'));
+        mostrarError(mensajeDeError(error, 'No se pudo desactivar código por correo. Inténtalo de nuevo.'));
       }
     });
   }
@@ -1124,7 +1124,7 @@ function configurarEventosSeguridad() {
         estado2FA.dispositivosConfianza = 0;
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'Error al revocar dispositivos.'));
+        mostrarError(mensajeDeError(error, 'No se pudo revocar dispositivos. Inténtalo de nuevo.'));
       }
     });
   }
@@ -1139,7 +1139,7 @@ function configurarEventosSeguridad() {
         mostrarAviso('Recuperación cancelada correctamente. Tu cuenta está segura.', 'exito');
         cargarSeccionSeguridad();
       } catch (error) {
-        mostrarError(mensajeDeError(error, 'Error al cancelar la recuperación.'));
+        mostrarError(mensajeDeError(error, 'No se pudo cancelar la recuperación. Inténtalo de nuevo.'));
       }
     });
   }
@@ -1353,7 +1353,7 @@ async function iniciarConfiguracionTotp() {
       }
     }
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'Error al iniciar configuración de Google Authenticator.'));
+    mostrarError(mensajeDeError(error, 'No se pudo iniciar configuración de Google Authenticator. Inténtalo de nuevo.'));
   }
 }
 
@@ -1388,7 +1388,7 @@ async function generarCodigosRespaldo() {
     mostrarAviso('Códigos de respaldo generados correctamente. Guárdalos en un lugar seguro.', 'exito');
 
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'Error al generar códigos de respaldo.'));
+    mostrarError(mensajeDeError(error, 'No se pudo generar códigos de respaldo. Inténtalo de nuevo.'));
   }
 }
 
@@ -1406,7 +1406,7 @@ async function registrarDispositivoConfianza() {
     cargarSeccionSeguridad();
 
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'Error al registrar dispositivo de confianza.'));
+    mostrarError(mensajeDeError(error, 'No se pudo registrar dispositivo de confianza. Inténtalo de nuevo.'));
   }
 }
 
@@ -1422,7 +1422,7 @@ async function listarDispositivosConfianza() {
     alert(`Dispositivos de confianza:\n\n${mensaje}`);
 
   } catch (error) {
-    mostrarError(mensajeDeError(error, 'Error al obtener dispositivos de confianza.'));
+    mostrarError(mensajeDeError(error, 'No se pudo obtener dispositivos de confianza. Inténtalo de nuevo.'));
   }
 }
 

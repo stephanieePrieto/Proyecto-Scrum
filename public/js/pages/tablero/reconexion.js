@@ -30,7 +30,13 @@ async function sincronizarMovimientosPendientes(proyectoId) {
 
     for (const movimiento of cola) {
         try {
-            await api('/tablero/mover-tarjeta', { metodo: 'POST', cuerpo: movimiento });
+            await api(`/tarjetas/${movimiento.tareaId}/mover`, {
+                metodo: 'POST',
+                cuerpo: {
+                    nuevaColumnaId: movimiento.nuevaColumnaId,
+                    nuevoOrden: movimiento.nuevoOrden,
+                },
+            });
         } catch (error) {
             console.error("Error al sincronizar movimiento pendiente:", error);
             pendientesActualizados.push(movimiento);
@@ -63,6 +69,12 @@ async function sincronizarMovimientosPendientes(proyectoId) {
 export function escucharMovimientosSocket(proyectoId) {
     const socket = window.socket;
     if (socket) {
+        socket.on('tarjeta:bloqueo_cambiado', (data) => {
+            if (Number(data.proyectoId) === Number(proyectoId)) {
+                document.dispatchEvent(new CustomEvent('tablero:recargar'));
+            }
+        });
+
         socket.on('tablero:tarjeta_movida', (data) => {
             const elTarjeta = document.getElementById(`tarjeta-${data.tareaId}`);
             const elListaDestino = document.getElementById(`lista-tarjetas-${data.columnaId}`);

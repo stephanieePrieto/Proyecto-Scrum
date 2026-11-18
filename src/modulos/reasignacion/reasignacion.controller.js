@@ -19,6 +19,7 @@ export const reasignar = asyncHandler(async (req, res) => {
     responsableId: cuerpo.responsable_id,
     responsableAnteriorId: Object.hasOwn(cuerpo, 'responsable_anterior_id') ? cuerpo.responsable_anterior_id : undefined,
     usuario: req.user,
+    rol: req.rolProyecto,
   });
   res.json({ ok: true, datos });
 });

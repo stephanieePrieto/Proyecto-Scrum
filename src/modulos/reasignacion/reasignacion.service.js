@@ -15,7 +15,7 @@
 
 import { consulta } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
-import { MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { exigirPropietarioTarea, MENSAJE_NO_ENCONTRADO, ROLES } from '../../utils/permisos.js';
 import { registrarAuditoria, enTransaccion, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 import { notificarAsignacion } from '../notificaciones/notificaciones.service.js';
@@ -44,15 +44,19 @@ function leerEntero(valor) {
  * @param {*} [params.responsableAnteriorId] - Responsable que veía el cliente (null = sin asignar). Si no se envía,
  *                                              no se comprueba el conflicto.
  * @param {{id: number}} params.usuario - Persona que hace la reasignación.
+ * @param {string} params.rol - Rol vigente en el proyecto.
  * @returns {Promise<{id: number, columna_id: number|null, responsable_id: number, responsable: string, version: number}>}
  * @throws {ErrorApp} 400 datos inválidos, 404 tarea inexistente, 409 proyecto archivado, sprint cerrado,
  *                    misma persona o el responsable cambió mientras tanto.
  */
-export async function reasignarTarea({ proyectoId, tareaId, responsableId, responsableAnteriorId, usuario }) {
+export async function reasignarTarea({ proyectoId, tareaId, responsableId, responsableAnteriorId, usuario, rol }) {
   const id = leerEntero(tareaId);
   const destino = leerEntero(responsableId);
   if (!id) throw new ErrorApp('Selecciona una tarea válida.', 400);
   if (!destino) throw new ErrorApp('Selecciona a la persona que recibirá la tarea.', 400);
+  if (rol !== ROLES.SCRUM_MASTER && destino !== Number(usuario.id)) {
+    throw new ErrorApp('Solo puedes asignarte tareas a ti mismo.', 403);
+  }
 
   const comprobarAnterior = responsableAnteriorId !== undefined;
   const anterior = responsableAnteriorId === null || responsableAnteriorId === '' ? null : leerEntero(responsableAnteriorId);
@@ -92,6 +96,7 @@ export async function reasignarTarea({ proyectoId, tareaId, responsableId, respo
     );
     if (!bloqueadas.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
     const actual = bloqueadas[0].responsable_id;
+    exigirPropietarioTarea(usuario, bloqueadas[0], rol);
 
     if (comprobarAnterior && actual !== anterior) {
       throw new ErrorApp('Alguien cambió el responsable de esta tarea mientras tanto. Recarga el tablero e intenta de nuevo.', 409);

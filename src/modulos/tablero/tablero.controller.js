@@ -7,10 +7,11 @@
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { actualizarColumnas, moverTarjeta, obtenerEstructuraTablero } from './tablero.service.js';
+import { actualizarColumnas, obtenerEstructuraTablero } from './tablero.service.js';
+import { moverTarjetaConVersion } from '../tarjetas/tarjetas.service.js';
 
 /**
- * Obtiene la estructura completa de columnas y tareas del sprint activo.
+ * Obtiene la estructura de columnas y tareas del proyecto, junto con el Sprint activo.
  * 
  * @async
  * @function obtenerTablero
@@ -70,21 +71,11 @@ export const configurarColumnas = asyncHandler(async (req, res) => {
  * @returns {Promise<void>}
  */
 export const moverTarjetaController = asyncHandler(async (req, res) => {
-    const { proyectoId, tareaId, nuevaColumnaId, nuevoOrden, version } = req.body;
-    const usuarioNombre = req.usuario?.nombre || 'Un compañero';
-    // El id se guarda en el historial de cambios de columna (CFD). El tablero usa
-    // hoy un auth temporal (autenticarTemp en tablero.routes.js) con id 1, así que mientras
-    // no se conecte el auth real todos los movimientos quedarán a nombre de ese usuario.
-    const usuarioId = req.usuario?.id ?? null;
-
-    const tareaActualizada = await moverTarjeta(
-        proyectoId,
+    const { tareaId, nuevaColumnaId, nuevoOrden } = req.body || {};
+    const tareaActualizada = await moverTarjetaConVersion(
         tareaId,
-        nuevaColumnaId,
-        nuevoOrden,
-        version,
-        usuarioNombre,
-        usuarioId
+        { nuevaColumnaId, nuevoOrden },
+        req.user
     );
 
     res.status(200).json({

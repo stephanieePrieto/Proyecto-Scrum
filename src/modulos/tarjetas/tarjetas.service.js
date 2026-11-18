@@ -9,7 +9,7 @@
 import { consulta, pool } from '../../config/db.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
-import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
+import { exigirPermiso, exigirPropietarioTarea, MENSAJE_NO_ENCONTRADO, ROLES } from '../../utils/permisos.js';
 import { registrarAuditoria, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 const CAMPOS_EDITABLES = ['titulo', 'descripcion', 'responsable_id', 'horas_estimadas', 'etiquetas'];
@@ -240,11 +240,12 @@ export async function obtenerTarjetaPorId(tareaId, usuario) {
  */
 export async function notificarEstadoEdicion(tareaId, editando, usuario) {
     const id = validarIdEntero(tareaId);
-    const { rows } = await consulta('SELECT id, proyecto_id FROM tareas WHERE id = $1', [id]);
+    const { rows } = await consulta('SELECT id, proyecto_id, responsable_id FROM tareas WHERE id = $1', [id]);
     if (!rows.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
 
     const proyectoId = rows[0].proyecto_id;
-    await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
+    const rol = await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
+    exigirPropietarioTarea(usuario, rows[0], rol);
 
     const nombre = await obtenerNombreUsuario(usuario);
     if (editando) {
@@ -292,7 +293,7 @@ export async function actualizarTarjetaConVersion(tareaId, datos = {}, usuario) 
     if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
 
     const proyectoId = ubicacion[0].proyecto_id;
-    await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
+    const rol = await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
 
     const camposRecibidos = sanitizarCamposEditables(datos);
     if (Object.keys(camposRecibidos).length === 0) {
@@ -329,19 +330,15 @@ export async function actualizarTarjetaConVersion(tareaId, datos = {}, usuario) 
         }
 
         const actual = actuales[0];
-
-        // Verificar que el sprint no esté cerrado
-        if (actual.sprint_id) {
-            const { rows: spRows } = await cliente.query(
-                'SELECT estado FROM sprints WHERE id = $1',
-                [actual.sprint_id]
-            );
-            if (spRows[0]?.estado === 'cerrado') {
-                throw new ErrorApp('No se pueden editar tarjetas de un sprint cerrado.', 409);
-            }
-        }
+        exigirPropietarioTarea(usuario, actual, rol);
 
         // Validar que el responsable pertenezca al proyecto si se asignó uno
+        if (rol !== ROLES.SCRUM_MASTER &&
+            Object.prototype.hasOwnProperty.call(camposRecibidos, 'responsable_id') &&
+            camposRecibidos.responsable_id !== Number(usuario.id)) {
+            throw new ErrorApp('Solo puedes asignarte tareas a ti mismo.', 403);
+        }
+
         if (camposRecibidos.responsable_id) {
             const { rows: respValido } = await cliente.query(
                 `SELECT 1
@@ -574,7 +571,7 @@ export async function cambiarBloqueoTarjeta(tareaId, datos = {}, usuario) {
     if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
 
     const proyectoId = ubicacion[0].proyecto_id;
-    await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
+    const rol = await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
 
     const bloquear = datos.bloqueada !== undefined ? Boolean(datos.bloqueada) : true;
     const motivo = String(datos.motivo ?? datos.motivo_bloqueo ?? '').trim();
@@ -600,6 +597,17 @@ export async function cambiarBloqueoTarjeta(tareaId, datos = {}, usuario) {
         );
         if (!actuales.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
         const actual = actuales[0];
+        exigirPropietarioTarea(usuario, actual, rol);
+
+        if (!bloquear) {
+            const { rows: impedimentosAbiertos } = await cliente.query(
+                `SELECT 1 FROM impedimentos WHERE tarea_id = $1 AND estado = 'abierto' LIMIT 1`,
+                [id]
+            );
+            if (impedimentosAbiertos.length) {
+                throw new ErrorApp('Resuelve primero el impedimento vinculado antes de desbloquear la tarjeta.', 409);
+            }
+        }
 
         await cliente.query(
             `UPDATE tareas
@@ -687,6 +695,12 @@ export async function cambiarBloqueoTarjeta(tareaId, datos = {}, usuario) {
         usuarioNombre: nombreUsuario,
         tarea: tareaActualizada
     });
+    if (bloquear) {
+        emitirAProyecto(proyectoId, 'impedimento:creado', {
+            proyecto_id: proyectoId,
+            tarea_id: id,
+        });
+    }
 
     emitirAProyecto(proyectoId, 'tarjeta:actualizada', {
         proyectoId,
@@ -722,7 +736,7 @@ export async function moverTarjetaConVersion(tareaId, datos = {}, usuario) {
     if (!ubicacion.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
 
     const proyectoId = ubicacion[0].proyecto_id;
-    await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
+    const rol = await exigirPermiso(usuario, 'tarea.gestionar', proyectoId);
 
     const cliente = await pool.connect();
     let tareaActualizada;
@@ -733,7 +747,7 @@ export async function moverTarjetaConVersion(tareaId, datos = {}, usuario) {
         await cliente.query('BEGIN');
 
         const { rows: tareas } = await cliente.query(
-            `SELECT t.id, t.proyecto_id, t.columna_id, t.orden, t.bloqueada, t.version,
+            `SELECT t.id, t.proyecto_id, t.responsable_id, t.columna_id, t.orden, t.bloqueada, t.version,
                     c.nombre AS columna_origen_nombre
              FROM tareas t
              LEFT JOIN columnas_tablero c ON c.id = t.columna_id
@@ -743,6 +757,7 @@ export async function moverTarjetaConVersion(tareaId, datos = {}, usuario) {
         );
         if (!tareas.length) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
         const tareaActual = tareas[0];
+        exigirPropietarioTarea(usuario, tareaActual, rol);
         columnaOrigenNombre = tareaActual.columna_origen_nombre;
 
         const { rows: colsDestino } = await cliente.query(

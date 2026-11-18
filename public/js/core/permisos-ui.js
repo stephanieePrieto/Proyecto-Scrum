@@ -44,6 +44,11 @@ export function rolActual() {
     return estado.rol;
 }
 
+/** @returns {number|null} Identificador de la persona en el proyecto abierto. */
+export function usuarioActualId() {
+    return estado.usuarioId;
+}
+
 /**
  * Comprobar si un elemento marcado con data-permiso está autorizado.
  *

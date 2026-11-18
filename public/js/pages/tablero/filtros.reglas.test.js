@@ -27,10 +27,10 @@ import {
 /** Tablero de ejemplo: 2 historias, 2 personas más una tarea sin asignar, 3 columnas. */
 function crearTareas() {
   return [
-    { id: 1, titulo: 'Login', columna_id: 10, responsable_id: 7, responsable: 'Ana', epica_id: 3, epica_nombre: 'Acceso', historia_id: 100, numero_hu: 2, historia_titulo: 'Iniciar sesión', etiquetas: ['Frontend', 'urgente'] },
-    { id: 2, titulo: 'API login', columna_id: 11, responsable_id: 8, responsable: 'Beto', epica_id: 3, epica_nombre: 'Acceso', historia_id: 100, numero_hu: 2, historia_titulo: 'Iniciar sesión', etiquetas: ['backend'] },
-    { id: 3, titulo: 'Gráfica', columna_id: 10, responsable_id: 7, responsable: 'Ana', epica_id: null, epica_nombre: null, historia_id: 200, numero_hu: 1, historia_titulo: 'Dashboard', etiquetas: null },
-    { id: 4, titulo: 'Pruebas', columna_id: 12, responsable_id: null, responsable: null, epica_id: 5, epica_nombre: 'Calidad', historia_id: 200, numero_hu: 1, historia_titulo: 'Dashboard', etiquetas: ['FRONTEND '] },
+    { id: 1, titulo: 'Login', sprint_id: 20, columna_id: 10, responsable_id: 7, responsable: 'Ana', epica_id: 3, epica_nombre: 'Acceso', historia_id: 100, numero_hu: 2, historia_titulo: 'Iniciar sesión', etiquetas: ['Frontend', 'urgente'] },
+    { id: 2, titulo: 'API login', sprint_id: 20, columna_id: 11, responsable_id: 8, responsable: 'Beto', epica_id: 3, epica_nombre: 'Acceso', historia_id: 100, numero_hu: 2, historia_titulo: 'Iniciar sesión', etiquetas: ['backend'] },
+    { id: 3, titulo: 'Gráfica', sprint_id: 21, columna_id: 10, responsable_id: 7, responsable: 'Ana', epica_id: null, epica_nombre: null, historia_id: 200, numero_hu: 1, historia_titulo: 'Dashboard', etiquetas: null },
+    { id: 4, titulo: 'Pruebas', sprint_id: null, columna_id: 12, responsable_id: null, responsable: null, epica_id: 5, epica_nombre: 'Calidad', historia_id: 200, numero_hu: 1, historia_titulo: 'Dashboard', etiquetas: ['FRONTEND '] },
   ];
 }
 
@@ -63,6 +63,14 @@ describe('HU-21 · Reglas de filtros y carriles del tablero', () => {
     expect(ids(filtrarTareas(tareas, { persona: '7' }))).toEqual([1, 3]);
     expect(ids(filtrarTareas(tareas, { persona: SIN_ASIGNAR }))).toEqual([4]);
     expect(ids(filtrarTareas(tareas, FILTROS_VACIOS))).toEqual([1, 2, 3, 4]);
+  });
+
+  test('filtra por Sprint sin ocultar tareas de otros Sprints cuando no se selecciona uno', () => {
+    const tareas = crearTareas();
+    expect(ids(filtrarTareas(tareas, { sprint: '20' }))).toEqual([1, 2]);
+    expect(ids(filtrarTareas(tareas, { sprint: '21' }))).toEqual([3]);
+    expect(ids(filtrarTareas(tareas, { sprint: '' }))).toEqual([1, 2, 3, 4]);
+    expect(hayFiltrosActivos({ sprint: '20' })).toBe(true);
   });
 
   test('criterio 1: combina épica y estado (todas las condiciones deben cumplirse)', () => {
@@ -142,7 +150,17 @@ describe('HU-21 · Reglas de filtros y carriles del tablero', () => {
   });
 
   test('construirOpciones arma los selectores: personas activas, épicas, etiquetas únicas y estados en orden de columna', () => {
-    const opciones = construirOpciones(crearTareas(), { columnas: COLUMNAS, miembros: MIEMBROS });
+    const opciones = construirOpciones(crearTareas(), {
+      columnas: COLUMNAS,
+      miembros: MIEMBROS,
+      sprints: [
+        { id: 20, nombre: 'Sprint 1', estado: 'cerrado' },
+        { id: 21, nombre: 'Sprint 2', estado: 'activo' },
+      ],
+    });
+    expect(opciones.sprints).toEqual([
+      { valor: '21', etiqueta: 'Sprint 2 · Activo' },
+    ]);
     expect(opciones.personas.map((o) => o.etiqueta)).toEqual(['Ana', 'Beto', 'Carla', 'Sin asignar']);
     expect(opciones.epicas.map((o) => o.valor)).toEqual(['3', '5', SIN_EPICA]);
     expect(opciones.etiquetas).toEqual([
@@ -154,12 +172,27 @@ describe('HU-21 · Reglas de filtros y carriles del tablero', () => {
   });
 
   test('depurarFiltros quita valores guardados que ya no existen y conserva los válidos', () => {
-    const opciones = construirOpciones(crearTareas(), { columnas: COLUMNAS, miembros: MIEMBROS });
+    const opciones = construirOpciones(crearTareas(), {
+      columnas: COLUMNAS,
+      miembros: MIEMBROS,
+      sprints: [
+        { id: 20, nombre: 'Sprint 1', estado: 'cerrado' },
+        { id: 21, nombre: 'Sprint 2', estado: 'activo' },
+      ],
+    });
     const { filtros, descartados } = depurarFiltros(
-      { persona: '6', epica: '3', etiqueta: 'FRONTEND', estado: '99', agrupar: 'historia' },
+      { sprint: '21', persona: '6', epica: '3', etiqueta: 'FRONTEND', estado: '99', agrupar: 'historia' },
       opciones,
     );
-    expect(filtros).toEqual({ persona: '', epica: '3', etiqueta: 'frontend', estado: '', agrupar: 'historia' });
+    expect(filtros).toEqual({ sprint: '21', persona: '', epica: '3', etiqueta: 'frontend', estado: '', agrupar: 'historia' });
     expect(descartados).toEqual(['persona', 'estado']);
+
+    const sprintCerrado = depurarFiltros({ sprint: '20' }, opciones);
+    expect(sprintCerrado.filtros.sprint).toBe('');
+    expect(sprintCerrado.descartados).toContain('sprint');
+
+    const sprintInexistente = depurarFiltros({ sprint: '999' }, opciones);
+    expect(sprintInexistente.filtros.sprint).toBe('');
+    expect(sprintInexistente.descartados).toContain('sprint');
   });
 });

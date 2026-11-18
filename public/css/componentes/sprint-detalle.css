@@ -1,7 +1,7 @@
 /**
  * @file sprint-detalle.css
  * @descripcion  Pantalla de iniciar y cerrar sprint, con sus diálogos. Solo estilos propios de la pantalla; usa los tokens de base.css.
- * @author Diego
+ * @author Diegoiego Rafael Jiménez Trujano
  * @author Citlaly Morales Viveros
  */
 .principal:has(.ciclo-aviso)>.encabezado-pagina .form-input {

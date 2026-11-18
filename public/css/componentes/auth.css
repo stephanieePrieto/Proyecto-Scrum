@@ -19,6 +19,12 @@
   max-width: 400px;
 }
 
+/* Aviso de privacidad: tarjeta más ancha para leer el texto completo.
+   Solo se usa en privacidad.html; el resto de las páginas de autenticación sigue en 400px. */
+.tarjeta-auth--ancha {
+  max-width: 720px;
+}
+
 .auth-encabezado {
   text-align: center;
   margin-bottom: var(--espacio-6);

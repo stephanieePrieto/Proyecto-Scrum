@@ -857,7 +857,7 @@ export async function quitarMiembro(equipoId, usuarioId, datos = {}, usuario) {
             for (const reasignacion of plan.reasignar) await reasignarTarea(cliente, reasignacion, pendientes.integrante, usuario);
 
             await cliente.query('DELETE FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2', [equipoId, usuarioId]);
-            return { reasignadas: plan.reasignar, saliente: pendientes.integrante };
+            return { reasignadas: plan.reasignar, saliente: pendientes.integrante, proyectos: pendientes.proyectos };
         });
     } catch (error) {
         if (error?.code === '23505') lanzar(409, 'Otro cambio simultáneo afectó a los proyectos del equipo. Revisa los pendientes e inténtalo de nuevo.', CAMBIO_CONCURRENTE);
@@ -869,6 +869,23 @@ export async function quitarMiembro(equipoId, usuarioId, datos = {}, usuario) {
     proyectosDelEquipo.forEach(({ id }) => retirarDeProyecto(usuarioId, id));
 
     await notificarReasignaciones(resultado.reasignadas, resultado.saliente);
+
+    // Si era developer en proyectos no archivados de este equipo, avisar
+    // a su Product Owner de cada uno. Un fallo al notificar nunca deshace la salida ya guardada.
+    try {
+        const { notificarSalidaDeveloperAlPO } = await import('../notificaciones/notificaciones.service.js');
+        const salidasDev = (resultado.proyectos ?? []).filter((proyecto) => proyecto.rol === 'developer');
+        for (const proyecto of salidasDev) {
+            await notificarSalidaDeveloperAlPO({
+                proyectoId: proyecto.id,
+                proyectoNombre: proyecto.nombre,
+                salienteId: resultado.saliente.id,
+                causa: 'salio_equipo',
+            });
+        }
+    } catch (error) {
+        console.error('[equipos] No se pudo avisar al Product Owner de la salida del integrante:', error?.message ?? error);
+    }
 
     // Quien se quita a sí mismo puede dejar de ver el equipo; en ese caso no hay equipo que devolver.
     let equipo = null;

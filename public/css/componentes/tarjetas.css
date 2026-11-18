@@ -1,3 +1,9 @@
+/**
+ * @file tarjetas.css
+ * @descripcion Tarjetas del tablero
+ * @author Camila Mariné Crespo Zurita
+ * @author Dana Carmona Santamaria
+ */
 .tarjeta {
   background: var(--fondo-tarjeta);
   border: 1px solid var(--borde);

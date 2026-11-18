@@ -61,7 +61,7 @@ async function auditarAceptacion(cliente, inv, usuarioId) {
         objetoId: inv.id,
         antes: { estado: 'pendiente' },
         despues: { estado: 'aceptada' },
-        contexto: { correo: inv.correo, rol: inv.rol },
+        contexto: { rol: inv.rol },
     });
     if (inv.rol) await auditarRolAsignado(cliente, usuarioId, inv.proyecto_id, usuarioId, inv.rol);
 }
@@ -234,7 +234,7 @@ export async function crearInvitacion(datos, usuario) {
                 accion: ACCIONES.INVITACION_CREADA,
                 objeto: OBJETOS.INVITACION,
                 objetoId: creadas[0].id,
-                despues: { correo: correoLimpio, rol },
+                despues: { rol },
             });
         }
         return creadas;
@@ -496,7 +496,6 @@ export async function reenviarInvitacion(invitacionId, usuario) {
                 objetoId: invitacion[0].id,
                 antes: { estado: invitacion[0].estado },
                 despues: { estado: 'pendiente' },
-                contexto: { correo: invitacion[0].correo },
             });
         }
     });
@@ -537,7 +536,6 @@ export async function cancelarInvitacion(invitacionId, usuario) {
                 objetoId: invitacion[0].id,
                 antes: { estado: invitacion[0].estado },
                 despues: { estado: 'cancelada' },
-                contexto: { correo: invitacion[0].correo },
             });
         }
     });
@@ -649,7 +647,7 @@ export async function rechazarInvitacion(tokenPlano) {
                 objetoId: rows[0].id,
                 antes: { estado: 'pendiente' },
                 despues: { estado: 'rechazada' },
-                contexto: { correo: rows[0].correo, rol: rows[0].rol },
+                contexto: { rol: rows[0].rol },
             });
         }
         return rows.length;

@@ -31,6 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const accionRecovery = urlParams.get('accion');
     const tokenRecovery = urlParams.get('token');
 
+    /**
+     * Destino tras iniciar sesión: a la página del aviso cuando está pendiente
+     * de aceptar, si no al tablero.
+     */
+    const destinoTrasLogin = (respuesta) => (respuesta.avisoPendiente
+        ? '/pages/privacidad.html?pendiente=1'
+        : '/pages/dashboard.html');
+
     if (accionRecovery && tokenRecovery) {
         const esConfirmacion = accionRecovery === 'confirmar_recuperacion';
         const endpoint = esConfirmacion ? '/recuperacion/confirmar' : '/recuperacion/cancelar';
@@ -308,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const respuesta = await api(ruta, { metodo: 'POST', cuerpo });
 
             mostrarAlerta(alerta2fa, 'exito', respuesta.mensaje || 'Verificación exitosa');
-            setTimeout(() => window.location.href = '/pages/dashboard.html', 1000);
+            setTimeout(() => window.location.href = destinoTrasLogin(respuesta), 1000);
         } catch (error) {
             mostrarAlerta(alerta2fa, 'error', mensajeError2fa(error, 'Error al verificar el código. Inténtalo más tarde.'));
         }
@@ -333,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 mostrarAlerta(alerta, 'exito', respuesta.mensaje || 'Inicio de sesión exitoso');
-                setTimeout(() => window.location.href = '/pages/dashboard.html', 1000);
+                setTimeout(() => window.location.href = destinoTrasLogin(respuesta), 1000);
             } catch (error) {
                 let texto = 'Error al iniciar sesión. Inténtalo más tarde.';
                 if (error.estado === 401) texto = 'Credenciales incorrectas o cuenta bloqueada.';

@@ -438,6 +438,20 @@ export const obtenerAvisoVigente = async () => {
 };
 
 /**
+ * Indica si la persona todavía no aceptó la versión vigente del aviso de privacidad.
+ * Sin versión publicada no hay nada pendiente, igual que en exigirAvisoVigente.
+ *
+ * @param {number} usuarioId Identificador de la cuenta.
+ * @returns {Promise<boolean>} Verdadero si debe aceptar la versión vigente.
+ */
+export const avisoPendientePara = async (usuarioId) => {
+    const vigente = await obtenerAvisoVigente();
+    if (!vigente) return false;
+    const { rows } = await consulta('SELECT version_aviso_privacidad FROM usuarios WHERE id = $1', [usuarioId]);
+    return rows[0]?.version_aviso_privacidad !== vigente.version;
+};
+
+/**
  * Comprueba que la versión recibida sea la vigente. Evita que alguien acepte una versión que ya fue reemplazada.
  *
  * @param {string} version Versión que la persona dice haber aceptado.

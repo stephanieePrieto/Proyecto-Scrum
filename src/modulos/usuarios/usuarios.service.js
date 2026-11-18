@@ -13,7 +13,7 @@ import { consulta, pool } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { ErrorApp } from '../../utils/ErrorApp.js';
 import { enviarCorreo } from '../../utils/correo.js';
-import { leerPreferencias, normalizarPreferencias } from '../notificaciones/notificaciones.service.js';
+import { leerPreferencias, normalizarPreferencias, notificarSalidaDeveloperAlPO } from '../notificaciones/notificaciones.service.js';
 import { exigirAvisoVigente, exigirPasswordVigente } from '../auth/auth.service.js';
 
 /** Valores por defecto de la apariencia y la accesibilidad de la persona. */
@@ -493,6 +493,15 @@ export const eliminarCuenta = async (usuarioId, { confirmacion, password }) => {
         throw error;
     }
 
+    // después de confirmar la eliminación. Se leen antes de anonimizar; la lista incluye
+    // proyectos archivados, porque su participación también termina con la eliminación.
+    const { rows: proyectosDev } = await pool.query(
+        `SELECT p.id AS proyecto_id, p.nombre FROM miembros_proyecto mp
+            JOIN proyectos p ON p.id = mp.proyecto_id
+          WHERE mp.usuario_id = $1 AND mp.rol = 'developer' ORDER BY p.nombre`,
+        [usuarioId],
+    );
+
     const cliente = await pool.connect();
     let fotoAnterior = null;
     let sids = [];
@@ -572,6 +581,17 @@ export const eliminarCuenta = async (usuarioId, { confirmacion, password }) => {
 
     // La foto se borra después de confirmar la transacción; si falla, la cuenta ya quedó anonimizada
     await borrarFoto(nombreDeFoto(fotoAnterior));
+
+    // El aviso no incluye su nombre ni su correo (la cuenta ya está anonimizada) y un fallo
+    // al notificar nunca deshace la eliminación ya confirmada.
+    for (const proyecto of proyectosDev) {
+        await notificarSalidaDeveloperAlPO({
+            proyectoId: proyecto.proyecto_id,
+            proyectoNombre: proyecto.nombre,
+            salienteId: usuarioId,
+            causa: 'elimino_cuenta',
+        });
+    }
 
     return { sids };
 };

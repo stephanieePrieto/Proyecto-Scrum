@@ -94,7 +94,7 @@ export const autenticarSesion = asyncHandler(async (req, res, next) => {
  * Exige que la cuenta haya aceptado la versión vigente del aviso de privacidad. Si no la aceptó,
  * responde 403 con el código AVISO_PENDIENTE para que la interfaz lleve a la persona a la página del aviso.
  */
-const exigirAvisoVigente = asyncHandler(async (req, res, next) => {
+export const exigirAvisoVigente = asyncHandler(async (req, res, next) => {
   const vigente = await obtenerAvisoVigente();
   if (vigente && req.versionAvisoUsuario !== vigente.version) {
     const error = new ErrorApp('Debes aceptar la versión vigente del aviso de privacidad.', 403);

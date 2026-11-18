@@ -507,10 +507,12 @@ const CAMPOS_NOTIFICACION = [
   { canal: 'interna', tipo: 'mencion' },
   { canal: 'interna', tipo: 'desviacion' },
   { canal: 'interna', tipo: 'impedimento' },
+  { canal: 'interna', tipo: 'miembro_salida' },
   { canal: 'correo', tipo: 'asignacion' },
   { canal: 'correo', tipo: 'mencion' },
   { canal: 'correo', tipo: 'desviacion' },
   { canal: 'correo', tipo: 'impedimento' },
+  { canal: 'correo', tipo: 'miembro_salida' },
 ];
 
 /** Valor que se muestra si la cuenta todavía no tiene preferencias guardadas (mismo que el servidor). */
@@ -1485,6 +1487,16 @@ function configurarEliminarCuenta() {
 
   document.getElementById('eliminar-confirmacion').addEventListener('input', actualizarBotonEliminar);
   document.getElementById('eliminar-password').addEventListener('input', actualizarBotonEliminar);
+
+  // Consulta previa: avisar desde el inicio si hay roles por transferir, sin esperar
+  // a que la persona escriba la frase y la contraseña. Si la consulta falla, el
+  // servidor lo indicará igual al intentar eliminar (409 ROL_PENDIENTE_DE_TRANSFERIR).
+  api('/usuarios/yo/roles-por-transferir')
+    .then((datos) => {
+      const proyectos = datos?.proyectos ?? [];
+      if (proyectos.length > 0) mostrarRolesPorTransferir(proyectos);
+    })
+    .catch(() => { /* se informa al intentar eliminar */ });
 
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();

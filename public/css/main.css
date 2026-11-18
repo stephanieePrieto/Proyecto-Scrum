@@ -1,6 +1,10 @@
-/* ==========================================================================
-   MAIN.CSS — PUNTO DE ENTRADA ÚNICO (PALETA MINIMALISTA)
-   ========================================================================== */
+/**
+ * @file main.css
+ * @descripcion Punto de acceso de entrada único con una paleta minimalista
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Citlaly Morales Viveros
+ */
+
 @import url('base.css');
 @import url('layout.css');
 @import url('componentes/equipos.css');

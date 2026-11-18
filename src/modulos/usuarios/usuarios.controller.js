@@ -129,6 +129,18 @@ export const eliminarCuentaController = async (req, res) => {
 };
 
 /**
+ * Lista los proyectos en los que la persona es Scrum Master o Product Owner y debe
+ * transferir su rol antes de eliminar su cuenta. Solo consulta la cuenta del token.
+ *
+ * @param {import('express').Request} req - Sesión de la persona que consulta.
+ * @param {import('express').Response} res
+ */
+export const obtenerRolesPorTransferir = async (req, res) => {
+    const proyectos = await usuariosService.rolesPorTransferir(req.user.id);
+    res.status(200).json({ proyectos });
+};
+
+/**
  * Guarda la zona horaria de la persona con la sesión iniciada.
  * Solo modifica la cuenta del token, nunca un identificador enviado por el cliente.
  *

@@ -1,6 +1,6 @@
 /**
  * @file notificaciones.js
- * @description Componente de notificaciones de ScrumFlow (HU-24).
+ * @description Componente de notificaciones de ScrumFlow.
  *
  * - Renderiza una campana con badge de no leídas y un panel desplegable.
  * - Recibe notificaciones nuevas por Socket.io (`notificacion:nueva`, sala personal del
@@ -60,6 +60,7 @@ const ETIQUETAS_TIPO = Object.freeze({
   mencion: 'Mención',
   desviacion: 'Desviación',
   impedimento: 'Impedimento',
+  miembro_salida: 'Salida de miembro',
   retro_recordatorio: 'Retro',
   retro_accion_vencida: 'Retro vencida',
 });

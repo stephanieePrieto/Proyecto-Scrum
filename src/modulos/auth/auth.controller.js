@@ -157,7 +157,8 @@ export const login = async (req, res) => {
         configurarCookies(res, resultado.accessToken, resultado.refreshToken);
         res.status(200).json({
             mensaje: 'Inicio de sesión exitoso',
-            usuario: resultado.usuario
+            usuario: resultado.usuario,
+            avisoPendiente: await authService.avisoPendientePara(resultado.usuario.id)
         });
     }
 };
@@ -322,7 +323,8 @@ export const verificar2FA = async (req, res) => {
 
     res.status(200).json({
         mensaje: 'Verificación exitosa. Inicio de sesión completado.',
-        usuario: rows[0]
+        usuario: rows[0],
+        avisoPendiente: await authService.avisoPendientePara(usuarioId)
     });
 };
 
@@ -398,6 +400,7 @@ export const verificarCodigoOtp = async (req, res) => {
 
     res.status(200).json({
         mensaje: 'Verificación exitosa. Inicio de sesión completado.',
-        usuario: rows[0]
+        usuario: rows[0],
+        avisoPendiente: await authService.avisoPendientePara(usuarioId)
     });
 };

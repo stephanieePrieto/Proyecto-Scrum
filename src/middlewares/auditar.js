@@ -124,6 +124,29 @@ export function diferencias(antes, despues) {
 }
 
 /**
+ * Quita la clave `correo` de un objeto de detalle, sin mutar el original.
+ * Decisión 4: los registros nuevos de la bitácora no guardan correos. La invitación se sigue
+ * trazando por su id (`objeto_id`) y por quien la hizo (`usuario_id`); el correo solo vive en
+ * la tabla `invitaciones`, donde hace falta para enviarla, y nunca en el detalle auditado.
+ * Se aplica también a objetos anidados, por si un día llega un `correo` dentro de otro campo.
+ *
+ * @param {*} valor - Valor a limpiar.
+ * @returns {*} Copia sin correos, o el valor tal cual si no es objeto.
+ */
+function sinCorreo(valor) {
+    if (Array.isArray(valor)) return valor.map(sinCorreo);
+    if (valor !== null && typeof valor === 'object') {
+        const copia = {};
+        for (const [clave, contenido] of Object.entries(valor)) {
+            if (clave === 'correo') continue;
+            copia[clave] = sinCorreo(contenido);
+        }
+        return copia;
+    }
+    return valor;
+}
+
+/**
  * Registra una acción sensible en la bitácora dentro de la transacción en curso. Si el INSERT falla o los
  * datos son inválidos lanza un error, de modo que la transacción se revierta y la acción se cancele.
  *
@@ -153,9 +176,9 @@ export async function registrarAuditoria(cliente, { usuarioId = null, proyectoId
     if (typeof objeto !== 'string' || !objeto) throw new Error('registrarAuditoria: falta el tipo de objeto.');
 
     const detalle = {};
-    if (antes !== undefined) detalle.antes = antes;
-    if (despues !== undefined) detalle.despues = despues;
-    Object.assign(detalle, contexto);
+    if (antes !== undefined) detalle.antes = sinCorreo(antes);
+    if (despues !== undefined) detalle.despues = sinCorreo(despues);
+    Object.assign(detalle, sinCorreo(contexto));
 
     const { rows } = await cliente.query(
         'INSERT INTO bitacora (usuario_id, proyecto_id, accion, objeto, objeto_id, detalle) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, creado_en',

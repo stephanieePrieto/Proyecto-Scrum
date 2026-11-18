@@ -13,11 +13,13 @@ let avisoVigente = null;
 
 /**
  * Carga la versión vigente del aviso de privacidad. Sin ella no se puede definir la contraseña.
+ * El texto se muestra en la misma página, para leerlo antes de aceptar.
  */
 const cargarAviso = async () => {
     try {
         const respuesta = await api('/auth/aviso-privacidad');
         avisoVigente = respuesta.aviso;
+        pintarAviso(avisoVigente);
     } catch (error) {
         document.getElementById('mensaje').innerHTML = `
             <div class="aviso error">
@@ -26,6 +28,25 @@ const cargarAviso = async () => {
         `;
         document.querySelector('button[type="submit"]').disabled = true;
     }
+};
+
+/**
+ * Muestra el texto del aviso vigente en la página, en párrafos y sin interpretar HTML.
+ */
+const pintarAviso = (aviso) => {
+    const version = document.getElementById('version-aviso');
+    if (version) version.textContent = `Aviso de privacidad, versión ${aviso.version}`;
+    const caja = document.getElementById('texto-aviso');
+    if (!caja) return;
+    caja.replaceChildren();
+    aviso.contenido.split(/\n\s*\n/)
+        .map((bloque) => bloque.trim())
+        .filter(Boolean)
+        .forEach((bloque) => {
+            const parrafo = document.createElement('p');
+            parrafo.textContent = bloque;
+            caja.appendChild(parrafo);
+        });
 };
 
 if (!token) {

@@ -25,16 +25,18 @@ import { env } from '../../config/env.js';
  */
 
 /** @constant {Readonly<{ASIGNACION:string, MENCION:string}>} Tipos de notificación válidos. */
-export const TIPOS = Object.freeze({ ASIGNACION: 'asignacion', MENCION: 'mencion', DESVIACION: 'desviacion', IMPEDIMENTO: 'impedimento' });
+export const TIPOS = Object.freeze({ ASIGNACION: 'asignacion', MENCION: 'mencion', DESVIACION: 'desviacion', IMPEDIMENTO: 'impedimento', MIEMBRO_SALIDA: 'miembro_salida' });
 // Desde la etapa 6 TIPOS también incluye DESVIACION e IMPEDIMENTO, ambos configurables por canal.
+// Decisión 24: MIEMBRO_SALIDA avisa al Product Owner cuando un developer deja un proyecto,
+// sale del equipo o elimina su cuenta.
 
 /**
  * Valores por defecto de cada canal y tipo. Es la misma forma que guarda `usuarios.preferencias_notif`.
  * @constant {Readonly<{interna: Readonly<Object<string,boolean>>, correo: Readonly<Object<string,boolean>>}>}
  */
 export const PREFERENCIAS_POR_DEFECTO = Object.freeze({
-  interna: Object.freeze({ asignacion: true, mencion: true, desviacion: true, impedimento: true }),
-  correo: Object.freeze({ asignacion: false, mencion: false, desviacion: false, impedimento: false }),
+  interna: Object.freeze({ asignacion: true, mencion: true, desviacion: true, impedimento: true, miembro_salida: true }),
+  correo: Object.freeze({ asignacion: false, mencion: false, desviacion: false, impedimento: false, miembro_salida: false }),
 });
 
 /** @constant {string} Evento de WebSocket consumido por el frontend. */
@@ -624,5 +626,53 @@ export async function notificarAsignacion({ tareaId, responsableId, asignadorId 
   } catch (error) {
     console.error('[notificaciones] Falló notificarAsignacion:', error?.message ?? error);
     return null;
+  }
+}
+/**
+ * Avisa al Product Owner de un proyecto que un developer dejó de participar en él.
+ * Se invoca solo después de confirmar el cambio que la origina. Nunca lanza: un fallo al
+ * notificar no deshace la salida ya guardada.
+ *
+ * @param {{proyectoId: number, proyectoNombre?: string|null, salienteId?: number|null, causa: 'elimino_cuenta'|'salio_proyecto'|'salio_equipo'}} datos
+ * @returns {Promise<void>}
+ */
+export async function notificarSalidaDeveloperAlPO({ proyectoId, proyectoNombre, salienteId, causa }) {
+  try {
+    const idProyecto = Number(proyectoId);
+    if (!Number.isInteger(idProyecto) || idProyecto <= 0) return;
+    const { rows: pos } = await consulta(
+      `SELECT mp.usuario_id FROM miembros_proyecto mp JOIN usuarios u ON u.id = mp.usuario_id
+        WHERE mp.proyecto_id = $1 AND mp.rol = 'product_owner' AND u.activo = TRUE`,
+      [idProyecto],
+    );
+    const destinatarios = pos.map((fila) => fila.usuario_id).filter((id) => id !== salienteId);
+    if (!destinatarios.length) return;
+
+    let nombreSaliente = null;
+    if (causa !== 'elimino_cuenta' && salienteId) {
+      const { rows } = await consulta('SELECT nombre FROM usuarios WHERE id = $1 AND activo = TRUE', [salienteId]);
+      nombreSaliente = rows[0]?.nombre ?? null;
+    }
+    const nombreProyecto = proyectoNombre || `proyecto ${idProyecto}`;
+    const quien = nombreSaliente ?? 'Un desarrollador';
+    const titulo = causa === 'elimino_cuenta'
+      ? 'Un desarrollador eliminó su cuenta'
+      : 'Un desarrollador dejó el proyecto';
+    const mensaje = causa === 'elimino_cuenta'
+      ? `Un desarrollador eliminó su cuenta y dejó de participar en el proyecto «${nombreProyecto}». Sus tareas y registros quedaron anonimizados y las métricas del equipo se conservan.`
+      : causa === 'salio_equipo'
+        ? `${quien} salió del equipo y dejó el proyecto «${nombreProyecto}».`
+        : `${quien} dejó el proyecto «${nombreProyecto}».`;
+
+    await Promise.allSettled(destinatarios.map((usuarioId) => notificar({
+      usuarioId,
+      tipo: TIPOS.MIEMBRO_SALIDA,
+      titulo,
+      mensaje,
+      referenciaId: idProyecto,
+      enlace: `/pages/configuracion-proyecto.html?id=${idProyecto}`,
+    })));
+  } catch (error) {
+    console.error('[notificaciones] Falló notificarSalidaDeveloperAlPO:', error?.message ?? error);
   }
 }

@@ -496,6 +496,23 @@ async function notificarCambioRol({ proyecto, usuarioId, rolAnterior, rolNuevo }
 async function publicarCambioRol(cambio, actor) {
     propagarCambioRol(cambio);
     await notificarCambioRol(cambio, actor);
+
+    // No se dispara en transferencias (el rol anterior es Scrum Master o Product Owner) ni en
+    // cambios de rol, solo cuando la participación del developer termina. Un fallo al notificar
+    // nunca deshace el cambio ya guardado.
+    if (cambio.rolAnterior === 'developer' && cambio.rolNuevo === null) {
+        try {
+            const { notificarSalidaDeveloperAlPO } = await import('../notificaciones/notificaciones.service.js');
+            await notificarSalidaDeveloperAlPO({
+                proyectoId: cambio.proyecto.id,
+                proyectoNombre: cambio.proyecto.nombre,
+                salienteId: cambio.usuarioId,
+                causa: 'salio_proyecto',
+            });
+        } catch (error) {
+            console.error('[miembros] No se pudo avisar al Product Owner de la salida del developer:', error?.message ?? error);
+        }
+    }
 }
 
 /**

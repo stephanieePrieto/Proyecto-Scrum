@@ -7,7 +7,7 @@
  */
 
 import { Router } from 'express';
-import { solicitarRecuperacion, restablecerPassword, definirPasswordController, obtenerPerfil, actualizarFoto, obtenerFoto, actualizarZonaHoraria, actualizarPreferenciasNotificacion, actualizarPreferenciasApp, eliminarCuentaController } from './usuarios.controller.js';
+import { solicitarRecuperacion, restablecerPassword, definirPasswordController, obtenerPerfil, actualizarFoto, obtenerFoto, actualizarZonaHoraria, actualizarPreferenciasNotificacion, actualizarPreferenciasApp, eliminarCuentaController, obtenerRolesPorTransferir } from './usuarios.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { autenticar, autenticarSesion } from '../../middlewares/autenticar.js';
 import * as authService from '../auth/auth.service.js';
@@ -96,6 +96,12 @@ router.put('/yo/preferencias-aplicacion', autenticar, asyncHandler(actualizarPre
  * Elimina la cuenta. Usa autenticarSesion y no autenticar: la persona puede eliminar su cuenta aunque aún no haya aceptado el aviso.
  */
 router.post('/yo/eliminar', autenticarSesion, asyncHandler(eliminarCuentaController));
+
+/**
+ * Lista los proyectos donde la persona debe transferir su rol antes de eliminar su cuenta.
+ * Usa autenticarSesion como /yo/eliminar, para que la consulta previa funcione aunque aún no haya aceptado el aviso.
+ */
+router.get('/yo/roles-por-transferir', autenticarSesion, asyncHandler(obtenerRolesPorTransferir));
 
 /**
  * Obtiene el estado de 2FA del usuario.

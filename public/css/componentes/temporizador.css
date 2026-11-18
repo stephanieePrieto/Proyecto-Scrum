@@ -1,5 +1,8 @@
-/* Responsable: Alfonso - HU-27: tarjeta flotante del temporizador de horas.
- * Va abajo a la izquierda para no chocar con los avisos de notificaciones (abajo a la derecha). */
+/* 
+ * @file temporizador.css
+ * @description Tarjeta flotante del temporizador de horas.
+ * @author Alfonso Mendoza Vasquez
+ */
 
 .temp {
   position: fixed;

@@ -266,7 +266,7 @@ export async function crear(datos, usuario) {
         accion: ACCIONES.INVITACION_CREADA,
         objeto: OBJETOS.INVITACION,
         objetoId: invRows[0].id,
-        despues: { correo: uRows[0].correo, rol: m.rol },
+        despues: { rol: m.rol },
       });
 
       invitadosData.push({

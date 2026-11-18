@@ -48,6 +48,11 @@ async function llamar(ruta, { metodo = 'GET', cuerpo } = {}) {
   let datos = {};
   try { datos = await respuesta.json(); } catch { /* respuesta sin JSON */ }
   if (respuesta.status === 401) { location.href = '/pages/login.html'; }   // Sin sesión: ir al login
+  // Sin aviso vigente aceptado: ir a aceptarlo antes de seguir, como hace api.js
+  if (respuesta.status === 403 && datos?.detalles?.codigo === 'AVISO_PENDIENTE'
+    && !window.location.pathname.endsWith('/privacidad.html')) {
+    location.href = '/pages/privacidad.html?pendiente=1';
+  }
   return { ok: respuesta.ok, estado: respuesta.status, datos };
 }
 

@@ -1,4 +1,3 @@
--- Responsable: Alfonso - HU-26: agrega a proyectos el modo de trabajo (Scrum o flujo continuo).
 /**
     @file modo_flujo_continuo.sql
     @description Agrega proyectos.modo_flujo para que un proyecto pueda trabajar sin sprints (Kanban continuo).

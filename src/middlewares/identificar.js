@@ -2,12 +2,15 @@
  * @file identificar.js
  * @description Deja a la persona de la petición en `req.user`.
  *  - Con USUARIO_DEMO_ID definido en el .env (y NODE_ENV distinto de "production"), usa ese usuario.
- *  - En cualquier otro caso delega en `autenticar` (cookie httpOnly o Bearer).
+ *  - En cualquier otro caso delega en `autenticarSesion` y después en `exigirAvisoVigente`
+ *    (cookie httpOnly o Bearer). `autenticar` es un arreglo, no una función, así que no se
+ *    puede llamar como `autenticar(req, res, next)`; por eso se encadenan sus dos pasos aquí.
  *  Exporta `identificar` con nombre y por defecto.
- * 
+ *
  * @author Alfonso Mendoza Vasquez
+ * @author Citlaly Morales Viveros
  */
-import { autenticar } from './autenticar.js';
+import { autenticarSesion, exigirAvisoVigente } from './autenticar.js';
 
 /**
  * Identifica a la persona que hace la petición.
@@ -22,7 +25,10 @@ export function identificar(req, res, next) {
     req.user = { id: idDemo };
     return next();
   }
-  return autenticar(req, res, next);
+  return autenticarSesion(req, res, (error) => {
+    if (error) return next(error);
+    return exigirAvisoVigente(req, res, next);
+  });
 }
 
 export default identificar;

@@ -1,6 +1,6 @@
 /**
  * @file paneles-rol.js
- * @description Panel del tablero según el rol de la persona en el proyecto abierto (HU-65).
+ * @description Panel del tablero según el rol de la persona en el proyecto abierto.
  * El rol es por proyecto: la misma persona puede ser Scrum Master en un proyecto
  * y Developer en otro, por eso el panel se decide al elegir el proyecto, no al iniciar sesión.
  * Módulo puro (sin DOM) para poder probarlo en Node sin navegador.

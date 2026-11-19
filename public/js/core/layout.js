@@ -522,3 +522,17 @@ export function montarBarraSuperior() {
   try { proyectoActivo = Number(localStorage.getItem('proyectoActivo')); } catch { /* almacenamiento bloqueado */ }
   if (proyectoActivo > 0) cargarPermisos(proyectoActivo).catch(() => { /* sin permisos conocidos, esas opciones siguen ocultas */ });
 }
+
+/**
+ * Al volver con "atrás" el navegador puede restaurar la página desde su memoria
+ * (bfcache) sin volver a pedir nada, mostrando el panel con la sesión ya cerrada.
+ * Si la página se restauró así, confirmar que la sesión sigue vigente; un 401 lleva al login.
+ * Solo corre en las páginas con barra superior (las de dentro de la app).
+ */
+window.addEventListener('pageshow', (evento) => {
+  if (!evento.persisted) return;
+  if (window.location.pathname.endsWith('/login.html')) return;
+  api('/auth/latido', { metodo: 'GET' }).catch((error) => {
+    if (error?.estado === 401) window.location.href = '/pages/login.html';
+  });
+});

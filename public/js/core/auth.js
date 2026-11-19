@@ -17,7 +17,11 @@ export async function cerrarSesion() {
     } catch (error) {
         console.error('Error al cerrar sesión', error);
     } finally {
-        try { localStorage.removeItem('usuario'); } catch { /* Sin almacenamiento: no hay datos que borrar */ }
+        try {
+            localStorage.removeItem('usuario');
+            // No dejar el proyecto activo guardado tras cerrar sesión
+            localStorage.removeItem('proyectoActivo');
+        } catch { /* Sin almacenamiento: no hay datos que borrar */ }
         window.location.href = '/pages/login.html';
     }
 }

@@ -93,8 +93,14 @@ export async function crearApp() {
   // Swagger
   configurarSwagger(app);
 
-  // Archivos estáticos del frontend
-  app.use(express.static(carpetaPublica));
+  // Archivos estáticos del frontend. Las páginas HTML no se guardan en caché:
+  // con "atrás" el navegador no debe restaurar el panel desde su memoria (bfcache)
+  // después de cerrar sesión. JS/CSS sí se pueden cachear.
+  app.use(express.static(carpetaPublica, {
+    setHeaders(res, ruta) {
+      if (ruta.endsWith('.html')) res.setHeader('Cache-Control', 'no-store');
+    },
+  }));
 
   /**
    * @openapi

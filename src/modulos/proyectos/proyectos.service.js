@@ -166,9 +166,9 @@ export async function listar(usuario, { archivados = false } = {}) {
        ) AS puede_gestionar
      ${DESDE}
      WHERE p.archivado = $1
-       AND p.equipo_id IN (
-         SELECT equipo_id
-         FROM miembros_equipo
+       AND p.id IN (
+         SELECT proyecto_id
+         FROM miembros_proyecto
          WHERE usuario_id = $2
        )
      ORDER BY p.creado_en DESC`,
@@ -186,9 +186,10 @@ export async function obtener(id, usuario) {
   const proyecto = rows[0];
   if (!proyecto) return null;
 
+  // El acceso al proyecto exige participar en él (tener rol), no solo ser del equipo.
   const miembro = await query(
-    'SELECT 1 FROM miembros_equipo WHERE equipo_id = $1 AND usuario_id = $2',
-    [proyecto.equipo_id, usuario.id],
+    'SELECT 1 FROM miembros_proyecto WHERE proyecto_id = $1 AND usuario_id = $2',
+    [id, usuario.id],
   );
   if (!miembro.rows.length) return null;
 
@@ -239,6 +240,16 @@ export async function crear(datos, usuario) {
          ($1, 'En revisión', 3, NULL, FALSE, FALSE),
          ($1, 'Hecho', 4, NULL, FALSE, TRUE)`,
       [proyectoId],
+    );
+
+    // Quien crea el proyecto queda registrado con su rol en el proyecto.
+    // Sin esta fila el creador no aparecería en su propio listado al filtrar
+    // por participación en el proyecto, y tampoco podría abrirlo.
+    const rolCreador = limpio.miembros.find((m) => m.usuario_id === usuario.id)?.rol;
+    await cliente.query(
+      `INSERT INTO miembros_proyecto (proyecto_id, usuario_id, rol)
+       VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [proyectoId, usuario.id, ['scrum_master', 'product_owner', 'developer'].includes(rolCreador) ? rolCreador : 'scrum_master'],
     );
 
     await registrarAuditoria(cliente, {

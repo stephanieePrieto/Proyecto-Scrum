@@ -20,6 +20,7 @@ import { tonoAvance, tonoImpedimentos, tonoDesviacion } from '../core/semaforo.j
 import { pluralizar, escaparHtml } from '../core/utils.js';
 import { inicializarNotificaciones } from '../componentes/notificaciones.js';
 import { cargarPermisos } from '../core/permisos-ui.js';
+import { panelParaRol } from '../core/paneles-rol.js';
 
 // Insertar la barra superior de navegación. Esto también inyecta <div id="notificaciones-root"></div>
 montarBarraSuperior();
@@ -72,14 +73,46 @@ if (proyectoId && proyectoId !== 'null') {
   cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });
 }
 
+/**
+ * Pintar el encabezado del panel según el rol en el proyecto abierto (HU-65).
+ * Sin rol conocido (o sin proyecto cargado) se queda el encabezado de siempre.
+ * @returns {void}
+ */
+function aplicarPanelRol() {
+  const panel = panelParaRol(rolProyecto);
+  if (rolProyecto && proyectoActual) {
+    if (tituloPagina) tituloPagina.textContent = panel.titulo;
+    if (subtituloPagina) subtituloPagina.textContent = `${proyectoActual.nombre} · ${panel.subtitulo}`;
+  } else if (proyectoActual) {
+    if (tituloPagina) tituloPagina.textContent = proyectoActual.nombre;
+    if (subtituloPagina) subtituloPagina.textContent = proyectoActual.vision || panel.subtitulo;
+  }
+}
+
+/**
+ * Cuando llegan (o cambian) los permisos, el rol ya se conoce: pintar el panel de ese rol.
+ * La grilla se vuelve a pintar con los datos que ya se tenían, sin volver a pedirlos.
+ */
+window.addEventListener('permisos:actualizados', (evento) => {
+  rolProyecto = evento.detail?.rol ?? null;
+  aplicarPanelRol();
+  if (!ultimoVacio && Object.keys(datosKpiActuales).length) {
+    pintarDatos({ vacio: false, kpis: datosKpiActuales });
+  }
+});
+
 const tituloPagina = document.getElementById('dashboard-titulo');
 const subtituloPagina = document.getElementById('dashboard-subtitulo');
 const infoProyecto = document.getElementById('info-proyecto');
 const dodTexto = document.getElementById('dod-texto');
 
 // Variables de estado del dashboard
-let estadoEsScrumMaster = false;
 let datosKpiActuales = {};
+let ultimoVacio = true;
+// Rol de la persona en el proyecto abierto (por proyecto, no por usuario) y proyecto cargado.
+// El panel por rol se decide con estos dos datos (HU-65).
+let rolProyecto = null;
+let proyectoActual = null;
 
 /**
  * Declarar los 4 KPIs en el orden en que se muestran.
@@ -108,7 +141,10 @@ function abrirDetalleKpi(id) {
 
   if (!indicador || !modalKpi) return;
 
-  tituloModalKpi.textContent = indicador.etiqueta;
+  // La tarjeta de impedimentos del Developer dice "Mis impedimentos abiertos"
+  tituloModalKpi.textContent = id === 'impedimentos'
+    ? panelParaRol(rolProyecto).etiquetaImpedimentos
+    : indicador.etiqueta;
 
   const descripciones = {
     avance: 'Muestra tu progreso individual y las tareas que tienes pendientes.',
@@ -381,8 +417,9 @@ const constructores = {
   },
 
   impedimentos(k, meta) {
-    // k contiene { mios, todos }. Leemos el objeto de todos para el dashboard general
-    const data = k.todos || k; // Fallback por si la API aún no envía el formato de { mios, todos }
+    // k contiene { mios, todos }. El panel del Developer usa "mios"; los demás, "todos".
+    const alcance = meta.alcance || 'todos';
+    const data = k[alcance] || k.todos || k; // Fallback por si la API aún no envía el formato de { mios, todos }
     const pista = data.valor === 0 ? 'Sin impedimentos abiertos'
       : data.criticos > 0 ? `${data.criticos} ${pluralizar(data.criticos, 'crítico pendiente', 'críticos pendientes')}`
         : 'Ninguno crítico';
@@ -465,8 +502,9 @@ function pintarAlertaDesviacion(datos) {
 function pintarDatos(datos) {
   if (!grilla) return;
   datosKpiActuales = datos.vacio ? {} : (datos.kpis || {});
-  estadoEsScrumMaster = datos.esScrumMaster || false;
+  ultimoVacio = datos.vacio;
   pintarAlertaDesviacion(datos);
+  aplicarPanelRol();
 
   // Mostrar un mensaje diferente cuando no hay proyecto seleccionado
   if (!proyectoId) {
@@ -488,7 +526,16 @@ function pintarDatos(datos) {
   if (avisoVacio) avisoVacio.hidden = true;
   grilla.hidden = false;
 
-  grilla.innerHTML = KPIS.map(meta => {
+  // Solo los KPIs del panel de este rol (HU-65); sin rol conocido, los 4 de siempre.
+  const panel = panelParaRol(rolProyecto);
+  const metas = panel.kpis
+    .map(id => KPIS.find(k => k.id === id))
+    .filter(Boolean)
+    .map(meta => (meta.id === 'impedimentos'
+      ? { ...meta, etiqueta: panel.etiquetaImpedimentos, alcance: panel.impedimentos }
+      : meta));
+
+  grilla.innerHTML = metas.map(meta => {
     const k = datos.kpis?.[meta.id];
     if (!k || k.error) return tarjetaError(meta.etiqueta, meta.claveIcono, meta.id);
 
@@ -529,10 +576,10 @@ grilla?.addEventListener('keydown', (evento) => {
 
 function pintarInfoProyecto(proyecto) {
   if (!proyecto) return;
+  proyectoActual = proyecto;
 
-  // Cambiar el título y la visión
-  if (tituloPagina) tituloPagina.textContent = proyecto.nombre;
-  if (subtituloPagina) subtituloPagina.textContent = proyecto.vision;
+  // Cambiar el título y la visión (el panel por rol lo ajusta en aplicarPanelRol)
+  aplicarPanelRol();
 
   // Mostrar el Definition of Done
   if (infoProyecto && dodTexto && proyecto.definition_of_done) {

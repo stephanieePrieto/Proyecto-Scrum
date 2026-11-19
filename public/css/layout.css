@@ -250,6 +250,30 @@
   font-weight: 500;
 }
 
+/* Botón para cerrar sesión: visible en la barra, junto al perfil */
+.barra-superior__salir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--fondo-tarjeta);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.barra-superior__salir:hover {
+  color: var(--primario);
+  border-color: var(--primario);
+}
+
+.barra-superior__salir svg {
+  flex-shrink: 0;
+}
+
 /* En pantallas angostas la navegación pasa a una segunda fila */
 @media (max-width: 900px) {
   .barra-superior {

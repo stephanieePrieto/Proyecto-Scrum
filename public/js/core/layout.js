@@ -12,6 +12,7 @@
 import { escaparHtml, iniciales } from './utils.js';
 import { cargarPermisos } from './permisos-ui.js';
 import { api } from './api.js';
+import { cerrarSesion } from './auth.js';
 
 /** Ruta pública de la hoja de estilos de la campana de notificaciones (HU-24). */
 const RUTA_CSS_NOTIFICACIONES = '/css/componentes/notificaciones.css';
@@ -506,9 +507,18 @@ export function montarBarraSuperior() {
         </div>
         <div class="barra-superior__avatar" aria-hidden="true">${escaparHtml(iniciales(usuario.nombre))}</div>
       </a>
+
+      <!-- C24: botón para cerrar sesión (TC-01-06 lo pide desde el panel principal) -->
+      <button type="button" id="boton-cerrar-sesion" class="barra-superior__salir" title="Cerrar sesión">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Cerrar sesión</span>
+      </button>
     </div>`;
 
   activarMenus(contenedor);
+
+  // El botón de cerrar sesión llama a la función que ya existía en auth.js
+  contenedor.querySelector('#boton-cerrar-sesion')?.addEventListener('click', () => { cerrarSesion(); });
 
   mostrarFotoBarra();
   escucharZonaPerfil();

@@ -1,0 +1,102 @@
+.github-pagina {
+  width: min(1120px, calc(100% - 32px));
+  margin: 32px auto;
+}
+
+.github-pagina__encabezado,
+.github-resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.github-pagina__encabezado {
+  margin-bottom: 20px;
+}
+
+.github-pagina__encabezado h1,
+.github-resumen h2,
+.github-columnas h2 {
+  margin: 0 0 8px;
+}
+
+.github-resumen {
+  margin-bottom: 20px;
+}
+
+.github-resumen p,
+.github-resumen a {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.github-resumen a,
+.github-volver a,
+.github-configurar a {
+  color: var(--primario, #1d4ed8);
+}
+
+.github-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 20px;
+}
+
+.github-columnas > .tarjeta {
+  min-width: 0;
+}
+
+.github-lista {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.github-lista li {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+.github-lista a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.github-contribucion {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.github-commit__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  color: var(--texto-suave, #64748b);
+  font-size: 0.85rem;
+}
+
+.github-vacio,
+.github-configurar,
+.github-volver {
+  margin-top: 20px;
+}
+
+@media (max-width: 760px) {
+  .github-pagina__encabezado,
+  .github-resumen {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .github-columnas {
+    grid-template-columns: 1fr;
+  }
+}

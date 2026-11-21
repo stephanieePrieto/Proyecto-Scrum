@@ -39,7 +39,7 @@ BEGIN
   SELECT id INTO v_dana  FROM usuarios WHERE correo = 'dana044car@gmail.com';
   SELECT id INTO v_diego FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com';
 
-  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por hacer';
+  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por empezar';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'En progreso';
   SELECT id INTO v_c_hecho    FROM columnas_tablero WHERE proyecto_id = v_proyecto AND es_final = TRUE;
 

@@ -18,6 +18,10 @@ router.get('/:proyectoId', controller.obtenerCursoProyecto);
 // Actualizar progreso de lectura de una lección
 router.post('/progreso', controller.actualizarProgreso);
 
+// Registrar si se completó u omitió la guía por rol
+router.post('/tutorial/completar', controller.completarTutorial);
+router.get('/tutorial/estado/:proyectoId', controller.obtenerEstadoTutorial);
+
 // Enviar y calificar quiz modular
 router.post('/quiz', controller.enviarQuiz);
 

@@ -75,6 +75,8 @@ const ENLACES = [
   { href: '/pages/metricas.html', etiqueta: 'Métricas', icono: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
   { href: '/pages/comparativo.html', etiqueta: 'Comparativo', icono: '<path d="M3 20h18M7 16v-5M12 16V6M17 16v-8"/>' },
   { href: '/pages/auditoria.html', etiqueta: 'Bitácora', permiso: 'auditoria.ver', icono: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>' },
+  { href: '/pages/github.html', etiqueta: 'GitHub', icono: '<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 6v-3.9a3.4 3.4 0 0 0-.9-2.7c3-.3 6.1-1.5 6.1-6.7a5.2 5.2 0 0 0-1.4-3.6 4.8 4.8 0 0 0-.1-3.6s-1.2-.4-3.8 1.4a13.3 13.3 0 0 0-6.9 0C5.5 1.1 4.3 1.5 4.3 1.5a4.8 4.8 0 0 0-.1 3.6 5.2 5.2 0 0 0-1.4 3.6c0 5.2 3.1 6.4 6.1 6.7a3.4 3.4 0 0 0-.9 2.7V22"/>' },
+  { href: '/pages/curso-scrum.html?vista=guia-app', etiqueta: 'Ayuda', icono: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.8c-1.3 1.2-1.9 1.5-1.9 3.2M12 17.5h.01"/>' },
 ];
 
 /** Clase que marca un grupo del menú como desplegado. */
@@ -96,11 +98,11 @@ const GRUPOS = [
   },
   {
     etiqueta: 'Seguimiento',
-    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/comparativo.html', '/pages/review.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html'],
+    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/comparativo.html', '/pages/review.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html', '/pages/github.html'],
   },
   {
     etiqueta: 'Equipo',
-    hrefs: ['/pages/equipos.html'],
+    hrefs: ['/pages/equipos.html', '/pages/curso-scrum.html?vista=guia-app'],
   },
 ];
 

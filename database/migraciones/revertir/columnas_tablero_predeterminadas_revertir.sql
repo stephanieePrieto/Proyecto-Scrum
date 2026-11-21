@@ -1,7 +1,7 @@
 /**
     @file columnas_tablero_predeterminadas_revertir.sql
-    @description Revierte columnas_tablero_predeterminadas.sql: borra solo las columnas predeterminadas (Por hacer, En progreso,
-    En revision y Hecho, con sus valores originales) que no tengan tareas asignadas. Las columnas personalizadas
+    @description Revierte columnas_tablero_predeterminadas.sql: borra solo las columnas predeterminadas (Por empezar, En progreso,
+    En revisión y Terminado, con sus valores originales) que no tengan tareas asignadas. Las columnas personalizadas
     o con tareas no se tocan.
 
     @author Citlaly Morales Viveros
@@ -11,10 +11,10 @@ BEGIN;
 DELETE FROM columnas_tablero ct
 USING (
     VALUES
-        ('Por hacer', 1, 5, FALSE),
+        ('Por empezar', 1, 5, FALSE),
         ('En progreso', 2, 3, FALSE),
-        ('En revision', 3, NULL, FALSE),
-        ('Hecho', 4, NULL, TRUE)
+        ('En revisión', 3, NULL, FALSE),
+        ('Terminado', 4, NULL, TRUE)
 ) AS c (nombre, orden, limite_wip, es_final)
 WHERE
     ct.nombre = c.nombre

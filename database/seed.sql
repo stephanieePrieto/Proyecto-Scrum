@@ -133,10 +133,10 @@ INSERT INTO columnas_tablero (proyecto_id, nombre, orden, limite_wip, es_final)
 SELECT p.id, c.nombre, c.orden, c.limite_wip, c.es_final
 FROM proyectos p
 CROSS JOIN (VALUES
-  ('Por hacer',    1, 5,    FALSE),
+  ('Por empezar',  1, 5,    FALSE),
   ('En progreso',  2, 3,    FALSE),
-  ('En revision',  3, NULL::INTEGER, FALSE),
-  ('Hecho',        4, NULL::INTEGER, TRUE)
+  ('En revisión',  3, NULL::INTEGER, FALSE),
+  ('Terminado',    4, NULL::INTEGER, TRUE)
 ) AS c(nombre, orden, limite_wip, es_final)
 ON CONFLICT DO NOTHING;
 
@@ -191,7 +191,7 @@ BEGIN
   END IF;
 
   SELECT COUNT(*) INTO v_columnas FROM columnas_tablero
-   WHERE proyecto_id = v_proy AND nombre IN ('Por hacer', 'En progreso', 'En revision', 'Hecho');
+   WHERE proyecto_id = v_proy AND nombre IN ('Por empezar', 'En progreso', 'En revisión', 'Terminado');
   IF v_columnas < 4 THEN
     RAISE NOTICE 'Faltan columnas por defecto en "%"; no se cargan los datos del tablero.', v_proyecto_nombre;
     RETURN;
@@ -240,13 +240,13 @@ SELECT v_proy, (SELECT COALESCE(MAX(x.numero_hu), 0) FROM historias x WHERE x.pr
   INSERT INTO tareas (historia_id, proyecto_id, sprint_id, columna_id, titulo, descripcion, responsable_id, horas_estimadas, etiquetas, orden, bloqueada, motivo_bloqueo)
   SELECT hi.id, v_proy, v_sprint, c.id, d.titulo, d.descripcion, u.id, d.horas_est, d.etiquetas, d.orden, d.bloqueada, d.motivo
   FROM (VALUES
-    ('Informacion en la tarjeta',   'Por hacer',   'Semaforo de desviacion de horas en la tarjeta',
+    ('Informacion en la tarjeta',   'Por empezar', 'Semaforo de desviacion de horas en la tarjeta',
         'Colorear las horas en verde, ambar o rojo segun la desviacion', NULL::TEXT, 3.0, ARRAY['frontend'], 1, FALSE, NULL::TEXT),
-    ('Mover tarjetas en tiempo real','Por hacer',   'Reversion automatica de la tarjeta',
+    ('Mover tarjetas en tiempo real','Por empezar', 'Reversion automatica de la tarjeta',
         'Si el servidor no responde, la tarjeta vuelve a su columna y se muestra un error', 'marco.reyes.baja@example.com', 4.0, ARRAY['frontend'], 2, FALSE, NULL),
-    ('Mover tarjetas en tiempo real','Por hacer',   'Cola local de movimientos pendientes',
+    ('Mover tarjetas en tiempo real','Por empezar', 'Cola local de movimientos pendientes',
         'Marcar la tarjeta como pendiente de sincronizar y reenviar el movimiento al reconectar', 'diegotrujano3c@gmail.com', 3.0, ARRAY['frontend'], 3, FALSE, NULL),
-    ('Registrar horas reales',       'Por hacer',   'Formulario de registro de horas',
+    ('Registrar horas reales',       'Por empezar', 'Formulario de registro de horas',
         'Campo de fecha, horas y nota por tarea', 'dana044car@gmail.com', 2.5, ARRAY['frontend'], 4, FALSE, NULL),
     ('Tablero con columnas configurables','En progreso','Modal de personalizacion de columnas',
         'Agregar, renombrar y reordenar columnas desde el tablero', 'dana044car@gmail.com', 4.0, ARRAY['frontend'], 1, FALSE, NULL),
@@ -254,19 +254,19 @@ SELECT v_proy, (SELECT COALESCE(MAX(x.numero_hu), 0) FROM historias x WHERE x.pr
         'Resaltar las tarjetas bloqueadas', 'diegotrujano3c@gmail.com', 2.0, ARRAY['frontend'], 2, TRUE, 'Falta definir el icono de candado con el equipo de diseno'),
     ('Mover tarjetas en tiempo real','En progreso','Transmision por WebSockets',
         'Emitir el movimiento a los demas usuarios conectados al proyecto', 'diegotrujano3c@gmail.com', 5.0, ARRAY['backend'], 3, FALSE, NULL),
-    ('Tablero con columnas configurables','En revision','Endpoint PUT de columnas con validacion',
+    ('Tablero con columnas configurables','En revisión','Endpoint PUT de columnas con validacion',
         'Rechazar nombres vacios o repetidos y columnas con tarjetas', 'diegotrujano3c@gmail.com', 5.0, ARRAY['backend'], 1, FALSE, NULL),
-    ('Informacion en la tarjeta',   'En revision', 'Componente compacto de tarjeta',
+    ('Informacion en la tarjeta',   'En revisión', 'Componente compacto de tarjeta',
         'Titulo, responsable, puntos, etiquetas y horas', 'dana044car@gmail.com', 4.0, ARRAY['frontend'], 2, FALSE, NULL),
-    ('Inicio de sesion seguro',              'Hecho',       'Maquetar formulario de inicio de sesion',
+    ('Inicio de sesion seguro',              'Terminado',   'Maquetar formulario de inicio de sesion',
         'Correo, contrasena y mensajes de error', 'dana044car@gmail.com', 3.0, ARRAY['frontend'], 1, FALSE, NULL),
-    ('Inicio de sesion seguro',              'Hecho',       'Validar credenciales con bcrypt',
+    ('Inicio de sesion seguro',              'Terminado',   'Validar credenciales con bcrypt',
         'Comparar el hash y devolver el token de sesion', 'diegotrujano3c@gmail.com', 4.0, ARRAY['backend'], 2, FALSE, NULL),
-    ('Tablero con columnas configurables','Hecho', 'Maquetar layout responsivo de columnas',
+    ('Tablero con columnas configurables','Terminado', 'Maquetar layout responsivo de columnas',
         'Cuatro columnas que se adaptan a pantallas pequenas', 'dana044car@gmail.com', 3.0, ARRAY['frontend'], 3, FALSE, NULL),
-    ('Tablero con columnas configurables','Hecho', 'Skeletons de carga y boton Reintentar',
+    ('Tablero con columnas configurables','Terminado', 'Skeletons de carga y boton Reintentar',
         'Mostrar tarjetas de carga y un mensaje con reintento', 'dana044car@gmail.com', 2.0, ARRAY['frontend'], 4, FALSE, NULL),
-    ('Mover tarjetas en tiempo real','Hecho',      'Modulo drag-and-drop entre columnas',
+    ('Mover tarjetas en tiempo real','Terminado',  'Modulo drag-and-drop entre columnas',
         'Arrastrar y soltar tarjetas entre columnas', 'dana044car@gmail.com', 4.0, ARRAY['frontend'], 5, FALSE, NULL)
   ) AS d(historia, columna, titulo, descripcion, responsable, horas_est, etiquetas, orden, bloqueada, motivo)
   JOIN historias hi   ON hi.sprint_id = v_sprint AND hi.titulo = d.historia
@@ -366,7 +366,7 @@ BEGIN
   SELECT id INTO v_dana  FROM usuarios WHERE correo = 'dana044car@gmail.com';
   SELECT id INTO v_diego FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com';
 
-  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por hacer';
+  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por empezar';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'En progreso';
   SELECT id INTO v_c_hecho    FROM columnas_tablero WHERE proyecto_id = v_proyecto AND es_final = TRUE;
 
@@ -471,7 +471,7 @@ BEGIN
 
   SELECT id INTO v_dana  FROM usuarios WHERE correo = 'dana044car@gmail.com';
   SELECT id INTO v_diego FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com';
-  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por hacer';
+  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por empezar';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'En progreso';
   SELECT id INTO v_c_hecho    FROM columnas_tablero WHERE proyecto_id = v_proyecto AND es_final = TRUE;
 
@@ -632,9 +632,9 @@ BEGIN
     RETURNING id INTO v_historia;
   END IF;
 
-  SELECT id INTO v_c_porhacer   FROM columnas_tablero WHERE proyecto_id = v_proy AND nombre = 'Por hacer';
+  SELECT id INTO v_c_porhacer   FROM columnas_tablero WHERE proyecto_id = v_proy AND nombre = 'Por empezar';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proy AND nombre = 'En progreso';
-  SELECT id INTO v_c_revision FROM columnas_tablero WHERE proyecto_id = v_proy AND nombre = 'En revision';
+  SELECT id INTO v_c_revision FROM columnas_tablero WHERE proyecto_id = v_proy AND nombre = 'En revisión';
   SELECT id INTO v_c_hecho       FROM columnas_tablero WHERE proyecto_id = v_proy AND es_final = TRUE;
 
   -- ---------------------------------------------------------------- 6 tareas extra asignadas

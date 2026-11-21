@@ -8,6 +8,7 @@
 
 import { consulta } from '../../config/db.js';
 import { generarPDF } from '../../utils/pdf-generator.js';
+import { ErrorApp } from '../../utils/ErrorApp.js';
 
 
 /**
@@ -177,6 +178,12 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
   const tieneCertificado = certificadoRes.rows.length > 0;
   const certificadoData = tieneCertificado ? certificadoRes.rows[0] : null;
 
+  const tutorialRes = await consulta(
+    'SELECT estado FROM curso_tutorial_progreso WHERE usuario_id = $1 AND proyecto_id = $2',
+    [usuarioId, proyectoId]
+  );
+  const tutorialEstado = tutorialRes.rows[0]?.estado || null;
+
   // Obtener Intento de Quiz Final Integrador
   const quizFinalRes = await consulta(
     'SELECT calificacion, aprobado FROM curso_intentos_quizzes WHERE leccion_id = 999 AND usuario_id = $1',
@@ -228,11 +235,74 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
       aprobado: quizFinalInfo.aprobado
     },
     progresoEquipo,
+    tutorialCompletado: tutorialEstado !== null,
+    tutorialEstado,
     certificado: {
       tieneCertificado,
       ...certificadoData
     },
     porcentajeAvance
+  };
+}
+
+/**
+ * Registra que una persona completó u omitió la guía de su proyecto.
+ *
+ * @param {number} usuarioId Identificador de la persona.
+ * @param {number|string} proyectoId Identificador del proyecto.
+ * @param {'completado'|'omitido'} estado Resultado del recorrido.
+ * @returns {Promise<{estado: string}>} Estado persistido.
+ */
+export async function registrarEstadoTutorial(usuarioId, proyectoId, estado) {
+  const idProyecto = Number(proyectoId);
+  if (!Number.isInteger(idProyecto) || idProyecto <= 0) {
+    throw new ErrorApp('El identificador del proyecto no es válido.', 400);
+  }
+  if (!['completado', 'omitido'].includes(estado)) {
+    throw new ErrorApp('Indica si completaste u omitiste la guía.', 400);
+  }
+
+  const miembro = await consulta(
+    'SELECT 1 FROM miembros_proyecto WHERE usuario_id = $1 AND proyecto_id = $2',
+    [usuarioId, idProyecto]
+  );
+  if (!miembro.rows.length) throw new ErrorApp('Proyecto no encontrado.', 404);
+
+  await consulta(
+    `INSERT INTO curso_tutorial_progreso (usuario_id, proyecto_id, estado)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (usuario_id, proyecto_id)
+     DO UPDATE SET estado = EXCLUDED.estado, actualizado_en = NOW()`,
+    [usuarioId, idProyecto, estado]
+  );
+  return { estado };
+}
+
+/**
+ * Consulta solo el rol y el estado de la guía para decidir si se inicia el tutorial.
+ *
+ * @param {number} usuarioId Identificador de la persona.
+ * @param {number|string} proyectoId Identificador del proyecto.
+ * @returns {Promise<{rolEnProyecto: string, tutorialCompletado: boolean}>} Estado inicial.
+ */
+export async function obtenerEstadoTutorial(usuarioId, proyectoId) {
+  const idProyecto = Number(proyectoId);
+  if (!Number.isInteger(idProyecto) || idProyecto <= 0) {
+    throw new ErrorApp('El identificador del proyecto no es válido.', 400);
+  }
+
+  const { rows } = await consulta(
+    `SELECT mp.rol, tp.estado
+       FROM miembros_proyecto mp
+       LEFT JOIN curso_tutorial_progreso tp
+         ON tp.usuario_id = mp.usuario_id AND tp.proyecto_id = mp.proyecto_id
+      WHERE mp.usuario_id = $1 AND mp.proyecto_id = $2`,
+    [usuarioId, idProyecto]
+  );
+  if (!rows.length) throw new ErrorApp('Proyecto no encontrado.', 404);
+  return {
+    rolEnProyecto: rows[0].rol,
+    tutorialCompletado: rows[0].estado !== null,
   };
 }
 

@@ -607,3 +607,12 @@ GRANT USAGE, SELECT ON SEQUENCE review_delegaciones_id_seq TO scrumflow_app;
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS modo_flujo TEXT NOT NULL DEFAULT 'scrum';
 ALTER TABLE proyectos DROP CONSTRAINT IF EXISTS proyectos_modo_flujo_check;
 ALTER TABLE proyectos ADD CONSTRAINT proyectos_modo_flujo_check CHECK (modo_flujo IN ('scrum', 'continuo'));
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS github_repo_url TEXT;
+
+CREATE TABLE IF NOT EXISTS curso_tutorial_progreso (
+  usuario_id INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+  proyecto_id INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
+  estado TEXT NOT NULL CHECK (estado IN ('completado', 'omitido')),
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (usuario_id, proyecto_id)
+);

@@ -59,10 +59,10 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
         await consulta(
             `INSERT INTO columnas_tablero (proyecto_id, nombre, orden, limite_wip, wip_duro, es_final)
              VALUES
-               ($1, 'Por hacer', 1, 5, FALSE, FALSE),
+               ($1, 'Por empezar', 1, 5, FALSE, FALSE),
                ($1, 'En progreso', 2, 3, FALSE, FALSE),
                ($1, 'En revisión', 3, NULL, FALSE, FALSE),
-               ($1, 'Hecho', 4, NULL, FALSE, TRUE)
+               ($1, 'Terminado', 4, NULL, FALSE, TRUE)
              ON CONFLICT (proyecto_id, nombre) DO NOTHING`,
             [proyectoId]
         );

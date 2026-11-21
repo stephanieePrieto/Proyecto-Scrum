@@ -169,6 +169,23 @@ export function crearElementoTarjeta(tarea) {
     contenedor.appendChild(encabezado);
     contenedor.appendChild(titulo);
 
+    const metadatos = document.createElement('div');
+    metadatos.className = 'tarjeta-metadatos';
+    if (tarea.puntos !== null && tarea.puntos !== undefined && tarea.puntos !== '') {
+        const puntos = document.createElement('span');
+        puntos.className = 'tarjeta-metadatos__puntos';
+        puntos.textContent = `${tarea.puntos} pts`;
+        metadatos.appendChild(puntos);
+    }
+    if (tarea.epica_nombre) {
+        const epica = document.createElement('span');
+        epica.className = 'tarjeta-metadatos__epica';
+        epica.textContent = tarea.epica_nombre;
+        epica.title = tarea.epica_nombre;
+        metadatos.appendChild(epica);
+    }
+    if (metadatos.hasChildNodes()) contenedor.appendChild(metadatos);
+
     // --- DESCRIPCIÓN ---
     if (tarea.descripcion) {
         const descripcion = document.createElement('p');

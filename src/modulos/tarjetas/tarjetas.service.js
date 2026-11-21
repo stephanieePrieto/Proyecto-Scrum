@@ -774,7 +774,7 @@ export async function moverTarjetaConVersion(tareaId, datos = {}, usuario) {
 
         //Impedir mover una tarjeta bloqueada a la columna final ("Hecho")
         if (tareaActual.bloqueada && colDestino.es_final) {
-            throw new ErrorApp('No puedes mover una tarjeta bloqueada a la columna Hecho.', 409);
+            throw new ErrorApp('No puedes mover una tarjeta bloqueada a la columna Terminado.', 409);
         }
 
         //Si la columna tiene límite WIP duro y es distinta de la columna actual, validar cupo

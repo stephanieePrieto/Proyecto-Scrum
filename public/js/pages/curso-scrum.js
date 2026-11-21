@@ -11,9 +11,14 @@ let lecciones = [];
 let quizzes = [];
 let quizFinalData = null;
 let proyectoId = null;
+let rolEnProyecto = null;
+let filtroGuia = 'todas';
+let tutorialActivo = new URLSearchParams(location.search).get('tutorial') === '1';
 
 // Estado de navegación actual
-let vistaActiva = 'modulos'; // 'modulos' | 'guia-app' | 'roles' | 'quiz-final'
+let vistaActiva = tutorialActivo || new URLSearchParams(location.search).get('vista') === 'guia-app'
+  ? 'guia-app'
+  : 'modulos'; // 'modulos' | 'guia-app' | 'roles' | 'quiz-final'
 let leccionActivaId = null;
 let modoLeccion = 'lectura'; // 'lectura' | 'quiz'
 let ultimoResultadoQuiz = null; // { aprobado, calificacion, mensaje }
@@ -30,6 +35,7 @@ async function inicializar() {
   proyectoId = parseInt(proyectoGuardado, 10);
   await cargarCurso();
   configurarEventos();
+  if (vistaActiva !== 'modulos') cambiarVista(vistaActiva);
 }
 
 function mostrarAvisoSeleccionarProyecto() {
@@ -68,6 +74,106 @@ function obtenerTokenCsrf() {
   return metaCsrf ? metaCsrf.getAttribute('content') : '';
 }
 
+/**
+ * Adaptar la guía práctica al rol vigente en el proyecto seleccionado.
+ *
+ * @param {string|null} rol Rol Scrum asignado dentro del proyecto.
+ * @returns {void}
+ */
+function aplicarGuiaPorRol(rol) {
+  const resumenPorRol = {
+    scrum_master: 'Tu recorrido como Scrum Master se enfoca en facilitar el flujo, hacer visibles los impedimentos y acompañar las ceremonias del equipo.',
+    product_owner: 'Tu recorrido como Product Owner se enfoca en priorizar el valor, preparar el backlog y validar los resultados del Sprint.',
+    developer: 'Tu recorrido como Developer se enfoca en planificar el trabajo, actualizar las tarjetas, registrar horas y colaborar con el equipo.',
+  };
+  const etiquetasPorRol = {
+    scrum_master: 'Scrum Master',
+    product_owner: 'Product Owner',
+    developer: 'Developer',
+  };
+  const rolActual = Object.hasOwn(resumenPorRol, rol) ? rol : null;
+  const titulo = document.getElementById('guia-titulo');
+  const resumen = document.getElementById('guia-rol-resumen');
+  const textoTitulo = titulo?.querySelector('span');
+  if (textoTitulo) {
+    textoTitulo.textContent = rolActual
+      ? `Guía práctica para ${etiquetasPorRol[rolActual]}`
+      : 'Guía práctica de ScrumFlow';
+  }
+  if (resumen) {
+    resumen.textContent = resumenPorRol[rolActual] ||
+      'Consulta las funciones principales de ScrumFlow y los permisos disponibles en tu proyecto.';
+  }
+  aplicarFiltrosGuia();
+}
+
+/**
+ * Aplicar a las tarjetas de la guía tanto el filtro elegido como el rol del proyecto.
+ *
+ * @returns {void}
+ */
+function aplicarFiltrosGuia() {
+  const grid = document.getElementById('guia-pantallas-grid');
+  if (!grid) return;
+
+  const tarjetas = [...grid.querySelectorAll('.guia-card')];
+  tarjetas.forEach((card) => {
+    const roles = (card.dataset.roles || '').split(',').filter(Boolean);
+    const coincideRol = !rolEnProyecto || !roles.length || roles.includes(rolEnProyecto);
+    const coincideCategoria = filtroGuia === 'todas' || card.dataset.categoria === filtroGuia;
+    card.hidden = !coincideRol || !coincideCategoria;
+    card.classList.toggle('oculta', card.hidden);
+  });
+
+  const tarjetaRol = tarjetas.find((card) => {
+    const roles = (card.dataset.roles || '').split(',').filter(Boolean);
+    return roles.length === 1 && roles[0] === rolEnProyecto;
+  });
+  if (tarjetaRol) grid.prepend(tarjetaRol);
+}
+
+/**
+ * Guardar que la persona terminó o decidió omitir el recorrido guiado.
+ *
+ * @param {'completado'|'omitido'} estado Resultado del recorrido.
+ * @returns {Promise<void>}
+ */
+async function registrarEstadoGuia(estado) {
+  const aviso = document.getElementById('estado-guia');
+  const botones = [
+    document.getElementById('btn-omitir-guia'),
+    document.getElementById('btn-finalizar-guia'),
+  ].filter(Boolean);
+  botones.forEach((boton) => { boton.disabled = true; });
+  if (aviso) aviso.textContent = 'Guardando tu progreso…';
+
+  try {
+    const respuesta = await fetch('/api/curso-scrum/tutorial/completar', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': obtenerTokenCsrf(),
+      },
+      body: JSON.stringify({ proyectoId, estado }),
+    });
+    const datos = await respuesta.json().catch(() => ({}));
+    if (!respuesta.ok) {
+      throw new Error(datos.mensaje || 'No se pudo guardar el progreso. Inténtalo de nuevo.');
+    }
+
+    if (aviso) {
+      aviso.textContent = estado === 'omitido'
+        ? 'Guía omitida. Tu elección quedó guardada.'
+        : 'Recorrido completado. Tu progreso quedó guardado.';
+    }
+    if (tutorialActivo) window.location.href = '/pages/dashboard.html';
+  } catch (error) {
+    if (aviso) aviso.textContent = error.message || 'No se pudo guardar el progreso. Inténtalo de nuevo.';
+    botones.forEach((boton) => { boton.disabled = false; });
+  }
+}
+
 async function cargarCurso() {
   try {
     const respuesta = await fetch(`/api/curso-scrum/${proyectoId}`);
@@ -77,6 +183,8 @@ async function cargarCurso() {
     lecciones = datos.lecciones || [];
     quizzes = datos.quizzes || [];
     quizFinalData = datos.quizFinal || null;
+    rolEnProyecto = datos.rolEnProyecto;
+    aplicarGuiaPorRol(rolEnProyecto);
 
     // Mostrar botón "Avance del Equipo" solo a SM o PO
     const btnAvance = document.getElementById('btn-avance-equipo');
@@ -97,6 +205,8 @@ async function cargarCurso() {
     renderizarVistaActual();
   } catch (error) {
     console.error('[curso-scrum] Error:', error);
+    const aviso = document.getElementById('estado-guia');
+    if (aviso) aviso.textContent = 'No se pudo cargar la guía. Revisa tu conexión y vuelve a intentarlo.';
   }
 }
 
@@ -595,15 +705,18 @@ function configurarEventos() {
   // Filtros de categorías en Guía Práctica de ScrumFlow
   document.querySelectorAll('.guia-filtro-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const filtro = btn.dataset.filtro;
+      filtroGuia = btn.dataset.filtro;
       document.querySelectorAll('.guia-filtro-btn').forEach(b => b.classList.remove('activo'));
       btn.classList.add('activo');
-
-      document.querySelectorAll('#guia-pantallas-grid .guia-card').forEach(card => {
-        const coincide = filtro === 'todas' || card.dataset.categoria === filtro;
-        card.classList.toggle('oculta', !coincide);
-      });
+      aplicarFiltrosGuia();
     });
+  });
+
+  document.getElementById('btn-omitir-guia')?.addEventListener('click', () => {
+    registrarEstadoGuia('omitido');
+  });
+  document.getElementById('btn-finalizar-guia')?.addEventListener('click', () => {
+    registrarEstadoGuia('completado');
   });
 
   // Sub-pestañas dentro de Roles (PO, SM, Developers)

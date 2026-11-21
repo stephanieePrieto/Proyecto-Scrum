@@ -73,12 +73,12 @@ BEGIN
 
   -- Columnas por defecto (mismos nombres y WIP que seed.sql)
   INSERT INTO columnas_tablero (proyecto_id, nombre, orden, limite_wip, es_final) VALUES
-    (v_proyecto, 'Por hacer',   1, 5,    FALSE),
+    (v_proyecto, 'Por empezar', 1, 5,    FALSE),
     (v_proyecto, 'En progreso', 2, 3,    FALSE),
-    (v_proyecto, 'En revision', 3, NULL, FALSE),
-    (v_proyecto, 'Hecho',       4, NULL, TRUE);
+    (v_proyecto, 'En revisión', 3, NULL, FALSE),
+    (v_proyecto, 'Terminado',   4, NULL, TRUE);
 
-  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por hacer';
+  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por empezar';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'En progreso';
   SELECT id INTO v_c_hecho    FROM columnas_tablero WHERE proyecto_id = v_proyecto AND es_final = TRUE;
 
@@ -201,7 +201,7 @@ BEGIN
 
   SELECT id INTO v_dana  FROM usuarios WHERE correo = 'dana044car@gmail.com';
   SELECT id INTO v_diego FROM usuarios WHERE correo = 'diegotrujano3c@gmail.com';
-  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por hacer';
+  SELECT id INTO v_c_porhacer FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'Por empezar';
   SELECT id INTO v_c_progreso FROM columnas_tablero WHERE proyecto_id = v_proyecto AND nombre = 'En progreso';
   SELECT id INTO v_c_hecho    FROM columnas_tablero WHERE proyecto_id = v_proyecto AND es_final = TRUE;
 

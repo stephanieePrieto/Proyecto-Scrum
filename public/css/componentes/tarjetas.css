@@ -114,6 +114,36 @@
   cursor: grabbing;
 }
 
+.tarjeta-metadatos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.tarjeta-metadatos__puntos,
+.tarjeta-metadatos__epica {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.tarjeta-metadatos__puntos {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.tarjeta-metadatos__epica {
+  color: #6b21a8;
+  background: #f3e8ff;
+}
+
 /* Colores pastel por encargado */
 /* Dana: Naranja / Durazno Pastel */
 .tarjeta-item.tarjeta-encargado--naranja {

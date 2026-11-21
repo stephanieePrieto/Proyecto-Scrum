@@ -95,6 +95,14 @@
         <p class="eq-error" id="error-definition_of_done" role="alert"></p>
       </div>
 
+      <div class="form-group">
+        <label for="github_repo_url" class="form-label">Repositorio público de GitHub</label>
+        <p class="eq-ayuda" id="ayuda-github_repo_url">Opcional. Ingresa el enlace HTTPS de un repositorio público para consultar commits y contribuciones del equipo.</p>
+        <input id="github_repo_url" name="github_repo_url" type="url" aria-describedby="ayuda-github_repo_url error-github_repo_url"
+          placeholder="https://github.com/organizacion/repositorio" class="form-input" />
+        <p class="eq-error" id="error-github_repo_url" role="alert"></p>
+      </div>
+
       <div class="modal-footer"
         style="margin-top: 16px; padding: 16px 0 0; background: none; border: none; border-top: 1px solid var(--borde);">
         <a class="boton boton--secundario" href="dashboard.html">Cancelar</a>

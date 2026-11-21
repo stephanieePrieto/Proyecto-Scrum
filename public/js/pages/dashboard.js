@@ -68,6 +68,26 @@ if (esIdValido(proyectoIdParam)) {
 const proyectoGuardado = localStorage.getItem('proyectoActivo');
 const proyectoId = esIdValido(proyectoIdParam) ? proyectoIdParam : (esIdValido(proyectoGuardado) ? proyectoGuardado : null);
 
+/**
+ * Abrir el recorrido por rol en la primera visita del usuario a un proyecto.
+ *
+ * @param {string|number} idProyecto Identificador del proyecto activo.
+ * @returns {Promise<void>}
+ */
+async function abrirTutorialPendiente(idProyecto) {
+  if (new URLSearchParams(location.search).get('tutorial') === '1') return;
+  try {
+    const progreso = await api(`/curso-scrum/tutorial/estado/${encodeURIComponent(idProyecto)}`);
+    if (progreso.rolEnProyecto && !progreso.tutorialCompletado) {
+      window.location.replace('/pages/curso-scrum.html?tutorial=1');
+    }
+  } catch (error) {
+    console.warn('[dashboard] No se pudo comprobar el estado de la guía inicial:', error);
+  }
+}
+
+if (proyectoId) abrirTutorialPendiente(proyectoId);
+
 // Permisos del proyecto abierto, para mostrar solo las acciones que le tocan a su rol
 if (proyectoId && proyectoId !== 'null') {
   cargarPermisos(Number(proyectoId)).catch(() => { /* sin permisos conocidos, los botones restringidos siguen ocultos */ });

@@ -14,6 +14,7 @@ import crypto from 'crypto';
 import { enviarCorreo } from '../../utils/correo.js';
 import { env } from '../../config/env.js';
 import { tienePermiso } from '../../utils/permisos.js';
+import { analizarRepositorioGitHub } from '../../utils/github.js';
 import { registrarAuditoria, enTransaccion, extraerCampos, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 // ---------- Utilidades internas ----------
@@ -66,13 +67,13 @@ export const DOD_BASE = [
 
 const COLUMNAS = `p.id, p.equipo_id, e.nombre AS equipo_nombre, p.nombre, p.vision,
   p.fecha_inicio::text AS fecha_inicio, p.fecha_fin::text AS fecha_fin,
-  p.definition_of_done, p.archivado, p.version, p.modo_flujo, p.creado_por, p.creado_en,
+  p.definition_of_done, p.github_repo_url, p.archivado, p.version, p.modo_flujo, p.creado_por, p.creado_en,
   EXISTS (SELECT 1 FROM sprints s WHERE s.proyecto_id = p.id AND s.estado = 'activo') AS sprint_activo`;
 
 const DESDE = 'FROM proyectos p JOIN equipos e ON e.id = p.equipo_id';
 
 /** Campos del proyecto cuyos valores anteriores y nuevos se guardan en la bitácora al editarlo. */
-const CAMPOS_AUDITADOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
+const CAMPOS_AUDITADOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done', 'github_repo_url'];
 
 function fechaValida(texto) {
   if (typeof texto !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return false;
@@ -85,12 +86,18 @@ function validarDatos(datos = {}, { esCreacion }) {
   const nombre = String(datos.nombre ?? '').trim();
   const vision = String(datos.vision ?? '').trim();
   const dod = String(datos.definition_of_done ?? '').trim();
+  const githubRepoUrlPresente = Object.hasOwn(datos, 'github_repo_url');
+  const githubRepoUrlOriginal = datos.github_repo_url == null ? '' : String(datos.github_repo_url);
+  const repositorioGitHub = analizarRepositorioGitHub(githubRepoUrlOriginal);
   const { fecha_inicio, fecha_fin } = datos;
 
   if (!nombre) campos.nombre = 'Escribe el nombre del proyecto.';
   else if (nombre.length > 120) campos.nombre = 'El nombre no puede superar 120 caracteres.';
 
   if (!vision) campos.vision = 'Describe la visión del proyecto.';
+  if (githubRepoUrlPresente && githubRepoUrlOriginal.trim() && !repositorioGitHub) {
+    campos.github_repo_url = 'Ingresa una URL HTTPS válida de un repositorio público de GitHub.';
+  }
 
   if (!fechaValida(fecha_inicio)) campos.fecha_inicio = 'Elige una fecha de inicio válida.';
   if (!fechaValida(fecha_fin)) campos.fecha_fin = 'Elige una fecha de fin válida.';
@@ -107,6 +114,8 @@ function validarDatos(datos = {}, { esCreacion }) {
   return {
     nombre, vision, fecha_inicio, fecha_fin,
     definition_of_done: dod || DOD_BASE,
+    github_repo_url: repositorioGitHub?.url ?? null,
+    github_repo_url_presente: githubRepoUrlPresente,
     equipo_id: esCreacion ? Number(datos.equipo_id) : undefined,
     miembros: esCreacion && Array.isArray(datos.miembros) ? datos.miembros : []
   };
@@ -226,19 +235,20 @@ export async function crear(datos, usuario) {
     await cliente.query('BEGIN');
 
     const { rows } = await cliente.query(
-      `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done, creado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [limpio.equipo_id, limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin, limpio.definition_of_done, usuario.id],
+      `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done, github_repo_url, creado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [limpio.equipo_id, limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin,
+        limpio.definition_of_done, limpio.github_repo_url, usuario.id],
     );
     proyectoId = rows[0].id;
 
     await cliente.query(
       `INSERT INTO columnas_tablero (proyecto_id, nombre, orden, limite_wip, wip_duro, es_final)
        VALUES
-         ($1, 'Por hacer', 1, 5, FALSE, FALSE),
+         ($1, 'Por empezar', 1, 5, FALSE, FALSE),
          ($1, 'En progreso', 2, 3, FALSE, FALSE),
          ($1, 'En revisión', 3, NULL, FALSE, FALSE),
-         ($1, 'Hecho', 4, NULL, FALSE, TRUE)`,
+         ($1, 'Terminado', 4, NULL, FALSE, TRUE)`,
       [proyectoId],
     );
 
@@ -365,11 +375,14 @@ export async function actualizar(id, datos, usuario) {
       const { rows } = await cliente.query(
         `UPDATE proyectos
           SET nombre = $1, vision = $2, fecha_inicio = $3, fecha_fin = $4,
-              definition_of_done = $5, version = version + 1
-        WHERE id = $6 AND version = $7 AND archivado = FALSE
+              definition_of_done = $5,
+              github_repo_url = CASE WHEN $6 THEN $7 ELSE github_repo_url END,
+              version = version + 1
+        WHERE id = $8 AND version = $9 AND archivado = FALSE
         RETURNING id`,
         [limpio.nombre, limpio.vision, limpio.fecha_inicio, limpio.fecha_fin,
-        limpio.definition_of_done, id, versionCliente],
+          limpio.definition_of_done, limpio.github_repo_url_presente, limpio.github_repo_url,
+          id, versionCliente],
       );
       if (!rows.length) return false;
 
@@ -379,6 +392,7 @@ export async function actualizar(id, datos, usuario) {
         fecha_inicio: limpio.fecha_inicio,
         fecha_fin: limpio.fecha_fin,
         definition_of_done: limpio.definition_of_done,
+        github_repo_url: limpio.github_repo_url_presente ? limpio.github_repo_url : actual.github_repo_url,
       });
       if (cambios) {
         await registrarAuditoria(cliente, {

@@ -19,10 +19,10 @@ FROM
   proyectos p
   CROSS JOIN (
     VALUES
-      ('Por hacer', 1, 5, FALSE),
+      ('Por empezar', 1, 5, FALSE),
       ('En progreso', 2, 3, FALSE),
-      ('En revision', 3, NULL, FALSE),
-      ('Hecho', 4, NULL, TRUE)
+      ('En revisión', 3, NULL, FALSE),
+      ('Terminado', 4, NULL, TRUE)
   ) AS c (nombre, orden, limite_wip, es_final)
 WHERE
   NOT EXISTS (

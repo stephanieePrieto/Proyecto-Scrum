@@ -28,6 +28,22 @@ export const actualizarProgreso = asyncHandler(async (req, res) => {
   res.json({ mensaje: 'Progreso guardado correctamente' });
 });
 
+/** Guarda el resultado del recorrido guiado del proyecto activo. */
+export const completarTutorial = asyncHandler(async (req, res) => {
+  const resultado = await servicio.registrarEstadoTutorial(
+    req.user.id,
+    req.body.proyectoId,
+    req.body.estado
+  );
+  res.json({ exito: true, ...resultado });
+});
+
+/** Consulta el rol y el estado de la guía sin cargar el contenido del curso. */
+export const obtenerEstadoTutorial = asyncHandler(async (req, res) => {
+  const estado = await servicio.obtenerEstadoTutorial(req.user.id, req.params.proyectoId);
+  res.json(estado);
+});
+
 /**
  * Califica un quiz y registra el intento.
  */

@@ -18,10 +18,11 @@ import { cargarPermisos } from '../core/permisos-ui.js';
 import { abrirAsistenteModo, NOMBRES_MODO } from '../componentes/asistente-modo.js';
 
 const $ = (id) => document.getElementById(id);
-const CAMPOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done'];
+const CAMPOS = ['nombre', 'vision', 'fecha_inicio', 'fecha_fin', 'definition_of_done', 'github_repo_url'];
 const ETIQUETAS = {
   nombre: 'Nombre', vision: 'Visión', fecha_inicio: 'Fecha de inicio',
   fecha_fin: 'Fecha de fin', definition_of_done: 'Definition of Done',
+  github_repo_url: 'Repositorio de GitHub',
 };
 
 const id = new URLSearchParams(location.search).get('id');
@@ -65,7 +66,7 @@ function avisar(texto, tipo) {
 }
 
 function limpiarErrores() {
-  document.querySelectorAll('.proy-error').forEach((p) => { p.textContent = ''; });
+  document.querySelectorAll('.proy-error, .eq-error').forEach((p) => { p.textContent = ''; });
   CAMPOS.concat('equipo_id').forEach((c) => $(c)?.removeAttribute('aria-invalid'));
   $('mensaje').hidden = true;
 }

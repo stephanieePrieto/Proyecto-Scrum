@@ -1,0 +1,80 @@
+/* Responsable: Alfonso - HU-27: estilos compartidos por "Mis horas" y el temporizador (diálogos y campos).
+ * Las variables llevan valor de respaldo para verse bien aunque falte alguna en base.css. */
+
+.horas-dialogo {
+  width: min(460px, calc(100vw - 24px));
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--slate-800, #1e293b);
+  box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.35);
+  font-size: 14px;
+}
+
+.horas-dialogo::backdrop {
+  background: rgb(15 23 42 / 0.5);
+}
+
+.horas-dialogo form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+}
+
+.horas-dialogo__titulo {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.horas-dialogo__texto {
+  margin: 0;
+  color: var(--slate-500, #64748b);
+}
+
+.horas-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.horas-campo label {
+  font-weight: 500;
+}
+
+.horas-entrada {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid var(--slate-300, #cbd5e1);
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.horas-entrada:focus-visible {
+  outline: 2px solid var(--indigo-600, #4f46e5);
+  outline-offset: 1px;
+}
+
+.horas-error {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 13px;
+}
+
+.horas-error[hidden] {
+  display: none;
+}
+
+.horas-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

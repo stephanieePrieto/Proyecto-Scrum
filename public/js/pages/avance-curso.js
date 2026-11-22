@@ -239,6 +239,7 @@ function actualizarListaIntegrantes(filtroRol = 'todos', filtroEstado = 'todos')
     const leccionesCompletadas = Number(integrante.lecciones_completadas) || 0;
     const quizzesAprobados = Number(integrante.quizzes_aprobados) || 0;
     const tieneCertificado = integrante.tiene_certificado || false;
+    const tutorialTeoricoFinalizado = totalLecciones > 0 && leccionesCompletadas === totalLecciones;
 
     const porcentaje = Math.min(100, Math.round(((leccionesCompletadas + quizzesAprobados) / (totalLecciones * 2)) * 100));
 
@@ -259,6 +260,11 @@ function actualizarListaIntegrantes(filtroRol = 'todos', filtroEstado = 'todos')
               <div class="barra-progreso-relleno" style="width: ${porcentaje}%;"></div>
             </div>
             <span class="porcentaje-progreso">${porcentaje}%</span>
+          </div>
+          <div class="estado-tutorial-teorico">
+            ${tutorialTeoricoFinalizado
+              ? '<span class="estado-pill estado-pill--completada"><i class="fas fa-check"></i> Tutorial teórico finalizado</span>'
+              : '<span class="estado-pill estado-pill--pendiente">Tutorial teórico en curso</span>'}
           </div>
           <div class="estado-certificado">
             ${tieneCertificado ? `

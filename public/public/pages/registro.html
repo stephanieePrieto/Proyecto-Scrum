@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!--
+    @file registro.html
+    @description Interfaz para el registro de nuevos usuarios en la plataforma (ScrumFlow).
+    
+    @author Citlaly Morales Viveros
+    @author Stephanie Elizdeth Hernández Prieto
+    @author Alfonso Mendoza Vasquez
+-->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/componentes/compatibilidad.js"></script>
+    <title>Crear Cuenta - ScrumFlow</title>
+    <!-- Estilos unificados del sistema -->
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/componentes/accesibilidad.css">
+    <link rel="stylesheet" href="../css/componentes/botones.css">
+    <link rel="stylesheet" href="../css/componentes/formularios.css">
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="../css/componentes/avisos.css">
+    <link rel="stylesheet" href="/css/componentes/responsive.css">
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+    <div class="contenedor-auth">
+        <main class="tarjeta tarjeta-auth" id="contenido-principal">
+            <div class="auth-encabezado">
+                <h1 class="titulo-pagina">ScrumFlow</h1>
+                <p class="subtitulo-pagina">Crea tu cuenta para comenzar</p>
+            </div>
+
+            <div id="mensaje-alerta" class="alerta" role="status" aria-live="polite" hidden></div>
+
+            <form id="form-registro">
+                <div class="form-group">
+                    <label for="nombre" class="form-label">Nombre completo</label>
+                    <input type="text" id="nombre" name="nombre" class="form-input" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="correo" class="form-label">Correo electrónico</label>
+                    <input type="email" id="correo" name="correo" class="form-input" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="password" id="password" name="password" class="form-input" required
+                        autocomplete="new-password">
+
+                    <!-- Lista de requisitos visuales -->
+                    <ul class="requisitos-password">
+                        <li id="req-longitud">Mínimo 8 caracteres</li>
+                        <li id="req-mayuscula">Al menos una letra mayúscula</li>
+                        <li id="req-minuscula">Al menos una letra minúscula</li>
+                        <li id="req-numero">Al menos un número</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmar-password" class="form-label">Confirmar contraseña</label>
+                    <input type="password" id="confirmar-password" name="confirmarPassword" class="form-input" required
+                        autocomplete="new-password">
+                </div>
+
+                <div class="form-group">
+                    <span class="form-label" id="version-aviso"></span>
+                    <div class="aviso-texto" id="texto-aviso" tabindex="0"
+                        aria-label="Texto del aviso de privacidad vigente"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="acepto-aviso" name="aceptoAviso" required>
+                        He leído y acepto el <a href="privacidad.html" class="enlace" target="_blank"
+                            rel="noopener">aviso de privacidad</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="boton boton--primario boton--bloque">Registrarse</button>
+            </form>
+
+            <div class="enlaces-auth">
+                <a href="login.html" class="enlace">¿Ya tienes una cuenta? Inicia sesión</a>
+            </div>
+        </main>
+    </div>
+    <script type="module" src="../js/pages/registro.js"></script>
+</body>
+
+</html>

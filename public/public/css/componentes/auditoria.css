@@ -1,0 +1,148 @@
+/**
+ * @file auditoria.css
+ * @descripcion  Bitácora de auditoría: contenedor, filtros, tabla de resultados y paginación.
+ * @author Citlaly Morales Viveros
+ */
+
+/**
+ * Bitácora de auditoría: contenedor de la página, encabezado y selector de proyecto.
+ */
+.aud-pagina {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: var(--espacio-6);
+}
+
+.aud-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-6);
+}
+
+.aud-selector-proyecto {
+  min-width: 220px;
+}
+
+/**
+ * Bitácora de auditoría: tarjeta de filtros con rejilla adaptable y botones compactos.
+ */
+.tarjeta.aud-filtros {
+  margin-bottom: var(--espacio-6);
+  padding: var(--espacio-4);
+}
+
+.aud-filtros__titulo {
+  margin-bottom: var(--espacio-4);
+  font-size: 1.1rem;
+  color: var(--texto);
+}
+
+.aud-filtros__rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--espacio-4);
+  align-items: end;
+}
+
+.aud-filtros__rejilla .form-group {
+  margin-bottom: 0;
+}
+
+.aud-filtros__acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.aud-filtros__acciones .boton {
+  padding: var(--espacio-2) var(--espacio-4);
+  font-size: 0.9rem;
+}
+
+/**
+ * Bitácora de auditoría: cabecera de resultados, tabla y estado vacío.
+ */
+.aud-resultados {
+  margin-bottom: var(--espacio-6);
+}
+
+.aud-resultados__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-4);
+}
+
+.aud-resultados__titulo {
+  font-size: 1.2rem;
+  color: var(--texto);
+}
+
+.aud-resultados__total {
+  font-size: 0.95rem;
+  color: var(--texto-suave);
+}
+
+.aud-tabla th {
+  text-align: left;
+}
+
+.aud-tabla__detalle {
+  min-width: 200px;
+}
+
+.aud-tabla__carga {
+  padding: var(--espacio-4);
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+.aud-esqueleto {
+  display: block;
+  height: 14px;
+  margin: var(--espacio-2) auto;
+}
+
+.aud-esqueleto--largo {
+  width: 60%;
+}
+
+.aud-esqueleto--corto {
+  width: 40%;
+}
+
+.aud-esqueleto--medio {
+  width: 50%;
+}
+
+.aud-vacio__texto {
+  margin: 0;
+  color: var(--texto-suave);
+}
+
+/**
+ * Bitácora de auditoría: paginación centrada con botones de flecha.
+ */
+.aud-paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4) 0;
+}
+
+.aud-paginacion__boton {
+  min-width: 40px;
+  padding: var(--espacio-2) var(--espacio-4);
+  font-size: 1.1rem;
+}
+
+.aud-paginacion__info {
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}

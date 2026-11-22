@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+  @file calendario
+  @description Pantalla del calendario de eventos Scrum. Solo el contenido del area de trabajo; el menu lo pone layout.js
+  
+  @author Diego Rafael Jiménez Trujano
+  @author Citlaly Morales Viveros
+  @author Alfonso Mendoza Vasquez
+-->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Calendario · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/notificaciones.css" />
+
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal" id="contenido-principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Calendario Scrum</h1>
+        <p class="subtitulo-pagina" id="subtitulo">Planning, Dailies, Review y Retro del sprint.</p>
+      </div>
+      <div class="cal-herramientas">
+        <div class="cal-vistas" role="group" aria-label="Vista">
+          <button class="boton boton--secundario" type="button" data-vista="mes" aria-pressed="true">Mes</button>
+          <button class="boton boton--secundario" type="button" data-vista="semana" aria-pressed="false">Semana</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="aviso" class="cal-aviso" role="status" aria-live="polite" hidden></div>
+    <ul id="conflictos" class="cal-conflictos" role="alert" hidden></ul>
+
+    <section class="tarjeta cal" id="calendario" aria-busy="true" hidden>
+      <div class="cal__barra">
+        <div class="cal__nav">
+          <button class="boton boton--secundario" id="btn-anterior" type="button" aria-label="Anterior">‹</button>
+          <button class="boton boton--secundario" id="btn-hoy" type="button">Hoy</button>
+          <button class="boton boton--secundario" id="btn-siguiente" type="button" aria-label="Siguiente">›</button>
+        </div>
+        <h2 class="cal__titulo" id="titulo-periodo"></h2>
+        <p class="cal__zona" id="zona"></p>
+      </div>
+      <ul class="cal-leyenda" aria-label="Tipos de evento">
+        <li><span class="punto ev--planning"></span>Planning</li>
+        <li><span class="punto ev--daily"></span>Daily</li>
+        <li><span class="punto ev--review"></span>Review</li>
+        <li><span class="punto ev--retro"></span>Retro</li>
+      </ul>
+      <div class="cal__rejilla-scroll">
+        <div id="rejilla"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../socket.io/socket.io.js"></script>
+  <script type="module" src="../js/pages/calendario.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+# Integración pública con GitHub
+
+Cada proyecto puede guardar una URL HTTPS a un repositorio público de GitHub desde **Configuración del proyecto**. La página **GitHub** consulta el historial reciente y las contribuciones mediante la API pública, sin solicitar ni guardar credenciales.
+
+Para instalaciones existentes, aplicar `database/migraciones/aplicar/github_y_tutorial_por_rol.sql` y `database/migraciones/aplicar/nombres_columnas_default.sql`, en ese orden. La primera migración también concede permisos sobre el progreso de la guía al rol estándar `scrumflow_app`; se puede volver a ejecutar para aplicar ese permiso en una base ya migrada. Si la aplicación usa un rol de base de datos personalizado, volver a ejecutar `database/permisos_aplicacion.sql` con ese rol y el rol propietario configurados. Si el tablero muestra `En revisiÃ³n`, aplicar después `database/migraciones/aplicar/reparar_codificacion_columna_revision.sql`. Esta corrección es segura para volver a ejecutar. Las instalaciones nuevas también reciben las tablas y columnas desde `database/schema.sql`.

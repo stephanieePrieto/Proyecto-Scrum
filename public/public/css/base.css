@@ -1,0 +1,384 @@
+/**
+ * @file base.css
+ * description Tokens y reseteo global con la paleta minimalista: negro carbón, beige arena y blanco hueso.
+ * @author Stephanie Elizdeth Hernández Prieto
+ * @author Citlaly Morales Viveros
+*/
+/* Fuente Inter: se carga aquí una sola vez para que todas las páginas usen la misma tipografía.
+   Los @import deben ir antes de cualquier otra regla del archivo. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* ==========================================================================
+   01. BASE.CSS — Tokens, variables y reseteo global (Tema Morado)
+   ========================================================================== */
+:root {
+  /**
+   * Colores base de la paleta minimalista (Paleta 4).
+   * El resto de los tonos de este archivo se derivan de estos tres.
+   */
+  --carbon: #282828;
+  --arena: #D6B98C;
+  --hueso: #F3F0E9;
+
+  /* Escala de grises (Slate) */
+  /**
+   * Neutros cálidos derivados del carbón y del hueso. Se conservan los nombres
+   * --slate-* para no romper las hojas que ya los usan.
+   */
+  --slate-50: #F7F5F0;
+  --slate-200: #E4DFD3;
+  --slate-300: #D3CCBC;
+  --slate-500: #6B665C;
+  --slate-800: #3A3835;
+  --slate-900: var(--carbon);
+  --blanco: #FBFAF7;
+
+  /* Tonos Morados Principales (Acento POS / Sistema) */
+  /**
+   * Color principal: ahora es el negro carbón (botones, logo, barras de avance).
+   * Los comentarios de cada línea se conservan del tema anterior.
+   */
+  --primario: var(--carbon);
+  /* Morado vibrante principal */
+  --primario-hover: #45413B;
+  /* Morado oscuro para hover */
+  --primario-claro: #EFE6D5;
+  /* Fondo suave morado */
+  --primario-texto: #5C4A2E;
+  /* Texto morado fuerte */
+
+  /**
+   * Acento beige derivado de --arena: bordes activos, resaltes, logos y halos de foco.
+   * No se usa como color de texto sobre fondos claros porque su contraste es bajo.
+   */
+  --acento: var(--arena);
+  --acento-hover: #C4A370;
+  --acento-claro: #EFE6D5;
+  --acento-oscuro: #8A6D3B;
+
+  /* Colores Semánticos */
+  /**
+   * Semánticos desaturados para que no rompan la sobriedad de la paleta:
+   * salvia (éxito), dorado (advertencia), terracota (peligro) y azul grisáceo (info).
+   */
+  --esmeralda-500: #6E9376;
+  --esmeralda-50: #EEF4EE;
+  --esmeralda-700: #3F6149;
+  --ambar-500: #C99A45;
+  --ambar-50: #FBF5E8;
+  --ambar-700: #8A5E14;
+  --rosa-500: #B85C50;
+  --rosa-50: #F8ECE9;
+  --rosa-700: #8F362D;
+  --celeste-500: #6A8CA0;
+  --celeste-50: #EDF3F6;
+  --celeste-700: #3F6075;
+
+  /* Roles de Color */
+  --fondo-app: var(--hueso);
+  --fondo-tarjeta: var(--blanco);
+  --borde: var(--slate-200);
+  --texto: var(--carbon);
+  --texto-suave: var(--slate-500);
+  --borde-control: var(--slate-500);
+
+  /* Tipografía y Medidas */
+  --fuente: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --radio-lg: 8px;
+  --radio-xl: 12px;
+  --sombra-sm: 0 1px 2px 0 rgb(40 40 40 / 0.06);
+  /* Espacio pequeño (8px): lo usa notificaciones.css en el gap de los toasts */
+  --espacio-2: 8px;
+  --espacio-4: 16px;
+  --espacio-6: 24px;
+  --altura-barra: 64px;
+  --ancho-max: 1200px;
+}
+
+/**
+ * Modelo de caja uniforme para todos los elementos.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/**
+ * Evita que los móviles reescalen el texto al girar la pantalla.
+ */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/**
+ * Lienzo general: texto carbón sobre fondo blanco hueso.
+ */
+body {
+  margin: 0;
+  font-family: var(--fuente);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--texto);
+  background: var(--fondo-app);
+}
+
+/**
+ * Se quitan los márgenes por defecto de títulos y párrafos; el espaciado lo controlan los componentes.
+ */
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/**
+ * Enlaces sin subrayado que heredan el color del contexto.
+ */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/**
+ * Los botones heredan la tipografía de la aplicación.
+ */
+button {
+  font-family: inherit;
+}
+
+/**
+ * Garantiza que el atributo hidden siempre oculte el elemento.
+ */
+[hidden] {
+  display: none !important;
+}
+
+/* Foco de teclado accesible con contorno morado */
+:focus-visible {
+  outline: 2px solid var(--primario);
+  outline-offset: 2px;
+}
+
+/**
+ * Texto seleccionado con el beige de la paleta.
+ */
+::selection {
+  background: var(--acento);
+  color: var(--carbon);
+}
+
+/* ==========================================================================
+    APARIENCIA Y ACCESIBILIDAD (preferencias de la persona)
+    Atributos en <html> que pone public/js/core/apariencia.js.
+   ========================================================================== */
+
+/* Tema oscuro: se redefinen los tokens; los componentes que usan variables lo heredan. */
+html[data-tema-efectivo="oscuro"] {
+  color-scheme: dark;
+  --carbon: #ECE8DF;
+  --hueso: #1C1B19;
+  --blanco: #262420;
+  --arena: #C9A66B;
+  --primario: #D9D3C6;
+  --primario-hover: #EFEAE0;
+  --primario-claro: #33302A;
+  --primario-texto: #E8D5AE;
+  --acento-hover: #B8925E;
+  --acento-claro: #33302A;
+  --acento-oscuro: #E0BE85;
+  --slate-50: #201F1C;
+  --slate-200: #3A3731;
+  --slate-300: #4A463F;
+  --slate-500: #A8A191;
+  --slate-800: #D9D3C6;
+  --esmeralda-50: #22302A;
+  --esmeralda-700: #A9CDB2;
+  --ambar-50: #332C1D;
+  --ambar-700: #E7C27E;
+  --rosa-50: #3A2521;
+  --rosa-700: #E8A398;
+  --celeste-50: #1F2A33;
+  --celeste-700: #A9C8D8;
+  --borde-control: var(--slate-500);
+}
+
+/* Alto contraste: bordes y textos secundarios con el color del texto principal. */
+html[data-contraste="alto"] {
+  --borde-control: var(--texto);
+  --borde: var(--texto);
+  --texto-suave: var(--texto);
+}
+
+/* Texto grande: el cuerpo pasa de 14px a 17px. Los componentes con tamaños fijos en px no cambian. */
+html[data-texto="grande"] body {
+  font-size: 17px;
+}
+
+/* Reducir animaciones y transiciones (además de la preferencia del sistema). */
+html[data-animaciones="reducidas"] *,
+html[data-animaciones="reducidas"] *::before,
+html[data-animaciones="reducidas"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ==========================================================================
+   TEMA OSCURO: reglas generadas para los colores fijos de la paleta original.
+   Solo cambian los colores neutros (grises y cálidos); los colores de marca se conservan.
+   ========================================================================== */
+
+/* componentes/auth.css */
+html[data-tema-efectivo="oscuro"] .verificacion-2fa__fondo {
+  background: rgba(199, 199, 199, 0.55);
+}
+
+/* componentes/backlog.css */
+html[data-tema-efectivo="oscuro"] #dialogo-eliminar::backdrop,
+html[data-tema-efectivo="oscuro"] #dialogo-devolver::backdrop {
+  background: rgba(230, 230, 230, 0.45);
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana {
+  color: #8B8B8B;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa {
+  color: #C6C6C6;
+  border-bottom-color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__indicador {
+  background: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] #dialogo-epicas::backdrop,
+html[data-tema-efectivo="oscuro"] #dialogo-eliminar-epica::backdrop {
+  background: rgba(230, 230, 230, .45);
+}
+
+/* componentes/curso-scrum.css */
+html[data-tema-efectivo="oscuro"] .pestana-btn:hover {
+  background: rgba(230, 230, 230, 0.03);
+}
+
+html[data-tema-efectivo="oscuro"] .modal {
+  background-color: rgba(199, 199, 199, 0.6) !important;
+}
+
+/* componentes/daily.css */
+html[data-tema-efectivo="oscuro"] .review-historia--aceptada {
+  border-color: #39573E;
+}
+
+/* componentes/dashboard.css */
+html[data-tema-efectivo="oscuro"] #dialogo-detalle-kpi::backdrop {
+  background: rgba(199, 199, 199, 0.6);
+}
+
+/* componentes/equipos.css */
+html[data-tema-efectivo="oscuro"] .eq-dialogo::backdrop {
+  background: rgba(199, 199, 199, .5);
+}
+
+/* componentes/horas-comun.css */
+html[data-tema-efectivo="oscuro"] .horas-dialogo {
+  background: #242424;
+}
+
+html[data-tema-efectivo="oscuro"] .horas-entrada {
+  background: #242424;
+}
+
+/* componentes/insignias.css */
+html[data-tema-efectivo="oscuro"] .insignia--exito {
+  border-color: #39573E;
+}
+
+/* componentes/metricas.css */
+html[data-tema-efectivo="oscuro"] .proy-dialogo-dash::backdrop {
+  background: rgba(199, 199, 199, 0.6);
+}
+
+/* componentes/mis-horas.css */
+html[data-tema-efectivo="oscuro"] .mh-resumen {
+  background: #242424;
+}
+
+html[data-tema-efectivo="oscuro"] .mh-tabla-envoltura {
+  background: #242424;
+}
+
+html[data-tema-efectivo="oscuro"] .mh-vacio {
+  background: #242424;
+}
+
+/* componentes/notificaciones.css */
+html[data-tema-efectivo="oscuro"] .toast__mensaje {
+  color: #5E543E;
+}
+
+/* componentes/perfil.css */
+html[data-tema-efectivo="oscuro"] .perfil-foto__vista {
+  color: #242424;
+}
+
+/* componentes/planificacion-sprint.css */
+html[data-tema-efectivo="oscuro"] #dialogo-eliminar-tarea::backdrop {
+  background: rgba(230, 230, 230, 0.45);
+}
+
+html[data-tema-efectivo="oscuro"] #dialogo-confirmar-planificacion::backdrop {
+  background: rgba(230, 230, 230, 0.45);
+}
+
+/* componentes/planning-poker.css */
+html[data-tema-efectivo="oscuro"] .pp-modal-fondo:not([hidden]) {
+  background: rgba(214, 209, 204, .48);
+}
+
+/* componentes/sprints.css */
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana {
+  color: #8B8B8B;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa {
+  color: #C6C6C6;
+  border-bottom-color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__pestana--activa:hover {
+  color: #C6C6C6;
+}
+
+html[data-tema-efectivo="oscuro"] .sprints-proyectos__indicador {
+  background: #C6C6C6;
+}
+
+/* componentes/tarjetas.css */
+html[data-tema-efectivo="oscuro"] .tarjeta-item.tarjeta-encargado--menta {
+  border-left-color: #72967A;
+}
+
+/* componentes/temporizador.css */
+html[data-tema-efectivo="oscuro"] .temp {
+  background: #242424;
+}
+
+/* layout.css */
+html[data-tema-efectivo="oscuro"] .sidebar__link {
+  color: #6B6456;
+}

@@ -201,6 +201,7 @@ async function cargarCurso() {
     actualizarBarraProgreso(datos.porcentajeAvance);
     actualizarBadgeQuizFinal();
     verificarCertificado(datos.certificado?.tieneCertificado);
+    mostrarTutorialTeoricoFinalizado(datos.tutorialTeoricoCompletado, datos.certificado?.tieneCertificado);
     renderizarSidebarRuta();
     renderizarVistaActual();
   } catch (error) {
@@ -232,6 +233,17 @@ function actualizarBadgeQuizFinal() {
 function verificarCertificado(tieneCertificado) {
   const alerta = document.getElementById('certificado-alerta');
   if (tieneCertificado && alerta) alerta.classList.add('visible');
+}
+
+/**
+ * Muestra que el tutorial teórico (4 lecciones) está finalizado.
+ * No implica certificado: si el usuario aún no tiene certificado, se le recuerda que falta el Quiz Final.
+ */
+function mostrarTutorialTeoricoFinalizado(tutorialTeoricoCompletado, tieneCertificado) {
+  const aviso = document.getElementById('tutorial-teorico-alerta');
+  if (!aviso) return;
+  if (tutorialTeoricoCompletado && !tieneCertificado) aviso.classList.add('visible');
+  else aviso.classList.remove('visible');
 }
 
 /* ===========================================================================

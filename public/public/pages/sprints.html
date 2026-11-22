@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+  @file sprints.html
+  @description Pantalla con la lista de sprints y crear sprint. Solo el contenido del area de trabajo; el menu lo pone layout.js
+  
+  @author Jetzaly Josmery Tello Campos
+  @author Citlaly Morales Viveros
+  @author Alfonso Mendoza Vasquez
+-->
+
+<!-- Crear y consultar sprints -->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Sprints · ScrumFlow</title>
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Estilos compartidos del proyecto -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/modales.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
+
+  <link rel="stylesheet" href="../css/componentes/sprints.css" />
+
+
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+  <!-- El menú y la barra los administra layout.js -->
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="main-content sprints-contenido" id="contenido-principal">
+    <!-- Encabezado -->
+    <div class="page-header">
+      <div>
+        <h1 class="titulo-pagina">Planificación de Sprints</h1>
+        <p class="subtitulo-pagina">
+          Organiza los periodos de trabajo y la capacidad del equipo.
+        </p>
+      </div>
+
+      <button type="button" id="btn-nuevo-sprint" class="boton boton--primario" data-permiso="sprint.gestionar">
+        + Crear sprint
+      </button>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="mensaje-sprints" class="alerta" role="status" aria-live="polite" hidden></div>
+
+    <!-- Listado de sprints -->
+    <section class="tarjeta" aria-labelledby="titulo-lista-sprints">
+      <h2 id="titulo-lista-sprints" class="tarjeta__titulo">Sprints del proyecto</h2>
+
+      <div id="lista-sprints" aria-live="polite">
+        <p id="estado-vacio" class="subtitulo-pagina">
+          Todavía no hay sprints registrados en este proyecto.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Formulario de creación -->
+  <!--Formulario para crear un sprint -->
+  <dialog id="dialogo-sprint" class="modal-card" aria-labelledby="titulo-dialogo-sprint">
+    <form id="formulario-sprint">
+
+      <!-- Encabezado -->
+      <div class="modal-header">
+        <h2 id="titulo-dialogo-sprint" class="eq-dialogo__titulo">
+          Crear nuevo sprint
+        </h2>
+
+        <button type="button" id="btn-cerrar-sprint" class="bl-boton-cerrar" aria-label="Cerrar formulario"
+          title="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Contenido desplazable -->
+      <div class="modal-body">
+
+        <!-- Mensajes de error al crear un sprint -->
+        <div id="mensaje-formulario-sprint" class="alerta alerta--error" role="alert" aria-live="assertive" hidden>
+        </div>
+
+        <p class="eq-ayuda">
+          Define el objetivo, las fechas y la capacidad
+          de trabajo de tu equipo.
+        </p>
+
+
+        <div class="grupo-formulario">
+          <label for="sprint-nombre" class="etiqueta-formulario">
+            Nombre del sprint
+          </label>
+          <input id="sprint-nombre" name="nombre" type="text" maxlength="120" placeholder="Ej. Sprint 3"
+            class="entrada-formulario" required />
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="sprint-objetivo" class="etiqueta-formulario">
+            Objetivo del sprint
+          </label>
+          <textarea id="sprint-objetivo" name="objetivo" rows="3" placeholder="¿Qué queremos lograr en este sprint?"
+            class="entrada-formulario" required></textarea>
+        </div>
+
+        <!-- Fechas -->
+        <fieldset class="sprint-duracion">
+          <legend class="sprint-duracion__titulo">
+            Duración del sprint
+          </legend>
+
+          <div class="grupo-formulario">
+            <label for="sprint-inicio" class="etiqueta-formulario">
+              Fecha de inicio
+            </label>
+            <!-- Fecha de inicio -->
+            <input id="sprint-inicio" name="fecha_inicio" type="date" class="entrada-formulario"
+              aria-describedby="error-inicio" required />
+            <p class="eq-error" id="error-inicio" role="alert"></p>
+          </div>
+
+          <div class="grupo-formulario">
+            <label for="sprint-fin" class="etiqueta-formulario">
+              Fecha de finalización
+            </label>
+            <!-- Fecha de finalización -->
+            <input id="sprint-fin" name="fecha_fin" type="date" class="entrada-formulario" aria-describedby="error-fin"
+              required />
+            <p class="eq-error" id="error-fin" role="alert"></p>
+          </div>
+        </fieldset>
+
+        <!-- Advertencia por duración fuera del rango recomendado -->
+        <div id="advertencia-duracion-sprint" class="alerta alerta--advertencia" role="status" hidden>
+          <strong>Duración fuera del rango recomendado</strong>
+
+          <p id="texto-advertencia-duracion"></p>
+
+          <button type="button" id="btn-continuar-duracion" class="boton boton--secundario">
+            Continuar de todas formas
+          </button>
+        </div>
+
+
+        <!-- Capacidad del equipo -->
+
+        <div class="tarjeta sprint-capacidad">
+          <h3>Capacidad del equipo</h3>
+          <p id="capacidad-sprint">
+            Pendiente de calcular
+          </p>
+        </div>
+
+
+      </div>
+
+      <!-- Botones inferiores -->
+      <div class="modal-footer">
+        <button type="button" id="btn-cancelar-sprint" class="boton boton--secundario">
+          Cancelar
+        </button>
+
+        <button type="submit" id="btn-guardar-sprint" class="boton boton--primario">
+          Crear sprint
+        </button>
+      </div>
+
+    </form>
+  </dialog>
+
+  <!-- Detalle del sprint seleccionado: no modifica el sprint -->
+  <dialog id="dialogo-detalle-sprint" class="modal-card" aria-labelledby="titulo-detalle-sprint">
+    <div class="modal-header">
+      <h2 id="titulo-detalle-sprint">Información del sprint</h2>
+      <button type="button" id="btn-cerrar-detalle-sprint" class="sprint-detalle__cerrar"
+        aria-label="Cerrar detalle">×</button>
+    </div>
+    <div class="modal-body">
+      <dl class="sprint-detalle__datos">
+        <div>
+          <dt>Nombre</dt>
+          <dd id="detalle-sprint-nombre"></dd>
+        </div>
+        <div>
+          <dt>Objetivo</dt>
+          <dd id="detalle-sprint-objetivo"></dd>
+        </div>
+        <div>
+          <dt>Fechas</dt>
+          <dd id="detalle-sprint-fechas"></dd>
+        </div>
+        <div>
+          <dt>Estado</dt>
+          <dd id="detalle-sprint-estado"></dd>
+        </div>
+        <div>
+          <dt>Capacidad</dt>
+          <dd id="detalle-sprint-capacidad"></dd>
+        </div>
+      </dl>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="btn-volver-detalle-sprint" class="boton boton--secundario">Cerrar</button>
+      <a id="enlace-planificar-sprint" class="boton boton--primario" href="planificacion-sprint.html">Ir a
+        planificación</a>
+    </div>
+  </dialog>
+
+  <script type="module" src="../js/pages/sprints.js"></script>
+</body>
+
+</html>

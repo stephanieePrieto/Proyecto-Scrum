@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!--
+    @file login.html
+    @description Interfaz para el inicio de sesión de usuarios en la plataforma (ScrumFlow).
+    
+    @author Citlaly Morales Viveros
+    @author Stephanie Elizdeth Hernández Prieto
+    @author Alfonso Mendoza Vasquez
+-->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/componentes/compatibilidad.js"></script>
+    <title>Iniciar Sesión - ScrumFlow</title>
+    <!-- Estilos unificados del sistema -->
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/componentes/accesibilidad.css">
+    <link rel="stylesheet" href="../css/componentes/botones.css">
+    <link rel="stylesheet" href="../css/componentes/formularios.css">
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="../css/componentes/avisos.css">
+    <link rel="stylesheet" href="/css/componentes/responsive.css">
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+    <div class="contenedor-auth">
+        <main class="tarjeta tarjeta-auth" id="contenido-principal">
+            <div class="auth-encabezado">
+                <h1 class="titulo-pagina">ScrumFlow</h1>
+                <p class="subtitulo-pagina">Ingresa tus credenciales para continuar</p>
+            </div>
+
+            <div id="mensaje-alerta" class="alerta" role="status" aria-live="polite" hidden></div>
+
+            <form id="form-login">
+                <div class="form-group">
+                    <label for="correo" class="form-label">Correo electrónico</label>
+                    <input type="email" id="correo" name="correo" class="form-input" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="password" name="password" class="form-input" required
+                            autocomplete="current-password" style="width: 100%; padding-right: 2.5rem;">
+                        <button type="button" id="btn-toggle-password" aria-label="Mostrar contraseña"
+                            style="position: absolute; right: 0.75rem; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; color: #666;">
+                            <!-- Icono por defecto: Ojo tachado (Contraseña oculta) -->
+                            <svg id="icono-ojo" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                                </path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="boton boton--primario boton--bloque">Iniciar Sesión</button>
+            </form>
+
+            <div class="enlaces-auth" style="display: flex; justify-content: space-between; margin-top: 1rem;">
+                <a href="recuperar-password.html" class="enlace">¿Olvidaste tu contraseña?</a>
+                <a href="registro.html" class="enlace">Crear cuenta</a>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de verificación 2FA -->
+    <div id="modal-2fa" class="verificacion-2fa" role="dialog" aria-labelledby="modal-2fa-titulo" aria-modal="true"
+        hidden>
+        <div class="verificacion-2fa__fondo" id="modal-2fa-fondo"></div>
+        <div class="tarjeta tarjeta-auth verificacion-2fa__contenido" id="modal-2fa-contenido">
+            <div class="auth-encabezado">
+                <h2 id="modal-2fa-titulo" class="titulo-pagina">Verificación en Dos Pasos</h2>
+                <p class="subtitulo-pagina">Ingresa el código generado por tu aplicación de autenticación</p>
+            </div>
+
+            <div id="mensaje-2fa-alerta" class="alerta" role="status" aria-live="polite" hidden></div>
+
+            <div id="metodos-2fa" style="margin-bottom: 1.5rem;">
+                <!-- Los métodos se generan dinámicamente -->
+            </div>
+
+            <form id="form-2fa">
+                <div class="form-group">
+                    <label for="codigo-2fa" class="form-label">Código de verificación</label>
+                    <input type="text" id="codigo-2fa" name="codigo" class="form-input" autocomplete="one-time-code"
+                        inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label class="form-check">
+                        <input type="checkbox" id="confiar-dispositivo" name="confiarDispositivo">
+                        <span>Confiar en este dispositivo durante 14 días</span>
+                    </label>
+                    <div id="nombre-dispositivo-container" style="display: none; margin-top: 0.5rem;">
+                        <input type="text" id="nombre-dispositivo" name="nombreDispositivo" class="form-input"
+                            placeholder="Mi PC, Laptop, etc.">
+                    </div>
+                </div>
+
+                <button type="submit" class="boton boton--primario boton--bloque">Verificar y Acceder</button>
+                <button type="button" class="boton boton--secundario boton--bloque" id="btn-cancelar-2fa"
+                    style="margin-top: 0.5rem;">Cancelar</button>
+            </form>
+
+            <div id="opciones-2fa" style="margin-top: 1rem; text-align: center;">
+                <p style="color: #666;">
+                    <a href="#" id="btn-codigo-respaldo" class="enlace">Usar código de respaldo</a>
+                </p>
+                <p style="color: #666; margin-top: 0.5rem; font-size: 0.9rem;">
+                    ¿Perdiste acceso a todos tus métodos? <br>
+                    <a href="#" id="btn-iniciar-recuperacion" class="enlace"
+                        style="color: var(--color-peligro);">Recuperar cuenta</a>
+                </p>
+            </div>
+
+            <div id="vista-recuperacion" style="display: none; margin-top: 1.5rem; text-align: center;">
+                <div class="aviso aviso--advertencia" style="margin-bottom: 1rem;">
+                    <p style="margin: 0; font-size: 0.9rem;" id="texto-recuperacion"></p>
+                </div>
+                <button type="button" class="boton boton--primario boton--bloque" id="btn-accion-recuperacion"
+                    style="display: none; margin-bottom: 0.5rem;"></button>
+                <button type="button" class="boton boton--secundario boton--bloque" id="btn-volver-2fa">Volver</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/pages/login.js"></script>
+</body>
+
+</html>

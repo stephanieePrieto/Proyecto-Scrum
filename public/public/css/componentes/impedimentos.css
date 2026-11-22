@@ -1,0 +1,217 @@
+/**
+ * @file impedimentos.css
+ * @descripcion  Pantalla de impedimentos. Solo estilos propios de la pantalla; usa los tokens de base.css.
+ * @author Diego
+ * @author Citlaly Morales Viveros
+ */
+.imp-herramientas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.imp-herramientas .form-input {
+  width: auto;
+  min-width: 150px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.imp-aviso {
+  margin-bottom: var(--espacio-4);
+}
+
+/* --- Contadores ---------------------------------------------------------- */
+.imp-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-6);
+}
+
+.imp-dato {
+  padding: var(--espacio-4);
+}
+
+.imp-dato__valor {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.imp-dato__etiqueta {
+  color: var(--texto-suave);
+}
+
+.imp-dato--peligro .imp-dato__valor {
+  color: var(--rosa-700);
+}
+
+.imp-dato--exito .imp-dato__valor {
+  color: var(--esmeralda-700);
+}
+
+/* --- Filtros ------------------------------------------------------------- */
+.imp-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--espacio-4);
+}
+
+.imp-filtros .form-input {
+  width: auto;
+  min-width: 140px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* --- Lista --------------------------------------------------------------- */
+.imp-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.imp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: start;
+  padding: var(--espacio-4);
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--slate-300);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-sm);
+}
+
+.imp--baja {
+  border-left-color: var(--celeste-500);
+}
+
+.imp--media {
+  border-left-color: var(--ambar-500);
+}
+
+.imp--alta {
+  border-left-color: var(--rosa-500);
+}
+
+.imp--resuelto {
+  border-left-color: var(--esmeralda-500);
+  background: var(--slate-50);
+}
+
+/* Más de 3 días abierto: resaltado en rojo */
+.imp--vencido {
+  background: var(--rosa-50);
+  border-color: var(--rosa-500);
+  border-left: 4px solid var(--rosa-700);
+}
+
+.imp--vencido .imp__tiempo {
+  color: var(--rosa-700);
+  font-weight: 600;
+}
+
+.imp__titulo {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.imp--resuelto .imp__titulo {
+  text-decoration: line-through;
+  color: var(--texto-suave);
+}
+
+.imp__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 6px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.imp__acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.imp__tiempo {
+  white-space: nowrap;
+}
+
+.imp__aviso {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--rosa-700);
+}
+
+.imp-vacio {
+  text-align: center;
+  padding: 40px var(--espacio-6);
+  border: 1px dashed var(--slate-300);
+  border-radius: var(--radio-xl);
+  color: var(--texto-suave);
+  background: var(--fondo-tarjeta);
+}
+
+/* --- Diálogo de registro ------------------------------------------------- */
+.imp-dialogo {
+  width: min(520px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  color: var(--texto);
+}
+
+.imp-dialogo::backdrop {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.imp-dialogo__cuerpo {
+  padding: var(--espacio-6);
+}
+
+.imp-dialogo__titulo {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: var(--espacio-4);
+}
+
+.imp-dialogo .form-input[aria-invalid="true"] {
+  border-color: var(--rosa-500);
+}
+
+.imp-error {
+  color: var(--rosa-700);
+  font-size: 13px;
+}
+
+.imp-dialogo__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .principal:has(.imp-herramientas) {
+    padding: var(--espacio-4);
+  }
+
+  .imp-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .imp {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!--
+  @file avance-curso.html
+  @description Pagina donde se puede contemplar el progreso del curso scrum
+
+  @author Stephanie Elizdeth Hernández Prieto
+  @author Alfonso Mendoza Vasquez
+-->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Avance del Curso · ScrumFlow</title>
+
+  <!-- Fuentes e Iconos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Estilos de la aplicación y página -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/modales.css" />
+  <link rel="stylesheet" href="../css/componentes/avance-curso.css?v=1.4" />
+  <link rel="stylesheet" href="/css/componentes/responsive.css">
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal avance-contenedor">
+    <div class="encabezado-avance">
+      <div>
+        <h1><i class="fas fa-clipboard-list"></i> Avance del Curso Scrum</h1>
+        <p class="subtitulo">Visualiza el progreso de todos los integrantes de tu equipo</p>
+      </div>
+      <a href="./dashboard.html" class="boton boton--secundario">
+        <i class="fas fa-arrow-left"></i> Regresar al Dashboard
+      </a>
+    </div>
+
+    <!-- Contenido dinámico renderizado por avance-curso.js -->
+    <div id="contenido-principal"></div>
+  </main>
+
+  <script type="module" src="../js/pages/avance-curso.js"></script>
+</body>
+
+</html>

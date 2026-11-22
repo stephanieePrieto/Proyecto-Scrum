@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--
+    @file tablero.html
+    @description Pagina para el tablero de tareas
+    
+    @author Camila Mariné Crespo Zurita
+    @author Stephanie Elizdeth Hernández Prieto
+    @author Citlaly Morales Viveros
+    @author Alfonso Mendoza Vasquez
+-->
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/componentes/compatibilidad.js"></script>
+    <title>Tablero Kanban · ScrumFlow</title>
+
+    <!-- Enlaces unificados del equipo -->
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/componentes/botones.css">
+    <link rel="stylesheet" href="../css/componentes/tarjetas.css">
+    <link rel="stylesheet" href="../css/componentes/formularios.css">
+    <link rel="stylesheet" href="../css/componentes/insignias.css">
+    <link rel="stylesheet" href="../css/componentes/modales.css">
+    <link rel="stylesheet" href="../css/componentes/swimlanes.css">
+    <!-- HU-26: formulario "+ Tarea" del flujo continuo -->
+    <link rel="stylesheet" href="../css/componentes/modo-flujo.css">
+    <link rel="stylesheet" href="/css/componentes/responsive.css">
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#pantalla-tablero">Saltar al contenido principal</a>
+    <!-- Hack para que Tailwind detecte las clases dinámicas de JS -->
+    <div class="hidden bg-rose-100 text-rose-700 ring-2 ring-inset ring-rose-400 animate-pulse"></div>
+    <!-- Contenedor principal del Layout -->
+
+    <!-- Contenedor para la navbar inyectada por JS -->
+    <header class="barra-superior" id="barra-superior"></header>
+
+    <div id="pantalla-tablero" class="h-full flex flex-col p-6" style="padding: var(--espacio-6);" role="main" tabindex="-1">
+        <p class="tablero-ayuda" id="tablero-ayuda">
+            Teclado: Tab recorre las tarjetas; Enter o Espacio abre el detalle de la tarjeta enfocada.
+            El botón «Mover a…» de cada tarjeta la cambia de columna; Esc cierra los menús y diálogos.
+        </p>
+
+        <!--ESTADO VACÍO (Oculto por defecto) -->
+        <div id="tablero-vacio" class="estado-vacio text-center"
+            style="display: none; padding: 4rem 2rem; margin: auto;">
+            <div class="icono-vacio">
+                <i class="fas fa-columns fa-3x" style="color: #ccc;"></i>
+            </div>
+            <h3 style="margin-top: 1rem; font-size: 1.5rem; font-weight: 600;">Aún no tienes un proyecto activo</h3>
+            <p style="color: var(--texto-suave); margin-top: 0.5rem;">Selecciona o crea un proyecto desde tu
+                Dashboard para empezar a organizar el trabajo.</p>
+            <a href="dashboard.html" class="btn btn--primary" style="margin-top: 1.5rem; display: inline-block;">Ir al
+                Dashboard</a>
+        </div>
+
+        <!--CONTENEDOR DEL TABLERO-->
+        <div id="contenedor-tablero" style="display: flex; flex-direction: column; height: 100%;">
+
+            <!-- Encabezado del Sprint -->
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-4);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h1 class="titulo-pagina" id="sprint-nombre">Cargando sprint...</h1>
+                    <span class="insignia insignia--exito" id="sprint-estado">Activo</span>
+                    <span style="font-size: 13px; color: var(--texto-suave);" id="sprint-dias-restantes">Quedan X
+                        días</span>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <a class="btn btn--secondary" id="btn-registrar-horas" href="./mis-horas.html">Registrar horas</a>
+                    <button class="btn btn--primary" id="btn-nueva-tarea" type="button" data-permiso="tarea.gestionar">+ Tarea</button>
+                    <button class="btn btn--secondary" id="btn-configurar-columnas">Configurar</button>
+                </div>
+            </div>
+
+            <!-- Barra de Filtros (HU-21: Sprint, persona, épica, etiqueta, estado y agrupación en carriles) -->
+            <div class="tarjeta barra-filtros" role="search" aria-label="Filtros del tablero"
+                style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: var(--espacio-4); padding: 12px 16px;">
+                <span style="font-size: 13px; color: var(--texto-suave); font-weight: 500;">Filtros:</span>
+                <select id="filtro-sprint" class="form-select" style="width: auto;" aria-label="Filtrar por Sprint">
+                    <option value="">Sprint: Todos</option>
+                </select>
+                <select id="filtro-persona" class="form-select" style="width: auto;" aria-label="Filtrar por persona">
+                    <option value="">Persona: Todas</option>
+                </select>
+                <select id="filtro-epica" class="form-select" style="width: auto;" aria-label="Filtrar por épica">
+                    <option value="">Épica: Todas</option>
+                </select>
+                <select id="filtro-etiqueta" class="form-select" style="width: auto;" aria-label="Filtrar por etiqueta">
+                    <option value="">Etiqueta: Todas</option>
+                </select>
+                <select id="filtro-estado" class="form-select" style="width: auto;" aria-label="Filtrar por estado">
+                    <option value="">Estado: Todos</option>
+                </select>
+                <label for="filtro-agrupar" class="barra-filtros__etiqueta">Agrupar:</label>
+                <select id="filtro-agrupar" class="form-select" style="width: auto;">
+                    <option value="ninguno">Sin carriles</option>
+                    <option value="historia">Por historia</option>
+                    <option value="persona">Por persona</option>
+                </select>
+                <span id="filtros-resumen" class="barra-filtros__resumen"></span>
+                <button type="button" class="btn btn--secondary" id="btn-limpiar-filtros" disabled>Limpiar
+                    filtros</button>
+            </div>
+
+            <!-- Ninguna tarjeta coincide con los filtros (HU-21, criterio 3) -->
+            <div id="tablero-sin-resultados" class="tablero-sin-resultados" role="status" hidden>
+                <p>Ninguna tarjeta coincide con los filtros seleccionados.</p>
+                <button type="button" class="btn btn--primary" id="btn-limpiar-filtros-vacio">Limpiar filtros</button>
+            </div>
+
+            <!-- Contenedor de las Columnas -->
+            <div id="tablero-contenedor"
+                style="flex: 1; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;">
+                <!-- Columnas inyectadas desde JavaScript -->
+            </div>
+
+        </div> <!-- Fin contenedor-tablero -->
+    </div>
+    </main>
+
+    <dialog id="dialogo-nueva-tarea" class="modal-card" aria-labelledby="titulo-dialogo-nueva-tarea">
+        <form id="formulario-nueva-tarea" novalidate>
+            <div class="modal-header">
+                <h2 id="titulo-dialogo-nueva-tarea" style="font-size: 18px; font-weight: 600; margin: 0;">Agregar tarea</h2>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <div id="error-nueva-tarea" class="alerta alerta--error" role="alert" hidden></div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-historia">Historia de usuario *</label>
+                    <select id="nueva-tarea-historia" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-titulo">Título *</label>
+                    <input id="nueva-tarea-titulo" class="form-input" type="text" maxlength="200" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-descripcion">Descripción</label>
+                    <textarea id="nueva-tarea-descripcion" class="form-input" rows="3" maxlength="1000"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-responsable">Asignar a *</label>
+                    <select id="nueva-tarea-responsable" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nueva-tarea-horas">Horas estimadas *</label>
+                    <input id="nueva-tarea-horas" class="form-input" type="number" min="0.1" max="99999.9" step="0.1" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary" id="btn-cancelar-nueva-tarea">Cancelar</button>
+                <button type="submit" class="btn btn--primary" id="btn-guardar-nueva-tarea">Crear tarea</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Modal de Configuración de Columnas -->
+    <div id="overlay-configurar-columnas" class="modal-overlay modal--hidden">
+        <div id="modal-configurar-columnas" class="modal-card" style="width: 100%; max-width: 440px;">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0;">Configurar Columnas</h2>
+            </div>
+
+            <div class="modal-body" id="lista-config-columnas" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Inputs inyectados desde JS -->
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary" id="btn-cerrar-config-modal">Cancelar</button>
+                <button type="button" class="btn btn--primary" id="btn-guardar-config-columnas">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aviso discreto del tablero (HU-21: reasignaciones y tarjetas que salen de la vista) -->
+    <div id="tablero-aviso" class="tablero-aviso" role="status" aria-live="polite"></div>
+
+    <!-- Modal de confirmación de reasignación (HU-21, criterio 4) -->
+    <div id="overlay-confirmar-reasignacion" class="modal-overlay modal--hidden" inert>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-confirmar-reasignacion"
+            aria-describedby="texto-confirmar-reasignacion" style="width: 100%; max-width: 440px;">
+            <div class="modal-header">
+                <h2 id="titulo-confirmar-reasignacion" style="font-size: 18px; font-weight: 600; margin: 0;">Confirmar
+                    reasignación</h2>
+            </div>
+            <div class="modal-body">
+                <p id="texto-confirmar-reasignacion" style="margin: 0;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary" id="btn-cancelar-reasignacion">Cancelar</button>
+                <button type="button" class="btn btn--primary" id="btn-confirmar-reasignacion">Reasignar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner de notificación de concurrencia -->
+    <div id="aviso-concurrencia-tablero" class="aviso-concurrencia-banner" hidden></div>
+
+    <!-- Modal de Edición de Tarjeta con Control de Versión (HU-25) -->
+    <div id="overlay-editar-tarjeta" class="modal-overlay modal--hidden">
+        <div class="modal-card" style="width: 100%; max-width: 520px;">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0;">Editar Tarjeta</h2>
+                <span id="editar-tarjeta-version" class="insignia insignia--neutro">v1</span>
+            </div>
+            <form id="form-editar-tarjeta" novalidate>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div id="modal-editar-presencia" class="tarjeta-presencia-aviso"
+                        style="font-size: 12px; color: var(--rosa-700); font-weight: 500;" hidden></div>
+                    <div id="editar-tarjeta-error" class="alerta alerta--error" role="alert" hidden></div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-titulo">Título *</label>
+                        <input id="editar-tarjeta-titulo" class="form-input" type="text" maxlength="200" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-descripcion">Descripción</label>
+                        <textarea id="editar-tarjeta-descripcion" class="form-input" rows="3"
+                            maxlength="1000"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-responsable">Responsable</label>
+                        <select id="editar-tarjeta-responsable" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-horas">Horas estimadas</label>
+                        <input id="editar-tarjeta-horas" class="form-input" type="number" min="0.1" step="0.1" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editar-tarjeta-etiquetas">Etiquetas (separadas por coma)</label>
+                        <input id="editar-tarjeta-etiquetas" class="form-input" type="text"
+                            placeholder="frontend, api" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary" id="btn-cancelar-editar-tarjeta">Cancelar</button>
+                    <button type="submit" class="btn btn--primary" id="btn-guardar-editar-tarjeta">Guardar
+                        cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Interactivo de Resolución de Conflictos 409 (HU-25) -->
+    <div id="overlay-conflicto-tarjeta" class="modal-overlay modal--hidden">
+        <div class="modal-card" style="width: 100%; max-width: 680px;">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: var(--rosa-700);">⚠️ Esta tarjeta cambió
+                </h2>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <p style="font-size: 13px; color: var(--texto-suave);">
+                    Otro usuario guardó cambios en esta tarjeta mientras la editabas. Compara las diferencias y decide
+                    cómo proceder:
+                </p>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--borde);">
+                                <th style="padding: 8px;">Campo</th>
+                                <th style="padding: 8px;">Tu versión (Modificada)</th>
+                                <th style="padding: 8px;">Versión en Servidor (Actual)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-conflicto-cuerpo"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <button type="button" class="btn btn--secondary" id="btn-conflicto-cerrar">Cancelar</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn--secondary" id="btn-conflicto-aceptar-suya">Aceptar la
+                        suya</button>
+                    <button type="button" class="btn btn--primary" id="btn-conflicto-fusionar"
+                        style="background-color: var(--ambar-700);">Fusionar selección</button>
+                    <button type="button" class="btn btn--primary" id="btn-conflicto-conservar-mia">Conservar
+                        mía</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HU-52: cliente de Socket.io como script clásico, disponible antes de que se ejecuten los módulos -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="../js/pages/tablero.js"></script>
+
+</body>
+
+</html>

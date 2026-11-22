@@ -1,940 +1,958 @@
-/**
- * @file curso-scrum.css
- * @description Estilos para el layout de dos paneles (Drawer Retráctil + Ruta Lineal + Lectura Enfocada + Guía Práctica).
- * @author Stephanie Elizdeth Hernández Prieto
- */
-
-@import url('../base.css');
-@import url('../layout.css');
-
-.curso-contenedor {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 0 20px 40px 20px;
+/**
+ * @file curso-scrum.css
+ * @description Estilos para el layout de dos paneles (Drawer Retráctil + Ruta Lineal + Lectura Enfocada + Guía Práctica).
+ * @author Stephanie Elizdeth Hernández Prieto
+ */
+
+@import url('../base.css');
+@import url('../layout.css');
+
+.curso-contenedor {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 20px 40px 20px;
+}
+
+/* ===========================================================================
+   ENCABEZADO SUPERIOR
+   ========================================================================== */
+.encabezado-curso {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.encabezado-curso__izquierda {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.encabezado-curso__acciones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.encabezado-curso h1 {
+  margin: 0;
+  color: var(--primario);
+  font-size: 1.55rem;
+}
+
+.encabezado-curso .subtitulo {
+  color: var(--texto-suave);
+  margin: 3px 0 0 0;
+  font-size: 0.9rem;
+}
+
+.btn-drawer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-weight: 600;
+}
+
+.boton-regresar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===========================================================================
+   BANNER CERTIFICADO
+   ========================================================================== */
+.certificado-alerta {
+  background: linear-gradient(135deg, var(--esmeralda-500), var(--esmeralda-700));
+  color: var(--blanco);
+  padding: 18px 22px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: none;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.certificado-alerta.visible {
+  display: flex;
+}
+
+.certificado-icono {
+  font-size: 2rem;
+}
+
+.certificado-mensaje h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.certificado-mensaje p {
+  margin: 4px 0 0 0;
+  opacity: 0.92;
+  font-size: 0.92rem;
+}
+
+.guia-acciones {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde, #e2e8f0);
+}
+
+.guia-acciones p {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--texto-suave, #64748b);
+}
+
+.guia-acciones p:empty {
+  display: none;
+}
+
+/* ===========================================================================
+   LAYOUT PRINCIPAL DE DOS PANELES (DRAWER RETRÁCTIL + LECTURA ENFOCADA)
+   ========================================================================== */
+.curso-layout {
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  transition: grid-template-columns 0.25s ease;
+}
+
+/* Estado colapsado (Modo Lectura Enfocada en Desktop) */
+.curso-layout.sidebar-colapsado {
+  grid-template-columns: 0px minmax(0, 1fr);
+  gap: 0;
+}
+
+.curso-layout.sidebar-colapsado .curso-sidebar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-20px);
+  overflow: hidden;
+  padding: 0;
+  border: none;
+}
+
+/* ===========================================================================
+   SIDEBAR / DRAWER IZQUIERDO
+   ========================================================================== */
+.curso-sidebar {
+  background: var(--blanco, #ffffff);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+/* Progreso dentro del Sidebar */
+.sidebar-progreso {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+}
+
+.sidebar-progreso__info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--texto-suave, #64748b);
+  margin-bottom: 8px;
+}
+
+.sidebar-progreso__info strong {
+  color: var(--primario, #1e293b);
+  font-size: 0.95rem;
+}
+
+.barra-progreso-principal {
+  background: var(--slate-200, #e2e8f0);
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-progreso-relleno {
+  height: 100%;
+  background: linear-gradient(90deg, var(--esmeralda-500, #10b981), var(--acento, #6e9376));
+  transition: width 0.4s ease;
+  border-radius: 999px;
+}
+
+/* Bloques del Sidebar */
+.sidebar-bloque {
+  margin-bottom: 20px;
+}
+
+.sidebar-bloque:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-bloque__titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--texto-suave, #64748b);
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+/* Bloque 1: Navegación Principal (4 Vistas) */
+.sidebar-nav-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--primario, #1e293b);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sidebar-nav-btn i {
+  width: 18px;
+  text-align: center;
+  color: var(--texto-suave, #64748b);
+}
+
+.sidebar-nav-btn:hover {
+  background: var(--slate-50, #f8fafc);
+}
+
+.sidebar-nav-btn.activa {
+  background: var(--primario, #1e293b);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.sidebar-nav-btn.activa i {
+  color: #ffffff;
+}
+
+.badge-mini {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge-mini.aprobado {
+  background: #d1fae5;
+  color: #047857;
+}
+
+/* Bloque 2: Ruta Lineal (Timeline vertical) */
+.sidebar-bloque--ruta {
+  padding-top: 16px;
+  border-top: 1px solid var(--borde, #e2e8f0);
+}
+
+.ruta-seccion-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primario, #1e293b);
+  margin: 12px 0 8px 4px;
+}
+
+.ruta-seccion-label:first-child {
+  margin-top: 0;
+}
+
+.ruta-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.ruta-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 10px 10px 8px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease;
+  width: 100%;
+}
+
+.ruta-item:hover {
+  background: var(--slate-50, #f8fafc);
+}
+
+.ruta-item.activa {
+  background: #f1f5f9;
+}
+
+/* Línea vertical conectora */
+.ruta-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 32px;
+  bottom: -6px;
+  width: 2px;
+  background: var(--slate-200, #e2e8f0);
+}
+
+.ruta-item.completada:not(:last-child)::before {
+  background: var(--esmeralda-500, #10b981);
+}
+
+/* Nodo circular del timeline */
+.ruta-nodo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--blanco, #ffffff);
+  border: 2px solid var(--slate-300, #cbd5e1);
+  color: var(--texto-suave, #64748b);
+  z-index: 1;
+  margin-top: 1px;
+}
+
+.ruta-item.activa .ruta-nodo {
+  border-color: var(--primario, #1e293b);
+  background: var(--primario, #1e293b);
+  color: #ffffff;
+}
+
+.ruta-item.completada .ruta-nodo {
+  border-color: var(--esmeralda-500, #10b981);
+  background: var(--esmeralda-500, #10b981);
+  color: #ffffff;
+}
+
+.ruta-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ruta-titulo {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--primario, #1e293b);
+  line-height: 1.35;
+  display: block;
+}
+
+.ruta-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.74rem;
+  color: var(--texto-suave, #64748b);
+}
+
+.ruta-quiz-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+}
+
+.ruta-quiz-tag.aprobado {
+  background: #d1fae5;
+  color: #047857;
+}
+
+/* ===========================================================================
+   PANEL DERECHO: ÁREA DE LECTURA ENFOCADA Y EVALUACIONES
+   ========================================================================== */
+.curso-main-panel {
+  min-width: 0;
+}
+
+.vista-panel {
+  display: none;
+}
+
+.vista-panel.activa {
+  display: block;
+}
+
+.visor-card,
+.visor-leccion {
+  background: var(--blanco, #ffffff);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+
+.leccion-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+}
+
+.leccion-breadcrumb {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--texto-suave, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.leccion-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.estado-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.estado-pill--completada {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.estado-pill--pendiente {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.estado-pill--quiz-ok {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.visor-leccion-titulo {
+  margin: 0 0 18px 0;
+  font-size: 1.55rem;
+  color: var(--primario, #1e293b);
+}
+
+.visor-leccion-cuerpo {
+  color: var(--primario, #1e293b);
+  line-height: 1.7;
+  font-size: 0.98rem;
+}
+
+/* Pie de navegación dentro de la lección */
+.visor-leccion-footer {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--borde, #e2e8f0);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.visor-leccion-footer__derecha {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* ===========================================================================
+   GUÍA PRÁCTICA DE SCRUMFLOW (PANTALLAS Y REGLAS EN LENGUAJE DE USUARIO)
+   ========================================================================== */
+.guia-filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.guia-filtro-btn {
+  background: var(--slate-50, #f8fafc);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--texto-suave, #64748b);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.guia-filtro-btn:hover {
+  border-color: var(--primario, #1e293b);
+  color: var(--primario, #1e293b);
+}
+
+.guia-filtro-btn.activo {
+  background: var(--primario, #1e293b);
+  border-color: var(--primario, #1e293b);
+  color: #ffffff;
+}
+
+.guia-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 18px;
+}
+
+.guia-card {
+  background: var(--slate-50, #f8fafc);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.guia-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.guia-card.oculta {
+  display: none;
+}
+
+.guia-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.guia-card__titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guia-card__icono {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--primario, #1e293b);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.guia-card__titulo h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--primario, #1e293b);
+}
+
+.guia-card__etapa {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-suave, #64748b);
+}
+
+.boton--sm {
+  padding: 6px 11px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.guia-card__resumen {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--primario, #1e293b);
+  line-height: 1.55;
+}
+
+.guia-card__lista {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.88rem;
+  color: var(--texto-suave, #475569);
+  line-height: 1.5;
+}
+
+.guia-card__lista strong {
+  color: var(--primario, #1e293b);
+}
+
+/* ===========================================================================
+   QUIZ RENDERIZADO INLINE (MODULAR Y FINAL)
+   ========================================================================== */
+.quiz-inline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+  flex-wrap: wrap;
+}
+
+.quiz-inline-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--primario, #1e293b);
+}
+
+.quiz-bloque-pregunta {
+  margin-bottom: 24px;
+  padding: 18px;
+  background: var(--slate-50, #f8fafc);
+  border-radius: 12px;
+  border: 1px solid var(--borde, #e2e8f0);
+}
+
+.quiz-pregunta {
+  margin: 0 0 12px 0;
+  color: var(--primario, #1e293b);
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.quiz-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quiz-opcion {
+  background: var(--blanco, #ffffff);
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--borde, #e2e8f0);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-size: 0.93rem;
+}
+
+.quiz-opcion:hover {
+  border-color: var(--primario, #1e293b);
+  background: #f1f5f9;
+}
+
+.quiz-opcion.seleccionada {
+  background: var(--primario, #1e293b);
+  color: #ffffff;
+  border-color: var(--primario, #1e293b);
+  font-weight: 600;
+}
+
+.quiz-resultado-banner {
+  padding: 18px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.quiz-resultado-banner.aprobado {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.quiz-resultado-banner.reprobado {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* ===========================================================================
+   SECCIÓN DE ROLES (¿Qué hace cada quién?)
+   ========================================================================== */
+.tarjeta-roles-intro {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+}
+
+.tarjeta-roles-intro h2 {
+  margin: 0 0 6px 0;
+  color: var(--primario, #1e293b);
+}
+
+.tarjeta-roles-intro p {
+  margin: 0;
+  color: var(--texto-suave, #64748b);
+}
+
+.contenedor-roles-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.menu-roles {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rol-tab-btn {
+  background: var(--slate-50, #f8fafc);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texto-suave, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rol-tab-btn:hover {
+  border-color: var(--primario, #1e293b);
+  color: var(--primario, #1e293b);
+}
+
+.rol-tab-btn.activo {
+  background: var(--primario, #1e293b);
+  color: #ffffff;
+  border-color: var(--primario, #1e293b);
+}
+
+.panel-rol {
+  display: none;
+}
+
+.panel-rol.activo {
+  display: block;
+}
+
+.rol-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.badge-rol {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.rol-descripcion {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--texto-suave, #475569);
+  margin-bottom: 20px;
+}
+
+.rol-grid-funciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 15px;
+}
+
+.funcion-box {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+}
+
+.funcion-box h4 {
+  margin: 0 0 10px 0;
+  color: var(--primario, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.funcion-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.funcion-box li {
+  margin-bottom: 6px;
+  line-height: 1.45;
+}
+
+/* ===========================================================================
+   PANTALLA INICIAL DEL QUIZ FINAL INTEGRADOR
+   ========================================================================== */
+.quiz-final-portada {
+  text-align: center;
+  max-width: 640px;
+  margin: 10px auto;
+}
+
+.icono-quiz-final {
+  font-size: 3rem;
+  color: var(--ambar-500, #d97706);
+  margin-bottom: 10px;
+}
+
+.requisitos-quiz-final {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 22px 0 26px 0;
+  text-align: left;
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border-left: 4px solid var(--ambar-500, #d97706);
+}
+
+.requisito-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.93rem;
+}
+
+.boton--lg {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+/* ===========================================================================
+   RESPONSIVE (DRAWER DESLIZABLE EN TABLET / MÓVIL)
+   ========================================================================== */
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .curso-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .curso-layout.sidebar-colapsado {
+    grid-template-columns: 1fr;
+  }
+
+  .curso-layout.sidebar-colapsado .curso-sidebar {
+    opacity: 1;
+    pointer-events: auto;
+    padding: 18px;
+    border: 1px solid var(--borde, #e2e8f0);
+  }
+
+  .curso-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    max-width: 85vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0 14px 14px 0;
+    z-index: 1050;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+  }
+
+  .curso-sidebar.abierto-movil {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.visible {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 1040;
+  }
+
+  .visor-card,
+  .visor-leccion {
+    padding: 20px;
+  }
+
+  .guia-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* ===========================================================================
-   ENCABEZADO SUPERIOR
-   ========================================================================== */
-.encabezado-curso {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.encabezado-curso__izquierda {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.encabezado-curso__acciones {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.encabezado-curso h1 {
-  margin: 0;
-  color: var(--primario);
-  font-size: 1.55rem;
-}
-
-.encabezado-curso .subtitulo {
-  color: var(--texto-suave);
-  margin: 3px 0 0 0;
-  font-size: 0.9rem;
-}
-
-.btn-drawer-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 14px;
-  font-weight: 600;
-}
-
-.boton-regresar {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ===========================================================================
-   BANNER CERTIFICADO
-   ========================================================================== */
-.certificado-alerta {
-  background: linear-gradient(135deg, var(--esmeralda-500), var(--esmeralda-700));
-  color: var(--blanco);
-  padding: 18px 22px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+/* Aviso de tutorial teórico finalizado (sin certificado) */
+.tutorial-teorico-alerta {
   display: none;
   align-items: center;
-  gap: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-.certificado-alerta.visible {
-  display: flex;
-}
-
-.certificado-icono {
-  font-size: 2rem;
-}
-
-.certificado-mensaje h3 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.certificado-mensaje p {
-  margin: 4px 0 0 0;
-  opacity: 0.92;
+  gap: 10px;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
   font-size: 0.92rem;
 }
 
-.guia-acciones {
+.tutorial-teorico-alerta.visible {
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--borde, #e2e8f0);
-}
-
-.guia-acciones p {
-  flex: 1 1 100%;
-  margin: 0;
-  color: var(--texto-suave, #64748b);
-}
-
-.guia-acciones p:empty {
-  display: none;
-}
-
-/* ===========================================================================
-   LAYOUT PRINCIPAL DE DOS PANELES (DRAWER RETRÁCTIL + LECTURA ENFOCADA)
-   ========================================================================== */
-.curso-layout {
-  display: grid;
-  grid-template-columns: 310px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-  transition: grid-template-columns 0.25s ease;
-}
-
-/* Estado colapsado (Modo Lectura Enfocada en Desktop) */
-.curso-layout.sidebar-colapsado {
-  grid-template-columns: 0px minmax(0, 1fr);
-  gap: 0;
-}
-
-.curso-layout.sidebar-colapsado .curso-sidebar {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-20px);
-  overflow: hidden;
-  padding: 0;
-  border: none;
-}
-
-/* ===========================================================================
-   SIDEBAR / DRAWER IZQUIERDO
-   ========================================================================== */
-.curso-sidebar {
-  background: var(--blanco, #ffffff);
-  border: 1px solid var(--borde, #e2e8f0);
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
-  position: sticky;
-  top: 20px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  transition: opacity 0.2s ease, transform 0.25s ease;
-}
-
-/* Progreso dentro del Sidebar */
-.sidebar-progreso {
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--borde, #e2e8f0);
-}
-
-.sidebar-progreso__info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-  color: var(--texto-suave, #64748b);
-  margin-bottom: 8px;
-}
-
-.sidebar-progreso__info strong {
-  color: var(--primario, #1e293b);
-  font-size: 0.95rem;
-}
-
-.barra-progreso-principal {
-  background: var(--slate-200, #e2e8f0);
-  height: 8px;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.barra-progreso-relleno {
-  height: 100%;
-  background: linear-gradient(90deg, var(--esmeralda-500, #10b981), var(--acento, #6e9376));
-  transition: width 0.4s ease;
-  border-radius: 999px;
-}
-
-/* Bloques del Sidebar */
-.sidebar-bloque {
-  margin-bottom: 20px;
-}
-
-.sidebar-bloque:last-child {
-  margin-bottom: 0;
-}
-
-.sidebar-bloque__titulo {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--texto-suave, #64748b);
-  margin-bottom: 10px;
-  padding-left: 4px;
-}
-
-/* Bloque 1: Navegación Principal (4 Vistas) */
-.sidebar-nav-principal {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sidebar-nav-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--primario, #1e293b);
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.sidebar-nav-btn i {
-  width: 18px;
-  text-align: center;
-  color: var(--texto-suave, #64748b);
-}
-
-.sidebar-nav-btn:hover {
-  background: var(--slate-50, #f8fafc);
-}
-
-.sidebar-nav-btn.activa {
-  background: var(--primario, #1e293b);
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.sidebar-nav-btn.activa i {
-  color: #ffffff;
-}
-
-.badge-mini {
-  margin-left: auto;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.badge-mini.aprobado {
-  background: #d1fae5;
-  color: #047857;
-}
-
-/* Bloque 2: Ruta Lineal (Timeline vertical) */
-.sidebar-bloque--ruta {
-  padding-top: 16px;
-  border-top: 1px solid var(--borde, #e2e8f0);
-}
-
-.ruta-seccion-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--primario, #1e293b);
-  margin: 12px 0 8px 4px;
-}
-
-.ruta-seccion-label:first-child {
-  margin-top: 0;
-}
-
-.ruta-timeline {
-  display: flex;
-  flex-direction: column;
-}
-
-.ruta-item {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 10px 10px 8px;
-  border-radius: 10px;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.18s ease;
-  width: 100%;
-}
-
-.ruta-item:hover {
-  background: var(--slate-50, #f8fafc);
-}
-
-.ruta-item.activa {
-  background: #f1f5f9;
-}
-
-/* Línea vertical conectora */
-.ruta-item:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 19px;
-  top: 32px;
-  bottom: -6px;
-  width: 2px;
-  background: var(--slate-200, #e2e8f0);
-}
-
-.ruta-item.completada:not(:last-child)::before {
-  background: var(--esmeralda-500, #10b981);
-}
-
-/* Nodo circular del timeline */
-.ruta-nodo {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: var(--blanco, #ffffff);
-  border: 2px solid var(--slate-300, #cbd5e1);
-  color: var(--texto-suave, #64748b);
-  z-index: 1;
-  margin-top: 1px;
-}
-
-.ruta-item.activa .ruta-nodo {
-  border-color: var(--primario, #1e293b);
-  background: var(--primario, #1e293b);
-  color: #ffffff;
-}
-
-.ruta-item.completada .ruta-nodo {
-  border-color: var(--esmeralda-500, #10b981);
-  background: var(--esmeralda-500, #10b981);
-  color: #ffffff;
-}
-
-.ruta-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.ruta-titulo {
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: var(--primario, #1e293b);
-  line-height: 1.35;
-  display: block;
-}
-
-.ruta-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  font-size: 0.74rem;
-  color: var(--texto-suave, #64748b);
-}
-
-.ruta-quiz-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: #f1f5f9;
-  color: #475569;
-  font-weight: 600;
-}
-
-.ruta-quiz-tag.aprobado {
-  background: #d1fae5;
-  color: #047857;
-}
-
-/* ===========================================================================
-   PANEL DERECHO: ÁREA DE LECTURA ENFOCADA Y EVALUACIONES
-   ========================================================================== */
-.curso-main-panel {
-  min-width: 0;
-}
-
-.vista-panel {
-  display: none;
-}
-
-.vista-panel.activa {
-  display: block;
-}
-
-.visor-card,
-.visor-leccion {
-  background: var(--blanco, #ffffff);
-  border: 1px solid var(--borde, #e2e8f0);
-  border-radius: 14px;
-  padding: 28px 32px;
-  box-shadow: var(--sombra-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
-}
-
-.leccion-top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-bottom: 14px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--borde, #e2e8f0);
-}
-
-.leccion-breadcrumb {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--texto-suave, #64748b);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.leccion-badges {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.estado-pill {
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.estado-pill--completada {
-  background: #d1fae5;
-  color: #047857;
-}
-
-.estado-pill--pendiente {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.estado-pill--quiz-ok {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.visor-leccion-titulo {
-  margin: 0 0 18px 0;
-  font-size: 1.55rem;
-  color: var(--primario, #1e293b);
-}
-
-.visor-leccion-cuerpo {
-  color: var(--primario, #1e293b);
-  line-height: 1.7;
-  font-size: 0.98rem;
-}
-
-/* Pie de navegación dentro de la lección */
-.visor-leccion-footer {
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid var(--borde, #e2e8f0);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.visor-leccion-footer__derecha {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-
-/* ===========================================================================
-   GUÍA PRÁCTICA DE SCRUMFLOW (PANTALLAS Y REGLAS EN LENGUAJE DE USUARIO)
-   ========================================================================== */
-.guia-filtros {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.guia-filtro-btn {
-  background: var(--slate-50, #f8fafc);
-  border: 1px solid var(--borde, #e2e8f0);
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--texto-suave, #64748b);
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.guia-filtro-btn:hover {
-  border-color: var(--primario, #1e293b);
-  color: var(--primario, #1e293b);
-}
-
-.guia-filtro-btn.activo {
-  background: var(--primario, #1e293b);
-  border-color: var(--primario, #1e293b);
-  color: #ffffff;
-}
-
-.guia-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 18px;
-}
-
-.guia-card {
-  background: var(--slate-50, #f8fafc);
-  border: 1px solid var(--borde, #e2e8f0);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.guia-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
-}
-
-.guia-card.oculta {
-  display: none;
-}
-
-.guia-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.guia-card__titulo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.guia-card__icono {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--primario, #1e293b);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.guia-card__titulo h3 {
-  margin: 0;
-  font-size: 1.05rem;
-  color: var(--primario, #1e293b);
-}
-
-.guia-card__etapa {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--texto-suave, #64748b);
-}
-
-.boton--sm {
-  padding: 6px 11px;
-  font-size: 0.8rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.guia-card__resumen {
-  margin: 0;
-  font-size: 0.92rem;
-  color: var(--primario, #1e293b);
-  line-height: 1.55;
-}
-
-.guia-card__lista {
-  margin: 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-size: 0.88rem;
-  color: var(--texto-suave, #475569);
-  line-height: 1.5;
-}
-
-.guia-card__lista strong {
-  color: var(--primario, #1e293b);
-}
-
-/* ===========================================================================
-   QUIZ RENDERIZADO INLINE (MODULAR Y FINAL)
-   ========================================================================== */
-.quiz-inline-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 16px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--borde, #e2e8f0);
-  flex-wrap: wrap;
-}
-
-.quiz-inline-header h2 {
-  margin: 0;
-  font-size: 1.35rem;
-  color: var(--primario, #1e293b);
-}
-
-.quiz-bloque-pregunta {
-  margin-bottom: 24px;
-  padding: 18px;
-  background: var(--slate-50, #f8fafc);
-  border-radius: 12px;
-  border: 1px solid var(--borde, #e2e8f0);
-}
-
-.quiz-pregunta {
-  margin: 0 0 12px 0;
-  color: var(--primario, #1e293b);
-  font-weight: 600;
-  font-size: 0.98rem;
-}
-
-.quiz-opciones {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.quiz-opcion {
-  background: var(--blanco, #ffffff);
-  padding: 12px 15px;
-  border-radius: 8px;
-  border: 1px solid var(--borde, #e2e8f0);
-  cursor: pointer;
-  transition: all 0.18s ease;
-  font-size: 0.93rem;
-}
-
-.quiz-opcion:hover {
-  border-color: var(--primario, #1e293b);
-  background: #f1f5f9;
-}
-
-.quiz-opcion.seleccionada {
-  background: var(--primario, #1e293b);
-  color: #ffffff;
-  border-color: var(--primario, #1e293b);
-  font-weight: 600;
-}
-
-.quiz-resultado-banner {
-  padding: 18px 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.quiz-resultado-banner.aprobado {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #6ee7b7;
-}
-
-.quiz-resultado-banner.reprobado {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
-}
-
-/* ===========================================================================
-   SECCIÓN DE ROLES (¿Qué hace cada quién?)
-   ========================================================================== */
-.tarjeta-roles-intro {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--borde, #e2e8f0);
-}
-
-.tarjeta-roles-intro h2 {
-  margin: 0 0 6px 0;
-  color: var(--primario, #1e293b);
-}
-
-.tarjeta-roles-intro p {
-  margin: 0;
-  color: var(--texto-suave, #64748b);
-}
-
-.contenedor-roles-tabs {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.menu-roles {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.rol-tab-btn {
-  background: var(--slate-50, #f8fafc);
-  border: 1px solid var(--borde, #e2e8f0);
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--texto-suave, #64748b);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rol-tab-btn:hover {
-  border-color: var(--primario, #1e293b);
-  color: var(--primario, #1e293b);
-}
-
-.rol-tab-btn.activo {
-  background: var(--primario, #1e293b);
-  color: #ffffff;
-  border-color: var(--primario, #1e293b);
-}
-
-.panel-rol {
-  display: none;
-}
-
-.panel-rol.activo {
-  display: block;
-}
-
-.rol-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.badge-rol {
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 12px;
-  text-transform: uppercase;
-}
-
-.rol-descripcion {
-  font-size: 0.98rem;
-  line-height: 1.6;
-  color: var(--texto-suave, #475569);
-  margin-bottom: 20px;
-}
-
-.rol-grid-funciones {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 15px;
-}
-
-.funcion-box {
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 18px;
-  border: 1px solid #e2e8f0;
-}
-
-.funcion-box h4 {
-  margin: 0 0 10px 0;
-  color: var(--primario, #1e293b);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.funcion-box ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.funcion-box li {
-  margin-bottom: 6px;
-  line-height: 1.45;
-}
-
-/* ===========================================================================
-   PANTALLA INICIAL DEL QUIZ FINAL INTEGRADOR
-   ========================================================================== */
-.quiz-final-portada {
-  text-align: center;
-  max-width: 640px;
-  margin: 10px auto;
-}
-
-.icono-quiz-final {
-  font-size: 3rem;
-  color: var(--ambar-500, #d97706);
-  margin-bottom: 10px;
-}
-
-.requisitos-quiz-final {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 22px 0 26px 0;
-  text-align: left;
-  background: #f8fafc;
-  padding: 16px 20px;
-  border-radius: 10px;
-  border-left: 4px solid var(--ambar-500, #d97706);
-}
-
-.requisito-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.93rem;
-}
-
-.boton--lg {
-  padding: 12px 24px;
-  font-size: 1rem;
-}
-
-/* ===========================================================================
-   RESPONSIVE (DRAWER DESLIZABLE EN TABLET / MÓVIL)
-   ========================================================================== */
-.sidebar-overlay {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .curso-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .curso-layout.sidebar-colapsado {
-    grid-template-columns: 1fr;
-  }
-
-  .curso-layout.sidebar-colapsado .curso-sidebar {
-    opacity: 1;
-    pointer-events: auto;
-    padding: 18px;
-    border: 1px solid var(--borde, #e2e8f0);
-  }
-
-  .curso-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 300px;
-    max-width: 85vw;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0 14px 14px 0;
-    z-index: 1050;
-    transform: translateX(-105%);
-    transition: transform 0.25s ease;
-  }
-
-  .curso-sidebar.abierto-movil {
-    transform: translateX(0);
-  }
-
-  .sidebar-overlay.visible {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(2px);
-    z-index: 1040;
-  }
-
-  .visor-card,
-  .visor-leccion {
-    padding: 20px;
-  }
-
-  .guia-grid {
-    grid-template-columns: 1fr;
-  }
 }

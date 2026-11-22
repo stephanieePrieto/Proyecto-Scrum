@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!--
+  @file configuracion-proyecto.html
+  @description Crear/editar proyecto, Definition of Done y archivado
+
+  @author Jetzaly Josmery Tello Campos
+  @author Stephanie Elizdeth Hernández Prieto
+  @author Citlaly Morales Viveros
+-->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Configuración del proyecto · ScrumFlow</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/modales.css" />
+  <!-- HU-26: sección y asistente "Modo de trabajo" -->
+  <link rel="stylesheet" href="../css/componentes/modo-flujo.css" />
+  <link rel="stylesheet" href="/css/componentes/responsive.css">
+</head>
+
+<body>
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="main-content" style="max-width: var(--ancho-max); margin: 0 auto; width: 100%;" id="contenido-principal">
+    <div class="page-header">
+      <div>
+        <h1 class="titulo-pagina" id="titulo">Nuevo proyecto</h1>
+        <p class="subtitulo-pagina" id="subtitulo">Define la visión, las fechas y cuándo se considera terminado el
+          trabajo.</p>
+      </div>
+      <a class="boton boton--secundario" href="dashboard.html">Volver a proyectos</a>
+    </div>
+
+    <div id="mensaje" class="alerta" role="status" aria-live="polite" hidden></div>
+
+    <form id="formulario" class="tarjeta" style="max-width: 820px; margin: 0 auto;" novalidate hidden>
+      <div class="form-group">
+        <label for="nombre" class="form-label">Nombre del proyecto</label>
+        <input id="nombre" name="nombre" type="text" maxlength="120" required aria-describedby="error-nombre"
+          class="form-input" />
+        <p class="eq-error" id="error-nombre" role="alert"></p>
+      </div>
+
+      <div class="form-group">
+        <label for="equipo_id" class="form-label">Equipo</label>
+        <select id="equipo_id" name="equipo_id" required aria-describedby="error-equipo_id"
+          class="form-select"></select>
+        <p class="eq-error" id="error-equipo_id" role="alert"></p>
+      </div>
+
+      <div id="seccion-miembros-proyecto" class="form-group" hidden>
+        <label class="form-label">Asignar roles a integrantes del equipo</label>
+        <p class="eq-ayuda">Se les enviará una invitación a su correo para unirse al proyecto con este rol.</p>
+        <div id="lista-miembros-equipo" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="vision" class="form-label">Visión</label>
+        <textarea id="vision" name="vision" rows="3" required aria-describedby="error-vision"
+          placeholder="¿Qué problema resuelve el proyecto y para quién?" class="form-input"></textarea>
+        <p class="eq-error" id="error-vision" role="alert"></p>
+      </div>
+
+      <div class="eq-fila" style="border-top: none; padding: 0;">
+        <div class="form-group">
+          <label for="fecha_inicio" class="form-label">Fecha de inicio</label>
+          <input id="fecha_inicio" name="fecha_inicio" type="date" required aria-describedby="error-fecha_inicio"
+            class="form-input" />
+          <p class="eq-error" id="error-fecha_inicio" role="alert"></p>
+        </div>
+        <div class="form-group">
+          <label for="fecha_fin" class="form-label">Fecha de fin</label>
+          <input id="fecha_fin" name="fecha_fin" type="date" required aria-describedby="error-fecha_fin"
+            class="form-input" />
+          <p class="eq-error" id="error-fecha_fin" role="alert"></p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="definition_of_done" class="form-label">Definition of Done</label>
+        <p class="eq-ayuda" id="ayuda-dod">Una condición por línea. Una historia solo se acepta cuando cumple todas.</p>
+        <textarea id="definition_of_done" name="definition_of_done" rows="6"
+          aria-describedby="ayuda-dod error-definition_of_done" class="form-input"></textarea>
+        <p class="eq-error" id="error-definition_of_done" role="alert"></p>
+      </div>
+
+      <div class="form-group">
+        <label for="github_repo_url" class="form-label">Repositorio público de GitHub</label>
+        <p class="eq-ayuda" id="ayuda-github_repo_url">Opcional. Ingresa el enlace HTTPS de un repositorio público para consultar commits y contribuciones del equipo.</p>
+        <input id="github_repo_url" name="github_repo_url" type="url" aria-describedby="ayuda-github_repo_url error-github_repo_url"
+          placeholder="https://github.com/organizacion/repositorio" class="form-input" />
+        <p class="eq-error" id="error-github_repo_url" role="alert"></p>
+      </div>
+
+      <div class="modal-footer"
+        style="margin-top: 16px; padding: 16px 0 0; background: none; border: none; border-top: 1px solid var(--borde);">
+        <a class="boton boton--secundario" href="dashboard.html">Cancelar</a>
+        <button class="boton boton--primario" type="submit" id="guardar">Guardar proyecto</button>
+      </div>
+    </form>
+
+    <section class="tarjeta" id="zona-transferir" style="max-width: 820px; margin: 24px auto 0;" hidden>
+      <h2 class="eq-dialogo__titulo">Transferir mi rol</h2>
+      <p class="subtitulo-pagina">Transfiere tu rol de Scrum Master o Product Owner a una persona del equipo. El cambio es inmediato: el proyecto nunca queda sin ese rol.</p>
+      <div class="form-group">
+        <label class="form-label" for="transferir-destino">Nueva persona</label>
+        <select class="form-select" id="transferir-destino"></select>
+      </div>
+      <p class="mensaje--error" id="error-transferir" hidden></p>
+      <button class="boton boton--primario" type="button" id="transferir-confirmar">Transferir rol</button>
+    </section>
+
+    <section class="tarjeta"
+      style="max-width: 820px; margin: 24px auto 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;"
+      id="zona-archivar" hidden>
+      <div>
+        <h2 class="eq-dialogo__titulo">Archivar proyecto</h2>
+        <p class="subtitulo-pagina">El proyecto sale del dashboard pero conserva todo su historial. No se puede archivar
+          con un sprint activo.</p>
+        <p class="eq-error" id="error-archivar" role="alert"></p>
+      </div>
+      <button class="boton boton--secundario" type="button" id="archivar">Archivar proyecto</button>
+    </section>
+
+    <!-- HU-26: modo de trabajo (Scrum o flujo continuo). El botón solo aparece a quien puede gestionar el proyecto. -->
+    <section class="tarjeta modo-flujo__seccion" id="zona-modo" hidden>
+      <div>
+        <h2 class="eq-dialogo__titulo">Modo de trabajo</h2>
+        <p class="subtitulo-pagina">Scrum organiza el trabajo en sprints. Flujo continuo (Kanban) usa el tablero sin sprints
+          y mide Lead Time y Cycle Time. Cambiar de modo no borra ningún dato.</p>
+        <p class="modo-flujo__actual">Modo actual: <span class="insignia insignia--info" id="modo-actual">—</span></p>
+      </div>
+      <button class="boton boton--secundario" type="button" id="cambiar-modo" data-permiso="proyecto.gestionar">Cambiar modo</button>
+    </section>
+  </main>
+
+  <dialog id="dialogo-conflicto" class="eq-dialogo eq-dialogo--ancho"
+    style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;"
+    aria-labelledby="conflicto-titulo">
+    <h2 id="conflicto-titulo" class="eq-dialogo__titulo">Otro administrador guardó cambios antes que tú</h2>
+    <p class="subtitulo-pagina">Compara las diferencias y decide qué versión conservar.</p>
+    <div style="overflow-x: auto; max-width: 100%;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr>
+            <th scope="col" style="text-align: left; padding: 10px; border-bottom: 1px solid var(--borde);">Campo</th>
+            <th scope="col" style="text-align: left; padding: 10px; border-bottom: 1px solid var(--borde);">Tu versión
+            </th>
+            <th scope="col" style="text-align: left; padding: 10px; border-bottom: 1px solid var(--borde);">Versión
+              guardada</th>
+          </tr>
+        </thead>
+        <tbody id="conflicto-filas"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="boton boton--secundario" type="button" id="conflicto-seguir">Seguir editando</button>
+      <button class="boton boton--secundario" type="button" id="conflicto-aceptar">Usar la versión guardada</button>
+      <button class="boton boton--primario" type="button" id="conflicto-conservar">Guardar la mía</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogo-archivar" class="eq-dialogo"
+    style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;"
+    aria-labelledby="archivar-titulo">
+    <h2 id="archivar-titulo" class="eq-dialogo__titulo">¿Archivar este proyecto?</h2>
+    <p class="subtitulo-pagina">Dejará de aparecer en el dashboard del equipo. Su historial se conserva.</p>
+    <div class="modal-footer">
+      <button class="boton boton--secundario" type="button" id="archivar-cancelar">Cancelar</button>
+      <button class="boton boton--primario" type="button" id="archivar-confirmar">Archivar proyecto</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="../js/pages/configuracion-proyecto.js"></script>
+</body>
+
+</html>

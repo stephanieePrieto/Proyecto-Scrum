@@ -78,7 +78,12 @@ async function abrirTutorialPendiente(idProyecto) {
   if (new URLSearchParams(location.search).get('tutorial') === '1') return;
   try {
     const progreso = await api(`/curso-scrum/tutorial/estado/${encodeURIComponent(idProyecto)}`);
-    if (progreso.rolEnProyecto && !progreso.tutorialCompletado) {
+    // Se muestra la guía mientras no esté respondida (completada u omitida).
+    // Solo se redirige la primera vez por proyecto en esta sesión: si la persona
+    // se va a otra pantalla sin responder, no vuelve a forzarse el curso.
+    const claveRedireccion = `guia-redirigida-${idProyecto}`;
+    if (progreso.rolEnProyecto && !progreso.tutorialEstado && !sessionStorage.getItem(claveRedireccion)) {
+      sessionStorage.setItem(claveRedireccion, '1');
       window.location.replace('/pages/curso-scrum.html?tutorial=1');
     }
   } catch (error) {
@@ -753,7 +758,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     const acciones = [
       `<a class="boton boton--secundario boton--pequeno"
           href="/pages/dashboard.html?proyecto=${id}"
-          data-ver="${id}">Ver</a>`,
+          data-ver="${id}" aria-label="Ver indicadores de ${escaparHtml(p.nombre)}">Ver</a>`,
 
       p.puede_gestionar
         ? `<a class="boton boton--secundario boton--pequeno"
@@ -771,7 +776,7 @@ async function iniciarProyectos({ proyectoId, alCargarProyecto }) {
     ].join('');
 
     return `<article class="tarjeta proyecto${p.id === idActivo ? ' proyecto--activo' : ''}" style="cursor: pointer;">
-      <div class="proyecto__cabecera"><h3 class="proyecto__nombre">${escaparHtml(p.nombre)}</h3><div class="proyecto__insignias">${insignias}</div></div>
+      <div class="proyecto__cabecera"><h2 class="proyecto__nombre">${escaparHtml(p.nombre)}</h2><div class="proyecto__insignias">${insignias}</div></div>
       <p class="proyecto__equipo">${escaparHtml(p.equipo_nombre)}</p>
       <p class="proyecto__vision">${escaparHtml(p.vision)}</p>
       <p class="proyecto__fechas">${formatearFecha(p.fecha_inicio)} – ${formatearFecha(p.fecha_fin)}</p>

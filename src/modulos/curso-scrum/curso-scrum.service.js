@@ -20,14 +20,14 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 1,
     pregunta: "¿Qué es Scrum según la Guía Oficial?",
-    opciones: { 0: "Un marco de trabajo (framework) ligero para generar valor a través de soluciones adaptativas a problemas complejos", 1: "Una metodología rígida de gestión de proyectos con etapas secuenciales", 2: "Un lenguaje de programación enfocado en el desarrollo ágil" },
-    correcta: 0
+    opciones: { 0: "Una metodología rígida de gestión de proyectos con etapas secuenciales", 1: "Un marco de trabajo (framework) ligero para generar valor a través de soluciones adaptativas a problemas complejos", 2: "Un lenguaje de programación enfocado en el desarrollo ágil" },
+    correcta: 1
   },
   {
     id: 2,
     pregunta: "¿En qué dos conceptos teóricos fundamentales se basa el marco de trabajo de Scrum?",
-    opciones: { 0: "El empirismo y el pensamiento Lean", 1: "El modelo en cascada y el diagrama de Gantt", 2: "La programación orientada a objetos y la gestión financiera" },
-    correcta: 0
+    opciones: { 0: "El modelo en cascada y el diagrama de Gantt", 1: "La programación orientada a objetos y la gestión financiera", 2: "El empirismo y el pensamiento Lean" },
+    correcta: 2
   },
   {
     id: 3,
@@ -38,14 +38,14 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 4,
     pregunta: "¿Qué pilar exige que el proceso y el trabajo emergentes sean visibles tanto para quienes realizan el trabajo como para quienes lo reciben?",
-    opciones: { 0: "Transparencia", 1: "Inspección", 2: "Adaptación" },
-    correcta: 0
+    opciones: { 0: "Inspección", 1: "Transparencia", 2: "Adaptación" },
+    correcta: 1
   },
   {
     id: 5,
     pregunta: "¿Cuáles son los cinco valores fundamentales sobre los cuales se fundamenta el trabajo del Scrum Team?",
-    opciones: { 0: "Compromiso, Foco, Apertura, Respeto y Coraje", 1: "Calidad, Velocidad, Puntualidad, Orden y Control", 2: "Transparencia, Inspección, Adaptación, Diseño y Pruebas" },
-    correcta: 0
+    opciones: { 0: "Calidad, Velocidad, Puntualidad, Orden y Control", 1: "Transparencia, Inspección, Adaptación, Diseño y Pruebas", 2: "Compromiso, Foco, Apertura, Respeto y Coraje" },
+    correcta: 2
   },
 
   // --- MÓDULO 2: EL EQUIPO SCRUM Y ROLES (5 Preguntas) ---
@@ -58,14 +58,14 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 7,
     pregunta: "¿Quién es el único responsable de la gestión efectiva del Product Backlog y de maximizar el valor del producto?",
-    opciones: { 0: "Product Owner", 1: "Scrum Master", 2: "Developers" },
-    correcta: 0
+    opciones: { 0: "Scrum Master", 1: "Product Owner", 2: "Developers" },
+    correcta: 1
   },
   {
     id: 8,
     pregunta: "¿Cuál es la responsabilidad principal del Scrum Master?",
-    opciones: { 0: "Establecer Scrum según la Guía, eliminar impedimentos y servir como líder al equipo", 1: "Asignar las tareas diarias a cada desarrollador y evaluar su rendimiento personal", 2: "Definir el alcance comercial y los costos del proyecto" },
-    correcta: 0
+    opciones: { 0: "Asignar las tareas diarias a cada desarrollador y evaluar su rendimiento personal", 1: "Definir el alcance comercial y los costos del proyecto", 2: "Establecer Scrum según la Guía, eliminar impedimentos y servir como líder al equipo" },
+    correcta: 2
   },
   {
     id: 9,
@@ -76,16 +76,16 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 10,
     pregunta: "¿Cuál es el tamaño recomendado para un Scrum Team para mantener la agilidad y buena comunicación?",
-    opciones: { 0: "Típicamente 10 personas o menos", 1: "Entre 15 y 25 personas obligatoriamente", 2: "No existe recomendación de tamaño" },
-    correcta: 0
+    opciones: { 0: "Entre 15 y 25 personas obligatoriamente", 1: "Típicamente 10 personas o menos", 2: "No existe recomendación de tamaño" },
+    correcta: 1
   },
 
   // --- MÓDULO 3: EVENTOS DE SCRUM Y LA CADENCIA DEL SPRINT (5 Preguntas) ---
   {
     id: 11,
     pregunta: "¿Cuál es la duración fija máxima definida para un Sprint?",
-    opciones: { 0: "Un mes o menos", 1: "Seis meses", 2: "Tres meses" },
-    correcta: 0
+    opciones: { 0: "Seis meses", 1: "Tres meses", 2: "Un mes o menos" },
+    correcta: 2
   },
   {
     id: 12,
@@ -96,14 +96,14 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 13,
     pregunta: "¿Cuál es el objetivo principal del Daily Scrum y cuál es su tiempo límite (timebox)?",
-    opciones: { 0: "Inspeccionar el progreso hacia el Sprint Goal y adaptar el Sprint Backlog en máximo 15 minutos", 1: "Dar un reporte detallado de horas trabajadas al Gerente de Proyecto en 1 hora", 2: "Revisar los costos y compras en 30 minutos" },
-    correcta: 0
+    opciones: { 0: "Dar un reporte detallado de horas trabajadas al Gerente de Proyecto en 1 hora", 1: "Inspeccionar el progreso hacia el Sprint Goal y adaptar el Sprint Backlog en máximo 15 minutos", 2: "Revisar los costos y compras en 30 minutos" },
+    correcta: 1
   },
   {
     id: 14,
     pregunta: "¿En qué evento el Scrum Team e interesados inspeccionan los resultados del Sprint para adaptar el Product Backlog?",
-    opciones: { 0: "Sprint Review", 1: "Sprint Retrospective", 2: "Daily Scrum" },
-    correcta: 0
+    opciones: { 0: "Sprint Retrospective", 1: "Daily Scrum", 2: "Sprint Review" },
+    correcta: 2
   },
   {
     id: 15,
@@ -116,14 +116,14 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 16,
     pregunta: "¿Qué compromiso obligatorio corresponde al artefacto del Product Backlog?",
-    opciones: { 0: "El Objetivo del Producto (Product Goal)", 1: "El Objetivo del Sprint (Sprint Goal)", 2: "La Definición de Terminado (Definition of Done)" },
-    correcta: 0
+    opciones: { 0: "El Objetivo del Sprint (Sprint Goal)", 1: "El Objetivo del Producto (Product Goal)", 2: "La Definición de Terminado (Definition of Done)" },
+    correcta: 1
   },
   {
     id: 17,
     pregunta: "¿Cuáles son los tres componentes que integran el artefacto del Sprint Backlog?",
-    opciones: { 0: "El Objetivo del Sprint (por qué), los elementos seleccionados (qué) y el plan accionable (cómo)", 1: "Las historias de usuario, los contratos y los diagramas UML", 2: "La lista de bugs, los requerimientos del cliente y las facturas" },
-    correcta: 0
+    opciones: { 0: "Las historias de usuario, los contratos y los diagramas UML", 1: "La lista de bugs, los requerimientos del cliente y las facturas", 2: "El Objetivo del Sprint (por qué), los elementos seleccionados (qué) y el plan accionable (cómo)" },
+    correcta: 2
   },
   {
     id: 18,
@@ -134,14 +134,14 @@ export const PREGUNTAS_QUIZ_FINAL = [
   {
     id: 19,
     pregunta: "¿Cuándo se considera que un elemento del Product Backlog pasa a formar parte de un Incremento?",
-    opciones: { 0: "Cuando satisface totalmente la Definición de Terminado (Definition of Done)", 1: "En cuanto un desarrollador comienza a escribir su código", 2: "Al momento de ser seleccionado en la reunión de Sprint Planning" },
-    correcta: 0
+    opciones: { 0: "En cuanto un desarrollador comienza a escribir su código", 1: "Cuando satisface totalmente la Definición de Terminado (Definition of Done)", 2: "Al momento de ser seleccionado en la reunión de Sprint Planning" },
+    correcta: 1
   },
   {
     id: 20,
     pregunta: "¿Qué sucede con los elementos del Sprint Backlog que no se completan al finalizar el Sprint?",
-    opciones: { 0: "Vuelven al Product Backlog para ser reestimados y priorizados en futuros Sprints", 1: "Se dan por concluidos automáticamente para no afectar las métricas", 2: "Se eliminan del sistema de forma definitiva" },
-    correcta: 0
+    opciones: { 0: "Se dan por concluidos automáticamente para no afectar las métricas", 1: "Se eliminan del sistema de forma definitiva", 2: "Vuelven al Product Backlog para ser reestimados y priorizados en futuros Sprints" },
+    correcta: 2
   }
 ];
 
@@ -193,6 +193,8 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
 
   const totalLecciones = leccionesRes.rows.length; // Ahora es estrictamente 4
   const leccionesCompletadas = leccionesRes.rows.filter(l => l.completada).length;
+  // Tutorial teórico: solo depende de leer las 4 lecciones. NO exige quizzes ni quiz final.
+  const tutorialTeoricoCompletado = totalLecciones > 0 && leccionesCompletadas === totalLecciones;
   const quizzesAprobados = leccionesRes.rows.filter(l => l.quiz_aprobado).length;
 
   // Avance global considerando las 4 lecciones reales (40% lecciones, 40% quizzes modulares, 20% quiz final)
@@ -222,7 +224,11 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
       WHERE mp.proyecto_id = $1 AND l.id != 999
       GROUP BY mp.usuario_id, u.nombre, u.correo, mp.rol, c.id
     `, [proyectoId]);
-    progresoEquipo = equipoRes.rows;
+    progresoEquipo = equipoRes.rows.map(fila => ({
+      ...fila,
+      tutorial_teorico_completado: Number(fila.total_lecciones) > 0
+        && Number(fila.lecciones_completadas) === Number(fila.total_lecciones),
+    }));
   }
 
   return {
@@ -235,7 +241,13 @@ export async function obtenerTemarioYProgreso(usuarioId, proyectoId) {
       aprobado: quizFinalInfo.aprobado
     },
     progresoEquipo,
-    tutorialCompletado: tutorialEstado !== null,
+    // Tutorial teórico (4 lecciones): independiente del quiz final y del certificado.
+    tutorialTeoricoCompletado,
+    leccionesCompletadas,
+    totalLecciones,
+    // Guía por rol (campo distinto; no es el tutorial teórico).
+    // Solo cuenta como completada la guía terminada; 'omitido' no es completada.
+    tutorialCompletado: tutorialEstado === 'completado',
     tutorialEstado,
     certificado: {
       tieneCertificado,
@@ -302,7 +314,8 @@ export async function obtenerEstadoTutorial(usuarioId, proyectoId) {
   if (!rows.length) throw new ErrorApp('Proyecto no encontrado.', 404);
   return {
     rolEnProyecto: rows[0].rol,
-    tutorialCompletado: rows[0].estado !== null,
+    tutorialCompletado: rows[0].estado === 'completado',
+    tutorialEstado: rows[0].estado,
   };
 }
 
@@ -393,6 +406,10 @@ export async function calificarQuiz(usuarioId, leccionId, respuestasUsuario) {
   return { calificacion, aprobado };
 }
 
+/**
+ * SOLO para el certificado: el usuario debe aprobar el Quiz Final (>= 95%).
+ * No usar para indicar que el tutorial teórico está finalizado.
+ */
 export async function verificarCompletacionCurso(usuarioId) {
   const quizFinalRes = await consulta(
     'SELECT calificacion, aprobado FROM curso_intentos_quizzes WHERE leccion_id = 999 AND usuario_id = $1',

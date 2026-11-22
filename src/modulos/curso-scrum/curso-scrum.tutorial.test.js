@@ -1,6 +1,6 @@
 /**
  * @file curso-scrum.tutorial.test.js
- * @description Pruebas del guardado y consulta de finalización de la guía por rol.
+ * @description Pruebas de la guía por rol y del tutorial teórico (4 lecciones), separado del certificado.
  */
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 
@@ -44,10 +44,81 @@ describe('progreso de la guía por rol', () => {
     expect(consultaMock).toHaveBeenCalledTimes(1);
   });
 
-  test('consulta el rol y reconoce una guía ya omitida', async () => {
+  test('una guía omitida NO cuenta como completada', async () => {
     consultaMock.mockResolvedValueOnce({ rows: [{ rol: 'developer', estado: 'omitido' }] });
 
     await expect(servicio.obtenerEstadoTutorial(12, '7'))
+      .resolves.toEqual({ rolEnProyecto: 'developer', tutorialCompletado: false });
+  });
+
+  test('una guía completada sí cuenta como completada', async () => {
+    consultaMock.mockResolvedValueOnce({ rows: [{ rol: 'developer', estado: 'completado' }] });
+
+    await expect(servicio.obtenerEstadoTutorial(12, '7'))
       .resolves.toEqual({ rolEnProyecto: 'developer', tutorialCompletado: true });
+  });
+});
+
+describe('tutorial teórico (4 lecciones) separado del certificado', () => {
+  const leccionesCon = (completadas) => [1, 2, 3, 4].map(id => ({
+    id, orden: id, titulo: `L${id}`, contenido: '', seccion: '',
+    completada: id <= completadas, posicion_scroll: 0, calificacion_quiz: 0, quiz_aprobado: false,
+  }));
+
+  // Orden de consultas dentro de obtenerTemarioYProgreso:
+  // rol, lecciones, quizzes, certificado, tutorial, quiz final (y equipo si es SM/PO)
+  const prepararTemario = ({ rol = 'developer', completadas = 4, quizFinal = { calificacion: 0, aprobado: false }, certificado = [], equipo = [] } = {}) => {
+    consultaMock
+      .mockResolvedValueOnce({ rows: [{ rol }] })
+      .mockResolvedValueOnce({ rows: leccionesCon(completadas) })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: certificado })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: quizFinal.calificacion !== undefined ? [quizFinal] : [] });
+    if (rol === 'scrum_master' || rol === 'product_owner') {
+      consultaMock.mockResolvedValueOnce({ rows: equipo });
+    }
+  };
+
+  test('4/4 lecciones sin quizzes ni quiz final marca el tutorial teórico como finalizado', async () => {
+    prepararTemario({ completadas: 4 });
+    const r = await servicio.obtenerTemarioYProgreso(12, 7);
+    expect(r.tutorialTeoricoCompletado).toBe(true);
+    expect(r.leccionesCompletadas).toBe(4);
+    expect(r.totalLecciones).toBe(4);
+    expect(r.certificado.tieneCertificado).toBe(false);
+  });
+
+  test('3/4 lecciones deja el tutorial teórico sin finalizar', async () => {
+    prepararTemario({ completadas: 3 });
+    const r = await servicio.obtenerTemarioYProgreso(12, 7);
+    expect(r.tutorialTeoricoCompletado).toBe(false);
+    expect(r.leccionesCompletadas).toBe(3);
+  });
+
+  test('4/4 lecciones con quiz final por debajo de 95% : tutorial sí, certificado no', async () => {
+    prepararTemario({ completadas: 4, quizFinal: { calificacion: 90, aprobado: false } });
+    const r = await servicio.obtenerTemarioYProgreso(12, 7);
+    expect(r.tutorialTeoricoCompletado).toBe(true);
+    expect(r.quizFinal.aprobado).toBe(false);
+    expect(r.certificado.tieneCertificado).toBe(false);
+  });
+
+  test('verificarCompletacionCurso sigue exigiendo el quiz final aprobado para el certificado', async () => {
+    consultaMock.mockResolvedValueOnce({ rows: [{ calificacion: 90, aprobado: false }] });
+    await expect(servicio.verificarCompletacionCurso(12)).resolves.toEqual({ completado: false });
+  });
+
+  test('el progreso del equipo indica tutorial teórico finalizado por integrante', async () => {
+    prepararTemario({
+      rol: 'scrum_master',
+      completadas: 4,
+      equipo: [
+        { usuario_id: 1, nombre: 'A', correo: 'a@x', rol: 'developer', total_lecciones: 4, lecciones_completadas: 4, quizzes_aprobados: 0, tiene_certificado: false },
+        { usuario_id: 2, nombre: 'B', correo: 'b@x', rol: 'developer', total_lecciones: 4, lecciones_completadas: 2, quizzes_aprobados: 0, tiene_certificado: false },
+      ],
+    });
+    const r = await servicio.obtenerTemarioYProgreso(12, 7);
+    expect(r.progresoEquipo.map(i => i.tutorial_teorico_completado)).toEqual([true, false]);
   });
 });

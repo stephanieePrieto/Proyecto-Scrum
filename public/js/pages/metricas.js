@@ -74,15 +74,28 @@ if (selectSprint && !selectIntegranteAvance) {
 const CLAVE_PROYECTO = 'proyectoActivo';
 let datosAvanceActual = null;
 
-/** HU-26: modo de trabajo del proyecto ('scrum' o 'continuo') y periodo elegido para los tiempos de flujo. */
+/** Unidad del burndown ('horas' o 'puntos'); la elige el botón dentro de la gráfica. */
+let unidadBurndown = 'horas';
+
+// El filtro de Sprint es de toda la página, no solo del Avance: se mueve a la cabecera
+// general, junto a Integrante y Vista, para que un solo sprint elegido mueva también
+// el Burndown (y el Avance). Va después de la inyección del filtro de integrante de
+// Avance, que usa la posición original del selector como ancla.
+// Velocity, Burnup y CFD son del proyecto completo por diseño y no cambian con el sprint.
+const etiquetaSprint = selectSprint?.closest('label');
+if (headerAcciones && etiquetaSprint) {
+  headerAcciones.prepend(etiquetaSprint);
+}
+
+/** Modo de trabajo del proyecto ('scrum' o 'continuo') y periodo elegido para los tiempos de flujo. */
 let modoFlujo = 'scrum';
 let diasFlujo = 30;
 
-/** HU-26: métricas que dependen de los sprints y no aplican en flujo continuo. */
+/** Métricas que dependen de los sprints y no aplican en flujo continuo. */
 const METRICAS_DE_SPRINT = { velocity: 'Velocity', burndown: 'Burndown', burnup: 'Burnup' };
 
 /**
- * HU-26: leer el modo de trabajo del proyecto. Si falla, se asume Scrum (comportamiento de siempre).
+ * Leer el modo de trabajo del proyecto. Si falla, se asume Scrum (comportamiento de siempre).
  * @param {number} proyectoId - ID del proyecto activo.
  * @returns {Promise<string>} 'scrum' o 'continuo'.
  */
@@ -206,7 +219,7 @@ async function cargarGraficaPrincipal(proyectoId) {
 
   const TITULOS = {
     velocity: ['Velocity por sprint', 'Puntos de historias comprometidos frente a puntos aceptados en cada sprint cerrado'],
-    burndown: ['Burndown chart', 'Seguimiento de las horas restantes de trabajo en cada sprint comparadas con la proyección ideal'],
+    burndown: ['Burndown chart', 'Serie diaria del sprint elegido: trabajo restante frente a la proyección ideal'],
     burnup: ['Burnup chart', 'Alcance total del proyecto frente al trabajo completado, en horas'],
     cfd: ['Diagrama de flujo acumulado', 'Tarjetas en cada columna del tablero, día a día'],
     flujo: ['Tiempos de flujo', 'Lead Time y Cycle Time de las tarjetas terminadas'],
@@ -233,7 +246,7 @@ async function cargarGraficaPrincipal(proyectoId) {
   try {
     const query = integranteId ? `?usuarioId=${integranteId}` : '';
     if (tipo === 'flujo') {
-      // HU-26: Lead Time y Cycle Time con filtro de periodo (últimos 30 días por defecto)
+      // Lead Time y Cycle Time con filtro de periodo (últimos 30 días por defecto)
       const respuesta = await api(`/flujo-continuo/proyectos/${proyectoId}/tiempos?dias=${diasFlujo}`);
       dibujarFlujo(contVelocity, respuesta.datos, {
         alCambiarDias: (dias) => { diasFlujo = dias; cargarGraficaPrincipal(proyectoId); },
@@ -241,7 +254,21 @@ async function cargarGraficaPrincipal(proyectoId) {
     } else if (tipo === 'velocity') {
       dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity${query}`));
     } else if (tipo === 'burndown') {
-      dibujarBurndown(contVelocity, await api(`/metricas/proyectos/${proyectoId}/burndown${query}`));
+      // El burndown es del sprint elegido en el selector general (o del activo, si no
+      // hay ninguno elegido) y de la unidad elegida en la propia gráfica.
+      const paramsBurndown = new URLSearchParams();
+      const sprintElegido = Number(selectSprint?.value) || null;
+      if (sprintElegido) paramsBurndown.set('sprintId', String(sprintElegido));
+      paramsBurndown.set('unidad', unidadBurndown);
+      if (integranteId) paramsBurndown.set('usuarioId', integranteId);
+      dibujarBurndown(
+        contVelocity,
+        await api(`/metricas/proyectos/${proyectoId}/burndown?${paramsBurndown}`),
+        {
+          integranteFiltrado: Boolean(integranteId),
+          alCambiarUnidad: (unidad) => { unidadBurndown = unidad; cargarGraficaPrincipal(proyectoId); },
+        },
+      );
     } else if (tipo === 'burnup') {
       dibujarBurnup(contVelocity, await api(`/burnup/proyectos/${proyectoId}/burnup`));
     } else {
@@ -341,7 +368,7 @@ async function cargarDistribucion(proyectoId) {
   }
 }
 
-/** HU-28: rol que puede ver la desviación de horas (el servidor lo exige igual, ROLES_PERMITIDOS en desviacion.service.js). */
+/** Rol que puede ver la desviación de horas (el servidor lo exige igual, ROLES_PERMITIDOS en desviacion.service.js). */
 const ROL_DESVIACION = 'scrum_master';
 
 /** HU-28: componente de desviación montado, o null. */
@@ -415,7 +442,7 @@ async function iniciar() {
 
   const selectTipo = document.getElementById('filtro-tipo-grafica');
 
-  // HU-26: en flujo continuo la vista inicial es "Tiempos de flujo" (salvo que la URL pida otra)
+  // En flujo continuo la vista inicial es "Tiempos de flujo" (salvo que la URL pida otra)
   modoFlujo = await leerModoFlujo(proyectoId);
   if (modoFlujo === 'continuo' && selectTipo && !window.location.hash) selectTipo.value = 'flujo';
   selectTipo?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
@@ -423,8 +450,13 @@ async function iniciar() {
   const selectIntPrincipal = document.getElementById('filtro-integrante-principal');
   selectIntPrincipal?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
 
-  // Al cambiar sprint, consultamos al backend
-  selectSprint?.addEventListener('change', () => cargarAvance(proyectoId, Number(selectSprint.value) || null));
+  // Al cambiar sprint, se recargan el Avance y el Burndown (las dos gráficas por sprint).
+  // Velocity, Burnup y CFD son del proyecto completo por diseño y no se recargan.
+  selectSprint?.addEventListener('change', () => {
+    const sprintId = Number(selectSprint.value) || null;
+    cargarAvance(proyectoId, sprintId);
+    if (document.getElementById('filtro-tipo-grafica')?.value === 'burndown') cargarGraficaPrincipal(proyectoId);
+  });
 
   // Al cambiar integrante de avance, redibujamos localmente (sin request)
   const selectIntAvance = document.getElementById('filtro-integrante-avance');

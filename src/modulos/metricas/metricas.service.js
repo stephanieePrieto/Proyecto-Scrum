@@ -528,49 +528,341 @@ export async function obtenerAvance(proyectoId, sprintId = null, usuarioId) {
 }
 
 // ===========================================================================
-// HU-29: Gráfica Burndown
+// HU-29: Gráfica Burndown (correcciones nov 2026)
 // ===========================================================================
+//
+// Antes el burndown era una sola serie por cierre de sprint, en horas estimadas:
+// bajaba con las horas estimadas de las tareas terminadas, la línea ideal era una
+// recta sintética entre cierres y no aceptaba ?sprintId (el selector de sprint de
+// la página no lo movía). Ahora:
+//   - Unidad 'horas': serie DIARIA del sprint (fecha_inicio..fecha_fin). La línea
+//     real baja con las horas REALES registradas por día (registros_horas.fecha) y
+//     la ideal es diaria, del total inicial a 0 el último día del sprint.
+//   - Unidad 'puntos': serie DIARIA del sprint con los puntos de las historias.
+//     Baja con los puntos ACEPTADOS en el Review cada día (reviews_historias,
+//     misma regla que la velocity: una historia en 'hecho' sin Review no descuenta
+//     hasta su aceptación, porque no hay fecha fiable de cuándo se terminó).
+//     Además se informa puntosNoTerminados = SUM(historias.puntos) de las historias
+//     del sprint en estado distinto de 'hecho'/'aceptada', para contrastar.
+//   - ?sprintId: el burndown es del sprint indicado. Sin él se usa el sprint activo
+//     y, si no hay ninguno, el más reciente por fecha de fin.
+//   - El filtro de integrante solo aplica a 'horas' (las tareas tienen responsable;
+//     las historias no). En 'puntos' se ignora y la respuesta lleva individual: false.
+//   - porSprint conserva la vista general por cierre de sprint, ahora en horas y
+//     en puntos, para el resumen bajo la gráfica.
+//
+// El quemado diario se agrupa por fecha en SQL y el cálculo de la serie lo hacen las
+// funciones puras de abajo, en este mismo archivo (antes vivían en burndown.calculo.js;
+// se juntaron aquí a petición de Dana, sin pruebas automatizadas).
+// Las consultas de horas y de puntos van separadas a propósito: unir tareas y
+// reviews en una sola consulta multiplicaría las filas y falsearía las sumas.
+
+/** Día actual en UTC (YYYY-MM-DD), igual que el CFD en burnup.service.js. */
+const hoyIso = () => new Date().toISOString().slice(0, 10);
 
 /**
- * Burndown por sprint. Con usuarioIdFiltro solo cuenta las tareas de esa persona.
- *
- * @param {number} proyectoId Identificador del proyecto.
- * @param {number|null} usuarioIdFiltro Integrante a filtrar (null = todo el equipo).
+ * Suma días a una fecha en formato YYYY-MM-DD. Trabaja en UTC para no depender de la zona horaria.
+ * Función pura (no toca la base de datos).
  */
-export async function obtenerBurndown(proyectoId, usuarioIdFiltro = null) {
-  const filasSprints = await consultar(
-    `SELECT s.id, s.nombre, s.estado, s.fecha_inicio,
-            COALESCE(SUM(t.horas_estimadas), 0) AS estimado_total,
-            COALESCE(SUM(t.horas_estimadas) FILTER (WHERE c.es_final), 0) AS estimado_hecho
-       FROM sprints s
-       LEFT JOIN tareas t ON t.sprint_id = s.id AND ($2::int IS NULL OR t.responsable_id = $2)
-       LEFT JOIN columnas_tablero c ON c.id = t.columna_id
-      WHERE s.proyecto_id = $1
-      GROUP BY s.id, s.fecha_inicio, s.nombre, s.estado
-      ORDER BY s.fecha_inicio, s.id`,
-    [proyectoId, usuarioIdFiltro],
-  );
+function sumarDias(fecha, dias) {
+  const d = new Date(`${fecha}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
 
-  const [totalProyecto] = await consultar(
-    `SELECT COALESCE(SUM(horas_estimadas), 0) AS total FROM tareas
-      WHERE proyecto_id = $1 AND ($2::int IS NULL OR responsable_id = $2)`,
-    [proyectoId, usuarioIdFiltro],
-  );
+/**
+ * Cantidad de días entre dos fechas, ambas incluidas. Si el fin es anterior al inicio, devuelve 0.
+ * Función pura (no toca la base de datos).
+ */
+function diasEntre(inicio, fin) {
+  const d0 = new Date(`${inicio}T00:00:00Z`);
+  const d1 = new Date(`${fin}T00:00:00Z`);
+  const dias = Math.round((d1 - d0) / 86400000) + 1;
+  return dias > 0 ? dias : 0;
+}
 
-  // Sin valor de respaldo: si no hay horas estimadas, la gráfica muestra "sin datos"
-  const inicioHoras = aUnDecimal(Number(totalProyecto.total) || 0);
+/**
+ * Serie ideal diaria: del total inicial el primer día a 0 el último día, en línea recta.
+ * Con un sprint de un solo día no hay recta que trazar: ese día el ideal es el total inicial.
+ * Función pura (no toca la base de datos).
+ *
+ * @param {number} total Trabajo inicial del sprint (horas estimadas o puntos).
+ * @param {string} fechaInicio Primer día del sprint (YYYY-MM-DD).
+ * @param {string} fechaFin Último día del sprint (YYYY-MM-DD).
+ * @returns {Array<{fecha: string, ideal: number}>} Un punto por día del sprint.
+ */
+function serieIdealDiaria(total, fechaInicio, fechaFin) {
+  const n = diasEntre(fechaInicio, fechaFin);
+  if (n === 0) return [];
+  const totalNum = aUnDecimal(total);
+  if (n === 1) return [{ fecha: fechaInicio, ideal: totalNum }];
+  const paso = totalNum / (n - 1);
+  const serie = [];
+  for (let i = 0; i < n; i++) {
+    serie.push({ fecha: sumarDias(fechaInicio, i), ideal: aUnDecimal(Math.max(0, totalNum - i * paso)) });
+  }
+  return serie;
+}
 
-  let acumuladoRestante = inicioHoras;
-  const sprints = [{ nombre: 'Inicio', horasRestantes: inicioHoras }];
-  filasSprints.forEach((s) => {
-    acumuladoRestante = Math.max(0, acumuladoRestante - Number(s.estimado_hecho));
-    sprints.push({
-      id: s.id, nombre: s.nombre, estado: s.estado,
-      horasRestantes: s.estado === 'planificado' ? null : aUnDecimal(acumuladoRestante),
-    });
+/**
+ * Serie diaria del burndown de UN sprint, con la línea real (quemado por día) y la ideal.
+ * La línea real solo baja con el quemado que se le pasa por día (horas reales registradas
+ * o puntos aceptados en Review): sin quemado, no baja. El restante nunca es negativo y
+ * los días futuros (después de hoy) llevan restante null. El quemado anterior al inicio
+ * del sprint ya cuenta en el primer día; el posterior al fin no entra en la serie.
+ * Función pura (no toca la base de datos).
+ *
+ * @param {Object} datos
+ * @param {number} datos.total Trabajo inicial del sprint (horas estimadas o puntos).
+ * @param {string} datos.fechaInicio Primer día del sprint (YYYY-MM-DD).
+ * @param {string} datos.fechaFin Último día del sprint (YYYY-MM-DD).
+ * @param {string} datos.hoy Día actual (YYYY-MM-DD).
+ * @param {Array<{fecha: string, cantidad: number}>} [datos.quemadoPorDia] Cuánto se quemó cada día.
+ * @returns {{dias: Array<{fecha: string, restante: number|null, ideal: number, quemadoDia: number,
+ *   quemadoAcumulado: number, futuro: boolean}>, totalQuemado: number}}
+ */
+function calcularBurndownDiario({ total, fechaInicio, fechaFin, hoy, quemadoPorDia = [] }) {
+  const totalNum = aUnDecimal(total);
+  const ideal = serieIdealDiaria(totalNum, fechaInicio, fechaFin);
+  const entradas = [...quemadoPorDia]
+    .map((q) => ({ fecha: q.fecha, cantidad: Number(q.cantidad) || 0 }))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const totalQuemado = aUnDecimal(entradas.reduce((acum, e) => acum + e.cantidad, 0));
+
+  // Quemado de un día concreto (las consultas ya lo agrupan, pero no se asume aquí).
+  const porDia = new Map();
+  for (const e of entradas) porDia.set(e.fecha, (porDia.get(e.fecha) || 0) + e.cantidad);
+
+  let indice = 0;
+  let acumulado = 0;
+  const dias = ideal.map(({ fecha, ideal: valorIdeal }) => {
+    // El quemado con fecha hasta este día (incluido el anterior al inicio) ya cuenta.
+    while (indice < entradas.length && entradas[indice].fecha <= fecha) {
+      acumulado += entradas[indice].cantidad;
+      indice++;
+    }
+    const futuro = fecha > hoy;
+    return {
+      fecha,
+      restante: futuro ? null : Math.max(0, aUnDecimal(totalNum - acumulado)),
+      ideal: valorIdeal,
+      quemadoDia: aUnDecimal(porDia.get(fecha) || 0),
+      quemadoAcumulado: aUnDecimal(acumulado),
+      futuro,
+    };
   });
 
-  return { vacio: inicioHoras === 0, individual: !!usuarioIdFiltro, horasIniciales: inicioHoras, sprints };
+  return { dias, totalQuemado };
+}
+
+/**
+ * Serie por cierre de sprint para la vista general del proyecto: Inicio + un punto por sprint.
+ * El restante acumulado nunca es negativo. Un sprint planificado lleva restante null.
+ * Función pura (no toca la base de datos).
+ *
+ * @param {number} total Trabajo inicial de todo el proyecto (horas estimadas o puntos).
+ * @param {Array<{nombre: string, estado: string, quemado: number}>} sprints Sprints en orden
+ *   cronológico; quemado es lo descontado al cerrar ese sprint.
+ * @returns {Array<{nombre: string, estado: string|null, restante: number|null}>}
+ */
+function calcularSeriePorSprint(total, sprints = []) {
+  let restante = aUnDecimal(total);
+  const serie = [{ nombre: 'Inicio', estado: null, restante }];
+  for (const s of sprints) {
+    if (s.estado === 'planificado') {
+      serie.push({ nombre: s.nombre, estado: s.estado, restante: null });
+      continue;
+    }
+    restante = Math.max(0, aUnDecimal(restante - (Number(s.quemado) || 0)));
+    serie.push({ nombre: s.nombre, estado: s.estado, restante });
+  }
+  return serie;
+}
+
+/**
+ * Burndown diario de un sprint, en horas o en puntos.
+ *
+ * @param {number} proyectoId Identificador del proyecto.
+ * @param {Object} [opciones]
+ * @param {number} usuarioId Usuario que consulta (para comprobar que pertenece al proyecto).
+ * @param {number|null} [opciones.usuarioIdFiltro] Integrante a filtrar; solo aplica a 'horas'.
+ * @param {number|null} [opciones.sprintId] Sprint a graficar; null = activo, o el más reciente.
+ * @param {string} [opciones.unidad] 'horas' (por defecto) o 'puntos'.
+ * @returns {Promise<Object>} Serie diaria del sprint, totales y vista general por sprint.
+ * @throws {ErrorApp} 404 si el sprint indicado no pertenece al proyecto.
+ */
+export async function obtenerBurndown(proyectoId, opciones = {}) {
+  const { usuarioId, usuarioIdFiltro = null, sprintId = null, unidad = 'horas' } = opciones;
+  if (unidad !== 'horas' && unidad !== 'puntos') {
+    throw new ErrorApp("La unidad del burndown debe ser 'horas' o 'puntos'.", 400);
+  }
+  await exigirIntegranteProyecto(usuarioId, proyectoId);
+
+  const sprints = await consultar(
+    `SELECT s.id, s.nombre, s.estado,
+            s.fecha_inicio::text AS fecha_inicio, s.fecha_fin::text AS fecha_fin,
+            s.capacidad_horas::float AS capacidad_horas
+       FROM sprints s
+      WHERE s.proyecto_id = $1
+      ORDER BY s.fecha_inicio, s.id`,
+    [proyectoId],
+  );
+
+  // Sin sprints no hay nada que graficar
+  if (sprints.length === 0) {
+    return {
+      vacio: true, individual: false, unidad, sprintId: null, sprint: null, sprints: [],
+      dias: [], horasIniciales: 0, puntosIniciales: 0,
+      horasRealesTotales: 0, puntosAceptadosTotales: 0, puntosNoTerminados: 0,
+      tareasSinEstimar: 0, historiasSinPuntos: 0, sinHorasReales: true, porSprint: [],
+    };
+  }
+
+  // Sprint elegido, o activo, o el más reciente por fecha de fin
+  let sprint = null;
+  if (sprintId !== null) {
+    sprint = sprints.find((s) => s.id === sprintId);
+    if (!sprint) throw new ErrorApp('El sprint indicado no pertenece a este proyecto.', 404);
+  } else {
+    sprint = sprints.find((s) => s.estado === 'activo')
+      || [...sprints].sort((a, b) => b.fecha_fin.localeCompare(a.fecha_fin) || b.id - a.id)[0];
+  }
+
+  // Totales del sprint: horas estimadas (y cuántas tareas no tienen estimación) y puntos.
+  const [[totHoras], [totPuntos], [noTerm]] = await Promise.all([
+    consultar(
+      `SELECT COALESCE(SUM(t.horas_estimadas), 0)::float AS total,
+              COUNT(*) FILTER (WHERE t.horas_estimadas IS NULL)::int AS sin_estimar
+         FROM tareas t
+        WHERE t.sprint_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)`,
+      [sprint.id, usuarioIdFiltro],
+    ),
+    consultar(
+      `SELECT COALESCE(SUM(h.puntos), 0)::int AS total,
+              COUNT(*) FILTER (WHERE h.puntos IS NULL)::int AS sin_puntos
+         FROM historias h
+        WHERE h.sprint_id = $1`,
+      [sprint.id],
+    ),
+    // Puntos de historias no terminadas hoy (estado distinto de 'hecho'/'aceptada').
+    consultar(
+      `SELECT COALESCE(SUM(h.puntos), 0)::int AS restantes
+         FROM historias h
+        WHERE h.sprint_id = $1 AND h.estado NOT IN ('hecho', 'aceptada')`,
+      [sprint.id],
+    ),
+  ]);
+  const horasIniciales = aUnDecimal(totHoras.total);
+  const puntosIniciales = totPuntos.total;
+
+  // Quemado por día, según la unidad: horas reales registradas, o puntos aceptados en Review.
+  let quemadoPorDia = [];
+  if (unidad === 'horas') {
+    quemadoPorDia = await consultar(
+      `SELECT r.fecha::text AS fecha, SUM(r.horas)::float AS cantidad
+         FROM registros_horas r
+         JOIN tareas t ON t.id = r.tarea_id
+        WHERE t.sprint_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)
+        GROUP BY r.fecha
+        ORDER BY r.fecha`,
+      [sprint.id, usuarioIdFiltro],
+    );
+  } else {
+    quemadoPorDia = await consultar(
+      `SELECT to_char(r.decidido_en AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS fecha,
+              COALESCE(SUM(h.puntos), 0)::int AS cantidad
+         FROM reviews_historias r
+         JOIN historias h ON h.id = r.historia_id
+        WHERE r.sprint_id = $1 AND r.decision = 'aceptada'
+        GROUP BY 1
+        ORDER BY 1`,
+      [sprint.id],
+    );
+  }
+
+  const { dias, totalQuemado } = calcularBurndownDiario({
+    total: unidad === 'horas' ? horasIniciales : puntosIniciales,
+    fechaInicio: sprint.fecha_inicio,
+    fechaFin: sprint.fecha_fin,
+    hoy: hoyIso(),
+    quemadoPorDia: quemadoPorDia.map((q) => ({ fecha: q.fecha, cantidad: Number(q.cantidad) || 0 })),
+  });
+
+  // Vista general por cierre de sprint (horas y puntos). Dos consultas separadas para
+  // no multiplicar filas al unir tareas con reviews.
+  const [filasHoras, filasPuntos, [totHorasProy], [totPuntosProy]] = await Promise.all([
+    consultar(
+      `SELECT s.id, s.nombre, s.estado,
+              COALESCE(SUM(t.horas_estimadas) FILTER (WHERE c.es_final), 0)::float AS hecho
+         FROM sprints s
+         LEFT JOIN tareas t ON t.sprint_id = s.id AND ($2::int IS NULL OR t.responsable_id = $2)
+         LEFT JOIN columnas_tablero c ON c.id = t.columna_id
+        WHERE s.proyecto_id = $1
+        GROUP BY s.id, s.nombre, s.estado, s.fecha_inicio
+        ORDER BY s.fecha_inicio, s.id`,
+      [proyectoId, usuarioIdFiltro],
+    ),
+    consultar(
+      `SELECT s.id,
+              COALESCE(SUM(h.puntos) FILTER (WHERE r.decision = 'aceptada'), 0)::int AS aceptados
+         FROM sprints s
+         LEFT JOIN reviews_historias r ON r.sprint_id = s.id
+         LEFT JOIN historias h ON h.id = r.historia_id
+        WHERE s.proyecto_id = $1
+        GROUP BY s.id, s.fecha_inicio
+        ORDER BY s.fecha_inicio, s.id`,
+      [proyectoId],
+    ),
+    consultar(
+      `SELECT COALESCE(SUM(horas_estimadas), 0)::float AS total FROM tareas
+        WHERE proyecto_id = $1 AND ($2::int IS NULL OR responsable_id = $2)`,
+      [proyectoId, usuarioIdFiltro],
+    ),
+    consultar(
+      `SELECT COALESCE(SUM(puntos), 0)::int AS total FROM historias WHERE proyecto_id = $1`,
+      [proyectoId],
+    ),
+  ]);
+  const serieHoras = calcularSeriePorSprint(totHorasProy.total, filasHoras.map((s) => ({
+    nombre: s.nombre, estado: s.estado, quemado: Number(s.hecho) || 0,
+  })));
+  const seriePuntos = calcularSeriePorSprint(totPuntosProy.total, filasPuntos.map((s, i) => ({
+    // El nombre y el estado vienen de la consulta de horas (mismo orden por fecha de inicio).
+    nombre: filasHoras[i]?.nombre ?? `Sprint ${s.id}`, estado: filasHoras[i]?.estado ?? null,
+    quemado: Number(s.aceptados) || 0,
+  })));
+  const porSprint = serieHoras.map((p, i) => ({
+    id: filasHoras[i]?.id ?? null,
+    nombre: p.nombre,
+    estado: p.estado,
+    horasRestantes: p.restante,
+    puntosRestantes: seriePuntos[i]?.restante ?? null,
+  }));
+
+  // Sin valor inicial en la unidad elegida, la gráfica muestra "sin datos" (como antes).
+  const inicialUnidad = unidad === 'horas' ? horasIniciales : puntosIniciales;
+  return {
+    vacio: inicialUnidad === 0,
+    individual: unidad === 'horas' && !!usuarioIdFiltro,
+    unidad,
+    sprintId: sprint.id,
+    sprint: {
+      id: sprint.id, nombre: sprint.nombre, estado: sprint.estado,
+      fechaInicio: sprint.fecha_inicio, fechaFin: sprint.fecha_fin,
+      capacidadHoras: sprint.capacidad_horas,
+    },
+    sprints: sprints.map((s) => ({ id: s.id, nombre: s.nombre, estado: s.estado })),
+    dias,
+    horasIniciales,
+    puntosIniciales,
+    horasRealesTotales: unidad === 'horas' ? totalQuemado : null,
+    puntosAceptadosTotales: unidad === 'puntos' ? totalQuemado : null,
+    puntosNoTerminados: noTerm.restantes,
+    tareasSinEstimar: totHoras.sin_estimar,
+    historiasSinPuntos: totPuntos.sin_puntos,
+    sinHorasReales: unidad === 'horas' && totalQuemado === 0,
+    porSprint,
+  };
 }
 
 // ===========================================================================

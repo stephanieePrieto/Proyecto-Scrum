@@ -208,6 +208,7 @@ const definirPermiso = (descripcion, roles, { incluyeCreador = false, incluyeEqu
 export const PERMISOS = Object.freeze({
     'proyecto.ver': definirPermiso('ver este proyecto', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER], { incluyeEquipo: true }),
     'historia.proponer': definirPermiso('proponer historias en el backlog', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
+    'epica.gestionar': definirPermiso('crear, editar y eliminar épicas', [SCRUM_MASTER]),
     'historia.gestionar': definirPermiso('crear, editar, eliminar o reordenar historias', [SCRUM_MASTER, PRODUCT_OWNER]),
     'tarea.gestionar': definirPermiso('crear o editar tareas y mover tarjetas', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     // Diego: Daily Scrum e impedimentos

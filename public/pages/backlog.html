@@ -56,7 +56,7 @@
         </div>
         <div class="bl-encabezado__acciones" aria-label="Acciones del backlog">
           <a class="boton boton--secundario" href="/pages/planning-poker.html">Estimar historias</a>
-          <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="historia.gestionar"
+          <button class="boton boton--secundario" id="btn-epicas" type="button" data-permiso="epica.gestionar"
             disabled>Gestionar épicas</button>
           <button class="boton boton--primario" id="btn-nueva" type="button" disabled>+ Historia</button>
         </div>
@@ -207,7 +207,7 @@
           </div>
           <div class="grupo-formulario">
             <label for="f-epica" class="etiqueta-formulario">Épica</label>
-            <select id="f-epica" name="epica_id" aria-describedby="error-epica_id"
+            <select id="f-epica" name="epica_id" required aria-describedby="error-epica_id"
               class="eq-select entrada-formulario"></select>
             <p class="eq-error" id="error-epica_id" role="alert"></p>
           </div>
@@ -299,8 +299,12 @@
             placeholder="Ej. Autenticación" />
         </div>
         <div class="grupo-formulario">
-          <label class="etiqueta-formulario" for="color-epica">Color</label>
-          <input id="color-epica" type="color" value="#4F46E5" />
+          <label class="etiqueta-formulario" for="descripcion-epica">Descripción</label>
+          <textarea id="descripcion-epica" class="entrada-formulario" maxlength="2000" rows="3" required placeholder="Describe el objetivo de esta épica"></textarea>
+        </div>
+        <div class="grupo-formulario">
+          <label class="etiqueta-formulario" for="color-epica">Color (obligatorio)</label>
+          <input id="color-epica" class="entrada-formulario" type="text" placeholder="#4F46E5" maxlength="7" required pattern="#[0-9A-Fa-f]{6}" />
         </div>
         <p id="error-epica" class="eq-error" role="alert"></p>
       </form>

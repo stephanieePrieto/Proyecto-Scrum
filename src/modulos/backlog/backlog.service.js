@@ -161,7 +161,9 @@ function validarDatos(datos = {}) {
   else if (etiquetas.some((e) => e.length > 30)) campos.etiquetas = 'Cada etiqueta puede tener hasta 30 caracteres.';
 
   let epicaId = null;
-  if (datos.epica_id !== null && datos.epica_id !== undefined && datos.epica_id !== '') {
+  if (datos.epica_id === null || datos.epica_id === undefined || datos.epica_id === '') {
+    campos.epica_id = 'Selecciona una épica obligatoriamente.';
+  } else {
     epicaId = aId(datos.epica_id);
     if (!epicaId) campos.epica_id = 'Elige una épica válida.';
   }
@@ -172,7 +174,7 @@ function validarDatos(datos = {}) {
 
 /** La épica elegida debe pertenecer al mismo proyecto. */
 async function validarEpica(proyectoId, epicaId) {
-  if (!epicaId) return;
+  if (!epicaId) lanzar(400, 'La épica es obligatoria.');
   const { rows } = await consulta('SELECT 1 FROM epicas WHERE id = $1 AND proyecto_id = $2', [epicaId, proyectoId]);
   if (!rows[0]) lanzar(400, 'Revisa los campos marcados.', { campos: { epica_id: 'La épica no pertenece a este proyecto.' } });
 }

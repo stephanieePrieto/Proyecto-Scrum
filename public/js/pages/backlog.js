@@ -612,6 +612,7 @@ function validarLocal(v) {
   }
   if (!v.titulo.trim()) errores.titulo = 'Escribe el título de la historia.';
   else if (v.titulo.trim().length > 200) errores.titulo = 'El título no puede superar 200 caracteres.';
+  if (!v.epica_id) errores.epica_id = 'Selecciona una épica.';
   if (v.puntos !== '' && ![1, 2, 3, 5, 8, 13, 21].includes(Number(v.puntos))) errores.puntos = 'Los puntos deben ser 1, 2, 3, 5, 8, 13 o 21.';
   const etiquetas = v.etiquetas.split(',').map((e) => e.trim()).filter(Boolean);
   if (etiquetas.length > 10) errores.etiquetas = 'Usa máximo 10 etiquetas.';
@@ -620,7 +621,7 @@ function validarLocal(v) {
 }
 
 function llenarEpicas() {
-  $('f-epica').innerHTML = '<option value="">Sin épica</option>'
+  $('f-epica').innerHTML = '<option value="">Selecciona una épica</option>'
     + ctx.epicas.map((ep) => `<option value="${ep.id}">${escaparHtml(ep.nombre)}</option>`).join('');
 }
 
@@ -938,7 +939,8 @@ function mostrarAvisoEpica(texto) {
 function limpiarEdicionEpica() {
   ctx.epicaEditando = null;
   formEpica.reset();
-  $('color-epica').value = '#4F46E5';
+  $('color-epica').value = '';
+  $('descripcion-epica').value = '';
   $('titulo-form-epica').textContent = 'Nueva épica';
   $('guardar-epica').textContent = 'Crear épica';
   $('cancelar-edicion-epica').hidden = true;
@@ -984,7 +986,8 @@ $('lista-epicas').addEventListener('click', (evento) => {
   if (!epica) return;
   ctx.epicaEditando = epica.id;
   $('nombre-epica').value = epica.nombre;
-  $('color-epica').value = colorSeguro(epica.color);
+  $('color-epica').value = epica.color ?? '';
+  $('descripcion-epica').value = epica.descripcion ?? '';
   $('titulo-form-epica').textContent = 'Editar épica';
   $('guardar-epica').textContent = 'Guardar cambios';
   $('cancelar-edicion-epica').hidden = false;
@@ -995,7 +998,7 @@ $('lista-epicas').addEventListener('click', (evento) => {
 
 const dlgEliminarEpica = $('dialogo-eliminar-epica');
 function abrirConfirmacionEliminarEpica(epicaId) {
-  if (!tienePermiso('historia.gestionar') || ctx.guardando) return;
+  if (!tienePermiso('epica.gestionar') || ctx.guardando) return;
   const epica = ctx.epicas.find((e) => e.id === epicaId);
   if (!epica) return;
   ctx.epicaEliminando = epicaId;
@@ -1023,7 +1026,7 @@ dlgEliminarEpica.addEventListener('cancel', (evento) => {
   else ctx.epicaEliminando = null;
 });
 $('btn-confirmar-eliminar-epica').addEventListener('click', async () => {
-  if (!ctx.proyectoId || !ctx.epicaEliminando || !tienePermiso('historia.gestionar') || ctx.guardando) return;
+  if (!ctx.proyectoId || !ctx.epicaEliminando || !tienePermiso('epica.gestionar') || ctx.guardando) return;
   ctx.guardando = true;
   const boton = $('btn-confirmar-eliminar-epica');
   boton.disabled = true;
@@ -1049,17 +1052,27 @@ $('btn-confirmar-eliminar-epica').addEventListener('click', async () => {
 
 formEpica.addEventListener('submit', async (evento) => {
   evento.preventDefault();
-  if (!ctx.proyectoId || !tienePermiso('historia.gestionar') || ctx.guardando) return;
+  if (!ctx.proyectoId || !tienePermiso('epica.gestionar') || ctx.guardando) return;
   const nombre = $('nombre-epica').value.trim();
   if (!nombre || nombre.length > 80) {
     $('error-epica').textContent = 'Escribe un nombre de 1 a 80 caracteres.';
+    return;
+  }
+  const descripcion = $('descripcion-epica').value.trim();
+  const color = $('color-epica').value.trim();
+  if (!descripcion || descripcion.length > 2000) {
+    $('error-epica').textContent = 'Escribe una descripción de 1 a 2000 caracteres.';
+    return;
+  }
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+    $('error-epica').textContent = 'Escribe un color hexadecimal válido (ej. #4F46E5).';
     return;
   }
   ctx.guardando = true;
   $('guardar-epica').disabled = true;
   const id = ctx.epicaEditando;
   const r = await llamar(`/epicas/proyecto/${ctx.proyectoId}${id ? `/${id}` : ''}`, {
-    metodo: id ? 'PUT' : 'POST', cuerpo: { nombre, color: $('color-epica').value },
+    metodo: id ? 'PUT' : 'POST', cuerpo: { nombre, color, descripcion },
   });
   ctx.guardando = false;
   $('guardar-epica').disabled = false;

@@ -11,6 +11,10 @@ import { emitirAProyecto } from '../../sockets/emisor.js';
 import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 
 export const ESCALA = Object.freeze([1, 2, 3, 5, 8, 13, 21]);
+const VOTO_DESCONOCIDO = '?';
+function votoValido(v) { return v === VOTO_DESCONOCIDO || (typeof v === 'number' && ESCALA.includes(v)); }
+function horasValidas(v) { return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100000; }
+function valorVoto(v) { return v === VOTO_DESCONOCIDO ? null : Number(v); }
 
 function idValido(valor) {
   const numero = Number(valor);
@@ -28,7 +32,7 @@ export async function listarHistorias(usuario, proyectoId) {
   const proyecto = comprobarId(proyectoId);
   await exigirPermiso(usuario, 'proyecto.ver', proyecto);
   const { rows } = await consulta(
-    `SELECT id, numero_hu, titulo, puntos, version, estado
+    `SELECT id, numero_hu, titulo, puntos, horas_estimadas, version, estado
        FROM historias
       WHERE proyecto_id = $1 AND estado IN ('backlog', 'en_sprint')
       ORDER BY orden, id`,
@@ -167,7 +171,7 @@ async function obtenerSesionBloqueada(cliente, proyecto, historia) {
 async function resumenPoker(cliente, usuario, proyecto, historia) {
   const { rows } = await cliente.query(
     `SELECT s.id, s.ronda, s.estado, s.valor_final, s.historia_id,
-            h.titulo, h.numero_hu, h.puntos AS puntos_historia
+            h.titulo, h.numero_hu, h.puntos AS puntos_historia, h.horas_estimadas
        FROM poker_sesiones s JOIN historias h ON h.id = s.historia_id
       WHERE s.proyecto_id = $1 AND s.historia_id = $2
       ORDER BY s.id DESC LIMIT 1`,
@@ -182,19 +186,20 @@ async function resumenPoker(cliente, usuario, proyecto, historia) {
   );
   const mapa = new Map(votos.map((v) => [v.usuario_id, v.puntos]));
   const revelar = sesion.estado !== 'votando';
-  const valores = votos.map((v) => v.puntos);
+  const valores = votos.map((v) => valorVoto(v.puntos)).filter((v) => v !== null);
   const diferencia = valores.length > 1 ? Math.max(...valores) - Math.min(...valores) : 0;
-  const consenso = valores.length > 0 && valores.length === integrantes.length && new Set(valores).size === 1;
+  const consenso = valores.length > 0 && votos.length === integrantes.length && valores.length === integrantes.length && new Set(valores).size === 1;
   return {
     sesion: {
       id: sesion.id, ronda: sesion.ronda, estado: sesion.estado,
       valor_final: sesion.valor_final, historia_id: sesion.historia_id,
       titulo: sesion.titulo, numero_hu: sesion.numero_hu,
-      puntos_historia: sesion.puntos_historia,
+      puntos_historia: sesion.puntos_historia, horas_estimadas: sesion.horas_estimadas,
       cierre_automatico: sesion.ronda === 4 && sesion.estado === 'cerrada',
       mi_voto: mapa.get(usuario.id) ?? null,
       votos_recibidos: integrantes.filter((p) => mapa.has(p.id)).length,
       total_participantes: integrantes.length,
+      todos_sin_estimacion: sesion.estado === 'votando' && Number(sesion.ronda) === 4 && integrantes.length > 0 && integrantes.every((p) => mapa.get(p.id) === '?'),
       // Solo tras revelar se publica el diagnóstico de la ronda.
       consenso: revelar ? consenso : null,
       diferencia: revelar ? diferencia : null,
@@ -266,8 +271,12 @@ async function finalizarCuartaRonda(cliente, usuario, proyecto, historia, sesion
     'SELECT puntos FROM poker_votos WHERE sesion_id = $1 AND ronda = $2',
     [sesion.id, sesion.ronda],
   );
-  if (!votos.length) throw new ErrorApp('Se necesita al menos un voto para finalizar la cuarta ronda.', 409);
-  const promedio = votos.reduce((suma, voto) => suma + voto.puntos, 0) / votos.length;
+  const numericos = votos.map((v) => valorVoto(v.puntos)).filter((v) => v !== null);
+  if (!numericos.length) {
+    // No cerrar la sesión: el SM/PO podrá solicitar votos numéricos en la misma ronda.
+    return false;
+  }
+  const promedio = numericos.reduce((suma, voto) => suma + voto, 0) / numericos.length;
   const entero = Math.round(promedio);
   const puntos = ESCALA.reduce((mejor, candidato) =>
     Math.abs(candidato - entero) <= Math.abs(mejor - entero) ? candidato : mejor,
@@ -293,8 +302,8 @@ async function finalizarCuartaRonda(cliente, usuario, proyecto, historia, sesion
 export async function votarPoker(usuario, proyectoId, historiaId, datos = {}) {
   const proyecto = comprobarId(proyectoId);
   const historia = comprobarId(historiaId);
-  if (typeof datos.puntos !== 'number' || !ESCALA.includes(datos.puntos)) {
-    throw new ErrorApp('Selecciona un valor Fibonacci válido.', 400);
+  if (!votoValido(datos.puntos)) {
+    throw new ErrorApp('Selecciona una carta Fibonacci o ?.', 400);
   }
   const cliente = await pool.connect();
   let cierreAutomatico = false;
@@ -317,6 +326,17 @@ export async function votarPoker(usuario, proyectoId, historiaId, datos = {}) {
     );
     // La última persona revela simultáneamente la ronda para todos.
     if (integrantes.length > 0 && cuenta[0].cantidad >= integrantes.length) {
+      if (sesion.ronda === 4) {
+        const { rows: validos } = await cliente.query(
+          "SELECT COUNT(*)::int AS cantidad FROM poker_votos WHERE sesion_id = $1 AND ronda = $2 AND puntos <> '?'",
+          [sesion.id, sesion.ronda],
+        );
+        if (!validos[0].cantidad) {
+          await cliente.query('COMMIT');
+          avisarCambioPoker(proyecto, historia);
+          return consultarPoker(usuario, proyecto, historia);
+        }
+      }
       await cliente.query(
         `UPDATE poker_sesiones SET estado = 'revelada', actualizada_en = NOW() WHERE id = $1`,
         [sesion.id],
@@ -349,6 +369,10 @@ export async function revelarPoker(usuario, proyectoId, historiaId) {
       [sesion.id, sesion.ronda],
     );
     if (!rows[0].cantidad) throw new ErrorApp('Se necesita al menos un voto para revelar.', 409);
+    if (sesion.ronda === 4) {
+      const { rows: numericos } = await cliente.query("SELECT COUNT(*)::int AS cantidad FROM poker_votos WHERE sesion_id = $1 AND ronda = $2 AND puntos <> '?'", [sesion.id, sesion.ronda]);
+      if (!numericos[0].cantidad) throw new ErrorApp('Todos votaron ?. Se necesita al menos una estimación numérica para finalizar.', 409);
+    }
     await cliente.query(
       "UPDATE poker_sesiones SET estado = 'revelada', actualizada_en = NOW() WHERE id = $1",
       [sesion.id],
@@ -394,6 +418,7 @@ export async function cerrarPoker(usuario, proyectoId, historiaId, datos = {}) {
   if (typeof datos.puntos !== 'number' || !ESCALA.includes(datos.puntos)) {
     throw new ErrorApp('La estimación final debe pertenecer a la escala Fibonacci.', 400);
   }
+  if (!horasValidas(datos.horas_estimadas)) throw new ErrorApp('Indica las horas estimadas (número mayor o igual a cero).', 400);
   const cliente = await pool.connect();
   try {
     await cliente.query('BEGIN');
@@ -403,10 +428,10 @@ export async function cerrarPoker(usuario, proyectoId, historiaId, datos = {}) {
     if (sesion.estado !== 'revelada') throw new ErrorApp('La ronda debe revelarse antes de fijar los puntos.', 409);
     if (sesion.ronda >= 4) throw new ErrorApp('La cuarta ronda se finaliza automáticamente.', 409);
     const { rows } = await cliente.query(
-      `UPDATE historias SET puntos = $1, version = version + 1
+      `UPDATE historias SET puntos = $1, horas_estimadas = $4, version = version + 1
         WHERE id = $2 AND proyecto_id = $3 AND puntos IS NULL
         RETURNING id`,
-      [datos.puntos, historia, proyecto],
+      [datos.puntos, historia, proyecto, datos.horas_estimadas],
     );
     if (!rows[0]) throw new ErrorApp('La historia ya tiene estimación. Actualiza la página.', 409);
     await cliente.query(
@@ -416,7 +441,7 @@ export async function cerrarPoker(usuario, proyectoId, historiaId, datos = {}) {
     await registrarAuditoria(cliente, {
       usuarioId: usuario.id, proyectoId: proyecto, accion: ACCIONES.HISTORIA_MODIFICADA,
       objeto: OBJETOS.HISTORIA, objetoId: historia, antes: { puntos: null },
-      despues: { puntos: datos.puntos }, emitirEvento: false,
+      despues: { puntos: datos.puntos, horas_estimadas: datos.horas_estimadas }, emitirEvento: false,
     });
     await cliente.query('COMMIT');
   } catch (error) {
@@ -424,6 +449,35 @@ export async function cerrarPoker(usuario, proyectoId, historiaId, datos = {}) {
     throw error;
   } finally { cliente.release(); }
   avisarCambioPoker(proyecto, historia);
+  emitirAProyecto(proyecto, 'story:updated', { proyecto_id: proyecto, historia_id: historia });
+  return consultarPoker(usuario, proyecto, historia);
+}
+
+/** Registrar horas consensuadas tras el cierre automático de la cuarta ronda. */
+export async function guardarHorasPoker(usuario, proyectoId, historiaId, datos = {}) {
+  const proyecto = comprobarId(proyectoId);
+  const historia = comprobarId(historiaId);
+  if (!horasValidas(datos.horas_estimadas)) throw new ErrorApp('Indica horas válidas (0 o más).', 400);
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await exigirModerador(usuario, proyecto, cliente);
+    const { rows } = await cliente.query(
+      `UPDATE historias SET horas_estimadas = $1, version = version + 1
+       WHERE id = $2 AND proyecto_id = $3 AND puntos IS NOT NULL
+       AND EXISTS (SELECT 1 FROM poker_sesiones WHERE historia_id = $2 AND proyecto_id = $3 AND estado = 'cerrada')
+       RETURNING id`, [datos.horas_estimadas, historia, proyecto],
+    );
+    if (!rows.length) throw new ErrorApp('La historia aún no tiene una estimación final de Planning Poker.', 409);
+    await registrarAuditoria(cliente, {
+      usuarioId: usuario.id, proyectoId: proyecto, accion: ACCIONES.HISTORIA_MODIFICADA,
+      objeto: OBJETOS.HISTORIA, objetoId: historia, antes: {},
+      despues: { horas_estimadas: datos.horas_estimadas }, emitirEvento: false,
+    });
+    await cliente.query('COMMIT');
+  } catch (error) {
+    await cliente.query('ROLLBACK'); throw error;
+  } finally { cliente.release(); }
   emitirAProyecto(proyecto, 'story:updated', { proyecto_id: proyecto, historia_id: historia });
   return consultarPoker(usuario, proyecto, historia);
 }

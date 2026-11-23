@@ -55,3 +55,22 @@ SELECT
 END IF;
 
 END $$;
+
+-- C4: carta ? y horas estimadas (compatible con bases ya existentes).
+-- Los votos numéricos anteriores se conservan como texto.
+BEGIN;
+ALTER TABLE public.poker_votos
+  DROP CONSTRAINT IF EXISTS poker_votos_puntos_check;
+ALTER TABLE public.poker_votos
+  ALTER COLUMN puntos TYPE TEXT USING puntos::TEXT;
+ALTER TABLE public.poker_votos
+  ADD CONSTRAINT poker_votos_puntos_check
+  CHECK (puntos IN ('1','2','3','5','8','13','21','?'));
+ALTER TABLE public.historias
+  ADD COLUMN IF NOT EXISTS horas_estimadas NUMERIC(10,2);
+ALTER TABLE public.historias
+  DROP CONSTRAINT IF EXISTS historias_horas_estimadas_check;
+ALTER TABLE public.historias
+  ADD CONSTRAINT historias_horas_estimadas_check
+  CHECK (horas_estimadas IS NULL OR horas_estimadas >= 0);
+COMMIT;

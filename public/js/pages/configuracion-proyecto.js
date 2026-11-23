@@ -67,7 +67,7 @@ function avisar(texto, tipo) {
 
 function limpiarErrores() {
   document.querySelectorAll('.proy-error, .eq-error').forEach((p) => { p.textContent = ''; });
-  CAMPOS.concat('equipo_id').forEach((c) => $(c)?.removeAttribute('aria-invalid'));
+  CAMPOS.concat('equipo_id', 'nombre_equipo_nuevo').forEach((c) => $(c)?.removeAttribute('aria-invalid'));
   $('mensaje').hidden = true;
 }
 
@@ -89,6 +89,7 @@ function leerFormulario() {
 
   if (!editando) {
     datos.equipo_id = $('equipo_id').value;
+    if (datos.equipo_id === 'nuevo') datos.nombre_equipo_nuevo = $('nombre_equipo_nuevo').value;
     datos.miembros = Array.from(document.querySelectorAll('.rol-miembro'))
       .filter(select => select.value !== "")
       .map(select => ({
@@ -116,6 +117,7 @@ async function cargarEquipos() {
     datos.equipos.map((e) => `<option value="${e.id}"></option>`).join('');
   // Asignar el texto con textContent (nunca con innerHTML) para evitar XSS
   datos.equipos.forEach((e, i) => { select.options[i + 1].textContent = e.nombre; });
+  select.add(new Option('Crear equipo nuevo', 'nuevo'));
   if (!editando) $('definition_of_done').value = datos.dod_base;
 }
 
@@ -220,10 +222,13 @@ async function guardar(datos) {
 
 $('equipo_id').addEventListener('change', async (e) => {
   const equipoId = e.target.value;
+  const nuevo = !editando && equipoId === 'nuevo';
+  $('seccion-equipo-nuevo').hidden = !nuevo;
+  $('nombre_equipo_nuevo').required = nuevo;
   const seccion = $('seccion-miembros-proyecto');
   const lista = $('lista-miembros-equipo');
 
-  if (!equipoId || editando) {
+  if (!equipoId || editando || nuevo) {
     seccion.hidden = true;
     return;
   }

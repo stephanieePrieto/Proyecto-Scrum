@@ -56,6 +56,12 @@
         <select id="equipo_id" name="equipo_id" required aria-describedby="error-equipo_id"
           class="form-select"></select>
         <p class="eq-error" id="error-equipo_id" role="alert"></p>
+        <div id="seccion-equipo-nuevo" style="margin-top: 12px;" hidden>
+          <label for="nombre_equipo_nuevo" class="form-label">Nombre del nuevo equipo</label>
+          <input id="nombre_equipo_nuevo" name="nombre_equipo_nuevo" type="text" maxlength="120"
+            class="form-input" aria-describedby="error-nombre_equipo_nuevo" placeholder="Ej. Equipo del proyecto" />
+          <p class="eq-error" id="error-nombre_equipo_nuevo" role="alert"></p>
+        </div>
       </div>
 
       <div id="seccion-miembros-proyecto" class="form-group" hidden>

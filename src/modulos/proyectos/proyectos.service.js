@@ -105,8 +105,13 @@ function validarDatos(datos = {}, { esCreacion }) {
     campos.fecha_fin = 'La fecha de fin no puede ser anterior a la de inicio.';
   }
 
-  if (esCreacion && !Number.isInteger(Number(datos.equipo_id))) {
-    campos.equipo_id = 'Selecciona el equipo del proyecto.';
+  const equipoNuevo = esCreacion && datos.equipo_id === 'nuevo';
+  const nombreEquipoNuevo = String(datos.nombre_equipo_nuevo ?? '').trim().replace(/\s+/g, ' ');
+  if (esCreacion && !equipoNuevo && (!Number.isInteger(Number(datos.equipo_id)) || Number(datos.equipo_id) <= 0)) {
+    campos.equipo_id = 'Selecciona un equipo o crea uno nuevo.';
+  }
+  if (equipoNuevo && (!nombreEquipoNuevo || nombreEquipoNuevo.length > 120)) {
+    campos.nombre_equipo_nuevo = 'Escribe un nombre de equipo de hasta 120 caracteres.';
   }
 
   if (Object.keys(campos).length) lanzar(400, 'Revisa los campos marcados.', { campos });
@@ -116,7 +121,8 @@ function validarDatos(datos = {}, { esCreacion }) {
     definition_of_done: dod || DOD_BASE,
     github_repo_url: repositorioGitHub?.url ?? null,
     github_repo_url_presente: githubRepoUrlPresente,
-    equipo_id: esCreacion ? Number(datos.equipo_id) : undefined,
+    equipo_id: esCreacion && !equipoNuevo ? Number(datos.equipo_id) : undefined,
+    nombre_equipo_nuevo: equipoNuevo ? nombreEquipoNuevo : null,
     miembros: esCreacion && Array.isArray(datos.miembros) ? datos.miembros : []
   };
 }
@@ -220,10 +226,10 @@ export async function equiposDisponibles(usuario) {
 export async function crear(datos, usuario) {
   const limpio = validarDatos(datos, { esCreacion: true });
 
-  await exigirMiembroEquipo(limpio.equipo_id, usuario);
+  if (!limpio.nombre_equipo_nuevo) await exigirMiembroEquipo(limpio.equipo_id, usuario);
   validarRolesUnicos(limpio.miembros, usuario);
 
-  if (await existeNombre(limpio.equipo_id, limpio.nombre)) {
+  if (!limpio.nombre_equipo_nuevo && await existeNombre(limpio.equipo_id, limpio.nombre)) {
     lanzar(409, 'Ya existe un proyecto con ese nombre en el equipo.', ERROR_NOMBRE);
   }
 
@@ -233,6 +239,18 @@ export async function crear(datos, usuario) {
   const cliente = await pool.connect();
   try {
     await cliente.query('BEGIN');
+
+    if (limpio.nombre_equipo_nuevo) {
+      const { rows: equiposNuevos } = await cliente.query(
+        'INSERT INTO equipos (nombre, creado_por) VALUES ($1, $2) RETURNING id',
+        [limpio.nombre_equipo_nuevo, usuario.id]
+      );
+      limpio.equipo_id = equiposNuevos[0].id;
+      await cliente.query(
+        'INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)',
+        [limpio.equipo_id, usuario.id]
+      );
+    }
 
     const { rows } = await cliente.query(
       `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done, github_repo_url, creado_por)

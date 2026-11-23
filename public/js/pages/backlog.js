@@ -243,7 +243,7 @@ function pintarDetalle() {
     el.detalle.innerHTML = '<p class="bl-detalle__vacio">Selecciona una historia de la lista para ver su detalle.</p>';
     return;
   }
-  const criterios = (h.criterios ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const criterios = h.criterios_items ?? [];
   const etiquetas = (h.etiquetas ?? []).map((e) => `<span class="insignia insignia--neutro">${escaparHtml(e)}</span>`).join('');
   const epica = h.epica_nombre ? `<span class="bl-chip" style="--epica:${colorSeguro(h.epica_color)}">${escaparHtml(h.epica_nombre)}</span>` : '';
   el.detalle.innerHTML = `
@@ -259,7 +259,7 @@ function pintarDetalle() {
     </dl>
     <div>
       <h3 class="bl-subtitulo">Criterios de aceptación</h3>
-      ${criterios.length ? `<ul class="bl-criterios">${criterios.map((c) => `<li>${escaparHtml(c)}</li>`).join('')}</ul>` : '<p class="bl-meta">Aún no tiene criterios.</p>'}
+      ${criterios.length ? `<ul class="bl-criterios">${criterios.map((c) => `<li><label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input type="checkbox" data-criterio-id="${c.id}" ${c.cumplido ? 'checked' : ''}><span style="${c.cumplido ? 'text-decoration:line-through;opacity:.7' : ''}">${escaparHtml(c.descripcion)}</span></label></li>`).join('')}</ul>` : '<p class="bl-meta">Aún no tiene criterios.</p>'}
     </div>
     ${etiquetas ? `<div class="bl-etiquetas">${etiquetas}</div>` : ''}
     <p class="bl-meta">${h.creada_por_nombre ? `Creada por ${escaparHtml(h.creada_por_nombre)}` : ''}</p>
@@ -437,6 +437,28 @@ document.addEventListener('click', (e) => {
   if (accion === 'limpiar') limpiarFiltros();
 });
 
+// C6: guardar inmediatamente la marca de cada criterio.
+el.detalle.addEventListener('change', async (evento) => {
+  const control = evento.target.closest('[data-criterio-id]');
+  if (!control || !ctx.seleccionadaId) return;
+  const historiaId = ctx.seleccionadaId;
+  const nuevoEstado = control.checked;
+  control.disabled = true;
+  const resultado = await llamar(`/backlog/historias/${historiaId}/criterios/${control.dataset.criterioId}`, {
+    metodo: 'PATCH', cuerpo: { cumplido: nuevoEstado },
+  });
+  if (!resultado.ok) {
+    control.checked = !nuevoEstado;
+    control.disabled = false;
+    mostrarMensaje(mensajeDe(resultado, 'No se pudo guardar el criterio.'), 'error');
+    return;
+  }
+  const historia = buscarHistoria(historiaId);
+  const item = historia?.criterios_items?.find(c => String(c.id) === control.dataset.criterioId);
+  if (item) item.cumplido = nuevoEstado;
+  pintarDetalle();
+});
+
 // Reordenar (arrastrar, teclado y botones)
 
 /** Nueva lista con `id` colocado antes de `antesId` (null = al final). */
@@ -612,7 +634,6 @@ function validarLocal(v) {
   }
   if (!v.titulo.trim()) errores.titulo = 'Escribe el título de la historia.';
   else if (v.titulo.trim().length > 200) errores.titulo = 'El título no puede superar 200 caracteres.';
-  if (!v.epica_id) errores.epica_id = 'Selecciona una épica.';
   if (v.puntos !== '' && ![1, 2, 3, 5, 8, 13, 21].includes(Number(v.puntos))) errores.puntos = 'Los puntos deben ser 1, 2, 3, 5, 8, 13 o 21.';
   const etiquetas = v.etiquetas.split(',').map((e) => e.trim()).filter(Boolean);
   if (etiquetas.length > 10) errores.etiquetas = 'Usa máximo 10 etiquetas.';
@@ -621,7 +642,7 @@ function validarLocal(v) {
 }
 
 function llenarEpicas() {
-  $('f-epica').innerHTML = '<option value="">Selecciona una épica</option>'
+  $('f-epica').innerHTML = '<option value="">Sin épica</option>'
     + ctx.epicas.map((ep) => `<option value="${ep.id}">${escaparHtml(ep.nombre)}</option>`).join('');
 }
 
@@ -939,8 +960,7 @@ function mostrarAvisoEpica(texto) {
 function limpiarEdicionEpica() {
   ctx.epicaEditando = null;
   formEpica.reset();
-  $('color-epica').value = '';
-  $('descripcion-epica').value = '';
+  $('color-epica').value = '#4F46E5';
   $('titulo-form-epica').textContent = 'Nueva épica';
   $('guardar-epica').textContent = 'Crear épica';
   $('cancelar-edicion-epica').hidden = true;
@@ -986,8 +1006,7 @@ $('lista-epicas').addEventListener('click', (evento) => {
   if (!epica) return;
   ctx.epicaEditando = epica.id;
   $('nombre-epica').value = epica.nombre;
-  $('color-epica').value = epica.color ?? '';
-  $('descripcion-epica').value = epica.descripcion ?? '';
+  $('color-epica').value = colorSeguro(epica.color);
   $('titulo-form-epica').textContent = 'Editar épica';
   $('guardar-epica').textContent = 'Guardar cambios';
   $('cancelar-edicion-epica').hidden = false;
@@ -998,7 +1017,7 @@ $('lista-epicas').addEventListener('click', (evento) => {
 
 const dlgEliminarEpica = $('dialogo-eliminar-epica');
 function abrirConfirmacionEliminarEpica(epicaId) {
-  if (!tienePermiso('epica.gestionar') || ctx.guardando) return;
+  if (!tienePermiso('historia.gestionar') || ctx.guardando) return;
   const epica = ctx.epicas.find((e) => e.id === epicaId);
   if (!epica) return;
   ctx.epicaEliminando = epicaId;
@@ -1026,7 +1045,7 @@ dlgEliminarEpica.addEventListener('cancel', (evento) => {
   else ctx.epicaEliminando = null;
 });
 $('btn-confirmar-eliminar-epica').addEventListener('click', async () => {
-  if (!ctx.proyectoId || !ctx.epicaEliminando || !tienePermiso('epica.gestionar') || ctx.guardando) return;
+  if (!ctx.proyectoId || !ctx.epicaEliminando || !tienePermiso('historia.gestionar') || ctx.guardando) return;
   ctx.guardando = true;
   const boton = $('btn-confirmar-eliminar-epica');
   boton.disabled = true;
@@ -1052,27 +1071,17 @@ $('btn-confirmar-eliminar-epica').addEventListener('click', async () => {
 
 formEpica.addEventListener('submit', async (evento) => {
   evento.preventDefault();
-  if (!ctx.proyectoId || !tienePermiso('epica.gestionar') || ctx.guardando) return;
+  if (!ctx.proyectoId || !tienePermiso('historia.gestionar') || ctx.guardando) return;
   const nombre = $('nombre-epica').value.trim();
   if (!nombre || nombre.length > 80) {
     $('error-epica').textContent = 'Escribe un nombre de 1 a 80 caracteres.';
-    return;
-  }
-  const descripcion = $('descripcion-epica').value.trim();
-  const color = $('color-epica').value.trim();
-  if (!descripcion || descripcion.length > 2000) {
-    $('error-epica').textContent = 'Escribe una descripción de 1 a 2000 caracteres.';
-    return;
-  }
-  if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
-    $('error-epica').textContent = 'Escribe un color hexadecimal válido (ej. #4F46E5).';
     return;
   }
   ctx.guardando = true;
   $('guardar-epica').disabled = true;
   const id = ctx.epicaEditando;
   const r = await llamar(`/epicas/proyecto/${ctx.proyectoId}${id ? `/${id}` : ''}`, {
-    metodo: id ? 'PUT' : 'POST', cuerpo: { nombre, color, descripcion },
+    metodo: id ? 'PUT' : 'POST', cuerpo: { nombre, color: $('color-epica').value },
   });
   ctx.guardando = false;
   $('guardar-epica').disabled = false;

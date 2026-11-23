@@ -2,7 +2,8 @@
  * @file review.js
  * @description Pintar la pantalla de Sprint Review:
  *   - Tarea 1: el Product Owner (o su delegado) acepta o rechaza cada historia terminada; rechazar exige comentario y
- *     aceptar con criterios incompletos (3 de 4) pide confirmación. El resto de los roles solo ve las decisiones.
+ *     aceptar con criterios incompletos (3 de 4) no se permite, ni con la Definition of Done incompleta.
+ *     El resto de los roles solo ve las decisiones.
  *   - Tarea 2: la velocity del sprint se muestra en vivo (puntos aceptados) y se guarda en el servidor con cada decisión.
  *   - Tarea 3: el Scrum Master delega la aceptación en otra persona hasta un día; el delegado ve los botones mientras dure.
  *   - Lo que se estaba escribiendo (comentarios y criterios marcados) se conserva aunque otra persona decida y la pantalla se recargue.
@@ -39,8 +40,8 @@ const el = {
   delegacionHasta: document.getElementById('delegacion-hasta'),
   historial: document.getElementById('historial-delegaciones'),
   dialogo: document.getElementById('dialogo-criterios'),
+  dialogoTitulo: document.getElementById('criterios-titulo'),
   dialogoTexto: document.getElementById('criterios-texto'),
-  btnAceptarIgual: document.getElementById('btn-aceptar-igual'),
 };
 
 const ETIQUETA_ROL = { scrum_master: 'Scrum Master', product_owner: 'Product Owner', developer: 'Desarrollador' };
@@ -57,9 +58,8 @@ const ctx = {
   proyectoId: null,
   sprintId: null,
   datos: null,
-  borradores: new Map(),  // historia → { comentario, criterios:Set }: lo que se está escribiendo y no se ha enviado
+  borradores: new Map(),  // historia → { comentario, criterios:Set, dod:Set }: lo que se está escribiendo y no se ha enviado
   cambiando: new Set(),   // historias cuya decisión se está reabriendo
-  confirmando: null,      // historia que espera confirmación por criterios incompletos
 };
 
 /* ====================================================================
@@ -116,10 +116,10 @@ const ultimoDia = (hasta) => fechaCorta(new Date(new Date(hasta).getTime() - 60 
  * Obtener (o crear) lo que la persona lleva escrito para una historia.
  *
  * @param {number} id
- * @returns {{comentario: string, criterios: Set<number>}}
+ * @returns {{comentario: string, criterios: Set<number>, dod: Set<number>}}
  */
 function borrador(id) {
-  if (!ctx.borradores.has(id)) ctx.borradores.set(id, { comentario: '', criterios: new Set() });
+  if (!ctx.borradores.has(id)) ctx.borradores.set(id, { comentario: '', criterios: new Set(), dod: new Set() });
   return ctx.borradores.get(id);
 }
 
@@ -128,14 +128,19 @@ function borrador(id) {
  * ==================================================================== */
 
 /**
- * Pintar la lista de criterios solo para leer (quien no puede decidir).
+ * Pintar la lista de criterios (y la Definition of Done) solo para leer (quien no puede decidir).
  *
  * @param {Object} h - Historia tal como la devuelve la API.
  * @returns {string}
  */
-const pintarCriteriosLectura = (h) => (h.criterios.length
-  ? `<ul class="review-criterios-lectura">${h.criterios.map((c) => `<li>${escaparHtml(c)}</li>`).join('')}</ul>`
-  : '');
+const pintarCriteriosLectura = (h) => [
+  h.criterios.length
+    ? `<ul class="review-criterios-lectura">${h.criterios.map((c) => `<li>${escaparHtml(c)}</li>`).join('')}</ul>`
+    : '',
+  h.dod?.length
+    ? `<p class="review-detalle">Definition of Done</p><ul class="review-criterios-lectura">${h.dod.map((p) => `<li>${escaparHtml(p)}</li>`).join('')}</ul>`
+    : '',
+].join('');
 
 /**
  * Pintar el formulario de decisión: criterios para marcar, comentario y botones.
@@ -152,7 +157,15 @@ function pintarFormulario(h) {
         <button class="boton boton--secundario boton--pequeno" type="button" data-marcar-todos="${h.id}">Marcar todos</button>
       </fieldset>`
     : '<p class="daily__ayuda">Esta historia no tiene criterios de aceptación registrados.</p>';
-  return `${criterios}
+  // la Definition of Done que aplica a esta historia (la del sprint o del proyecto, más la propia)
+  const dod = h.dod?.length
+    ? `<fieldset class="review-criterios">
+        <legend>Definition of Done: marca los puntos que se cumplen</legend>
+        ${h.dod.map((p, i) => `<label class="review-criterio"><input type="checkbox" data-dod="${i}"${b.dod.has(i) ? ' checked' : ''} /> <span>${escaparHtml(p)}</span></label>`).join('')}
+        <button class="boton boton--secundario boton--pequeno" type="button" data-marcar-dod="${h.id}">Marcar todos</button>
+      </fieldset>`
+    : '';
+  return `${criterios}${dod}
     <div class="form-group">
       <label class="form-label" for="comentario-${h.id}">Comentario <span class="review-opcional">(obligatorio al rechazar)</span></label>
       <textarea class="form-input" id="comentario-${h.id}" data-comentario="${h.id}" rows="2" maxlength="500">${escaparHtml(b.comentario)}</textarea>
@@ -180,6 +193,7 @@ function pintarDecision(h) {
     <p><span class="insignia ${DECISION[d.decision].insignia}">${DECISION[d.decision].texto}</span>
       por <strong>${escaparHtml(d.decididoPor || 'una persona que ya no está en el proyecto')}</strong>${d.comoDelegado ? ' (como delegado del Product Owner)' : ''} · ${fechaHora(d.decididoEn)}</p>
     ${d.criteriosTotal ? `<p class="review-detalle">${d.criteriosCumplidos} de ${d.criteriosTotal} ${pluralizar(d.criteriosTotal, 'criterio cumplido', 'criterios cumplidos')}</p>` : ''}
+    ${d.dodTotal ? `<p class="review-detalle">Definition of Done: ${d.dodCumplidos} de ${d.dodTotal} ${pluralizar(d.dodTotal, 'punto cumplido', 'puntos cumplidos')}</p>` : ''}
     ${d.comentario ? `<p class="retro-nota__texto">${escaparHtml(d.comentario)}</p>` : ''}
     ${cambiar}
   </div>`;
@@ -254,7 +268,7 @@ function pintarHistorias() {
   const foco = el.listaHistorias.contains(activo) ? { id: activo.id, inicio: activo.selectionStart, fin: activo.selectionEnd } : null;
 
   el.ayudaHistorias.textContent = puedeDecidir
-    ? 'Marca los criterios que se cumplen y acepta o rechaza cada historia. Rechazar exige un comentario.'
+    ? 'Marca los criterios y los puntos de la Definition of Done que se cumplen: solo se acepta con todos. Rechazar exige un comentario.'
     : 'Estas son las historias terminadas del sprint. Solo el Product Owner, o quien tenga su delegación, puede decidir.';
   el.listaHistorias.innerHTML = terminadas.length
     ? terminadas.map(pintarHistoria).join('')
@@ -433,10 +447,9 @@ el.selectorSprint.addEventListener('change', () => {
  *
  * @param {number} id - Historia.
  * @param {'aceptada'|'rechazada'} decision
- * @param {boolean} [confirmar=false] - Aceptar aunque falten criterios por cumplir.
  * @returns {Promise<void>}
  */
-async function decidir(id, decision, confirmar = false) {
+async function decidir(id, decision) {
   const h = ctx.datos.historias.find((x) => x.id === id);
   if (!h) return;
   const b = borrador(id);
@@ -456,7 +469,7 @@ async function decidir(id, decision, confirmar = false) {
         decision,
         comentario: b.comentario,
         ...(h.criterios.length ? { criterios_cumplidos: b.criterios.size } : {}),
-        confirmar,
+        ...(h.dod?.length ? { dod_cumplidos: b.dod.size } : {}),
         cambiar: ctx.cambiando.has(id),
       },
     });
@@ -469,8 +482,14 @@ async function decidir(id, decision, confirmar = false) {
   } catch (error) {
     const detalles = error.cuerpo?.detalles;
     if (error.estado === 409 && detalles?.codigo === 'CRITERIOS_INCOMPLETOS') {
-      ctx.confirmando = id;
-      el.dialogoTexto.textContent = `HU-${h.numeroHu} cumple ${detalles.cumplidos} de ${detalles.total} criterios de aceptación. ¿Quieres aceptarla de todas formas?`;
+      // con criterios sin cumplir no se acepta; solo se explica qué falta
+      el.dialogoTitulo.textContent = 'Criterios de aceptación incompletos';
+      el.dialogoTexto.textContent = `HU-${h.numeroHu} cumple ${detalles.cumplidos} de ${detalles.total} criterios de aceptación. Para aceptarla deben cumplirse todos; si no, recházala con un comentario.`;
+      el.dialogo.showModal();
+    } else if (error.estado === 409 && detalles?.codigo === 'DOD_INCOMPLETA') {
+      // igual con la Definition of Done
+      el.dialogoTitulo.textContent = 'Definition of Done incompleta';
+      el.dialogoTexto.textContent = `HU-${h.numeroHu} cumple ${detalles.cumplidos} de ${detalles.total} puntos de la Definition of Done. Para aceptarla deben cumplirse todos; si no, recházala con un comentario.`;
       el.dialogo.showModal();
     } else if (error.estado === 400 && detalles?.comentario) {
       errorEnCampo(`error-comentario-${id}`, detalles.comentario);
@@ -484,13 +503,6 @@ async function decidir(id, decision, confirmar = false) {
   }
 }
 
-el.btnAceptarIgual.addEventListener('click', () => {
-  const id = ctx.confirmando;
-  ctx.confirmando = null;
-  el.dialogo.close();
-  if (id) decidir(id, 'aceptada', true);
-});
-
 el.dialogo.addEventListener('click', (evento) => {
   if (evento.target.closest('[data-cerrar]')) el.dialogo.close();
 });
@@ -498,7 +510,8 @@ el.dialogo.addEventListener('click', (evento) => {
 el.listaHistorias.addEventListener('click', (evento) => {
   const boton = evento.target.closest('button');
   if (!boton) return;
-  const id = Number(boton.dataset.historia || boton.dataset.cambiar || boton.dataset.cancelarCambio || boton.dataset.marcarTodos);
+  const id = Number(boton.dataset.historia || boton.dataset.cambiar || boton.dataset.cancelarCambio || boton.dataset.marcarTodos
+    || boton.dataset.marcarDod);
   if (boton.dataset.decidir) {
     decidir(id, boton.dataset.decidir);
   } else if (boton.dataset.cambiar) {
@@ -513,6 +526,10 @@ el.listaHistorias.addEventListener('click', (evento) => {
     const h = ctx.datos.historias.find((x) => x.id === id);
     borrador(id).criterios = new Set(h.criterios.map((_, i) => i));
     pintarHistorias();
+  } else if (boton.dataset.marcarDod) {
+    const h = ctx.datos.historias.find((x) => x.id === id);
+    borrador(id).dod = new Set((h.dod ?? []).map((_, i) => i));
+    pintarHistorias();
   }
 });
 
@@ -522,12 +539,13 @@ el.listaHistorias.addEventListener('input', (evento) => {
 });
 
 el.listaHistorias.addEventListener('change', (evento) => {
-  if (!evento.target.matches('[data-criterio]')) return;
+  const esCriterio = evento.target.matches('[data-criterio]');
+  if (!esCriterio && !evento.target.matches('[data-dod]')) return;
   const id = Number(evento.target.closest('[data-id]').dataset.id);
-  const indice = Number(evento.target.dataset.criterio);
-  const { criterios } = borrador(id);
-  if (evento.target.checked) criterios.add(indice);
-  else criterios.delete(indice);
+  const indice = Number(esCriterio ? evento.target.dataset.criterio : evento.target.dataset.dod);
+  const marcados = esCriterio ? borrador(id).criterios : borrador(id).dod;
+  if (evento.target.checked) marcados.add(indice);
+  else marcados.delete(indice);
 });
 
 /* ====================================================================

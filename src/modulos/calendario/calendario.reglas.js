@@ -138,3 +138,115 @@ export function conflictosPorAusencia(eventos, ausencias) {
   }
   return conflictos;
 }
+
+/* ====================================================================
+ * Reuniones Scrum creadas por el Scrum Master
+ * ==================================================================== */
+
+/** Tipos de reunión (los mismos de los eventos generados). */
+export const TIPOS_REUNION = Object.freeze(['planning', 'daily', 'review', 'retro']);
+
+/** Largo máximo del título de una reunión. */
+export const MAX_TITULO_REUNION = 150;
+
+/** Largo máximo de las notas de una reunión. */
+export const MAX_NOTAS_REUNION = 2000;
+
+/** Participantes máximos de una reunión. */
+export const MAX_PARTICIPANTES = 100;
+
+const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * Indicar si un texto es una fecha "AAAA-MM-DD" que existe en el calendario.
+ *
+ * @param {*} texto
+ * @returns {boolean}
+ */
+function esFecha(texto) {
+  if (typeof texto !== 'string' || !FORMATO_FECHA.test(texto)) return false;
+  const fecha = aFecha(texto);
+  return aTexto(fecha) === texto;
+}
+
+/**
+ * Pasar "HH:MM" a minutos desde la medianoche.
+ *
+ * @param {string} hora
+ * @returns {number}
+ */
+const aMinutos = (hora) => {
+  const [h, m] = hora.split(':').map(Number);
+  return h * 60 + m;
+};
+
+/**
+ * Pasar minutos desde la medianoche a "HH:MM" (sin pasar de 23:59).
+ *
+ * @param {number} minutos
+ * @returns {string}
+ */
+const aHora = (minutos) => {
+  const limitado = Math.min(minutos, 23 * 60 + 59);
+  return `${String(Math.floor(limitado / 60)).padStart(2, '0')}:${String(limitado % 60).padStart(2, '0')}`;
+};
+
+/**
+ * Validar y limpiar los datos de una reunión.
+ *  - Obligatorios: título, tipo y fecha.
+ *  - La hora de inicio y la de fin son opcionales: si faltan se usan el horario y la duración habituales del tipo
+ *    (HORARIOS). La de fin debe ser posterior a la de inicio.
+ *  - Participantes (identificadores de usuario) y notas son opcionales.
+ *
+ * @param {{titulo?: string, tipo?: string, fecha?: string, hora_inicio?: string, hora_fin?: string,
+ *   participantes?: Array<number|string>, notas?: string}} [datos]
+ * @returns {{errores: Object<string,string>, valores: {titulo: string, tipo: string, fecha: string, horaInicio: string,
+ *   horaFin: string, participantes: number[], notas: (string|null)}}}
+ *   `errores` es un objeto { campo: mensaje } (vacío si todo está bien).
+ */
+export function validarReunion(datos = {}) {
+  const errores = {};
+  const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
+
+  const titulo = texto(datos?.titulo);
+  if (!titulo) errores.titulo = 'Escribe un título para la reunión.';
+  else if (titulo.length > MAX_TITULO_REUNION) errores.titulo = `Máximo ${MAX_TITULO_REUNION} caracteres.`;
+
+  const tipo = datos?.tipo;
+  if (!TIPOS_REUNION.includes(tipo)) errores.tipo = 'Elige el tipo: Planning, Daily, Review o Retrospectiva.';
+
+  const fecha = texto(datos?.fecha);
+  if (!fecha) errores.fecha = 'Indica la fecha de la reunión.';
+  else if (!esFecha(fecha)) errores.fecha = 'La fecha no es válida.';
+
+  const habitual = HORARIOS[tipo] ?? HORARIOS.planning;
+  let horaInicio = texto(datos?.hora_inicio) || habitual.inicio;
+  if (!FORMATO_HORA.test(horaInicio)) {
+    errores.hora_inicio = 'La hora de inicio no es válida (HH:MM).';
+    horaInicio = habitual.inicio;
+  }
+  const duracion = aMinutos(habitual.fin) - aMinutos(habitual.inicio);
+  const horaFin = texto(datos?.hora_fin) || aHora(aMinutos(horaInicio) + duracion);
+  if (!FORMATO_HORA.test(horaFin)) errores.hora_fin = 'La hora de fin no es válida (HH:MM).';
+  else if (!errores.hora_inicio && aMinutos(horaFin) <= aMinutos(horaInicio)) errores.hora_fin = 'La hora de fin debe ser posterior a la de inicio.';
+
+  const participantes = [];
+  const lista = datos?.participantes ?? [];
+  if (!Array.isArray(lista) || lista.length > MAX_PARTICIPANTES) errores.participantes = 'La lista de participantes no es válida.';
+  else {
+    for (const valor of lista) {
+      const id = Number(valor);
+      if (!Number.isInteger(id) || id <= 0) {
+        errores.participantes = 'La lista de participantes no es válida.';
+        break;
+      }
+      if (!participantes.includes(id)) participantes.push(id);
+    }
+  }
+
+  const notas = texto(datos?.notas);
+  if (notas.length > MAX_NOTAS_REUNION) errores.notas = `Máximo ${MAX_NOTAS_REUNION} caracteres.`;
+
+  return { errores, valores: { titulo, tipo, fecha, horaInicio, horaFin, participantes, notas: notas || null } };
+}

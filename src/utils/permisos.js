@@ -210,19 +210,23 @@ export const PERMISOS = Object.freeze({
     'historia.proponer': definirPermiso('proponer historias en el backlog', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'historia.gestionar': definirPermiso('crear, editar, eliminar o reordenar historias', [SCRUM_MASTER, PRODUCT_OWNER]),
     'tarea.gestionar': definirPermiso('crear o editar tareas y mover tarjetas', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
-    // HU-10 y HU-11 (Diego): Daily Scrum e impedimentos
+    // Diego: Daily Scrum e impedimentos
     'daily.registrar': definirPermiso('registrar tu Daily Scrum', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'impedimento.gestionar': definirPermiso('registrar o resolver impedimentos', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
-    // Sprint 4 (Diego): lo que solo ve el Scrum Master del resto del equipo, y la retrospectiva (HU-13 y HU-14)
+    // Sprint 4 (Diego): lo que solo ve el Scrum Master del resto del equipo, y la retrospectiva
     'capacidad.equipo.ver': definirPermiso('ver la capacidad del resto del equipo', [SCRUM_MASTER]),
     'daily.equipo.ver': definirPermiso('ver las Daily del resto del equipo', [SCRUM_MASTER]),
     'retro.participar': definirPermiso('participar en la retrospectiva', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'retro.gestionar': definirPermiso('cerrar la retrospectiva o dar seguimiento a las acciones de todo el equipo', [SCRUM_MASTER]),
     'sprint.gestionar': definirPermiso('planificar, iniciar o cerrar sprints', [SCRUM_MASTER]),
-    // HU-12 (Diego): ver la review es de todos; decidir es del PO (o de quien tenga su delegacion vigente); delegar es del Scrum Master
+    // Diego: ver la review es de todos; decidir es del PO (o de quien tenga su delegacion vigente); delegar es del Scrum Master
     'review.ver': definirPermiso('ver la Sprint Review', [SCRUM_MASTER, PRODUCT_OWNER, DEVELOPER]),
     'review.decidir': definirPermiso('aceptar o rechazar historias en la review', [PRODUCT_OWNER]),
     'review.delegar': definirPermiso('delegar la aceptación de historias del Product Owner', [SCRUM_MASTER], { incluyeCreador: true }),
+    // Diego: el Product Owner agrupa sprints en releases; el resto del equipo los consulta con proyecto.ver
+    'release.gestionar': definirPermiso('crear, editar o eliminar releases y asignarles sprints', [PRODUCT_OWNER]),
+    // Diego: el Scrum Master crea, edita y elimina las reuniones Scrum; el resto las consulta con proyecto.ver
+    'reunion.gestionar': definirPermiso('crear, editar o eliminar reuniones Scrum', [SCRUM_MASTER]),
     'proyecto.gestionar': definirPermiso('gestionar miembros, invitaciones o la configuración del proyecto', [SCRUM_MASTER], { incluyeCreador: true }),
     'tablero.configurar': definirPermiso('configurar las columnas del tablero', [SCRUM_MASTER]),
     'auditoria.ver': definirPermiso('consultar la auditoría del proyecto', [SCRUM_MASTER]),

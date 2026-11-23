@@ -21,8 +21,8 @@ export const crear = envolver(async (req, res) => {
   res.status(201).json({ impedimento });
 });
 
-/** POST /api/impedimentos/:id/resolver → { impedimento } */
+/** POST /api/impedimentos/:id/resolver { solucion } → { impedimento } */
 export const resolver = envolver(async (req, res) => {
-  const impedimento = await servicio.resolver(req.user, req.params.id);
+  const impedimento = await servicio.resolver(req.user, req.params.id, req.body);
   res.json({ impedimento });
 });

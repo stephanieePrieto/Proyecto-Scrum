@@ -155,6 +155,15 @@
   color: var(--rosa-700);
 }
 
+/* cómo se resolvió */
+.imp__solucion {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
 .imp-vacio {
   text-align: center;
   padding: 40px var(--espacio-6);
@@ -185,6 +194,11 @@
   font-size: 18px;
   font-weight: 600;
   margin-bottom: var(--espacio-4);
+}
+
+.imp-dialogo textarea.form-input {
+  resize: vertical;
+  font-family: inherit;
 }
 
 .imp-dialogo .form-input[aria-invalid="true"] {

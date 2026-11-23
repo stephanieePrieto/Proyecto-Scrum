@@ -24,6 +24,7 @@ import {
   SEVERIDADES,
   DIAS_PARA_ALERTA,
   validarImpedimento,
+  validarSolucion,
   mensajeYaResuelto,
 } from './impedimentos.reglas.js';
 import { registrarAuditoria, enTransaccion, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
@@ -70,7 +71,7 @@ const SELECT_IMPEDIMENTO = `
          i.tarea_id, t.titulo AS tarea_titulo,
          i.responsable_id, r.nombre AS responsable_nombre, (r.activo IS FALSE) AS responsable_inactivo,
          i.creado_por, c.nombre AS creado_por_nombre,
-         i.resuelto_por, x.nombre AS resuelto_por_nombre,
+         i.resuelto_por, x.nombre AS resuelto_por_nombre, i.solucion,
          i.creado_en, i.resuelto_en,
          ROUND((EXTRACT(EPOCH FROM (COALESCE(i.resuelto_en, NOW()) - i.creado_en)) / 3600.0)::numeric, 1)::float AS horas_abierto,
          (i.estado = 'abierto' AND NOW() - i.creado_en > INTERVAL '${DIAS_PARA_ALERTA} days') AS vencido
@@ -320,15 +321,16 @@ export async function crear(actor, proyectoId, datos) {
 }
 
 /**
- * Marcar un impedimento como resuelto y guardar quién y cuándo (de ahí sale cuánto estuvo abierto).
- * Si otra persona lo resolvió primero, responde 409 con "Ya fue resuelto por X".
+ * Marcar un impedimento como resuelto y guardar quién, cuándo (de ahí sale cuánto estuvo abierto)
+ * y cómo se resolvió. Si otra persona lo resolvió primero, responde 409 con "Ya fue resuelto por X".
  *
  * @param {{id: number}} actor
  * @param {number|string} id - Identificador del impedimento.
+ * @param {{solucion: string}} datos - Cómo se resolvió (obligatorio).
  * @returns {Promise<Object>} El impedimento ya resuelto.
- * @throws {ErrorApp} 404 si no existe; 409 si ya estaba resuelto.
+ * @throws {ErrorApp} 400 con `detalles.solucion` si falta o es muy larga; 404 si no existe; 409 si ya estaba resuelto.
  */
-export async function resolver(actor, id) {
+export async function resolver(actor, id, datos = {}) {
   const impedimentoId = leerId(id, 'El identificador del impedimento no es válido.');
 
   // El proyecto se obtiene del propio impedimento: quien no tiene vínculo con él recibe el mismo 404 que si no existiera
@@ -336,11 +338,14 @@ export async function resolver(actor, id) {
   if (!dueno) lanzar(404, MENSAJE_NO_ENCONTRADO);
   await exigirPermiso(actor, 'impedimento.gestionar', dueno.proyecto_id);
 
+  const { errores, valores } = validarSolucion(datos);
+  if (Object.keys(errores).length) lanzar(400, 'Revisa los campos marcados.', errores);
+
   const afectado = await enTransaccion(async (cliente) => {
     const { rows: [resuelto] } = await cliente.query(
-      `UPDATE impedimentos SET estado = 'resuelto', resuelto_por = $2, resuelto_en = NOW()
+      `UPDATE impedimentos SET estado = 'resuelto', resuelto_por = $2, resuelto_en = NOW(), solucion = $3
       WHERE id = $1 AND estado = 'abierto' RETURNING id, proyecto_id`,
-      [impedimentoId, actor.id],
+      [impedimentoId, actor.id, valores.solucion],
     );
     if (resuelto) {
       await registrarAuditoria(cliente, {
@@ -350,7 +355,7 @@ export async function resolver(actor, id) {
         objeto: OBJETOS.IMPEDIMENTO,
         objetoId: resuelto.id,
         antes: { estado: 'abierto' },
-        despues: { estado: 'resuelto' },
+        despues: { estado: 'resuelto', solucion: valores.solucion },
       });
     }
     return resuelto;

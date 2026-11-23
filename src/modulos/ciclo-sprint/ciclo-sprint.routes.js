@@ -8,6 +8,8 @@
  *   GET  /api/ciclo-sprint/sprint/:id/resumen     resumen de cierre (historias, velocity, tarjetas en revisión)
  *   POST /api/ciclo-sprint/sprint/:id/iniciar     iniciar (solo Scrum Master)
  *   POST /api/ciclo-sprint/sprint/:id/cerrar      cerrar (solo Scrum Master)
+ *   GET  /api/ciclo-sprint/sprint/:id/dod         Definition of Done del sprint y de sus historias
+ *   PUT  /api/ciclo-sprint/sprint/:id/dod         guardar la DoD del sprint y la propia de sus historias
  * 
  * @author Diego Rafael Jiménez Trujano
  */
@@ -23,5 +25,7 @@ router.get('/proyecto/:proyectoId', requierePermiso('sprint.gestionar'), control
 router.get('/sprint/:id/resumen', requierePermiso('sprint.gestionar', { recurso: 'sprints' }), controller.resumen);
 router.post('/sprint/:id/iniciar', requierePermiso('sprint.gestionar', { recurso: 'sprints' }), controller.iniciar);
 router.post('/sprint/:id/cerrar', requierePermiso('sprint.gestionar', { recurso: 'sprints' }), controller.cerrar);
+router.get('/sprint/:id/dod', requierePermiso('sprint.gestionar', { recurso: 'sprints' }), controller.consultarDod);
+router.put('/sprint/:id/dod', requierePermiso('sprint.gestionar', { recurso: 'sprints' }), controller.guardarDod);
 
 export default router;

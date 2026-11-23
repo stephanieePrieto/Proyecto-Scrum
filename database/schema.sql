@@ -191,6 +191,18 @@ CREATE TABLE IF NOT EXISTS epicas (
   color TEXT NOT NULL DEFAULT '#4F46E5',
   UNIQUE (proyecto_id, nombre)
 );
+-- Releases: agrupan sprints para comunicar el plan de entregas
+CREATE TABLE IF NOT EXISTS releases (
+  id SERIAL PRIMARY KEY,
+  proyecto_id INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
+  nombre TEXT NOT NULL,
+  descripcion TEXT,
+  fecha_objetivo DATE,
+  creado_por INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT releases_nombre_unico_por_proyecto UNIQUE (proyecto_id, nombre)
+);
+CREATE INDEX IF NOT EXISTS ix_releases_proyecto ON releases (proyecto_id);
 CREATE TABLE IF NOT EXISTS sprints (
   id SERIAL PRIMARY KEY,
   proyecto_id INTEGER NOT NULL REFERENCES proyectos (id) ON DELETE CASCADE,
@@ -202,10 +214,30 @@ CREATE TABLE IF NOT EXISTS sprints (
   estado TEXT NOT NULL DEFAULT 'planificado' CHECK (estado IN ('planificado', 'activo', 'cerrado')),
   velocity INTEGER,
   cerrado_en TIMESTAMPTZ,
+  -- DoD del sprint, un punto por línea; vacía (NULL) = se usa la del proyecto
+  definition_of_done TEXT,
+  -- release al que pertenece (uno solo); al eliminar el release el sprint se conserva
+  release_id INTEGER REFERENCES releases (id) ON DELETE SET NULL,
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT sprints_fechas_validas CHECK (fecha_fin >= fecha_inicio)
 );
 CREATE INDEX IF NOT EXISTS ix_sprints_proyecto ON sprints (proyecto_id);
+CREATE INDEX IF NOT EXISTS ix_sprints_release ON sprints (release_id);
+-- un sprint que pertenece a un release no se puede eliminar (sí al eliminar el proyecto completo)
+CREATE OR REPLACE FUNCTION impedir_eliminar_sprint_en_release() RETURNS TRIGGER AS $$
+DECLARE
+  nombre_release TEXT;
+BEGIN
+  IF OLD.release_id IS NULL OR NOT EXISTS (SELECT 1 FROM proyectos WHERE id = OLD.proyecto_id) THEN
+    RETURN OLD;
+  END IF;
+  SELECT nombre INTO nombre_release FROM releases WHERE id = OLD.release_id;
+  RAISE EXCEPTION 'El sprint "%" pertenece al release "%": quitalo del release antes de eliminarlo.', OLD.nombre, nombre_release
+    USING ERRCODE = '23001';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS tg_sprint_en_release ON sprints;
+CREATE TRIGGER tg_sprint_en_release BEFORE DELETE ON sprints FOR EACH ROW EXECUTE FUNCTION impedir_eliminar_sprint_en_release();
 -- Un solo sprint activo por proyecto
 CREATE UNIQUE INDEX IF NOT EXISTS ux_un_sprint_activo_por_proyecto ON sprints (proyecto_id)
 WHERE estado = 'activo';
@@ -222,6 +254,8 @@ CREATE TABLE IF NOT EXISTS historias (
     quiero TEXT,
     para TEXT,
     criterios TEXT,
+    -- puntos de DoD propios de la historia, además de la DoD del sprint (o del proyecto)
+    definition_of_done TEXT,
     puntos INTEGER CHECK (puntos IN (1, 2, 3, 5, 8, 13, 21)),
     etiquetas TEXT [] NOT NULL DEFAULT '{}',
     estado TEXT NOT NULL DEFAULT 'backlog' CHECK (
@@ -383,6 +417,8 @@ CREATE TABLE IF NOT EXISTS impedimentos (
   SET NULL,
     resuelto_por INTEGER REFERENCES usuarios (id) ON DELETE
   SET NULL,
+    -- cómo se resolvió; se captura al marcarlo como resuelto
+    solucion TEXT,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     resuelto_en TIMESTAMPTZ
 );
@@ -417,6 +453,9 @@ CREATE TABLE IF NOT EXISTS reviews_historias (
     como_delegado BOOLEAN NOT NULL DEFAULT FALSE,
     criterios_cumplidos INTEGER CHECK (criterios_cumplidos IS NULL OR criterios_cumplidos >= 0),
     criterios_total INTEGER CHECK (criterios_total IS NULL OR criterios_total >= 0),
+    -- puntos de la DoD que se cumplían al decidir (NULL = decidida antes de existir la DoD)
+    dod_cumplidos INTEGER CHECK (dod_cumplidos IS NULL OR dod_cumplidos >= 0),
+    dod_total INTEGER CHECK (dod_total IS NULL OR dod_total >= 0),
     UNIQUE (sprint_id, historia_id)
 );
 -- Delegacion temporal de la aceptacion del Product Owner (la crea el Scrum Master)
@@ -465,13 +504,31 @@ CREATE TABLE IF NOT EXISTS retro_acciones (
     completada BOOLEAN NOT NULL DEFAULT FALSE,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Eventos Scrum: los 'generado' salen de las fechas del sprint y las 'reunion' las crea el Scrum Master.
+-- Las reuniones pertenecen al proyecto y no a un sprint (sprint_id NULL), así la regeneración del calendario no las toca.
 CREATE TABLE IF NOT EXISTS eventos_calendario (
   id SERIAL PRIMARY KEY,
-  sprint_id INTEGER NOT NULL REFERENCES sprints (id) ON DELETE CASCADE,
+  sprint_id INTEGER REFERENCES sprints (id) ON DELETE CASCADE,
   tipo TEXT NOT NULL CHECK (tipo IN ('planning', 'daily', 'review', 'retro')),
   titulo TEXT NOT NULL,
   inicia_en TIMESTAMPTZ NOT NULL,
-  termina_en TIMESTAMPTZ NOT NULL
+  termina_en TIMESTAMPTZ NOT NULL,
+  origen TEXT NOT NULL DEFAULT 'generado' CHECK (origen IN ('generado', 'reunion')),
+  proyecto_id INTEGER REFERENCES proyectos (id) ON DELETE CASCADE,
+  notas TEXT,
+  creado_por INTEGER REFERENCES usuarios (id) ON DELETE SET NULL,
+  actualizado_en TIMESTAMPTZ,
+  CONSTRAINT eventos_calendario_origen_coherente CHECK (
+    (origen = 'generado' AND sprint_id IS NOT NULL) OR (origen = 'reunion' AND proyecto_id IS NOT NULL AND sprint_id IS NULL)
+  ),
+  CONSTRAINT eventos_calendario_reunion_horario CHECK (origen <> 'reunion' OR termina_en > inicia_en)
+);
+CREATE INDEX IF NOT EXISTS ix_eventos_reuniones ON eventos_calendario (proyecto_id, inicia_en) WHERE origen = 'reunion';
+-- participantes de cada reunión
+CREATE TABLE IF NOT EXISTS eventos_participantes (
+  evento_id INTEGER NOT NULL REFERENCES eventos_calendario (id) ON DELETE CASCADE,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+  PRIMARY KEY (evento_id, usuario_id)
 );
 -- ===========================================================================
 -- Notificaciones, metricas y bitacora

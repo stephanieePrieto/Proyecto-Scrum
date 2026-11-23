@@ -43,7 +43,7 @@
 
     <div id="aviso" class="ciclo-aviso" role="status" aria-live="polite" hidden></div>
 
-    <!-- HU-14: acciones de retros anteriores que siguen pendientes -->
+    <!-- acciones de retros anteriores que siguen pendientes -->
     <div id="retro-pendientes" hidden></div>
 
     <section id="seccion-activo" aria-labelledby="titulo-activo" hidden>
@@ -92,6 +92,21 @@
       <div class="ciclo-dialogo__acciones">
         <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
         <button class="boton boton--primario" id="btn-confirmar-cerrar" type="submit" disabled>Cerrar sprint</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Definition of Done del sprint y de sus historias -->
+  <dialog class="ciclo-dialogo" id="dialogo-dod" aria-labelledby="dod-titulo">
+    <form class="ciclo-dialogo__cuerpo" id="form-dod" novalidate>
+      <h2 class="ciclo-dialogo__titulo" id="dod-titulo">Definition of Done</h2>
+      <div id="dod-contenido">
+        <p class="ciclo__ayuda">Cargando…</p>
+      </div>
+      <p class="ciclo-error" id="dod-error" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario" id="btn-guardar-dod" type="submit" disabled>Guardar</button>
       </div>
     </form>
   </dialog>

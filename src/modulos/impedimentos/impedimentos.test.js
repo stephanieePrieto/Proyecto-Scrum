@@ -10,6 +10,8 @@
 import { describe, test, expect } from '@jest/globals';
 import {
   validarImpedimento,
+  validarSolucion,
+  MAX_SOLUCION,
   horasAbierto,
   estaVencido,
   mensajeYaResuelto,
@@ -64,6 +66,22 @@ describe('Módulo de Impedimentos - Pruebas Unitarias', () => {
     const resuelto = new Date('2026-10-21T10:30:00Z');
     expect(horasAbierto(creado, resuelto)).toBe(26.5);
     expect(horasAbierto(creado, null, new Date('2026-10-20T09:00:00Z'))).toBe(1);
+  });
+
+  test('la solución es obligatoria al resolver y se recorta', () => {
+    expect(validarSolucion({}).errores.solucion).toBeDefined();
+    expect(validarSolucion({ solucion: '   ' }).errores.solucion).toBeDefined();
+    expect(validarSolucion({ solucion: 123 }).errores.solucion).toBeDefined();
+    expect(validarSolucion(undefined).errores.solucion).toBeDefined();
+
+    const { errores, valores } = validarSolucion({ solucion: '  Se reinició el servidor de pruebas  ' });
+    expect(errores).toEqual({});
+    expect(valores.solucion).toBe('Se reinició el servidor de pruebas');
+  });
+
+  test('rechaza una solución demasiado larga', () => {
+    expect(validarSolucion({ solucion: 'x'.repeat(MAX_SOLUCION) }).errores).toEqual({});
+    expect(validarSolucion({ solucion: 'x'.repeat(MAX_SOLUCION + 1) }).errores.solucion).toBeDefined();
   });
 
   test('mensaje cuando otra persona ya lo resolvió', () => {

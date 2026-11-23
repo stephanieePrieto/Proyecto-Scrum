@@ -2,7 +2,7 @@
  * @file impedimentos.js
  * @description Pintar la pantalla de impedimentos:
  *   - Registrar un impedimento (título, severidad, responsable y tarea afectada) y mostrarlo como abierto.
- *   - Resolverlo; si otra persona lo resolvió antes, mostrar "Ya fue resuelto por X".
+ *   - Resolverlo escribiendo cómo se resolvió; si otra persona lo resolvió antes, mostrar "Ya fue resuelto por X".
  *   - Resaltar en rojo los que llevan más de 3 días abiertos.
  *   - Filtrar por estado y severidad, y actualizarse sola con Socket.io.
  *
@@ -38,6 +38,14 @@ const el = {
   errorGeneral: document.getElementById('error-general'),
   btnCancelar: document.getElementById('btn-cancelar'),
   btnCrear: document.getElementById('btn-crear'),
+  dialogoResolver: document.getElementById('dialogo-resolver'),
+  formResolver: document.getElementById('form-resolver'),
+  resolverImpedimento: document.getElementById('resolver-impedimento'),
+  solucion: document.getElementById('campo-solucion'),
+  errorSolucion: document.getElementById('error-solucion'),
+  errorResolver: document.getElementById('error-resolver'),
+  btnCancelarResolver: document.getElementById('btn-cancelar-resolver'),
+  btnConfirmarResolver: document.getElementById('btn-confirmar-resolver'),
 };
 
 const CAMPOS_FORM = ['titulo', 'severidad', 'responsable_id', 'tarea_id'];
@@ -49,7 +57,7 @@ const SEVERIDADES = {
 };
 
 // Estado de la pantalla
-const ctx = { proyectoId: null, datos: null, enviando: false };
+const ctx = { proyectoId: null, datos: null, enviando: false, resolviendoId: null };
 
 /* ====================================================================
  * Utilidades
@@ -129,6 +137,10 @@ function pintarImpedimento(i, yoId) {
     ? `Abierto hace ${formatoDuracion(i.horas_abierto)}`
     : `Resuelto por ${escaparHtml(i.resuelto_por_nombre || 'otra persona')} · estuvo abierto ${formatoDuracion(i.horas_abierto)}`;
 
+  const solucion = !abierto && i.solucion
+    ? `<p class="imp__solucion"><strong>Solución:</strong> ${escaparHtml(i.solucion)}</p>`
+    : '';
+
   const aviso = i.vencido
     ? `<p class="imp__aviso" role="alert">Lleva más de ${ctx.datos.diasParaAlerta} días abierto. Hay que atenderlo.</p>`
     : '';
@@ -151,6 +163,7 @@ function pintarImpedimento(i, yoId) {
       <span class="imp__tiempo">${tiempo}</span>
       ${accion}
     </div>
+    ${solucion}
     ${aviso}
   </li>`;
 }
@@ -203,19 +216,70 @@ el.filtroSeveridad.addEventListener('change', cargar);
  * Resolver
  * ==================================================================== */
 
-el.lista.addEventListener('click', async (evento) => {
+/**
+ * Mostrar (o limpiar) el error del campo "¿Cómo se resolvió?".
+ *
+ * @param {string} [mensaje]
+ * @returns {void}
+ */
+function pintarErrorSolucion(mensaje = '') {
+  el.errorSolucion.hidden = !mensaje;
+  el.errorSolucion.textContent = mensaje;
+  el.solucion.setAttribute('aria-invalid', mensaje ? 'true' : 'false');
+}
+
+// Abrir el diálogo para escribir la solución del impedimento elegido
+el.lista.addEventListener('click', (evento) => {
   const boton = evento.target.closest('[data-resolver]');
   if (!boton) return;
-  boton.disabled = true;
+  const id = Number(boton.dataset.resolver);
+  const impedimento = ctx.datos.impedimentos.find((i) => i.id === id);
+  ctx.resolviendoId = id;
+  el.formResolver.reset();
+  el.resolverImpedimento.textContent = impedimento ? impedimento.titulo : '';
+  pintarErrorSolucion();
+  el.errorResolver.hidden = true;
+  el.dialogoResolver.showModal();
+  el.solucion.focus();
+});
+
+el.btnCancelarResolver.addEventListener('click', () => el.dialogoResolver.close());
+
+el.formResolver.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  if (ctx.enviando || !ctx.resolviendoId) return;
+
+  // Validar en el navegador (el servidor repite la regla): la solución es obligatoria
+  if (!el.solucion.value.trim()) {
+    pintarErrorSolucion('Describe cómo se resolvió el impedimento.');
+    el.solucion.focus();
+    return;
+  }
+  pintarErrorSolucion();
+  el.errorResolver.hidden = true;
+
+  ctx.enviando = true;
+  el.btnConfirmarResolver.disabled = true;
   try {
-    await api(`/impedimentos/${boton.dataset.resolver}/resolver`, { metodo: 'POST' });
+    await api(`/impedimentos/${ctx.resolviendoId}/resolver`, { metodo: 'POST', cuerpo: { solucion: el.solucion.value } });
+    el.dialogoResolver.close();
     mostrarAviso('exito', 'Impedimento resuelto.');
+    await cargar();
   } catch (error) {
+    if (error.estado === 400 && error.cuerpo?.detalles?.solucion) {
+      pintarErrorSolucion(error.cuerpo.detalles.solucion);
+      el.solucion.focus();
+      return;
+    }
+    el.dialogoResolver.close();
     if (error.estado === 409) mostrarAviso('advertencia', error.cuerpo?.mensaje || 'Ya fue resuelto por otra persona.');
     else if (error.estado === 403 || error.estado === 404) mostrarAviso('error', 'No tienes permiso para resolver este impedimento.');
     else mostrarAviso('error', 'No pudimos resolver el impedimento. Inténtalo de nuevo.');
+    await cargar(); // Mostrar cómo quedó
+  } finally {
+    ctx.enviando = false;
+    el.btnConfirmarResolver.disabled = false;
   }
-  await cargar(); // En ambos casos, mostrar cómo quedó
 });
 
 /* ====================================================================

@@ -122,6 +122,27 @@
     </form>
   </dialog>
 
+  <!-- al resolver se pide cómo se resolvió -->
+  <dialog class="imp-dialogo" id="dialogo-resolver" aria-labelledby="resolver-titulo">
+    <form class="imp-dialogo__cuerpo" id="form-resolver" novalidate>
+      <h2 class="imp-dialogo__titulo" id="resolver-titulo">Marcar como resuelto</h2>
+      <p class="subtitulo-pagina" id="resolver-impedimento"></p>
+
+      <div class="form-group">
+        <label class="form-label" for="campo-solucion">¿Cómo se resolvió?</label>
+        <textarea class="form-input" id="campo-solucion" name="solucion" rows="4" maxlength="2000"></textarea>
+        <p class="imp-error" id="error-solucion" hidden></p>
+      </div>
+
+      <p class="imp-error" id="error-resolver" role="alert" hidden></p>
+
+      <div class="imp-dialogo__acciones">
+        <button class="boton boton--secundario" id="btn-cancelar-resolver" type="button">Cancelar</button>
+        <button class="boton boton--primario" id="btn-confirmar-resolver" type="submit">Marcar como resuelto</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="../socket.io/socket.io.js"></script>
   <script type="module" src="../js/pages/impedimentos.js"></script>
 </body>

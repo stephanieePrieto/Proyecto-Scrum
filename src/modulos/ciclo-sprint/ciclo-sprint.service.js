@@ -2,7 +2,8 @@
  * @file ciclo-sprint.service.js
  * @description Iniciar y cerrar sprint.
  *
- * Tablas que usa (database/schema.sql): sprints, historias, tareas, columnas_tablero, miembros_proyecto, usuarios.
+ * Tablas que usa (database/schema.sql): sprints, historias, tareas, columnas_tablero, miembros_proyecto, usuarios,
+ * proyectos (DoD base) y reviews_historias (lo verificado en la Review).
  *
  * Decisiones importantes:
  *  - Iniciar y cerrar se hacen dentro de una transacción con el sprint bloqueado (SELECT ... FOR UPDATE):
@@ -11,10 +12,13 @@
  *    Si dos Scrum Masters inician a la vez, PostgreSQL deja pasar a uno y al otro le responde
  *    409 "Ya existe un sprint activo".
  *  - Cerrar dos veces no duplica nada: si el sprint ya está cerrado, devuelve el resumen guardado.
- *  - Velocity = puntos de las historias terminadas (hecho o aceptada). Si el Product Owner ya decidió en la Review
- *    (HU-12), manda la Review: solo suman las historias ACEPTADAS.
+ *  - Velocity = puntos de las historias terminadas (hecho o aceptada). si la historia tiene criterios de
+ *    aceptación, solo cuenta como terminada si en la Review se aceptó con todos cumplidos; si no, se trata como
+ *    no terminada (no suma y vuelve al backlog o pasa al siguiente sprint). Ver estaTerminada() en las reglas.
+ *  - lo mismo con la Definition of Done: la del sprint (o la del proyecto si el sprint no tiene) más la propia de
+ *    cada historia. El Scrum Master la edita desde aquí (consultarDod / guardarDod) mientras el sprint no esté cerrado.
  *  - Las historias no terminadas vuelven al backlog o pasan al siguiente sprint (con sus tareas).
- *  - Al iniciar se generan los eventos del calendario (HU-15).
+ *  - Al iniciar se generan los eventos del calendario.
  *
  * @author Diego Rafael Jimenez Trujano
  * @author Citlaly Morales Viveros
@@ -24,9 +28,12 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 import { exigirPermiso, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { sincronizarEventos } from '../calendario/calendario.service.js';
-import { faltantesParaIniciar, calcularResumen, validarCierre, ESTADOS_TERMINADA } from './ciclo-sprint.reglas.js';
+import {
+  faltantesParaIniciar, calcularResumen, validarCierre, estaTerminada, faltaVerificar, ESTADOS_TERMINADA, MOTIVOS_SIN_VERIFICAR,
+  validarDod,
+} from './ciclo-sprint.reglas.js';
+import { dodDeHistoria, separarPuntosDod } from '../reviews/reviews.reglas.js';
 import { registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
-import { recalcularVelocity } from '../reviews/reviews.service.js';
 import { avisarAlScrumMaster } from '../retros/retros.service.js';
 import { relojDe } from '../daily/daily.service.js';
 import { registrarCambioColumna } from '../burnup/burnup.registro.js';
@@ -105,21 +112,51 @@ async function rolesDelProyecto(cliente, proyectoId) {
 }
 
 /**
- * Leer las historias de un sprint.
+ * Leer las historias de un sprint con lo que se verificó de ellas en la Review de ese sprint.
  *
  * @param {import('pg').Pool|import('pg').PoolClient} cliente
  * @param {number} sprintId
- * @returns {Promise<Array<{id: number, numero_hu: number, titulo: string, puntos: number|null, estado: string}>>}
+ * @returns {Promise<Array<{id: number, numero_hu: number, titulo: string, puntos: number|null, estado: string,
+ *   criterios: (string|null), decision: (string|null), criterios_cumplidos: (number|null),
+ *   dod_proyecto: (string|null), dod_sprint: (string|null), dod_historia: (string|null), dod_cumplidos: (number|null)}>>}
  */
 async function historiasDelSprint(cliente, sprintId) {
   const { rows } = await cliente.query(
-    `SELECT h.id, h.numero_hu, h.titulo, h.puntos,
-            CASE WHEN EXISTS (SELECT 1 FROM reviews_historias r WHERE r.sprint_id = h.sprint_id AND r.historia_id = h.id AND r.decision = 'aceptada')
-                 THEN 'aceptada' ELSE h.estado END AS estado
-       FROM historias h WHERE h.sprint_id = $1 ORDER BY h.numero_hu`,
+    `SELECT h.id, h.numero_hu, h.titulo, h.puntos, h.criterios, r.decision, r.criterios_cumplidos,
+            p.definition_of_done AS dod_proyecto, s.definition_of_done AS dod_sprint,
+            h.definition_of_done AS dod_historia, r.dod_cumplidos,
+            CASE WHEN r.decision = 'aceptada' THEN 'aceptada' ELSE h.estado END AS estado
+       FROM historias h
+       JOIN sprints s ON s.id = h.sprint_id
+       JOIN proyectos p ON p.id = s.proyecto_id
+       LEFT JOIN reviews_historias r ON r.sprint_id = h.sprint_id AND r.historia_id = h.id
+      WHERE h.sprint_id = $1 ORDER BY h.numero_hu`,
     [sprintId],
   );
   return rows;
+}
+
+/**
+ * Dejar una historia lista para la pantalla de cierre: si cuenta como terminada y, si estaba en Hecho pero no
+ * pasó la verificación de la Review, por qué.
+ *
+ * @param {Object} h - Fila de historiasDelSprint().
+ * @returns {Object}
+ */
+function historiaParaCierre({
+  criterios, decision, criterios_cumplidos: cumplidos, dod_proyecto: dodProyecto, dod_sprint: dodSprint,
+  dod_historia: dodHistoria, dod_cumplidos: dodCumplidos, ...h
+}) {
+  const verificacion = {
+    criterios, decision, criterios_cumplidos: cumplidos,
+    dod_proyecto: dodProyecto, dod_sprint: dodSprint, dod_historia: dodHistoria, dod_cumplidos: dodCumplidos,
+  };
+  const sinVerificar = ESTADOS_TERMINADA.includes(h.estado) ? faltaVerificar(verificacion) : [];
+  return {
+    ...h,
+    terminada: estaTerminada({ ...h, ...verificacion }),
+    sinVerificar: sinVerificar.map((motivo) => MOTIVOS_SIN_VERIFICAR[motivo]),
+  };
 }
 
 /**
@@ -229,7 +266,7 @@ export async function resumen(actor, sprintId) {
   return {
     sprint: { id: sprint.id, nombre: sprint.nombre, estado: sprint.estado, velocity: sprint.velocity },
     ...calcularResumen(historias),
-    historias: historias.map((h) => ({ ...h, terminada: ESTADOS_TERMINADA.includes(h.estado) })),
+    historias: historias.map(historiaParaCierre),
     enRevision,
     siguiente,
   };
@@ -354,7 +391,8 @@ export async function cerrar(actor, sprintIdTexto, decisiones = {}) {
     const errores = validarCierre({ destino: decisiones.destino, revision: decisiones.revision, noTerminadas: calculo.noTerminadas, enRevision: 0 });
     if (Object.keys(errores).length) lanzar(400, 'Falta una decisión para cerrar el sprint.', errores);
 
-    const pendientes = historias.filter((h) => !ESTADOS_TERMINADA.includes(h.estado)).map((h) => h.id);
+    // las que no pasaron la verificación de la Review también son pendientes, aunque estén en Hecho
+    const pendientes = historias.filter((h) => !estaTerminada(h)).map((h) => h.id);
     let destino = null;
     if (pendientes.length) {
       if (decisiones.destino === 'siguiente') {
@@ -390,10 +428,9 @@ export async function cerrar(actor, sprintIdTexto, decisiones = {}) {
       );
     }
 
+    // calculo.velocity ya solo suma historias terminadas y verificadas en la Review (aceptadas con sus criterios),
+    // así que no se sustituye por la suma de aceptadas de la Review (podía incluir aceptadas con criterios incompletos).
     await cliente.query("UPDATE sprints SET estado = 'cerrado', velocity = $2, cerrado_en = NOW() WHERE id = $1", [sprint.id, calculo.velocity]);
-    // HU-12: con decisiones de Review, la velocity son los puntos aceptados (null si nadie ha decidido todavía)
-    const velocityReview = await recalcularVelocity(cliente, sprint.id);
-    if (velocityReview !== null) calculo.velocity = velocityReview;
     await registrarAuditoria(cliente, {
       usuarioId: actor.id,
       proyectoId: sprint.proyecto_id,
@@ -419,4 +456,131 @@ export async function cerrar(actor, sprintIdTexto, decisiones = {}) {
 
   emitirAProyecto(resultado.sprint.proyecto_id, EVENTOS.cerrado, { proyecto_id: resultado.sprint.proyecto_id, sprint_id: resultado.sprint.id });
   return resultado;
+}
+
+/* ====================================================================
+ * Definition of Done del sprint y de sus historias
+ * ==================================================================== */
+
+/**
+ * Leer la Definition of Done de un sprint y la de cada una de sus historias, con la DoD que resulta para cada una.
+ *
+ * @param {import('pg').Pool|import('pg').PoolClient} cliente
+ * @param {number} sprintId
+ * @returns {Promise<Object|null>} null si el sprint no existe.
+ */
+async function leerDod(cliente, sprintId) {
+  const { rows: [sprint] } = await cliente.query(
+    `SELECT s.id, s.proyecto_id, s.nombre, s.estado, s.definition_of_done, p.definition_of_done AS dod_proyecto
+       FROM sprints s JOIN proyectos p ON p.id = s.proyecto_id WHERE s.id = $1`,
+    [sprintId],
+  );
+  if (!sprint) return null;
+  const { rows: historias } = await cliente.query(
+    'SELECT id, numero_hu, titulo, definition_of_done FROM historias WHERE sprint_id = $1 ORDER BY numero_hu',
+    [sprintId],
+  );
+  const base = { dodProyecto: sprint.dod_proyecto, dodSprint: sprint.definition_of_done };
+  return {
+    sprint: { id: sprint.id, nombre: sprint.nombre, estado: sprint.estado, definition_of_done: sprint.definition_of_done },
+    proyecto: { definition_of_done: sprint.dod_proyecto },
+    // Lo que aplica a todas las historias: la del sprint o, si no tiene, la del proyecto
+    base: dodDeHistoria(base),
+    heredaDelProyecto: separarPuntosDod(sprint.definition_of_done).length === 0,
+    historias: historias.map((h) => ({
+      id: h.id,
+      numero_hu: h.numero_hu,
+      titulo: h.titulo,
+      definition_of_done: h.definition_of_done,
+      dod: dodDeHistoria({ ...base, dodHistoria: h.definition_of_done }),
+    })),
+    editable: sprint.estado !== 'cerrado',
+    proyectoId: sprint.proyecto_id,
+  };
+}
+
+/**
+ * Consultar la Definition of Done de un sprint y de sus historias (solo Scrum Master).
+ *
+ * @param {{id: number}} actor
+ * @param {number|string} sprintId
+ * @returns {Promise<Object>}
+ * @throws {ErrorApp} 404 si el sprint no existe o la persona no tiene vínculo con su proyecto.
+ */
+export async function consultarDod(actor, sprintId) {
+  const id = await exigirPermisoSobreSprint(actor, sprintId, 'sprint.gestionar');
+  const datos = await leerDod(pool, id);
+  if (!datos) lanzar(404, MENSAJE_NO_ENCONTRADO);
+  const { proyectoId, ...respuesta } = datos;
+  return respuesta;
+}
+
+/**
+ * Guardar la Definition of Done del sprint y la propia de las historias indicadas, en una sola transacción.
+ * La del sprint vacía vuelve a usar la del proyecto. No se puede cambiar en un sprint cerrado: su Review ya se verificó
+ * con la DoD que tenía. El cambio del sprint queda en la bitácora (sprint_modificado) y el de cada historia también
+ * (historia_modificada).
+ *
+ * @param {{id: number}} actor
+ * @param {number|string} sprintIdTexto
+ * @param {{definition_of_done?: (string|null), historias?: Array<{id: number, definition_of_done?: (string|null)}>}} datos
+ * @returns {Promise<Object>} La DoD ya guardada (misma forma que consultarDod).
+ * @throws {ErrorApp} 400 con `detalles` por campo; 404 si no existe o una historia no es del sprint; 409 si el sprint está cerrado.
+ */
+export async function guardarDod(actor, sprintIdTexto, datos = {}) {
+  const sprintId = await exigirPermisoSobreSprint(actor, sprintIdTexto, 'sprint.gestionar');
+  const { errores, valores } = validarDod(datos);
+  if (Object.keys(errores).length) lanzar(400, 'Revisa los campos marcados.', errores);
+
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const { rows: [sprint] } = await cliente.query('SELECT id, proyecto_id, estado, definition_of_done FROM sprints WHERE id = $1 FOR UPDATE', [sprintId]);
+    if (!sprint) lanzar(404, MENSAJE_NO_ENCONTRADO);
+    if (sprint.estado === 'cerrado') lanzar(409, 'El sprint ya está cerrado: su Definition of Done ya no se puede cambiar.');
+
+    if ((sprint.definition_of_done ?? null) !== valores.sprint) {
+      await cliente.query('UPDATE sprints SET definition_of_done = $2 WHERE id = $1', [sprint.id, valores.sprint]);
+      await registrarAuditoria(cliente, {
+        usuarioId: actor.id,
+        proyectoId: sprint.proyecto_id,
+        accion: ACCIONES.SPRINT_MODIFICADO,
+        objeto: OBJETOS.SPRINT,
+        objetoId: sprint.id,
+        antes: { definition_of_done: sprint.definition_of_done ?? null },
+        despues: { definition_of_done: valores.sprint },
+      });
+    }
+
+    if (valores.historias.length) {
+      const { rows: actuales } = await cliente.query(
+        'SELECT id, numero_hu, definition_of_done FROM historias WHERE id = ANY($1::int[]) AND sprint_id = $2 FOR UPDATE',
+        [valores.historias.map((h) => h.id), sprint.id],
+      );
+      if (actuales.length !== valores.historias.length) lanzar(404, 'Alguna de las historias ya no pertenece a este sprint. Recarga la pantalla.');
+      const porId = new Map(actuales.map((h) => [h.id, h]));
+      for (const { id, texto } of valores.historias) {
+        const antes = porId.get(id);
+        if ((antes.definition_of_done ?? null) === texto) continue;
+        await cliente.query('UPDATE historias SET definition_of_done = $2, version = version + 1 WHERE id = $1', [id, texto]);
+        await registrarAuditoria(cliente, {
+          usuarioId: actor.id,
+          proyectoId: sprint.proyecto_id,
+          accion: ACCIONES.HISTORIA_MODIFICADA,
+          objeto: OBJETOS.HISTORIA,
+          objetoId: id,
+          antes: { definition_of_done: antes.definition_of_done ?? null },
+          despues: { definition_of_done: texto },
+          contexto: { sprint_id: sprint.id, numero_hu: antes.numero_hu, origen: 'dod_sprint' },
+        });
+      }
+    }
+    await cliente.query('COMMIT');
+  } catch (error) {
+    await cliente.query('ROLLBACK').catch(() => { });
+    throw error;
+  } finally {
+    cliente.release();
+  }
+  return consultarDod(actor, sprintId);
 }

@@ -4,6 +4,7 @@
  *   - Iniciar un sprint planificado confirmando objetivo y capacidad; si falta algo, se indica qué.
  *   - Cerrar el sprint activo mostrando un resumen, la velocity y decidiendo qué pasa con las historias
  *     no terminadas y con las tarjetas en revisión.
+ *   - editar la Definition of Done del sprint (o dejar la del proyecto) y los puntos propios de cada historia.
  *   - Solo el Scrum Master puede iniciar o cerrar; el resto ve el estado en solo lectura.
  *
  * @author Diego Rafael Jimenez Trujano
@@ -37,9 +38,17 @@ const el = {
   cerrarContenido: document.getElementById('cerrar-contenido'),
   cerrarError: document.getElementById('cerrar-error'),
   btnCerrar: document.getElementById('btn-confirmar-cerrar'),
+  dlgDod: document.getElementById('dialogo-dod'),
+  formDod: document.getElementById('form-dod'),
+  dodContenido: document.getElementById('dod-contenido'),
+  dodError: document.getElementById('dod-error'),
+  btnGuardarDod: document.getElementById('btn-guardar-dod'),
 };
 
-const ctx = { proyectoId: null, datos: null, sprintEnDialogo: null, resumen: null, enviando: false };
+const ctx = { proyectoId: null, datos: null, sprintEnDialogo: null, resumen: null, dod: null, enviando: false };
+
+/** Botón para abrir la Definition of Done de un sprint. */
+const botonDod = (sprintId) => `<button class="boton boton--secundario" type="button" data-dod="${sprintId}">Definition of Done</button>`;
 
 /* ====================================================================
  * Utilidades
@@ -111,7 +120,7 @@ function pintarActivo() {
   el.tarjetaActivo.innerHTML = `<article class="tarjeta ciclo-sprint ciclo-sprint--activo">
     <div class="ciclo-sprint__cabecera">
       <h3 class="ciclo-sprint__nombre">${escaparHtml(activo.nombre)} <span class="insignia insignia--exito">Activo</span></h3>
-      ${puedeGestionar ? `<button class="boton boton--primario" type="button" data-cerrar-sprint="${activo.id}">Cerrar sprint</button>` : ''}
+      ${puedeGestionar ? `<span>${botonDod(activo.id)} <button class="boton boton--primario" type="button" data-cerrar-sprint="${activo.id}">Cerrar sprint</button></span>` : ''}
     </div>
     ${datosDeSprint(activo)}
   </article>`;
@@ -135,7 +144,7 @@ function pintarPlanificados() {
       : '';
     const bloqueo = s.bloqueadoPorActivo ? '<p class="ciclo__ayuda">Ya hay un sprint activo: ciérralo antes de iniciar otro.</p>' : '';
     const boton = puedeGestionar
-      ? `<button class="boton boton--secundario" type="button" data-iniciar="${s.id}"${s.bloqueadoPorActivo ? ' disabled' : ''}>Iniciar sprint</button>`
+      ? `<span>${botonDod(s.id)} <button class="boton boton--secundario" type="button" data-iniciar="${s.id}"${s.bloqueadoPorActivo ? ' disabled' : ''}>Iniciar sprint</button></span>`
       : '';
     return `<article class="tarjeta ciclo-sprint">
       <div class="ciclo-sprint__cabecera">
@@ -168,7 +177,7 @@ async function cargar() {
   }
   pintarActivo();
   pintarPlanificados();
-  // HU-14: al abrir el siguiente sprint, recordar los compromisos pendientes de la retro anterior
+  // al abrir el siguiente sprint, recordar los compromisos pendientes de la retro anterior
   pintarPendientes(el.retroPendientes, ctx.proyectoId);
 }
 
@@ -181,6 +190,8 @@ document.addEventListener('click', (evento) => {
   if (iniciar) abrirIniciar(Number(iniciar.dataset.iniciar));
   const cerrar = evento.target.closest('[data-cerrar-sprint]');
   if (cerrar) abrirCerrar(Number(cerrar.dataset.cerrarSprint));
+  const dod = evento.target.closest('[data-dod]');
+  if (dod) abrirDod(Number(dod.dataset.dod));
 });
 
 /* ====================================================================
@@ -283,7 +294,7 @@ function pintarCierre() {
       <div><strong>${r.velocity}</strong><span>velocity (pts)</span></div>
       <div><strong>${r.puntosTotales}</strong><span>pts comprometidos</span></div>
     </div>
-    ${r.noTerminadas > 0 ? `<ul class="ciclo-lista-historias">${r.historias.filter((h) => !h.terminada).map((h) => `<li>HU-${h.numero_hu} ${escaparHtml(h.titulo)}</li>`).join('')}</ul>` : '<p class="ciclo__ayuda">Todas las historias están terminadas.</p>'}
+    ${r.noTerminadas > 0 ? `<ul class="ciclo-lista-historias">${r.historias.filter((h) => !h.terminada).map((h) => `<li>HU-${h.numero_hu} ${escaparHtml(h.titulo)}${h.sinVerificar?.length ? ` <span class="ciclo__ayuda">(está en Hecho, pero no cuenta: ${escaparHtml(h.sinVerificar.join(' '))} Acéptala en la Review para que cuente.)</span>` : ''}</li>`).join('')}</ul>` : '<p class="ciclo__ayuda">Todas las historias están terminadas.</p>'}
     ${revision}${destino}`;
   el.btnCerrar.disabled = false;
 }
@@ -353,6 +364,100 @@ el.formCerrar.addEventListener('submit', async (evento) => {
     el.btnCerrar.disabled = false;
   } finally {
     ctx.enviando = false;
+  }
+});
+
+/* ====================================================================
+ * Definition of Done
+ * ==================================================================== */
+
+/**
+ * Pintar el formulario de la DoD: la del sprint (vacía = la del proyecto) y los puntos propios de cada historia.
+ *
+ * @returns {void}
+ */
+function pintarDod() {
+  const d = ctx.dod;
+  const soloLectura = d.editable ? '' : ' readonly';
+  const lista = (puntos) => (puntos.length
+    ? `<ul class="ciclo-lista-historias">${puntos.map((p) => `<li>${escaparHtml(p)}</li>`).join('')}</ul>`
+    : '');
+  const historias = d.historias.length
+    ? d.historias.map((h) => `<div class="form-group">
+        <label class="form-label" for="dod-historia-${h.id}">HU-${h.numero_hu} ${escaparHtml(h.titulo)} <span class="ciclo__ayuda">(puntos extra, opcional)</span></label>
+        <textarea class="form-input" id="dod-historia-${h.id}" data-dod-historia="${h.id}" rows="2" maxlength="2000"${soloLectura}>${escaparHtml(h.definition_of_done ?? '')}</textarea>
+        <p class="ciclo-error" id="error-historia-${h.id}" hidden></p>
+      </div>`).join('')
+    : '<p class="ciclo__ayuda">Este sprint todavía no tiene historias.</p>';
+
+  el.dodContenido.innerHTML = `
+    <p class="ciclo__ayuda">${escaparHtml(d.sprint.nombre)}: en la Review cada historia solo se acepta si cumple todos los puntos de su DoD, y al cerrar el sprint solo cuentan las que se aceptaron así. Escribe un punto por línea.</p>
+    ${d.editable ? '' : '<p class="ciclo-error">El sprint ya está cerrado: su Definition of Done ya no se puede cambiar.</p>'}
+    <div class="form-group">
+      <label class="form-label" for="campo-dod-sprint">DoD del sprint</label>
+      <textarea class="form-input" id="campo-dod-sprint" rows="4" maxlength="2000" placeholder="Vacía: se usa la del proyecto"${soloLectura}>${escaparHtml(d.sprint.definition_of_done ?? '')}</textarea>
+      <p class="ciclo-error" id="error-definition_of_done" hidden></p>
+    </div>
+    <p class="ciclo__ayuda">${d.heredaDelProyecto ? 'Ahora se usa la DoD del proyecto:' : 'Puntos que aplican a todas las historias del sprint:'}</p>
+    ${lista(d.base)}
+    <h3 class="ciclo-dialogo__titulo">Puntos propios de cada historia</h3>
+    ${historias}`;
+  el.btnGuardarDod.disabled = !d.editable;
+}
+
+/**
+ * Abrir el diálogo de la Definition of Done de un sprint y cargarla.
+ *
+ * @param {number} sprintId
+ * @returns {Promise<void>}
+ */
+async function abrirDod(sprintId) {
+  ctx.sprintEnDialogo = { id: sprintId };
+  el.dodContenido.innerHTML = '<p class="ciclo__ayuda">Cargando…</p>';
+  el.dodError.hidden = true;
+  el.btnGuardarDod.disabled = true;
+  el.dlgDod.showModal();
+  try {
+    ctx.dod = await api(`/ciclo-sprint/sprint/${sprintId}/dod`);
+    pintarDod();
+  } catch {
+    el.dodContenido.innerHTML = '<p class="ciclo-error">No pudimos cargar la Definition of Done. Cierra e inténtalo de nuevo.</p>';
+  }
+}
+
+el.formDod.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  if (ctx.enviando || !ctx.dod?.editable) return;
+  // Solo se envían las historias que cambiaron
+  const historias = [...el.formDod.querySelectorAll('[data-dod-historia]')]
+    .map((campo) => ({ id: Number(campo.dataset.dodHistoria), definition_of_done: campo.value }))
+    .filter((h) => (ctx.dod.historias.find((x) => x.id === h.id)?.definition_of_done ?? '') !== h.definition_of_done.trim());
+
+  el.formDod.querySelectorAll('.ciclo-error[id^="error-"]').forEach((p) => { p.hidden = true; });
+  el.dodError.hidden = true;
+  ctx.enviando = true;
+  el.btnGuardarDod.disabled = true;
+  try {
+    await api(`/ciclo-sprint/sprint/${ctx.sprintEnDialogo.id}/dod`, {
+      metodo: 'PUT',
+      cuerpo: { definition_of_done: document.getElementById('campo-dod-sprint').value, historias },
+    });
+    el.dlgDod.close();
+    mostrarAviso('exito', 'Definition of Done guardada.');
+  } catch (error) {
+    const d = error.cuerpo?.detalles;
+    if (error.estado === 400 && d) {
+      for (const [campo, mensaje] of Object.entries(d)) {
+        const parrafo = document.getElementById(`error-${campo}`);
+        if (parrafo) { parrafo.textContent = mensaje; parrafo.hidden = false; }
+      }
+    } else {
+      el.dodError.textContent = error.cuerpo?.mensaje || 'No pudimos guardar la Definition of Done. Inténtalo de nuevo.';
+      el.dodError.hidden = false;
+    }
+  } finally {
+    ctx.enviando = false;
+    el.btnGuardarDod.disabled = !ctx.dod?.editable;
   }
 });
 

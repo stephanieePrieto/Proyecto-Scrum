@@ -4,7 +4,7 @@
  *
  *   GET  /api/impedimentos/proyecto/:proyectoId   lista (?estado=abierto|resuelto|todos&severidad=)
  *   POST /api/impedimentos/proyecto/:proyectoId   registrar uno nuevo
- *   POST /api/impedimentos/:id/resolver           marcarlo como resuelto
+ *   POST /api/impedimentos/:id/resolver           marcarlo como resuelto ({ solucion } obligatoria)
  * 
  * @author Diego Rafael Jiménez Trujano
  */

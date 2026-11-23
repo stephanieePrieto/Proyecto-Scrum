@@ -15,6 +15,9 @@ export const DIAS_PARA_ALERTA = 3;
 /** Largo máximo del título. */
 export const MAX_TITULO = 200;
 
+/** Largo máximo de la solución que se escribe al resolverlo. */
+export const MAX_SOLUCION = 2000;
+
 const MS_HORA = 60 * 60 * 1000;
 const MS_DIA = 24 * MS_HORA;
 
@@ -62,6 +65,22 @@ export function validarImpedimento(datos = {}) {
   }
 
   return { errores, valores: { titulo, severidad, responsable_id: responsableId, tarea_id: tareaId } };
+}
+
+/**
+ * Validar y limpiar la solución que se escribe al marcar un impedimento como resuelto.
+ * Es obligatoria: así queda registrado cómo se destrabó el equipo.
+ *
+ * @param {{solucion?: string}} [datos]
+ * @returns {{errores: Object<string,string>, valores: {solucion: string}}}
+ *   `errores` es un objeto { campo: mensaje } (vacío si todo está bien).
+ */
+export function validarSolucion(datos = {}) {
+  const errores = {};
+  const solucion = typeof datos?.solucion === 'string' ? datos.solucion.trim() : '';
+  if (!solucion) errores.solucion = 'Describe cómo se resolvió el impedimento.';
+  else if (solucion.length > MAX_SOLUCION) errores.solucion = `Máximo ${MAX_SOLUCION} caracteres.`;
+  return { errores, valores: { solucion } };
 }
 
 /**

@@ -10,13 +10,16 @@
  *    delegaciones y ve su historial. Cada petición vuelve a comprobar el permiso: la pantalla solo oculta botones.
  *  - Una historia se revisa cuando está terminada: "hecho", "aceptada" o con todas sus tarjetas en la columna final.
  *  - Aceptar → decisión "aceptada" y la historia queda "aceptada". Rechazar exige comentario: en un sprint activo la
- *    historia queda "rechazada" (al cerrar el sprint, HU-09 la manda al backlog o al siguiente sprint) y en un sprint
- *    ya cerrado regresa al backlog de inmediato (HU-30 cuenta la velocity con reviews_historias, no con historias.estado).
+ *    historia queda "rechazada" (al cerrar el sprint la manda al backlog o al siguiente sprint) y en un sprint
+ *    ya cerrado regresa al backlog de inmediato (la velocity se cuenta con reviews_historias, no con historias.estado).
  *  - Si dos personas deciden a la vez sobre la misma historia, la fila de la historia se bloquea (FOR UPDATE): la
  *    segunda recibe 409 y prevalece la primera. Cambiar una decisión ya tomada es explícito (`cambiar`) y se audita.
- *  - Aceptar con criterios incompletos (3 de 4) responde 409 CRITERIOS_INCOMPLETOS hasta que se confirma.
+ *  - aceptar con criterios incompletos (3 de 4) responde siempre 409 CRITERIOS_INCOMPLETOS; no se puede confirmar
+ *    para brincarlo. Para aceptarla hay que marcar todos sus criterios (o rechazarla).
+ *  - igual con la Definition of Done de la historia (la del sprint o, si no tiene, la del proyecto, más los puntos
+ *    propios de la historia): aceptar con un punto sin cumplir responde 409 DOD_INCOMPLETA. Se guarda cuántos se cumplían.
  *  - Velocity del sprint = puntos de las historias ACEPTADAS. Cada decisión la recalcula en la misma transacción
- *    (recalcularVelocity) y HU-09 la usa al cerrar el sprint.
+ *    (recalcularVelocity) y el cierre del sprint la usa.
  *  - Toda decisión y toda delegación se registra en la bitácora dentro de la misma transacción.
  *
  * @author Diego Rafael Jimenez Trujano
@@ -27,7 +30,9 @@ import { emitirAProyecto, emitirAUsuario } from '../../sockets/emisor.js';
 import { exigirPermiso, tienePermiso, obtenerRolProyecto, MENSAJE_NO_ENCONTRADO } from '../../utils/permisos.js';
 import { enTransaccion, registrarAuditoria, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
 import { relojDe } from '../daily/daily.service.js';
-import { separarCriterios, esHistoriaTerminada, validarDecision, validarDelegacion, resumirReview } from './reviews.reglas.js';
+import {
+  separarCriterios, esHistoriaTerminada, validarDecision, validarDelegacion, resumirReview, dodDeHistoria,
+} from './reviews.reglas.js';
 
 /** Nombres de los eventos en tiempo real (el cliente de la pantalla los escucha). */
 export const EVENTOS = { actualizada: 'review:actualizada' };
@@ -94,7 +99,7 @@ async function quienDecide(actor, proyectoId) {
 /**
  * Recalcular la velocity guardada del sprint como la suma de puntos de las historias ACEPTADAS en la review.
  * Solo aplica a sprints cerrados que ya tienen decisiones: mientras el sprint está activo la velocity se muestra
- * en vivo (resumirReview) y HU-09 la guarda al cerrar. Si nadie ha decidido nada, no toca la que calculó HU-09.
+ * en vivo (resumirReview) y el cierre del sprint la guarda. Si nadie ha decidido nada, no toca la que ya calculó el cierre.
  *
  * @param {import('pg').PoolClient} cliente - Cliente de la transacción en curso.
  * @param {number} sprintId
@@ -129,6 +134,7 @@ async function historiasDeReview(sprintId, proyectoId) {
     `SELECT h.id, h.numero_hu, h.titulo, h.puntos, h.criterios, h.estado, h.sprint_id,
             COUNT(t.id)::int AS tareas, COUNT(t.id) FILTER (WHERE c.es_final)::int AS tareas_hechas,
             r.decision, r.comentario, r.decidido_en, r.como_delegado, r.criterios_cumplidos, r.criterios_total,
+            h.definition_of_done AS dod_historia, r.dod_cumplidos, r.dod_total,
             u.nombre AS decidido_por_nombre
        FROM historias h
        LEFT JOIN reviews_historias r ON r.historia_id = h.id AND r.sprint_id = $1
@@ -141,6 +147,22 @@ async function historiasDeReview(sprintId, proyectoId) {
     [sprintId, proyectoId],
   );
   return rows;
+}
+
+/**
+ * leer la DoD del sprint y la del proyecto (la base de la DoD de cada historia).
+ *
+ * @param {import('pg').Pool|import('pg').PoolClient|{query: Function}} cliente - Pool o cliente de la transacción.
+ * @param {number} sprintId
+ * @returns {Promise<{dodSprint: (string|null), dodProyecto: (string|null)}>}
+ */
+async function dodBaseDelSprint(cliente, sprintId) {
+  const { rows: [fila] } = await cliente.query(
+    `SELECT s.definition_of_done AS dod_sprint, p.definition_of_done AS dod_proyecto
+       FROM sprints s JOIN proyectos p ON p.id = s.proyecto_id WHERE s.id = $1`,
+    [sprintId],
+  );
+  return { dodSprint: fila?.dod_sprint ?? null, dodProyecto: fila?.dod_proyecto ?? null };
 }
 
 /**
@@ -186,7 +208,10 @@ export async function consultar(actor, proyectoId, sprintTexto) {
     return { ...base, sprint: null, historias: [], resumen: resumirReview([]), delegacion: null, delegaciones: [], candidatos: [] };
   }
 
-  const filas = await historiasDeReview(sprint.id, idProyecto);
+  const [filas, dodBase] = await Promise.all([
+    historiasDeReview(sprint.id, idProyecto),
+    dodBaseDelSprint({ query: consulta }, sprint.id),
+  ]);
   const historias = filas.map((h) => {
     const terminada = esHistoriaTerminada({ estado: h.estado, tareas: h.tareas, tareasHechas: h.tareas_hechas, decision: h.decision });
     return {
@@ -195,6 +220,7 @@ export async function consultar(actor, proyectoId, sprintTexto) {
       titulo: h.titulo,
       puntos: h.puntos,
       criterios: separarCriterios(h.criterios),
+      dod: dodDeHistoria({ ...dodBase, dodHistoria: h.dod_historia }),
       tareas: h.tareas,
       tareasHechas: h.tareas_hechas,
       terminada,
@@ -207,6 +233,8 @@ export async function consultar(actor, proyectoId, sprintTexto) {
           decididoEn: h.decidido_en,
           criteriosCumplidos: h.criterios_cumplidos,
           criteriosTotal: h.criterios_total,
+          dodCumplidos: h.dod_cumplidos,
+          dodTotal: h.dod_total,
         }
         : null,
       // Una decisión solo se puede cambiar mientras la historia siga en el sprint (si ya regresó al backlog es definitiva)
@@ -253,7 +281,7 @@ export async function consultar(actor, proyectoId, sprintTexto) {
 }
 
 /* ====================================================================
- * Aceptar o rechazar (HU-12 · tareas 1 y 2)
+ * Aceptar o rechazar
  * ==================================================================== */
 
 /**
@@ -316,10 +344,10 @@ async function notificar(usuarioIds, { tipo, titulo, mensaje, referenciaId }) {
  * @param {{id: number}} actor
  * @param {number|string} sprintId
  * @param {number|string} historiaId
- * @param {{decision: string, comentario?: string, criterios_cumplidos?: number, confirmar?: boolean, cambiar?: boolean}} datos
+ * @param {{decision: string, comentario?: string, criterios_cumplidos?: number, dod_cumplidos?: number, cambiar?: boolean}} datos
  * @returns {Promise<{decision: string, historia_id: number, velocity: number, cambiada: boolean}>}
  * @throws {ErrorApp} 400 con `detalles` por campo; 403 si no es el PO ni un delegado vigente; 404 si no existe;
- *   409 si la historia no está terminada, ya fue decidida (prevalece la primera) o tiene criterios incompletos sin confirmar.
+ *   409 si la historia no está terminada, ya fue decidida (prevalece la primera) o se acepta con criterios o DoD incompletos.
  */
 export async function decidir(actor, sprintId, historiaId, datos = {}) {
   const idSprint = leerId(sprintId, 'El identificador del sprint no es válido.');
@@ -335,7 +363,7 @@ export async function decidir(actor, sprintId, historiaId, datos = {}) {
   const resultado = await enTransaccion(async (cliente) => {
     // Bloquear la historia: dos decisiones simultáneas se atienden una tras otra y la segunda ya ve la primera
     const { rows: [historia] } = await cliente.query(
-      'SELECT id, numero_hu, titulo, puntos, criterios, estado, sprint_id, proyecto_id FROM historias WHERE id = $1 AND proyecto_id = $2 FOR UPDATE',
+      'SELECT id, numero_hu, titulo, puntos, criterios, definition_of_done, estado, sprint_id, proyecto_id FROM historias WHERE id = $1 AND proyecto_id = $2 FOR UPDATE',
       [idHistoria, sprint.proyecto_id],
     );
     if (!historia) lanzar(404, MENSAJE_NO_ENCONTRADO);
@@ -348,7 +376,8 @@ export async function decidir(actor, sprintId, historiaId, datos = {}) {
     );
     if (!previa && historia.sprint_id !== sprint.id) lanzar(404, MENSAJE_NO_ENCONTRADO);
 
-    const { errores, valores, incompletos } = validarDecision(datos, separarCriterios(historia.criterios).length);
+    const dod = dodDeHistoria({ ...(await dodBaseDelSprint(cliente, sprint.id)), dodHistoria: historia.definition_of_done });
+    const { errores, valores, incompletos, dodIncompleta } = validarDecision(datos, separarCriterios(historia.criterios).length, dod.length);
     if (Object.keys(errores).length) lanzar(400, 'Revisa los campos marcados.', errores);
 
     const { rows: [conteo] } = await cliente.query(
@@ -366,28 +395,36 @@ export async function decidir(actor, sprintId, historiaId, datos = {}) {
     if (previa && historia.sprint_id !== sprint.id) {
       lanzar(409, 'La historia ya regresó al backlog tras el rechazo: su decisión ya no puede cambiarse.');
     }
-    if (incompletos && !valores.confirmar) {
-      lanzar(409, `Solo se cumplen ${valores.criteriosCumplidos} de ${valores.criteriosTotal} criterios de aceptación. Confirma para aceptarla de todas formas.`, {
+    if (incompletos) {
+      lanzar(409, `No se puede aceptar: solo se cumplen ${valores.criteriosCumplidos} de ${valores.criteriosTotal} criterios de aceptación. Marca todos los criterios o recházala con un comentario.`, {
         codigo: 'CRITERIOS_INCOMPLETOS', cumplidos: valores.criteriosCumplidos, total: valores.criteriosTotal,
+      });
+    }
+    if (dodIncompleta) {
+      lanzar(409, `No se puede aceptar: solo se cumplen ${valores.dodCumplidos} de ${valores.dodTotal} puntos de la Definition of Done. Marca todos los puntos o recházala con un comentario.`, {
+        codigo: 'DOD_INCOMPLETA', cumplidos: valores.dodCumplidos, total: valores.dodTotal,
       });
     }
 
     const mismaDecision = previa && previa.decision === valores.decision && (previa.comentario ?? null) === valores.comentario;
     if (!mismaDecision) {
       await cliente.query(
-        `INSERT INTO reviews_historias (sprint_id, historia_id, decision, comentario, decidido_por, como_delegado, criterios_cumplidos, criterios_total)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO reviews_historias (sprint_id, historia_id, decision, comentario, decidido_por, como_delegado, criterios_cumplidos, criterios_total,
+                                        dod_cumplidos, dod_total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (sprint_id, historia_id) DO UPDATE
             SET decision = EXCLUDED.decision, comentario = EXCLUDED.comentario, decidido_por = EXCLUDED.decidido_por,
                 decidido_en = NOW(), como_delegado = EXCLUDED.como_delegado,
-                criterios_cumplidos = EXCLUDED.criterios_cumplidos, criterios_total = EXCLUDED.criterios_total`,
-        [sprint.id, historia.id, valores.decision, valores.comentario, actor.id, decisor.como === 'delegado', valores.criteriosCumplidos, valores.criteriosTotal],
+                criterios_cumplidos = EXCLUDED.criterios_cumplidos, criterios_total = EXCLUDED.criterios_total,
+                dod_cumplidos = EXCLUDED.dod_cumplidos, dod_total = EXCLUDED.dod_total`,
+        [sprint.id, historia.id, valores.decision, valores.comentario, actor.id, decisor.como === 'delegado', valores.criteriosCumplidos, valores.criteriosTotal,
+          valores.dodCumplidos, valores.dodTotal],
       );
 
       if (valores.decision === 'aceptada') {
         await cliente.query("UPDATE historias SET estado = 'aceptada', version = version + 1 WHERE id = $1", [historia.id]);
       } else if (sprint.estado === 'cerrado') {
-        // El sprint ya cerró y no habrá otro cierre que la mueva: regresa al backlog, igual que lo hace HU-09
+        // El sprint ya cerró y no habrá otro cierre que la mueva: regresa al backlog, igual que lo hace el cierre del sprint
         await cliente.query("UPDATE historias SET sprint_id = NULL, estado = 'backlog', version = version + 1 WHERE id = $1", [historia.id]);
         await cliente.query('UPDATE tareas SET sprint_id = NULL, columna_id = NULL WHERE historia_id = $1 AND sprint_id = $2', [historia.id, sprint.id]);
       } else {
@@ -414,6 +451,8 @@ export async function decidir(actor, sprintId, historiaId, datos = {}) {
           delegacion_id: decisor.delegacion?.id ?? null,
           criterios_cumplidos: valores.criteriosCumplidos,
           criterios_total: valores.criteriosTotal,
+          dod_cumplidos: valores.dodCumplidos,
+          dod_total: valores.dodTotal,
           velocity_sprint: velocityGuardada,
         },
       });
@@ -435,7 +474,7 @@ export async function decidir(actor, sprintId, historiaId, datos = {}) {
 }
 
 /* ====================================================================
- * Delegación temporal de la aceptación (HU-12 · tarea 3)
+ * Delegación temporal de la aceptación
  * ==================================================================== */
 
 /**

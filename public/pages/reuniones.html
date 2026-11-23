@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!--
+  @file reuniones.html
+  @description Pantalla de reuniones Scrum (Planning, Daily, Review y Retrospectiva): el Scrum Master las crea, edita y
+  elimina; el Product Owner y los desarrolladores las consultan. Solo el contenido del área de trabajo; el menú lo pone layout.js
+
+  @author Diego Rafael Jiménez Trujano
+-->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Reuniones · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/notificaciones.css" />
+
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Reuniones Scrum</h1>
+        <p class="subtitulo-pagina" id="subtitulo">Planning, Daily, Review y Retrospectiva: cuándo son y quién participa.</p>
+      </div>
+      <div>
+        <label class="solo-lectores" for="filtro-tipo">Tipo de reunión</label>
+        <select class="form-input" id="filtro-tipo">
+          <option value="">Todos los tipos</option>
+          <option value="planning">Planning</option>
+          <option value="daily">Daily</option>
+          <option value="review">Review</option>
+          <option value="retro">Retrospectiva</option>
+        </select>
+        <button class="boton boton--primario" id="btn-nueva" type="button" data-permiso="reunion.gestionar">+ Nueva reunión</button>
+      </div>
+    </div>
+
+    <div id="aviso" class="ciclo-aviso" role="status" aria-live="polite" hidden></div>
+
+    <section aria-labelledby="titulo-proximas">
+      <h2 class="ciclo__titulo" id="titulo-proximas">Próximas</h2>
+      <div id="lista-proximas" aria-busy="true"></div>
+    </section>
+
+    <section aria-labelledby="titulo-anteriores">
+      <h2 class="ciclo__titulo" id="titulo-anteriores">Anteriores</h2>
+      <div id="lista-anteriores"></div>
+    </section>
+  </main>
+
+  <!-- Crear o editar una reunión (solo Scrum Master) -->
+  <dialog class="ciclo-dialogo" id="dialogo-reunion" aria-labelledby="reunion-titulo">
+    <form class="ciclo-dialogo__cuerpo" id="form-reunion" novalidate>
+      <h2 class="ciclo-dialogo__titulo" id="reunion-titulo">Nueva reunión</h2>
+      <div class="form-group">
+        <label class="form-label" for="campo-titulo">Título</label>
+        <input class="form-input" id="campo-titulo" name="titulo" type="text" maxlength="150" autocomplete="off" />
+        <p class="ciclo-error" id="error-titulo" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-tipo">Tipo</label>
+        <select class="form-input" id="campo-tipo" name="tipo">
+          <option value="planning">Planning</option>
+          <option value="daily">Daily</option>
+          <option value="review">Review</option>
+          <option value="retro">Retrospectiva</option>
+        </select>
+        <p class="ciclo-error" id="error-tipo" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-fecha">Fecha</label>
+        <input class="form-input" id="campo-fecha" name="fecha" type="date" />
+        <p class="ciclo-error" id="error-fecha" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-hora-inicio">Hora de inicio <span class="ciclo__ayuda">(opcional: si la dejas vacía se usa el horario habitual)</span></label>
+        <input class="form-input" id="campo-hora-inicio" name="hora_inicio" type="time" />
+        <p class="ciclo-error" id="error-hora_inicio" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-hora-fin">Hora de fin <span class="ciclo__ayuda">(opcional)</span></label>
+        <input class="form-input" id="campo-hora-fin" name="hora_fin" type="time" />
+        <p class="ciclo-error" id="error-hora_fin" hidden></p>
+      </div>
+      <fieldset class="ciclo-decision">
+        <legend>Participantes</legend>
+        <div id="opciones-participantes"></div>
+        <p class="ciclo-error" id="error-participantes" hidden></p>
+      </fieldset>
+      <div class="form-group">
+        <label class="form-label" for="campo-notas">Notas <span class="ciclo__ayuda">(opcional)</span></label>
+        <textarea class="form-input" id="campo-notas" name="notas" rows="3" maxlength="2000"></textarea>
+        <p class="ciclo-error" id="error-notas" hidden></p>
+      </div>
+      <p class="ciclo__ayuda" id="zona-ayuda"></p>
+      <p class="ciclo-error" id="error-reunion" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario" id="btn-guardar" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirmar la eliminación de una reunión -->
+  <dialog class="ciclo-dialogo" id="dialogo-eliminar" aria-labelledby="eliminar-titulo">
+    <div class="ciclo-dialogo__cuerpo">
+      <h2 class="ciclo-dialogo__titulo" id="eliminar-titulo">Eliminar reunión</h2>
+      <p class="ciclo__ayuda" id="eliminar-texto"></p>
+      <p class="ciclo-error" id="error-eliminar" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario boton--peligro" id="btn-confirmar-eliminar" type="button">Eliminar reunión</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="../socket.io/socket.io.js"></script>
+  <script type="module" src="../js/pages/reuniones.js"></script>
+</body>
+
+</html>

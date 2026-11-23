@@ -29,6 +29,8 @@ const id = new URLSearchParams(location.search).get('id');
 const editando = Boolean(id);
 let versionActual = null;
 let guardando = false;
+let datosPuedeEliminar = false;
+let datosPuedeGestionar = false;
 
 // ---------- Utilidades ----------
 
@@ -127,11 +129,13 @@ async function cargarProyecto() {
     avisar(estado === 404 ? 'No encontramos este proyecto.' : 'No se pudo cargar el proyecto. Recarga la página.', 'error');
     return null;
   }
-  if (!datos.puede_gestionar) {
-    avisar('Solo un administrador puede crear o editar proyectos.', 'error');
+  if (!datos.puede_gestionar && !datos.puede_eliminar) {
+    avisar('No tienes permisos para administrar este proyecto.', 'error');
     return null;
   }
   const p = datos.proyecto;
+  datosPuedeEliminar = datos.puede_eliminar === true;
+  datosPuedeGestionar = datos.puede_gestionar === true;
   rellenarFormulario(p);
   const select = $('equipo_id');
   select.innerHTML = '<option></option>';
@@ -166,13 +170,14 @@ async function iniciar() {
         avisar('Este proyecto está archivado y no se puede editar.', 'error');
         return;
       }
-      $('zona-archivar').hidden = false;
+      if (datosPuedeGestionar) $('zona-archivar').hidden = false;
+      if (datosPuedeEliminar) $('zona-eliminar').hidden = false;
       mostrarModo(proyecto);
       cargarTransferencia().catch(() => { /* sin rol que transferir: la sección queda oculta */ });
     } else {
       await cargarEquipos();
     }
-    $('formulario').hidden = false;
+    $('formulario').hidden = editando && !datosPuedeGestionar;
   } catch (error) {
     avisar(error.estado === 403
       ? 'Solo un administrador puede crear o editar proyectos.'
@@ -403,3 +408,20 @@ $('archivar-confirmar').addEventListener('click', async () => {
 });
 
 iniciar();
+// ---------- HU-64: eliminación definitiva ----------
+$('eliminar').addEventListener('click', () => $('dialogo-eliminar').showModal());
+$('eliminar-cancelar').addEventListener('click', () => $('dialogo-eliminar').close());
+$('eliminar-confirmar').addEventListener('click', async () => {
+  const boton = $('eliminar-confirmar');
+  boton.disabled = true;
+  $('error-eliminar').textContent = '';
+  try {
+    const res = await llamar(`/proyectos/${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+    if (res.ok) { location.href = '/pages/dashboard.html'; return; }
+    $('error-eliminar').textContent = res.datos?.mensaje || 'No se pudo eliminar el proyecto.';
+  } catch {
+    $('error-eliminar').textContent = 'Sin conexión. No se pudo confirmar la eliminación.';
+  } finally {
+    boton.disabled = false;
+  }
+});

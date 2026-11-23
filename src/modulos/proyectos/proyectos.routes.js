@@ -19,5 +19,6 @@ router.post('/', controller.crear);
 router.get('/:id', controller.obtener);
 router.put('/:id', controller.actualizar);
 router.post('/:id/archivar', controller.archivar);
+router.delete('/:id', controller.eliminar);
 
 export default router;

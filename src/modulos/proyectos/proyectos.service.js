@@ -470,3 +470,55 @@ export async function archivar(id, usuario) {
   }
   return obtener(id, usuario);
 }
+
+/**
+ * HU-64: solo el creador o el Product Owner asignado puede eliminar.
+ * La comprobación de permisos se repite dentro de la transacción.
+ */
+export async function puedeEliminar(id, usuario) {
+  if (!usuario?.id || !Number.isInteger(Number(id)) || Number(id) <= 0) return false;
+  const { rows } = await query(
+    `SELECT 1 FROM proyectos p
+     WHERE p.id = $1 AND (
+       p.creado_por = $2 OR EXISTS (
+         SELECT 1 FROM miembros_proyecto mp
+         WHERE mp.proyecto_id = p.id AND mp.usuario_id = $2 AND mp.rol = 'product_owner'
+       )
+     )`,
+    [id, usuario.id]
+  );
+  return rows.length > 0;
+}
+
+export async function eliminar(id, usuario) {
+  if (!usuario?.id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+    lanzar(404, 'Proyecto no encontrado.');
+  }
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const { rows } = await cliente.query(
+      'SELECT id, nombre, creado_por FROM proyectos WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    if (!rows.length) lanzar(404, 'Proyecto no encontrado.');
+    const proyecto = rows[0];
+    const permiso = await cliente.query(
+      `SELECT 1 FROM miembros_proyecto
+       WHERE proyecto_id = $1 AND usuario_id = $2 AND rol = 'product_owner'`,
+      [id, usuario.id]
+    );
+    if (Number(proyecto.creado_por) !== Number(usuario.id) && !permiso.rows.length) {
+      lanzar(403, 'Solo quien creó el proyecto o su Product Owner puede eliminarlo.');
+    }
+    // La bitácora histórica no tiene FK y se conserva. No se modifica ni borra.
+    await cliente.query('DELETE FROM proyectos WHERE id = $1', [id]);
+    await cliente.query('COMMIT');
+    return { id: Number(id) };
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}

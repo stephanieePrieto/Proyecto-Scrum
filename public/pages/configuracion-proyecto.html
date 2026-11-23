@@ -139,6 +139,14 @@
       <button class="boton boton--secundario" type="button" id="archivar">Archivar proyecto</button>
     </section>
 
+    <section class="tarjeta" id="zona-eliminar" hidden
+      style="max-width: 820px; margin: 24px auto 0; padding: 20px;">
+      <h2 class="eq-dialogo__titulo">Eliminar proyecto definitivamente</h2>
+      <p class="subtitulo-pagina">Esta acción borra el proyecto y sus datos asociados. El equipo se conserva.</p>
+      <p class="eq-error" id="error-eliminar" role="alert"></p>
+      <button class="boton boton--secundario" type="button" id="eliminar">Eliminar proyecto</button>
+    </section>
+
     <!-- HU-26: modo de trabajo (Scrum o flujo continuo). El botón solo aparece a quien puede gestionar el proyecto. -->
     <section class="tarjeta modo-flujo__seccion" id="zona-modo" hidden>
       <div>
@@ -188,6 +196,16 @@
     </div>
   </dialog>
 
+  <dialog id="dialogo-eliminar" class="eq-dialogo"
+    style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); margin: 0; max-height: calc(100vh - 40px); overflow-y: auto;"
+    aria-labelledby="eliminar-titulo">
+    <h2 id="eliminar-titulo" class="eq-dialogo__titulo">¿Eliminar este proyecto definitivamente?</h2>
+    <p class="subtitulo-pagina">Se eliminarán sus historias, tareas, sprints y demás datos asociados. No se puede deshacer. El equipo no se eliminará.</p>
+    <div class="modal-footer">
+      <button class="boton boton--secundario" type="button" id="eliminar-cancelar">Cancelar</button>
+      <button class="boton boton--primario" type="button" id="eliminar-confirmar">Sí, eliminar definitivamente</button>
+    </div>
+  </dialog>
   <script type="module" src="../js/pages/configuracion-proyecto.js"></script>
 </body>
 

@@ -132,14 +132,32 @@ export async function avance(req, res, next) {
 }
 
 /**
- * Responder con la información del Burndown del sprint activo (HU-29).
+ * Responder con el Burndown diario de un sprint 
+ * Acepta ?sprintId=N para graficar ese sprint (sin él: el activo, o el más reciente)
+ * y ?unidad=horas|puntos (por defecto horas).
  *
- * @route GET /api/metricas/proyectos/:proyectoId/burndown
+ * @route GET /api/metricas/proyectos/:proyectoId/burndown?sprintId=N&unidad=horas|puntos
  */
 export async function burndown(req, res, next) {
   try {
     const proyectoId = await validarAcceso(req);
-    res.json(await obtenerBurndown(proyectoId, await resolverFiltroUsuario(req, proyectoId)));
+
+    // sprintId es opcional, pero si viene debe ser un entero positivo
+    let sprintId = null;
+    if (req.query.sprintId !== undefined && req.query.sprintId !== '') {
+      sprintId = aEnteroPositivo(req.query.sprintId);
+      if (!sprintId) throw new ErrorApp('El identificador del sprint no es válido.', 400);
+    }
+
+    // unidad es opcional; el servicio rechaza cualquier valor distinto de horas|puntos
+    const unidad = req.query.unidad !== undefined && req.query.unidad !== '' ? String(req.query.unidad) : 'horas';
+
+    res.json(await obtenerBurndown(proyectoId, {
+      usuarioId: req.user.id,
+      usuarioIdFiltro: await resolverFiltroUsuario(req, proyectoId),
+      sprintId,
+      unidad,
+    }));
   } catch (error) {
     responderError(error, res, next);
   }

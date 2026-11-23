@@ -120,6 +120,11 @@ function pintarRonda() {
       else if (sesion.consenso) avisos.push('Todos coincidieron en la estimación.');
       else if (sesion.estado === 'revelada') avisos.push('No hubo consenso completo; pueden discutir y repetir la ronda.');
     }
+    const todosVotaronPregunta = sesion.todos_sin_estimacion === true;
+    if (todosVotaronPregunta) {
+      $('pp-estado-ronda').textContent = 'No se puede finalizar la cuarta ronda: todos votaron ?.';
+      avisos.push('Se necesita al menos un voto numérico para calcular la estimación final. La cuarta ronda sigue abierta: cualquier participante puede cambiar su voto.');
+    }
     if (sesion.estado === 'revelada' && sesion.ronda === 3 && !sesion.consenso) {
       avisos.push('Queda una ronda. En la cuarta se calcularán los puntos finales automáticamente.');
     }
@@ -142,19 +147,24 @@ function pintarRonda() {
   }
   for (const boton of $('pp-cartas-voto').querySelectorAll('[data-voto]')) {
     boton.disabled = !sesion || sesion.estado !== 'votando' || procesandoRonda || !['developer', 'scrum_master', 'product_owner'].includes(rolActual());
-    boton.setAttribute('aria-pressed', String(sesion?.mi_voto === Number(boton.dataset.voto)));
+    boton.setAttribute('aria-pressed', String(sesion?.mi_voto === boton.dataset.voto));
   }
   $('pp-aviso-voto').textContent = sesion?.mi_voto
     ? `Tu voto: ${sesion.mi_voto} puntos. ${sesion.estado === 'votando' ? 'Puedes cambiarlo mientras la ronda siga abierta.' : 'La ronda ya terminó.'}`
     : 'Elige una carta. Los demás no verán tu valor hasta revelar la ronda.';
   const puedeFinalizar = Boolean(sesion && sesion.estado === 'revelada' && permisoModerador);
-  $('pp-final-panel').hidden = !puedeFinalizar;
+  $('pp-final-panel').hidden = !puedeFinalizar || sesion?.ronda === 4;
+  $('pp-horas-cerradas').hidden = !sesion || sesion.estado !== 'cerrada' || !permisoModerador;
+  if (sesion?.estado === 'cerrada' && document.activeElement !== $('pp-horas-cierre')) {
+    $('pp-horas-cierre').value = sesion.horas_estimadas ?? '';
+  }
+  $('pp-guardar-horas').disabled = procesandoRonda;
   $('pp-revelar').hidden = !sesion || sesion.estado !== 'votando' || !permisoModerador;
   $('pp-revelar').disabled = procesandoRonda || !sesion?.votos_recibidos || sesion.votos_recibidos === sesion.total_participantes;
   if (!sesion) $('pp-diagnostico').textContent = '';
   $('pp-otra-ronda').disabled = procesandoRonda || !sesion || sesion.ronda >= 4;
   $('pp-otra-ronda').textContent = sesion?.ronda === 3 ? 'Iniciar cuarta ronda' : 'Votar de nuevo';
-  $('pp-fijar').disabled = procesandoRonda || !$('pp-valor-final').value;
+  $('pp-fijar').disabled = procesandoRonda || !$('pp-valor-final').value || $('pp-horas-final').value === ''; 
 }
 
 async function cargarRonda() {
@@ -200,6 +210,8 @@ async function ejecutarRonda(ruta, cuerpo) {
 $('pp-historia').addEventListener('change', () => {
   sesionPoker = null;
   $('pp-valor-final').value = '';
+  $('pp-horas-final').value = '';
+  $('pp-horas-cierre').value = '';
   cargarRonda();
 });
 $('pp-actualizar').addEventListener('click', () => cargarRonda());
@@ -210,9 +222,10 @@ $('pp-iniciar').addEventListener('click', () => {
 $('pp-cartas-voto').addEventListener('click', (evento) => {
   const boton = evento.target.closest('[data-voto]');
   const h = historiaActual();
-  if (h && boton && !boton.disabled) ejecutarRonda(`${rutaRonda(h.id)}/voto`, { puntos: Number(boton.dataset.voto) });
+  if (h && boton && !boton.disabled) ejecutarRonda(`${rutaRonda(h.id)}/voto`, { puntos: boton.dataset.voto === '?' ? '?' : Number(boton.dataset.voto) });
 });
 $('pp-valor-final').addEventListener('change', pintarRonda);
+$('pp-horas-final').addEventListener('input', pintarRonda);
 // Confirmación propia de la página: no utilizar confirm() nativo del navegador.
 const modalRevelar = $('pp-modal-revelar');
 let historiaPendienteRevelar = null;
@@ -254,8 +267,20 @@ $('pp-fijar').addEventListener('click', () => {
   const h = historiaActual();
   const puntos = Number($('pp-valor-final').value);
   if (h && permisoModerador && [1, 2, 3, 5, 8, 13, 21].includes(puntos)) {
-    ejecutarRonda(`${rutaRonda(h.id)}/cerrar`, { puntos });
+    const horas_estimadas = Number($('pp-horas-final').value);
+    if ($('pp-horas-final').value !== '' && Number.isFinite(horas_estimadas) && horas_estimadas >= 0) {
+      ejecutarRonda(`${rutaRonda(h.id)}/cerrar`, { puntos, horas_estimadas });
+    }
   }
+});
+
+$('pp-guardar-horas').addEventListener('click', () => {
+  const h = historiaActual();
+  const input = $('pp-horas-cierre');
+  if (!h || !permisoModerador || input.value === '') return;
+  const horas_estimadas = Number(input.value);
+  if (!Number.isFinite(horas_estimadas) || horas_estimadas < 0) return;
+  ejecutarRonda(`${rutaRonda(h.id)}/horas`, { horas_estimadas });
 });
 
 // Socket.IO informa del cambio sin exponer los votos secretos.

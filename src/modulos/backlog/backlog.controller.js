@@ -71,3 +71,12 @@ export const rechazar = envolver(async (req, res) => {
 export const reordenar = envolver(async (req, res) => {
   res.json(await servicio.reordenar(req.user, req.params.proyectoId, req.body));
 });
+/** PATCH /api/backlog/historias/:id/criterios/:criterioId */
+export const cambiarCriterio = envolver(async (req, res) => {
+  const criterio = await servicio.cambiarCriterio(req.user, req.params.id, req.params.criterioId, req.body?.cumplido);
+  res.json({ criterio });
+});
+
+export const listarCriterios = envolver(async (req, res) => {
+  res.json({ criterios: await servicio.listarCriterios(req.user, req.params.id) });
+});

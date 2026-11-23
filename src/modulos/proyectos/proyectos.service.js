@@ -105,8 +105,13 @@ function validarDatos(datos = {}, { esCreacion }) {
     campos.fecha_fin = 'La fecha de fin no puede ser anterior a la de inicio.';
   }
 
-  if (esCreacion && !Number.isInteger(Number(datos.equipo_id))) {
-    campos.equipo_id = 'Selecciona el equipo del proyecto.';
+  const equipoNuevo = esCreacion && datos.equipo_id === 'nuevo';
+  const nombreEquipoNuevo = String(datos.nombre_equipo_nuevo ?? '').trim().replace(/\s+/g, ' ');
+  if (esCreacion && !equipoNuevo && (!Number.isInteger(Number(datos.equipo_id)) || Number(datos.equipo_id) <= 0)) {
+    campos.equipo_id = 'Selecciona un equipo o crea uno nuevo.';
+  }
+  if (equipoNuevo && (!nombreEquipoNuevo || nombreEquipoNuevo.length > 120)) {
+    campos.nombre_equipo_nuevo = 'Escribe un nombre de equipo de hasta 120 caracteres.';
   }
 
   if (Object.keys(campos).length) lanzar(400, 'Revisa los campos marcados.', { campos });
@@ -116,7 +121,8 @@ function validarDatos(datos = {}, { esCreacion }) {
     definition_of_done: dod || DOD_BASE,
     github_repo_url: repositorioGitHub?.url ?? null,
     github_repo_url_presente: githubRepoUrlPresente,
-    equipo_id: esCreacion ? Number(datos.equipo_id) : undefined,
+    equipo_id: esCreacion && !equipoNuevo ? Number(datos.equipo_id) : undefined,
+    nombre_equipo_nuevo: equipoNuevo ? nombreEquipoNuevo : null,
     miembros: esCreacion && Array.isArray(datos.miembros) ? datos.miembros : []
   };
 }
@@ -220,10 +226,10 @@ export async function equiposDisponibles(usuario) {
 export async function crear(datos, usuario) {
   const limpio = validarDatos(datos, { esCreacion: true });
 
-  await exigirMiembroEquipo(limpio.equipo_id, usuario);
+  if (!limpio.nombre_equipo_nuevo) await exigirMiembroEquipo(limpio.equipo_id, usuario);
   validarRolesUnicos(limpio.miembros, usuario);
 
-  if (await existeNombre(limpio.equipo_id, limpio.nombre)) {
+  if (!limpio.nombre_equipo_nuevo && await existeNombre(limpio.equipo_id, limpio.nombre)) {
     lanzar(409, 'Ya existe un proyecto con ese nombre en el equipo.', ERROR_NOMBRE);
   }
 
@@ -233,6 +239,18 @@ export async function crear(datos, usuario) {
   const cliente = await pool.connect();
   try {
     await cliente.query('BEGIN');
+
+    if (limpio.nombre_equipo_nuevo) {
+      const { rows: equiposNuevos } = await cliente.query(
+        'INSERT INTO equipos (nombre, creado_por) VALUES ($1, $2) RETURNING id',
+        [limpio.nombre_equipo_nuevo, usuario.id]
+      );
+      limpio.equipo_id = equiposNuevos[0].id;
+      await cliente.query(
+        'INSERT INTO miembros_equipo (equipo_id, usuario_id) VALUES ($1, $2)',
+        [limpio.equipo_id, usuario.id]
+      );
+    }
 
     const { rows } = await cliente.query(
       `INSERT INTO proyectos (equipo_id, nombre, vision, fecha_inicio, fecha_fin, definition_of_done, github_repo_url, creado_por)
@@ -451,4 +469,56 @@ export async function archivar(id, usuario) {
     lanzar(409, 'El proyecto tiene un sprint activo. Cierra el sprint antes de archivarlo.', { motivo: 'sprint_activo' });
   }
   return obtener(id, usuario);
+}
+
+/**
+ * HU-64: solo el creador o el Product Owner asignado puede eliminar.
+ * La comprobación de permisos se repite dentro de la transacción.
+ */
+export async function puedeEliminar(id, usuario) {
+  if (!usuario?.id || !Number.isInteger(Number(id)) || Number(id) <= 0) return false;
+  const { rows } = await query(
+    `SELECT 1 FROM proyectos p
+     WHERE p.id = $1 AND (
+       p.creado_por = $2 OR EXISTS (
+         SELECT 1 FROM miembros_proyecto mp
+         WHERE mp.proyecto_id = p.id AND mp.usuario_id = $2 AND mp.rol = 'product_owner'
+       )
+     )`,
+    [id, usuario.id]
+  );
+  return rows.length > 0;
+}
+
+export async function eliminar(id, usuario) {
+  if (!usuario?.id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+    lanzar(404, 'Proyecto no encontrado.');
+  }
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const { rows } = await cliente.query(
+      'SELECT id, nombre, creado_por FROM proyectos WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    if (!rows.length) lanzar(404, 'Proyecto no encontrado.');
+    const proyecto = rows[0];
+    const permiso = await cliente.query(
+      `SELECT 1 FROM miembros_proyecto
+       WHERE proyecto_id = $1 AND usuario_id = $2 AND rol = 'product_owner'`,
+      [id, usuario.id]
+    );
+    if (Number(proyecto.creado_por) !== Number(usuario.id) && !permiso.rows.length) {
+      lanzar(403, 'Solo quien creó el proyecto o su Product Owner puede eliminarlo.');
+    }
+    // La bitácora histórica no tiene FK y se conserva. No se modifica ni borra.
+    await cliente.query('DELETE FROM proyectos WHERE id = $1', [id]);
+    await cliente.query('COMMIT');
+    return { id: Number(id) };
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
 }

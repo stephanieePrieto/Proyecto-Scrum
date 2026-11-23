@@ -26,3 +26,13 @@ export const iniciar = envolver(async (req, res) => {
 export const cerrar = envolver(async (req, res) => {
   res.json(await servicio.cerrar(req.user, req.params.id, req.body));
 });
+
+/** GET /api/ciclo-sprint/sprint/:id/dod → { sprint, proyecto, base, heredaDelProyecto, historias, editable } */
+export const consultarDod = envolver(async (req, res) => {
+  res.json(await servicio.consultarDod(req.user, req.params.id));
+});
+
+/** PUT /api/ciclo-sprint/sprint/:id/dod  { definition_of_done, historias: [{ id, definition_of_done }] } → igual que GET */
+export const guardarDod = envolver(async (req, res) => {
+  res.json(await servicio.guardarDod(req.user, req.params.id, req.body));
+});

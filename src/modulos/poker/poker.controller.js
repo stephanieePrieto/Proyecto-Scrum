@@ -38,3 +38,7 @@ export const cerrarPoker = asyncHandler(async (req, res) => {
 export const revelarPoker = asyncHandler(async (req, res) => {
   res.json(await servicio.revelarPoker(req.user, req.params.proyectoId, req.params.historiaId));
 });
+
+export const guardarHorasPoker = asyncHandler(async (req, res) => {
+  res.json(await servicio.guardarHorasPoker(req.user, req.params.proyectoId, req.params.historiaId, req.body));
+});

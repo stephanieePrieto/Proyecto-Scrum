@@ -22,7 +22,7 @@ async function comprobarProyecto(usuario, proyectoId, escritura = false) {
     throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
   }
   if (escritura) {
-    if (!(await tienePermiso(usuario, 'historia.gestionar', id))) {
+    if (!(await tienePermiso(usuario, 'epica.gestionar', id))) {
       throw new ErrorApp('No tienes permiso para gestionar épicas en este proyecto.', 403);
     }
     if (rows[0].archivado) throw new ErrorApp('El proyecto está archivado.', 409);
@@ -32,10 +32,12 @@ async function comprobarProyecto(usuario, proyectoId, escritura = false) {
 
 function validarDatos(datos = {}) {
   const nombre = typeof datos.nombre === 'string' ? datos.nombre.trim() : '';
-  const color = typeof datos.color === 'string' ? datos.color.trim() : '#4F46E5';
+  const color = typeof datos.color === 'string' ? datos.color.trim() : '';
+  const descripcion = typeof datos.descripcion === 'string' ? datos.descripcion.trim() : '';
   if (!nombre || nombre.length > 80) throw new ErrorApp('El nombre de la épica debe tener entre 1 y 80 caracteres.', 400);
+  if (!descripcion || descripcion.length > 2000) throw new ErrorApp('La descripción de la épica debe tener entre 1 y 2000 caracteres.', 400);
   if (!/^#[0-9A-Fa-f]{6}$/.test(color)) throw new ErrorApp('Selecciona un color válido para la épica.', 400);
-  return { nombre, color };
+  return { nombre, color, descripcion };
 }
 
 function gestionarErrorUnico(error) {
@@ -45,17 +47,17 @@ function gestionarErrorUnico(error) {
 
 export async function listar(usuario, proyectoId) {
   const id = await comprobarProyecto(usuario, proyectoId);
-  const { rows } = await consulta('SELECT id, nombre, color FROM epicas WHERE proyecto_id = $1 ORDER BY nombre, id', [id]);
+  const { rows } = await consulta('SELECT id, nombre, color, descripcion FROM epicas WHERE proyecto_id = $1 ORDER BY nombre, id', [id]);
   return rows;
 }
 
 export async function crear(usuario, proyectoId, datos) {
   const id = await comprobarProyecto(usuario, proyectoId, true);
-  const { nombre, color } = validarDatos(datos);
+  const { nombre, color, descripcion } = validarDatos(datos);
   try {
     const { rows } = await consulta(
-      'INSERT INTO epicas (proyecto_id, nombre, color) VALUES ($1, $2, $3) RETURNING id, nombre, color',
-      [id, nombre, color],
+      'INSERT INTO epicas (proyecto_id, nombre, color, descripcion) VALUES ($1, $2, $3, $4) RETURNING id, nombre, color, descripcion',
+      [id, nombre, color, descripcion],
     );
     emitirAProyecto(id, 'story:updated', { proyecto_id: id, epica_id: rows[0].id });
     return rows[0];
@@ -66,11 +68,11 @@ export async function actualizar(usuario, proyectoId, epicaId, datos) {
   const id = await comprobarProyecto(usuario, proyectoId, true);
   const epicId = aId(epicaId);
   if (!epicId) throw new ErrorApp('Épica no encontrada en este proyecto.', 404);
-  const { nombre, color } = validarDatos(datos);
+  const { nombre, color, descripcion } = validarDatos(datos);
   try {
     const { rows } = await consulta(
-      'UPDATE epicas SET nombre = $1, color = $2 WHERE id = $3 AND proyecto_id = $4 RETURNING id, nombre, color',
-      [nombre, color, epicId, id],
+      'UPDATE epicas SET nombre = $1, color = $2, descripcion = $3 WHERE id = $4 AND proyecto_id = $5 RETURNING id, nombre, color, descripcion',
+      [nombre, color, descripcion, epicId, id],
     );
     if (!rows[0]) throw new ErrorApp('Épica no encontrada en este proyecto.', 404);
     emitirAProyecto(id, 'story:updated', { proyecto_id: id, epica_id: epicId });

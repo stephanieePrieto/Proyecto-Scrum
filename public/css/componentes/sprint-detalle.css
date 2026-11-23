@@ -188,3 +188,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Releases: línea de tiempo de sprints agrupados (releases.html) ------ */
+.release-linea {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0 0 4px;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.release-linea__sprint {
+  flex: 1 0 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--slate-300);
+  border-radius: var(--radio-xl);
+  background: var(--fondo-tarjeta);
+  font-size: 13px;
+}
+
+.release-linea__sprint--activo {
+  border-top-color: var(--esmeralda-500);
+}
+
+.release-linea__sprint--cerrado {
+  border-top-color: var(--primario);
+}
+
+.release-linea__sprint .resumen__miembro-barra {
+  margin: 8px 0 6px;
+}
+
+.release-avance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.release-avance .resumen__miembro-barra {
+  flex: 1;
+}

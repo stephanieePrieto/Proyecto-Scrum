@@ -35,7 +35,9 @@ export const obtenerEstructuraTablero = async (proyectoId) => {
 
     const historiasRes = sprintActivo
         ? await consulta(
-            `SELECT h.id, h.numero_hu, h.titulo, e.nombre AS epica_nombre
+            `SELECT h.id, h.numero_hu, h.titulo, e.nombre AS epica_nombre,
+              COALESCE((SELECT json_agg(json_build_object('id',c.id,'descripcion',c.descripcion,'cumplido',c.cumplido) ORDER BY c.posicion)
+                FROM criterios_aceptacion c WHERE c.historia_id=h.id),'[]'::json) AS criterios_items
              FROM historias h
              LEFT JOIN epicas e ON e.id = h.epica_id
              WHERE h.proyecto_id = $1 AND h.sprint_id = $2

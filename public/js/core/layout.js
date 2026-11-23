@@ -62,6 +62,7 @@ const ENLACES = [
   { href: '/pages/dashboard.html', etiqueta: 'Dashboard', icono: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
   { href: '/pages/backlog.html', etiqueta: 'Backlog', icono: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>' },
   { href: '/pages/sprints.html', etiqueta: 'Sprints', permiso: 'sprint.gestionar', icono: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>' },
+  { href: '/pages/releases.html', etiqueta: 'Releases', icono: '<path d="M3 12h18"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><path d="M18 8v8M18 8l3 2-3 2"/>' },
   { href: '/pages/tablero.html', etiqueta: 'Tablero', icono: '<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="8" rx="1"/>' },
   { href: '/pages/mis-horas.html', etiqueta: 'Mis horas', icono: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
   { href: '/pages/daily.html', etiqueta: 'Daily', icono: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
@@ -71,6 +72,7 @@ const ENLACES = [
   { href: '/pages/review.html', etiqueta: 'Review', icono: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 14l2 2 4-4"/>' },
   { href: '/pages/retrospectiva.html', etiqueta: 'Retro', icono: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/>' },
   { href: '/pages/calendario.html', etiqueta: 'Calendario', icono: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2"/>' },
+  { href: '/pages/reuniones.html', etiqueta: 'Reuniones', icono: '<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c0-3 2.7-5 6-5s6 2 6 5M14 15.5c.6-.3 1.3-.5 2-.5 3.3 0 6 2 6 5"/>' },
   { href: '/pages/equipos.html', etiqueta: 'Equipo', icono: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>' },
   { href: '/pages/metricas.html', etiqueta: 'Métricas', icono: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
   { href: '/pages/comparativo.html', etiqueta: 'Comparativo', icono: '<path d="M3 20h18M7 16v-5M12 16V6M17 16v-8"/>' },
@@ -90,7 +92,7 @@ const CLASE_GRUPO_ABIERTO = 'barra-superior__grupo--abierto';
 const GRUPOS = [
   {
     etiqueta: 'Planificación',
-    hrefs: ['/pages/backlog.html', '/pages/sprints.html', '/pages/capacidad.html'],
+    hrefs: ['/pages/backlog.html', '/pages/sprints.html', '/pages/releases.html', '/pages/capacidad.html'],
   },
   {
     etiqueta: 'Ejecución',
@@ -98,7 +100,7 @@ const GRUPOS = [
   },
   {
     etiqueta: 'Seguimiento',
-    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/comparativo.html', '/pages/review.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/mis-horas.html', '/pages/auditoria.html', '/pages/github.html'],
+    hrefs: ['/pages/dashboard.html', '/pages/metricas.html', '/pages/comparativo.html', '/pages/review.html', '/pages/retrospectiva.html', '/pages/calendario.html', '/pages/reuniones.html', '/pages/mis-horas.html', '/pages/auditoria.html', '/pages/github.html'],
   },
   {
     etiqueta: 'Equipo',

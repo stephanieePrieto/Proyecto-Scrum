@@ -1,6 +1,6 @@
 /**
  * @file reviews.service.test.js
- * @description Pruebas del servicio de la Sprint Review (HU-12) con la base de datos simulada: permisos por rol,
+ * @description Pruebas del servicio de la Sprint Review con la base de datos simulada: permisos por rol,
  * "prevalece la primera decisión", criterios incompletos, delegación, auditoría y velocity.
  * Compatible con Jest y ES Modules.
  * 
@@ -25,6 +25,7 @@ const respuestaPool = (sql) => {
 const respuestaCliente = (sql) => {
   if (/^(BEGIN|COMMIT|ROLLBACK)/.test(sql)) return { rows: [] };
   if (sql.includes('FROM historias WHERE id = $1')) return { rows: mundo.historia ? [mundo.historia] : [] };
+  if (sql.includes('FROM sprints s JOIN proyectos p')) return { rows: mundo.dod ? [mundo.dod] : [] };
   if (sql.includes('FROM reviews_historias r LEFT JOIN usuarios')) return { rows: mundo.previa ? [mundo.previa] : [] };
   if (sql.includes('FROM tareas t LEFT JOIN columnas_tablero')) return { rows: [mundo.conteo] };
   if (sql.includes('UPDATE sprints s')) return { rows: [{ velocity: 5 }] };
@@ -88,7 +89,7 @@ beforeEach(() => {
   permisos.obtenerRolProyecto.mockResolvedValue('developer');
 });
 
-describe('Review (HU-12) - quién puede decidir', () => {
+describe('Review - quién puede decidir', () => {
   test('un integrante sin delegación no puede aceptar ni rechazar (403) y no se escribe nada', async () => {
     permisos.tienePermiso.mockResolvedValue(false);
     const error = await fallo(servicio.decidir({ id: 8 }, 5, 12, { decision: 'aceptada' }));
@@ -120,7 +121,7 @@ describe('Review (HU-12) - quién puede decidir', () => {
   });
 });
 
-describe('Review (HU-12) - aceptar y rechazar', () => {
+describe('Review - aceptar y rechazar', () => {
   test('aceptar con todos los criterios marca la historia aceptada, audita y avisa a la sala', async () => {
     const resultado = await servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 4 });
     expect(resultado).toMatchObject({ decision: 'aceptada', historia_id: 12, velocity: 5, cambiada: false });
@@ -128,16 +129,61 @@ describe('Review (HU-12) - aceptar y rechazar', () => {
     expect(accionesAuditadas()).toEqual(['review_historia_aceptada']);
   });
 
-  test('aceptar con criterios incompletos (3 de 4) advierte antes de confirmar (409) y no guarda nada', async () => {
+  test('aceptar con criterios incompletos (3 de 4) se rechaza (409) y no guarda nada', async () => {
     const error = await fallo(servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 3 }));
     expect(error.statusCode).toBe(409);
     expect(error.detalles).toMatchObject({ codigo: 'CRITERIOS_INCOMPLETOS', cumplidos: 3, total: 4 });
     expect(sqlDe('INSERT INTO reviews_historias')).toHaveLength(0);
   });
 
-  test('confirmando, acepta aunque falten criterios y guarda cuántos se cumplían', async () => {
-    await servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 3, confirmar: true });
-    expect(sqlDe('INSERT INTO reviews_historias')[0].params.slice(6)).toEqual([3, 4]);
+  test('reintentar con confirmar: true ya no brinca los criterios incompletos (409)', async () => {
+    const error = await fallo(servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 3, confirmar: true }));
+    expect(error.statusCode).toBe(409);
+    expect(error.detalles).toMatchObject({ codigo: 'CRITERIOS_INCOMPLETOS' });
+    expect(sqlDe('INSERT INTO reviews_historias')).toHaveLength(0);
+    expect(sqlDe("estado = 'aceptada'")).toHaveLength(0);
+  });
+
+  test('aceptar sin decir cuántos criterios se cumplen tampoco pasa (409)', async () => {
+    const error = await fallo(servicio.decidir(PO, 5, 12, { decision: 'aceptada' }));
+    expect(error.statusCode).toBe(409);
+    expect(error.detalles).toMatchObject({ codigo: 'CRITERIOS_INCOMPLETOS', cumplidos: 0, total: 4 });
+  });
+
+  test('rechazar guarda cuántos criterios se cumplían', async () => {
+    await servicio.decidir(PO, 5, 12, { decision: 'rechazada', comentario: 'Falta el criterio D', criterios_cumplidos: 3 });
+    expect(sqlDe('INSERT INTO reviews_historias')[0].params.slice(6, 8)).toEqual([3, 4]);
+  });
+});
+
+describe('Review - Definition of Done', () => {
+  beforeEach(() => {
+    mundo.dod = { dod_sprint: 'Código revisado\nPruebas en verde', dod_proyecto: 'Lo del proyecto' };
+    mundo.historia.definition_of_done = 'Documentado en el manual';
+  });
+
+  test('aceptar con la DoD incompleta se rechaza siempre (409 DOD_INCOMPLETA) y no guarda nada', async () => {
+    const error = await fallo(servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 4, dod_cumplidos: 2, confirmar: true }));
+    expect(error.statusCode).toBe(409);
+    expect(error.detalles).toMatchObject({ codigo: 'DOD_INCOMPLETA', cumplidos: 2, total: 3 });
+    expect(sqlDe('INSERT INTO reviews_historias')).toHaveLength(0);
+  });
+
+  test('sin decir cuántos puntos de la DoD se cumplen tampoco se acepta', async () => {
+    const error = await fallo(servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 4 }));
+    expect(error.detalles).toMatchObject({ codigo: 'DOD_INCOMPLETA', cumplidos: 0, total: 3 });
+  });
+
+  test('con criterios y DoD completos se acepta y guarda cuántos puntos de la DoD se cumplían', async () => {
+    await servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 4, dod_cumplidos: 3 });
+    expect(sqlDe('INSERT INTO reviews_historias')[0].params.slice(6)).toEqual([4, 4, 3, 3]);
+    const auditoria = JSON.parse(sqlDe('INSERT INTO bitacora')[0].params[5]);
+    expect(auditoria).toMatchObject({ dod_cumplidos: 3, dod_total: 3 });
+  });
+
+  test('rechazar no exige la DoD completa', async () => {
+    await servicio.decidir(PO, 5, 12, { decision: 'rechazada', comentario: 'Faltan pruebas', criterios_cumplidos: 4, dod_cumplidos: 1 });
+    expect(sqlDe('INSERT INTO reviews_historias')[0].params.slice(8)).toEqual([1, 3]);
   });
 
   test('rechazar sin comentario es un error 400 con el campo marcado', async () => {
@@ -171,7 +217,7 @@ describe('Review (HU-12) - aceptar y rechazar', () => {
   });
 });
 
-describe('Review (HU-12) - decisiones simultáneas y cambios', () => {
+describe('Review - decisiones simultáneas y cambios', () => {
   beforeEach(() => {
     mundo.previa = { decision: 'aceptada', comentario: null, decidido_por_nombre: 'Rosa' };
   });
@@ -207,7 +253,7 @@ describe('Review (HU-12) - decisiones simultáneas y cambios', () => {
   });
 });
 
-describe('Review (HU-12) - velocity', () => {
+describe('Review - velocity', () => {
   test('cada decisión recalcula la velocity guardada del sprint con los puntos aceptados', async () => {
     await servicio.decidir(PO, 5, 12, { decision: 'aceptada', criterios_cumplidos: 4 });
     const recalculo = sqlDe('UPDATE sprints s')[0];
@@ -223,7 +269,7 @@ describe('Review (HU-12) - velocity', () => {
   });
 });
 
-describe('Review (HU-12) - delegación temporal', () => {
+describe('Review - delegación temporal', () => {
   const datos = { delegado_id: 4, hasta: '2026-11-15', motivo: 'Viaje' };
 
   test('solo quien tiene review.delegar puede delegar', async () => {

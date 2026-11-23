@@ -26,6 +26,8 @@ router.get('/proyecto/:proyectoId', controller.listar);
 router.post('/proyecto/:proyectoId/historias', controller.crear);
 router.put('/proyecto/:proyectoId/orden', controller.reordenar);
 router.put('/historias/:id', controller.actualizar);
+router.get('/historias/:id/criterios', controller.listarCriterios);
+router.patch('/historias/:id/criterios/:criterioId', controller.cambiarCriterio);
 router.delete('/historias/:id', controller.eliminar);
 router.post('/historias/:id/devolver', controller.devolver);
 router.post('/historias/:id/aceptar', controller.aceptar);

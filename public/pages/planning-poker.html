@@ -56,7 +56,7 @@
       <div class="pp-cabecera-ronda">
         <div>
           <h2 id="pp-ronda-titulo">Planning Poker en equipo</h2>
-          <p class="pp-ayuda">Selecciona una historia sin estimación. SM o PO inicia la ronda y cada integrante vota con
+          <p class="pp-ayuda">Selecciona una historia sin estimación. Cuando inicia la ronda y cada integrante vota con
             una carta Fibonacci.</p>
         </div>
         <button id="pp-iniciar" type="button" class="boton boton--primario" disabled>Iniciar ronda</button>
@@ -79,10 +79,11 @@
           <button type="button" class="boton boton--secundario pp-carta" data-voto="8">8</button>
           <button type="button" class="boton boton--secundario pp-carta" data-voto="13">13</button>
           <button type="button" class="boton boton--secundario pp-carta" data-voto="21">21</button>
+          <button type="button" class="boton boton--secundario pp-carta" data-voto="?" title="No sé estimar">?</button>
         </div>
         <p id="pp-aviso-voto" class="pp-ayuda">Los demás participantes no podrán ver tu carta antes de revelar.</p>
         <div id="pp-final-panel" class="pp-final" hidden>
-          <label for="pp-valor-final" class="etiqueta-formulario">Estimación final (SM o PO)</label>
+          <label for="pp-valor-final" class="etiqueta-formulario">Estimación final</label>
           <select id="pp-valor-final" class="entrada-formulario">
             <option value="">Seleccionar puntos finales</option>
             <option value="1">1</option>
@@ -93,11 +94,22 @@
             <option value="13">13</option>
             <option value="21">21</option>
           </select>
+          <label class="grupo-formulario" for="pp-horas-final">
+            <span class="etiqueta-formulario">Horas estimadas acordadas</span>
+            <input id="pp-horas-final" class="entrada-formulario" type="number" min="0" max="100000" step="0.5" placeholder="Ej. 8">
+          </label>
           <div class="pp-acciones-ronda">
             <button id="pp-otra-ronda" type="button" class="boton boton--secundario">Votar de nuevo</button>
             <button id="pp-fijar" type="button" class="boton boton--primario">Guardar puntos finales</button>
           </div>
         </div>
+      </div>
+      <div id="pp-horas-cerradas" class="pp-final" hidden>
+        <label class="grupo-formulario" for="pp-horas-cierre">
+          <span class="etiqueta-formulario">Horas acordadas (SM/PO)</span>
+          <input id="pp-horas-cierre" class="entrada-formulario" type="number" min="0" max="100000" step="0.5" placeholder="Ej. 8">
+        </label>
+        <button id="pp-guardar-horas" class="boton boton--primario" type="button">Guardar horas estimadas</button>
       </div>
     </section>
   </main>

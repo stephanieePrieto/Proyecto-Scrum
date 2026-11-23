@@ -22,6 +22,8 @@ export const OBJETOS = Object.freeze({
     INVITACION: 'invitacion',
     TABLERO: 'tablero',
     REVIEW: 'review',
+    RELEASE: 'release',
+    REUNION: 'reunion',
 });
 
 /** Catálogo de acciones auditables, con el formato objeto_verbo. */
@@ -32,6 +34,7 @@ export const ACCIONES = Object.freeze({
     SPRINT_CREADO: 'sprint_creado',
     SPRINT_INICIADO: 'sprint_iniciado',
     SPRINT_CERRADO: 'sprint_cerrado',
+    SPRINT_MODIFICADO: 'sprint_modificado',
     HISTORIA_CREADA: 'historia_creada',
     HISTORIA_MODIFICADA: 'historia_modificada',
     HISTORIA_ELIMINADA: 'historia_eliminada',
@@ -61,6 +64,12 @@ export const ACCIONES = Object.freeze({
     REVIEW_DECISION_CAMBIADA: 'review_decision_cambiada',
     REVIEW_DELEGACION_CREADA: 'review_delegacion_creada',
     REVIEW_DELEGACION_REVOCADA: 'review_delegacion_revocada',
+    RELEASE_CREADO: 'release_creado',
+    RELEASE_MODIFICADO: 'release_modificado',
+    RELEASE_ELIMINADO: 'release_eliminado',
+    REUNION_CREADA: 'reunion_creada',
+    REUNION_MODIFICADA: 'reunion_modificada',
+    REUNION_ELIMINADA: 'reunion_eliminada',
 });
 
 const ACCIONES_VALIDAS = new Set(Object.values(ACCIONES));

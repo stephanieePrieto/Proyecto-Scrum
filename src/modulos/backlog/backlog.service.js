@@ -104,10 +104,68 @@ const DESDE = `FROM historias h
   LEFT JOIN sprints s ON s.id = h.sprint_id
   LEFT JOIN usuarios u ON u.id = h.creada_por`;
 
+/** C6: recuperar criterios con identificadores y estados persistidos. */
+async function adjuntarCriterios(historias) {
+  if (!historias.length) return historias;
+  const { rows } = await consulta(
+    `SELECT id, historia_id, posicion, descripcion, cumplido
+       FROM criterios_aceptacion WHERE historia_id = ANY($1::int[])
+       ORDER BY historia_id, posicion`,
+    [historias.map(h => h.id)],
+  );
+  const porHistoria = new Map();
+  for (const c of rows) {
+    if (!porHistoria.has(c.historia_id)) porHistoria.set(c.historia_id, []);
+    porHistoria.get(c.historia_id).push(c);
+  }
+  return historias.map(h => ({ ...h, criterios_items: porHistoria.get(h.id) ?? [] }));
+}
+
+/** C6: conservar marcas por texto y posición al editar criterios. */
+async function sincronizarCriterios(cliente, historiaId, textoCriterios) {
+  const lineas = String(textoCriterios ?? '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const { rows: anteriores } = await cliente.query(
+    'SELECT descripcion, cumplido FROM criterios_aceptacion WHERE historia_id=$1 ORDER BY posicion', [historiaId],
+  );
+  const disponibles = new Map();
+  for (const c of anteriores) {
+    const grupo = disponibles.get(c.descripcion) ?? [];
+    grupo.push(c.cumplido);
+    disponibles.set(c.descripcion, grupo);
+  }
+  await cliente.query('DELETE FROM criterios_aceptacion WHERE historia_id=$1', [historiaId]);
+  for (let i = 0; i < lineas.length; i++) {
+    const previo = disponibles.get(lineas[i]);
+    const cumplido = previo?.length ? previo.shift() : false;
+    await cliente.query(
+      'INSERT INTO criterios_aceptacion(historia_id,posicion,descripcion,cumplido) VALUES($1,$2,$3,$4)',
+      [historiaId, i + 1, lineas[i], cumplido],
+    );
+  }
+}
+
+/** C6: marcar/desmarcar un criterio con validación de proyecto y permisos. */
+export async function cambiarCriterio(usuario, historiaId, criterioId, cumplido) {
+  const id = aId(historiaId);
+  const cid = aId(criterioId);
+  if (!id || !cid || typeof cumplido !== 'boolean') lanzar(400, 'Criterio o estado inválido.');
+  const historia = await buscarHistoria(id);
+  if (!historia) lanzar(404, MENSAJE_NO_ENCONTRADO);
+  await exigirPermisoEscritura(usuario, historia.proyecto_id);
+  const { rows } = await consulta(
+    `UPDATE criterios_aceptacion SET cumplido=$1 WHERE id=$2 AND historia_id=$3
+     RETURNING id, historia_id, posicion, descripcion, cumplido`,
+    [cumplido, cid, id],
+  );
+  if (!rows[0]) lanzar(404, 'No existe ese criterio en la historia.');
+  emitirAProyecto(historia.proyecto_id, EVENTOS.actualizada, { historia: (await adjuntarCriterios([historia]))[0] });
+  return rows[0];
+}
+
 /** Leer una historia por id (con épica, sprint y autor). */
 async function buscarHistoria(id) {
   const { rows } = await consulta(`SELECT ${COLUMNAS} ${DESDE} WHERE h.id = $1`, [id]);
-  return rows[0] ?? null;
+  return (await adjuntarCriterios(rows))[0] ?? null;
 }
 
 /** Lista priorizada del Product Backlog: las historias que aún no están terminadas. */
@@ -118,7 +176,7 @@ async function consultarLista(proyectoId) {
       ORDER BY h.orden, h.id`,
     [proyectoId],
   );
-  return rows;
+  return adjuntarCriterios(rows);
 }
 
 /**
@@ -286,6 +344,7 @@ export async function crear(usuario, proyectoId, datos) {
       },
     });
 
+    await sincronizarCriterios(cliente, nuevoId, d.criterios);
     return nuevoId;
   });
 
@@ -315,6 +374,7 @@ export async function actualizar(usuario, historiaId, datos = {}) {
       [d.epicaId, d.titulo, d.como, d.quiero, d.para, d.criterios, d.puntos, d.etiquetas, id, version],
     );
     if (!rowCount) return false;
+    await sincronizarCriterios(cliente, id, d.criterios);
 
     const cambios = diferencias(extraerCampos(actual, CAMPOS_AUDITADOS), {
       titulo: d.titulo,
@@ -554,4 +614,12 @@ export async function reordenar(usuario, proyectoId, { historia_id: historiaId, 
 
   emitirAProyecto(proyecto.id, EVENTOS.reordenada, { proyecto_id: proyecto.id, orden, historia_id: mover, por: usuario.id });
   return { historias: await consultarLista(proyecto.id) };
+}
+/** C6: leer criterios desde cualquier pantalla autorizada del proyecto. */
+export async function listarCriterios(usuario, historiaId) {
+  const id = aId(historiaId);
+  const historia = id ? await buscarHistoria(id) : null;
+  if (!historia) lanzar(404, MENSAJE_NO_ENCONTRADO);
+  await exigirAcceso(usuario, historia.proyecto_id);
+  return historia.criterios_items;
 }

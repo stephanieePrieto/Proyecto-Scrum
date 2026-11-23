@@ -283,6 +283,50 @@ function construirChecklist(tareaId, itemsIniciales, alCambiar) {
   ]);
 }
 
+/** C6: criterios de aceptación de la historia, compartidos con el Backlog. */
+function construirCriteriosAceptacion(historiaId) {
+  const seccion = crear('section', { clase: 'dt-seccion' }, [
+    crear('h3', { clase: 'dt-seccion__titulo', texto: 'Criterios de aceptación de la historia' }),
+  ]);
+  const lista = crear('div', { clase: 'dt-criterios' });
+  seccion.append(lista);
+  const cargarCriterios = async () => {
+    try {
+      const respuesta = await api(`/backlog/historias/${historiaId}/criterios`);
+      const criterios = respuesta.criterios ?? [];
+      lista.replaceChildren();
+      if (!criterios.length) {
+        lista.append(crear('p', { clase: 'dt-vacio', texto: 'Sin criterios de aceptación.' }));
+        return;
+      }
+      for (const criterio of criterios) {
+        const casilla = crear('input', { atributos: { type: 'checkbox' } });
+        casilla.checked = criterio.cumplido;
+        const texto = crear('span', { texto: criterio.descripcion });
+        if (criterio.cumplido) texto.style.textDecoration = 'line-through';
+        casilla.addEventListener('change', async () => {
+          casilla.disabled = true;
+          try {
+            await api(`/backlog/historias/${historiaId}/criterios/${criterio.id}`, {
+              metodo: 'PATCH', cuerpo: { cumplido: casilla.checked },
+            });
+            texto.style.textDecoration = casilla.checked ? 'line-through' : '';
+          } catch (error) {
+            casilla.checked = !casilla.checked;
+            alert(mensajeError(error));
+          } finally { casilla.disabled = false; }
+        });
+        const etiqueta = crear('label', { clase: 'dt-fila' }, [casilla, texto]);
+        lista.append(etiqueta);
+      }
+    } catch (error) {
+      lista.replaceChildren(crear('p', { clase: 'dt-vacio', texto: 'No se pudieron cargar los criterios.' }));
+    }
+  };
+  cargarCriterios();
+  return seccion;
+}
+
 /**
  * Dibuja el detalle completo dentro del drawer.
  * @param {{tarea:Object, checklist:Object[], historial:Object[]}} datos Respuesta del servidor.
@@ -389,6 +433,7 @@ function render({ tarea, checklist, historial }) {
       ? crear('p', { clase: 'dt-descripcion', texto: tarea.descripcion })
       : crear('p', { clase: 'dt-vacio', texto: 'Sin descripción.' }),
   ]));
+  if (tarea.historia?.id) bloques.push(construirCriteriosAceptacion(tarea.historia.id));
   bloques.push(construirChecklist(idTarea, checklist, () => refrescarHistorial?.()));
   bloques.push(seccionAdjuntos, seccionComentarios);
   bloques.push(crear('details', { clase: 'dt-historial', atributos: { open: true } }, [

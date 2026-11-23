@@ -1,6 +1,6 @@
 /**
  * @file reviews.test.js
- * @description Pruebas unitarias de las reglas de la Sprint Review (HU-12): criterios, decisión, delegación y velocity.
+ * @description Pruebas unitarias de las reglas de la Sprint Review: criterios, decisión, delegación y velocity.
  * Compatible con Jest y ES Modules.
  * 
  * @author Diego Rafael Jiménez Trujano
@@ -15,11 +15,13 @@ import {
   validarDelegacion,
   sumarDias,
   resumirReview,
+  separarPuntosDod,
+  dodDeHistoria,
 } from './reviews.reglas.js';
 
 const HOY = '2026-11-11';
 
-describe('Review (HU-12) - criterios de aceptación', () => {
+describe('Review - criterios de aceptación', () => {
   test('separa un criterio por línea y quita viñetas', () => {
     expect(separarCriterios('Dado que A, entonces B.\n- Dado que C, entonces D.\r\n\n  ')).toEqual([
       'Dado que A, entonces B.',
@@ -38,7 +40,7 @@ describe('Review (HU-12) - criterios de aceptación', () => {
   });
 });
 
-describe('Review (HU-12) - historias terminadas', () => {
+describe('Review - historias terminadas', () => {
   test('con decisión, en hecho o aceptada ya está terminada', () => {
     expect(esHistoriaTerminada({ estado: 'en_sprint', tareas: 0, tareasHechas: 0, decision: 'rechazada' })).toBe(true);
     expect(esHistoriaTerminada({ estado: 'hecho', tareas: 0, tareasHechas: 0 })).toBe(true);
@@ -53,7 +55,7 @@ describe('Review (HU-12) - historias terminadas', () => {
   });
 });
 
-describe('Review (HU-12) - decisión del Product Owner', () => {
+describe('Review - decisión del Product Owner', () => {
   test('rechazar exige comentario; aceptar lo deja opcional', () => {
     expect(validarDecision({ decision: 'rechazada', comentario: '   ' }).errores.comentario).toBeDefined();
     expect(validarDecision({ decision: 'aceptada', comentario: '' }).errores).toEqual({});
@@ -84,13 +86,40 @@ describe('Review (HU-12) - decisión del Product Owner', () => {
     expect(validarDecision({ decision: 'aceptada', criterios_cumplidos: 1.5 }, 4).errores.criterios_cumplidos).toBeDefined();
   });
 
-  test('confirmar y cambiar solo valen cuando son exactamente true', () => {
-    expect(validarDecision({ decision: 'aceptada', confirmar: 'true', cambiar: 1 }).valores).toMatchObject({ confirmar: false, cambiar: false });
-    expect(validarDecision({ decision: 'aceptada', confirmar: true, cambiar: true }).valores).toMatchObject({ confirmar: true, cambiar: true });
+  test('separa la DoD en puntos (uno por línea, sin viñetas ni líneas vacías)', () => {
+    expect(separarPuntosDod('- Código revisado\r\n\n • Pruebas en verde  \n')).toEqual(['Código revisado', 'Pruebas en verde']);
+    expect(separarPuntosDod(null)).toEqual([]);
+  });
+
+  test('la DoD de la historia es la del sprint (o la del proyecto) más la propia, sin repetidos', () => {
+    expect(dodDeHistoria({ dodProyecto: 'P1', dodSprint: 'S1\nS2', dodHistoria: 'H1\ns1' })).toEqual(['S1', 'S2', 'H1']);
+    expect(dodDeHistoria({ dodProyecto: 'P1\nP2', dodSprint: '  ', dodHistoria: null })).toEqual(['P1', 'P2']);
+    expect(dodDeHistoria({ dodProyecto: 'P1' })).toEqual(['P1']);
+    expect(dodDeHistoria()).toEqual([]);
+  });
+
+  test('marca la DoD incompleta solo al aceptar y valida el rango', () => {
+    expect(validarDecision({ decision: 'aceptada', criterios_cumplidos: 2, dod_cumplidos: 1 }, 2, 2).dodIncompleta).toBe(true);
+    expect(validarDecision({ decision: 'aceptada', criterios_cumplidos: 2, dod_cumplidos: 2 }, 2, 2).dodIncompleta).toBe(false);
+    expect(validarDecision({ decision: 'rechazada', comentario: 'x', dod_cumplidos: 0 }, 0, 2).dodIncompleta).toBe(false);
+    expect(validarDecision({ decision: 'aceptada', dod_cumplidos: 3 }, 0, 2).errores.dod_cumplidos).toBeDefined();
+    expect(validarDecision({ decision: 'aceptada' }, 0, 2).valores).toMatchObject({ dodCumplidos: 0, dodTotal: 2 });
+  });
+
+  test('cambiar solo vale cuando es exactamente true', () => {
+    expect(validarDecision({ decision: 'aceptada', cambiar: 1 }).valores.cambiar).toBe(false);
+    expect(validarDecision({ decision: 'aceptada', cambiar: true }).valores.cambiar).toBe(true);
+  });
+
+  test('confirmar ya no existe y sin criterios_cumplidos ninguno cuenta como cumplido', () => {
+    const { incompletos, valores } = validarDecision({ decision: 'aceptada', confirmar: true }, 4);
+    expect(incompletos).toBe(true);
+    expect(valores.criteriosCumplidos).toBe(0);
+    expect(valores).not.toHaveProperty('confirmar');
   });
 });
 
-describe('Review (HU-12) - delegación temporal', () => {
+describe('Review - delegación temporal', () => {
   test('suma días a una fecha', () => {
     expect(sumarDias('2026-11-30', 1)).toBe('2026-12-01');
     expect(sumarDias(HOY, MAX_DIAS_DELEGACION)).toBe('2026-12-11');
@@ -116,7 +145,7 @@ describe('Review (HU-12) - delegación temporal', () => {
   });
 });
 
-describe('Review (HU-12) - velocity', () => {
+describe('Review - velocity', () => {
   test('la velocity suma solo los puntos de las historias aceptadas', () => {
     const resumen = resumirReview([
       { puntos: 5, terminada: true, decision: 'aceptada' },

@@ -29,6 +29,8 @@ const id = new URLSearchParams(location.search).get('id');
 const editando = Boolean(id);
 let versionActual = null;
 let guardando = false;
+let datosPuedeEliminar = false;
+let datosPuedeGestionar = false;
 
 // ---------- Utilidades ----------
 
@@ -67,7 +69,7 @@ function avisar(texto, tipo) {
 
 function limpiarErrores() {
   document.querySelectorAll('.proy-error, .eq-error').forEach((p) => { p.textContent = ''; });
-  CAMPOS.concat('equipo_id').forEach((c) => $(c)?.removeAttribute('aria-invalid'));
+  CAMPOS.concat('equipo_id', 'nombre_equipo_nuevo').forEach((c) => $(c)?.removeAttribute('aria-invalid'));
   $('mensaje').hidden = true;
 }
 
@@ -89,6 +91,7 @@ function leerFormulario() {
 
   if (!editando) {
     datos.equipo_id = $('equipo_id').value;
+    if (datos.equipo_id === 'nuevo') datos.nombre_equipo_nuevo = $('nombre_equipo_nuevo').value;
     datos.miembros = Array.from(document.querySelectorAll('.rol-miembro'))
       .filter(select => select.value !== "")
       .map(select => ({
@@ -116,6 +119,7 @@ async function cargarEquipos() {
     datos.equipos.map((e) => `<option value="${e.id}"></option>`).join('');
   // Asignar el texto con textContent (nunca con innerHTML) para evitar XSS
   datos.equipos.forEach((e, i) => { select.options[i + 1].textContent = e.nombre; });
+  select.add(new Option('Crear equipo nuevo', 'nuevo'));
   if (!editando) $('definition_of_done').value = datos.dod_base;
 }
 
@@ -125,11 +129,13 @@ async function cargarProyecto() {
     avisar(estado === 404 ? 'No encontramos este proyecto.' : 'No se pudo cargar el proyecto. Recarga la página.', 'error');
     return null;
   }
-  if (!datos.puede_gestionar) {
-    avisar('Solo un administrador puede crear o editar proyectos.', 'error');
+  if (!datos.puede_gestionar && !datos.puede_eliminar) {
+    avisar('No tienes permisos para administrar este proyecto.', 'error');
     return null;
   }
   const p = datos.proyecto;
+  datosPuedeEliminar = datos.puede_eliminar === true;
+  datosPuedeGestionar = datos.puede_gestionar === true;
   rellenarFormulario(p);
   const select = $('equipo_id');
   select.innerHTML = '<option></option>';
@@ -164,13 +170,14 @@ async function iniciar() {
         avisar('Este proyecto está archivado y no se puede editar.', 'error');
         return;
       }
-      $('zona-archivar').hidden = false;
+      if (datosPuedeGestionar) $('zona-archivar').hidden = false;
+      if (datosPuedeEliminar) $('zona-eliminar').hidden = false;
       mostrarModo(proyecto);
       cargarTransferencia().catch(() => { /* sin rol que transferir: la sección queda oculta */ });
     } else {
       await cargarEquipos();
     }
-    $('formulario').hidden = false;
+    $('formulario').hidden = editando && !datosPuedeGestionar;
   } catch (error) {
     avisar(error.estado === 403
       ? 'Solo un administrador puede crear o editar proyectos.'
@@ -220,10 +227,13 @@ async function guardar(datos) {
 
 $('equipo_id').addEventListener('change', async (e) => {
   const equipoId = e.target.value;
+  const nuevo = !editando && equipoId === 'nuevo';
+  $('seccion-equipo-nuevo').hidden = !nuevo;
+  $('nombre_equipo_nuevo').required = nuevo;
   const seccion = $('seccion-miembros-proyecto');
   const lista = $('lista-miembros-equipo');
 
-  if (!equipoId || editando) {
+  if (!equipoId || editando || nuevo) {
     seccion.hidden = true;
     return;
   }
@@ -398,3 +408,20 @@ $('archivar-confirmar').addEventListener('click', async () => {
 });
 
 iniciar();
+// ---------- HU-64: eliminación definitiva ----------
+$('eliminar').addEventListener('click', () => $('dialogo-eliminar').showModal());
+$('eliminar-cancelar').addEventListener('click', () => $('dialogo-eliminar').close());
+$('eliminar-confirmar').addEventListener('click', async () => {
+  const boton = $('eliminar-confirmar');
+  boton.disabled = true;
+  $('error-eliminar').textContent = '';
+  try {
+    const res = await llamar(`/proyectos/${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+    if (res.ok) { location.href = '/pages/dashboard.html'; return; }
+    $('error-eliminar').textContent = res.datos?.mensaje || 'No se pudo eliminar el proyecto.';
+  } catch {
+    $('error-eliminar').textContent = 'Sin conexión. No se pudo confirmar la eliminación.';
+  } finally {
+    boton.disabled = false;
+  }
+});

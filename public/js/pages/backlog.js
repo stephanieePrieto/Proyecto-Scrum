@@ -243,7 +243,7 @@ function pintarDetalle() {
     el.detalle.innerHTML = '<p class="bl-detalle__vacio">Selecciona una historia de la lista para ver su detalle.</p>';
     return;
   }
-  const criterios = (h.criterios ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const criterios = h.criterios_items ?? [];
   const etiquetas = (h.etiquetas ?? []).map((e) => `<span class="insignia insignia--neutro">${escaparHtml(e)}</span>`).join('');
   const epica = h.epica_nombre ? `<span class="bl-chip" style="--epica:${colorSeguro(h.epica_color)}">${escaparHtml(h.epica_nombre)}</span>` : '';
   el.detalle.innerHTML = `
@@ -259,7 +259,7 @@ function pintarDetalle() {
     </dl>
     <div>
       <h3 class="bl-subtitulo">Criterios de aceptación</h3>
-      ${criterios.length ? `<ul class="bl-criterios">${criterios.map((c) => `<li>${escaparHtml(c)}</li>`).join('')}</ul>` : '<p class="bl-meta">Aún no tiene criterios.</p>'}
+      ${criterios.length ? `<ul class="bl-criterios">${criterios.map((c) => `<li><label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input type="checkbox" data-criterio-id="${c.id}" ${c.cumplido ? 'checked' : ''}><span style="${c.cumplido ? 'text-decoration:line-through;opacity:.7' : ''}">${escaparHtml(c.descripcion)}</span></label></li>`).join('')}</ul>` : '<p class="bl-meta">Aún no tiene criterios.</p>'}
     </div>
     ${etiquetas ? `<div class="bl-etiquetas">${etiquetas}</div>` : ''}
     <p class="bl-meta">${h.creada_por_nombre ? `Creada por ${escaparHtml(h.creada_por_nombre)}` : ''}</p>
@@ -435,6 +435,28 @@ document.addEventListener('click', (e) => {
   if (accion === 'rechazar-propuesta') resolverPropuesta(false);
   if (accion === 'reintentar') { pintarCarga(); refrescar({ forzar: true }); }
   if (accion === 'limpiar') limpiarFiltros();
+});
+
+// C6: guardar inmediatamente la marca de cada criterio.
+el.detalle.addEventListener('change', async (evento) => {
+  const control = evento.target.closest('[data-criterio-id]');
+  if (!control || !ctx.seleccionadaId) return;
+  const historiaId = ctx.seleccionadaId;
+  const nuevoEstado = control.checked;
+  control.disabled = true;
+  const resultado = await llamar(`/backlog/historias/${historiaId}/criterios/${control.dataset.criterioId}`, {
+    metodo: 'PATCH', cuerpo: { cumplido: nuevoEstado },
+  });
+  if (!resultado.ok) {
+    control.checked = !nuevoEstado;
+    control.disabled = false;
+    mostrarMensaje(mensajeDe(resultado, 'No se pudo guardar el criterio.'), 'error');
+    return;
+  }
+  const historia = buscarHistoria(historiaId);
+  const item = historia?.criterios_items?.find(c => String(c.id) === control.dataset.criterioId);
+  if (item) item.cumplido = nuevoEstado;
+  pintarDetalle();
 });
 
 // Reordenar (arrastrar, teclado y botones)

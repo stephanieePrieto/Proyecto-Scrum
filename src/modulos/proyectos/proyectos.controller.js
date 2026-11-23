@@ -33,7 +33,8 @@ export const obtener = asyncHandler(async (req, res) => {
   if (!proyecto) throw new ErrorApp(MENSAJE_NO_ENCONTRADO, 404);
   res.json({
     proyecto,
-    puede_gestionar: await servicio.puedeGestionar(req.params.id, req.user)
+    puede_gestionar: await servicio.puedeGestionar(req.params.id, req.user),
+    puede_eliminar: await servicio.puedeEliminar(req.params.id, req.user)
   });
 });
 
@@ -45,4 +46,9 @@ export const actualizar = asyncHandler(async (req, res) => {
 export const archivar = asyncHandler(async (req, res) => {
   const proyecto = await servicio.archivar(req.params.id, req.user);
   res.json({ proyecto });
+});
+
+export const eliminar = asyncHandler(async (req, res) => {
+  await servicio.eliminar(req.params.id, req.user);
+  res.json({ mensaje: 'Proyecto eliminado.' });
 });

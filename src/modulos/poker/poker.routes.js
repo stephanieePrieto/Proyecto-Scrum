@@ -19,5 +19,6 @@ router.post('/proyecto/:proyectoId/historias/:historiaId/voto', controller.votar
 router.post('/proyecto/:proyectoId/historias/:historiaId/revelar', controller.revelarPoker);
 router.post('/proyecto/:proyectoId/historias/:historiaId/nueva-ronda', controller.nuevaRondaPoker);
 router.post('/proyecto/:proyectoId/historias/:historiaId/cerrar', controller.cerrarPoker);
+router.post('/proyecto/:proyectoId/historias/:historiaId/horas', controller.guardarHorasPoker);
 
 export default router;

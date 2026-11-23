@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  @file releases.html
+  @description Pantalla de releases: línea de tiempo de los sprints agrupados en releases y su avance.
+  Solo el contenido del área de trabajo; el menú lo pone layout.js
+
+  @author Diego Rafael Jiménez Trujano
+-->
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/js/componentes/compatibilidad.js"></script>
+  <title>Releases · ScrumFlow</title>
+
+  <!-- Estilos globales unificados -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/componentes/tarjetas.css" />
+  <link rel="stylesheet" href="../css/componentes/botones.css" />
+  <link rel="stylesheet" href="../css/componentes/formularios.css" />
+  <link rel="stylesheet" href="../css/componentes/insignias.css" />
+  <link rel="stylesheet" href="../css/componentes/avisos.css" />
+  <link rel="stylesheet" href="../css/componentes/esqueletos.css" />
+  <link rel="stylesheet" href="../css/componentes/notificaciones.css" />
+
+  <link rel="stylesheet" href="../css/componentes/responsive.css" />
+  <link rel="stylesheet" href="../css/componentes/accesibilidad.css" />
+</head>
+
+<body>
+  <header id="barra-superior" class="barra-superior"></header>
+
+  <main class="principal">
+    <div class="encabezado-pagina">
+      <div>
+        <h1 class="titulo-pagina">Roadmap y releases</h1>
+        <p class="subtitulo-pagina">Agrupa sprints en releases para comunicar el plan de entregas.</p>
+      </div>
+      <div>
+        <button class="boton boton--primario" id="btn-nuevo" type="button" data-permiso="release.gestionar">+ Nuevo release</button>
+      </div>
+    </div>
+
+    <div id="aviso" class="ciclo-aviso" role="status" aria-live="polite" hidden></div>
+
+    <section aria-labelledby="titulo-releases">
+      <h2 class="ciclo__titulo" id="titulo-releases">Línea de tiempo</h2>
+      <div id="lista-releases" aria-busy="true"></div>
+    </section>
+
+    <section aria-labelledby="titulo-sin-release">
+      <h2 class="ciclo__titulo" id="titulo-sin-release">Sprints sin release</h2>
+      <div id="lista-sin-release"></div>
+    </section>
+  </main>
+
+  <!-- Crear o editar un release -->
+  <dialog class="ciclo-dialogo" id="dialogo-release" aria-labelledby="release-titulo">
+    <form class="ciclo-dialogo__cuerpo" id="form-release" novalidate>
+      <h2 class="ciclo-dialogo__titulo" id="release-titulo">Nuevo release</h2>
+      <div class="form-group">
+        <label class="form-label" for="campo-nombre">Nombre</label>
+        <input class="form-input" id="campo-nombre" name="nombre" type="text" maxlength="100" autocomplete="off" />
+        <p class="ciclo-error" id="error-nombre" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-descripcion">Descripción <span class="ciclo__ayuda">(opcional)</span></label>
+        <textarea class="form-input" id="campo-descripcion" name="descripcion" rows="3" maxlength="1000"></textarea>
+        <p class="ciclo-error" id="error-descripcion" hidden></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="campo-fecha">Fecha objetivo <span class="ciclo__ayuda">(opcional)</span></label>
+        <input class="form-input" id="campo-fecha" name="fecha_objetivo" type="date" />
+        <p class="ciclo-error" id="error-fecha_objetivo" hidden></p>
+      </div>
+      <fieldset class="ciclo-decision" id="campo-sprints" hidden>
+        <legend>Sprints del release</legend>
+        <div id="opciones-sprints"></div>
+        <p class="ciclo-error" id="error-sprints" hidden></p>
+      </fieldset>
+      <p class="ciclo-error" id="error-release" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario" id="btn-guardar" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirmar la eliminación de un release -->
+  <dialog class="ciclo-dialogo" id="dialogo-eliminar" aria-labelledby="eliminar-titulo">
+    <div class="ciclo-dialogo__cuerpo">
+      <h2 class="ciclo-dialogo__titulo" id="eliminar-titulo">Eliminar release</h2>
+      <p class="ciclo__ayuda" id="eliminar-texto"></p>
+      <p class="ciclo-error" id="error-eliminar" role="alert" hidden></p>
+      <div class="ciclo-dialogo__acciones">
+        <button class="boton boton--secundario" type="button" data-cerrar>Cancelar</button>
+        <button class="boton boton--primario boton--peligro" id="btn-confirmar-eliminar" type="button">Eliminar release</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="../socket.io/socket.io.js"></script>
+  <script type="module" src="../js/pages/releases.js"></script>
+</body>
+
+</html>

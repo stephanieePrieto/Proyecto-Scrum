@@ -254,6 +254,19 @@ export async function crearSprintSeguro(datos, equipoId, usuarioId) {
 
 
 
+    // C5: impedir crear otro sprint mientras el proyecto tenga uno activo.
+    // El bloqueo FOR UPDATE del proyecto serializa las creaciones concurrentes.
+    const sprintActivo = await cliente.query(
+      `SELECT id, nombre FROM sprints
+       WHERE proyecto_id = $1 AND estado = 'activo'
+       LIMIT 1`,
+      [datos.proyectoId]
+    );
+    if (sprintActivo.rows.length > 0) {
+      await cliente.query('ROLLBACK');
+      return { sprintActivo: true, sprint: null };
+    }
+
     // Comprobar nuevamente los solapamientos
     const conflictos = await cliente.query(
       `SELECT s.id

@@ -194,6 +194,12 @@ export async function crearSprint(req, res) {
     }
 
 
+    if (resultado.sprintActivo) {
+      return res.status(409).json({
+        mensaje: 'Ya existe un sprint activo en este proyecto. Ciérralo antes de crear otro.'
+      });
+    }
+
     // Comprobar si apareció un conflicto de fechas
     if (resultado.conflicto) {
       return res.status(409).json({

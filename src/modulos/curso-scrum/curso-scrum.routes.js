@@ -12,9 +12,6 @@ import autenticar from '../../middlewares/autenticar.js';
 const router = Router();
 router.use(autenticar);
 
-// Obtener temario y progreso del curso para un proyecto
-router.get('/:proyectoId', controller.obtenerCursoProyecto);
-
 // Actualizar progreso de lectura de una lección
 router.post('/progreso', controller.actualizarProgreso);
 
@@ -52,6 +49,11 @@ router.post('/certificado', controller.otorgarCertificado);
 
 // Descargar certificado en PDF
 router.get('/certificado/download', controller.descargarCertificado);
+
+// Obtener temario y progreso del curso para un proyecto.
+// Va DESPUÉS de /certificado: si estuviera antes, GET /certificado caería aquí
+// con proyectoId='certificado' y devolvería 500.
+router.get('/:proyectoId', controller.obtenerCursoProyecto);
 
 // Reiniciar progreso del curso
 router.post('/progreso/reset', controller.reiniciarProgreso);

@@ -122,3 +122,43 @@ describe('tutorial teórico (4 lecciones) separado del certificado', () => {
     expect(r.progresoEquipo.map(i => i.tutorial_teorico_completado)).toEqual([true, false]);
   });
 });
+
+describe('guardado de progreso de lección', () => {
+  test('lección inexistente responde 404 sin intentar el INSERT (antes era 500 por FK)', async () => {
+    consultaMock.mockResolvedValueOnce({ rows: [] });
+    await expect(servicio.guardarProgresoLectura(12, 9999, true, 0))
+      .rejects.toMatchObject({ statusCode: 404 });
+    expect(consultaMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('leccionId no numérico responde 400 antes de consultar la base de datos', async () => {
+    await expect(servicio.guardarProgresoLectura(12, 'abc', true, 0))
+      .rejects.toMatchObject({ statusCode: 400 });
+    expect(consultaMock).not.toHaveBeenCalled();
+  });
+
+  test('completada debe ser booleana', async () => {
+    await expect(servicio.guardarProgresoLectura(12, 1, 'si', 0))
+      .rejects.toMatchObject({ statusCode: 400 });
+    expect(consultaMock).not.toHaveBeenCalled();
+  });
+
+  test('lección existente guarda el progreso con el id normalizado', async () => {
+    consultaMock
+      .mockResolvedValueOnce({ rows: [{ '?column?': 1 }] })
+      .mockResolvedValueOnce({ rows: [] });
+    await servicio.guardarProgresoLectura(12, '1', true, 147.83);
+    expect(consultaMock).toHaveBeenLastCalledWith(
+      expect.stringContaining('INSERT INTO curso_progreso_lecciones'),
+      [12, 1, true, 148]
+    );
+  });
+});
+
+describe('calificar quiz modular', () => {
+  test('lección inexistente responde 404 y no se aprueba por defecto', async () => {
+    consultaMock.mockResolvedValueOnce({ rows: [] });
+    await expect(servicio.calificarQuiz(12, 9999, {}))
+      .rejects.toMatchObject({ statusCode: 404 });
+  });
+});

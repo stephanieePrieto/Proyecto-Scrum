@@ -361,6 +361,20 @@ export async function calificarQuizFinal(usuarioId, respuestasUsuario) {
  * @returns {Promise<void>}
  */
 export async function guardarProgresoLectura(usuarioId, leccionId, completada, posicionScroll) {
+  const idLeccion = Number(leccionId);
+  if (!Number.isInteger(idLeccion) || idLeccion <= 0) {
+    throw new ErrorApp('El identificador de la lección no es válido.', 400);
+  }
+  if (typeof completada !== 'boolean') {
+    throw new ErrorApp('Indica si la lección está completada.', 400);
+  }
+  // Validar antes del INSERT: sin esta comprobación la violación de FK llega como 500.
+  const leccion = await consulta(
+    'SELECT 1 FROM curso_lecciones WHERE id = $1 AND id != 999',
+    [idLeccion]
+  );
+  if (!leccion.rows.length) throw new ErrorApp('Lección no encontrada.', 404);
+
   // Asegurar que el scroll sea un número válido y no exceda el límite numérico de la BD (máx 999.99)
   // El valor se redondea porque Postgres rechaza decimales como 147.83 en una columna INTEGER
   const scrollSeguro = Math.round(Math.min(Math.max(0, parseFloat(posicionScroll) || 0), 999.99));
@@ -373,11 +387,22 @@ export async function guardarProgresoLectura(usuarioId, leccionId, completada, p
       completada = EXCLUDED.completada,
       posicion_scroll = GREATEST(curso_progreso_lecciones.posicion_scroll, EXCLUDED.posicion_scroll),
       actualizado_en = NOW();
-  `, [usuarioId, leccionId, completada, scrollSeguro]);
+  `, [usuarioId, idLeccion, completada, scrollSeguro]);
 }
 
 export async function calificarQuiz(usuarioId, leccionId, respuestasUsuario) {
-  const quizzesRes = await consulta('SELECT id, respuesta_correcta FROM curso_quizzes WHERE leccion_id = $1', [leccionId]);
+  const idLeccion = Number(leccionId);
+  if (!Number.isInteger(idLeccion) || idLeccion <= 0) {
+    throw new ErrorApp('El identificador de la lección no es válido.', 400);
+  }
+  // Una lección inexistente no debe aprobarse por defecto: responder 404.
+  const leccion = await consulta(
+    'SELECT 1 FROM curso_lecciones WHERE id = $1 AND id != 999',
+    [idLeccion]
+  );
+  if (!leccion.rows.length) throw new ErrorApp('Lección no encontrada.', 404);
+
+  const quizzesRes = await consulta('SELECT id, respuesta_correcta FROM curso_quizzes WHERE leccion_id = $1', [idLeccion]);
   const quizzes = quizzesRes.rows;
 
   if (quizzes.length === 0) return { calificacion: 100, aprobado: true };
@@ -401,7 +426,7 @@ export async function calificarQuiz(usuarioId, leccionId, respuestasUsuario) {
       aprobado = CASE WHEN EXCLUDED.aprobado THEN TRUE ELSE curso_intentos_quizzes.aprobado END,
       intentos = curso_intentos_quizzes.intentos + 1,
       actualizado_en = NOW();
-  `, [usuarioId, leccionId, calificacion, aprobado]);
+  `, [usuarioId, idLeccion, calificacion, aprobado]);
 
   return { calificacion, aprobado };
 }

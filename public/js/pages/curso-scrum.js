@@ -583,7 +583,7 @@ function activarOpcionesQuiz() {
    ========================================================================== */
 async function completarLeccionYContinuar(leccionId, siguienteId) {
   try {
-    await fetch('/api/curso-scrum/progreso', {
+    const respuesta = await fetch('/api/curso-scrum/progreso', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-csrf-token': obtenerTokenCsrf() },
       body: JSON.stringify({
@@ -592,6 +592,11 @@ async function completarLeccionYContinuar(leccionId, siguienteId) {
         posicionScroll: Math.round(window.scrollY)
       })
     });
+    // Antes no se comprobaba respuesta.ok: un 500 avanzaba la lección sin guardar nada.
+    if (!respuesta.ok) {
+      const datos = await respuesta.json().catch(() => ({}));
+      throw new Error(datos.mensaje || datos.error || 'No se pudo guardar el progreso de la lección.');
+    }
 
     if (siguienteId) {
       leccionActivaId = parseInt(siguienteId, 10);

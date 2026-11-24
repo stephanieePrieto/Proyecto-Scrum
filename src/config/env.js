@@ -54,6 +54,7 @@ export const env = {
   SSL_CERT_PATH: process.env.SSL_CERT_PATH || './certs/localhost.pem',
   FORZAR_HTTPS: process.env.FORZAR_HTTPS === 'true',
   CSP_SOLO_REPORTE: process.env.CSP_SOLO_REPORTE === 'true',
+  GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',
   // --- Correo ---
   CORREO_MODO: process.env.CORREO_MODO || 'consola',
   CORREO_REMITENTE: process.env.CORREO_REMITENTE || 'ScrumFlow <no-responder@scrumflow.test>',

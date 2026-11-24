@@ -33,3 +33,14 @@ export function analizarRepositorioGitHub(valor) {
 
   return { owner, repo, url: `https://github.com/${owner}/${repo}` };
 }
+
+/** Crea encabezados autenticados para la API de GitHub; sin token no permite una consulta anónima. */
+export function crearEncabezadosGitHub(token) {
+  if (typeof token !== 'string' || !token.trim()) return null;
+  return {
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'User-Agent': 'ScrumFlow',
+    Authorization: `Bearer ${token.trim()}`,
+  };
+}

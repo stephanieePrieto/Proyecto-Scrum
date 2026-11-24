@@ -11,6 +11,7 @@ import { ErrorApp } from '../../utils/ErrorApp.js';
 import { emitirAProyecto } from '../../sockets/emisor.js';
 import { exigirPermiso, exigirPropietarioTarea, MENSAJE_NO_ENCONTRADO, ROLES } from '../../utils/permisos.js';
 import { registrarAuditoria, diferencias, ACCIONES, OBJETOS } from '../../middlewares/auditar.js';
+import { dodDeHistoria } from '../reviews/reviews.reglas.js';
 
 const CAMPOS_EDITABLES = ['titulo', 'descripcion', 'responsable_id', 'horas_estimadas', 'etiquetas'];
 
@@ -775,6 +776,50 @@ export async function moverTarjetaConVersion(tareaId, datos = {}, usuario) {
         //Impedir mover una tarjeta bloqueada a la columna final ("Hecho")
         if (tareaActual.bloqueada && colDestino.es_final) {
             throw new ErrorApp('No puedes mover una tarjeta bloqueada a la columna Terminado.', 409);
+        }
+
+        if (colDestino.es_final) {
+            const { rows: criteriosPendientes } = await cliente.query(
+                `SELECT c.id
+                   FROM tareas t
+                   JOIN historias h ON h.id = t.historia_id
+                   JOIN criterios_aceptacion c ON c.historia_id = h.id
+                  WHERE t.id = $1 AND c.cumplido = false
+                  LIMIT 1`,
+                [id]
+            );
+            if (criteriosPendientes.length) {
+                throw new ErrorApp('No puedes mover la tarjeta a Terminado: hay criterios de aceptación pendientes.', 400);
+            }
+
+            const { rows: estadoDod } = await cliente.query(
+                `SELECT h.id AS historia_id, h.sprint_id,
+                        p.definition_of_done AS dod_proyecto,
+                        s.definition_of_done AS dod_sprint,
+                        h.definition_of_done AS dod_historia,
+                        rh.decision, rh.dod_cumplidos
+                   FROM tareas t
+                   JOIN historias h ON h.id = t.historia_id
+                   JOIN proyectos p ON p.id = h.proyecto_id
+                   LEFT JOIN sprints s ON s.id = h.sprint_id
+                   LEFT JOIN reviews_historias rh ON rh.historia_id = h.id AND rh.sprint_id = h.sprint_id
+                  WHERE t.id = $1`,
+                [id]
+            );
+            if (estadoDod.length) {
+                const dod = estadoDod[0];
+                const puntosDod = dodDeHistoria({
+                    dodProyecto: dod.dod_proyecto,
+                    dodSprint: dod.dod_sprint,
+                    dodHistoria: dod.dod_historia,
+                }).length;
+                if (puntosDod > 0 &&
+                    !(dod.decision === 'aceptada' &&
+                        dod.dod_cumplidos !== null &&
+                        Number(dod.dod_cumplidos) >= puntosDod)) {
+                    throw new ErrorApp('No puedes mover la tarjeta a Terminado: la Definition of Done no está completamente cumplida.', 400);
+                }
+            }
         }
 
         //Si la columna tiene límite WIP duro y es distinta de la columna actual, validar cupo

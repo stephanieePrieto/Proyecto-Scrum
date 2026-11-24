@@ -32,16 +32,24 @@
         </div>
         <p id="github-actualizado"></p>
       </div>
+      <p id="github-aviso" class="alerta" role="status" aria-live="polite" hidden></p>
       <div class="github-columnas">
+        <section class="tarjeta" aria-labelledby="github-titulo-participacion-app">
+          <h2 id="github-titulo-participacion-app">Participación en ScrumFlow</h2>
+          <p id="github-sin-participacion-app" class="github-vacio" hidden>Este proyecto todavía no registra participación de sus integrantes.</p>
+          <ul id="github-participacion-app" class="github-lista"></ul>
+        </section>
         <section class="tarjeta" aria-labelledby="github-titulo-contribuciones">
           <h2 id="github-titulo-contribuciones">Participación por integrante</h2>
           <p id="github-sin-contribuciones" class="github-vacio" hidden>Aún no hay contribuciones visibles en este repositorio.</p>
           <ul id="github-contribuciones" class="github-lista"></ul>
         </section>
-        <section class="tarjeta" aria-labelledby="github-titulo-commits">
+        <section class="tarjeta github-commits" aria-labelledby="github-titulo-commits">
           <h2 id="github-titulo-commits">Commits recientes</h2>
           <p id="github-sin-commits" class="github-vacio" hidden>El repositorio todavía no tiene commits.</p>
-          <ol id="github-commits" class="github-lista"></ol>
+          <div class="github-commits__scroll" role="region" aria-labelledby="github-titulo-commits" tabindex="0">
+            <ol id="github-commits" class="github-lista github-lista--commits"></ol>
+          </div>
         </section>
       </div>
     </section>

@@ -58,6 +58,24 @@ function pintarContribuciones(contribuciones) {
   });
 }
 
+/** Dibuja la participación registrada en ScrumFlow por cada integrante del proyecto. */
+function pintarParticipacionApp(participacion) {
+  const lista = $('github-participacion-app');
+  lista.replaceChildren();
+  $('github-sin-participacion-app').hidden = participacion.length > 0;
+
+  participacion.forEach((persona) => {
+    const item = document.createElement('li');
+    item.className = 'github-contribucion';
+    const nombre = document.createElement('span');
+    nombre.textContent = `${persona.usuario} (${persona.rol})`;
+    const resumen = document.createElement('span');
+    resumen.textContent = `${persona.historias} historias · ${persona.horas} registros de horas · ${persona.impedimentos} impedimentos · ${persona.reuniones} reuniones · ${persona.tareas} tareas`;
+    item.append(nombre, resumen);
+    lista.appendChild(item);
+  });
+}
+
 /** Dibuja los commits más recientes recibidos desde el servidor. */
 function pintarCommits(commits) {
   const lista = $('github-commits');
@@ -113,9 +131,12 @@ async function cargarActividad() {
     $('github-contenido').hidden = false;
     $('github-repositorio').href = datos.repositorio;
     $('github-repositorio').textContent = datos.repositorio;
-    $('github-actualizado').textContent = `Consultado ${formatearFecha(new Date().toISOString())}`;
+    $('github-actualizado').textContent = `Consultado ${formatearFecha(datos.consultadoEn || new Date().toISOString())}`;
+    $('github-aviso').hidden = !datos.aviso;
+    $('github-aviso').textContent = datos.aviso || '';
     pintarContribuciones(datos.contribuciones || []);
     pintarCommits(datos.commits || []);
+    pintarParticipacionApp(datos.participacionApp || []);
   } catch (error) {
     $('github-estado').textContent = error.cuerpo?.error ||
       error.cuerpo?.mensaje ||

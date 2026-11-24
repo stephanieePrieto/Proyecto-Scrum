@@ -47,12 +47,28 @@
   min-width: 0;
 }
 
+.github-columnas > .github-commits {
+  grid-column: 1 / -1;
+}
+
 .github-lista {
   display: grid;
   gap: 12px;
   margin: 16px 0 0;
   padding: 0;
   list-style: none;
+}
+
+.github-commits__scroll {
+  max-height: 28rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.github-lista--commits {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
 }
 
 .github-lista li {
@@ -97,6 +113,10 @@
   }
 
   .github-columnas {
+    grid-template-columns: 1fr;
+  }
+
+  .github-lista--commits {
     grid-template-columns: 1fr;
   }
 }

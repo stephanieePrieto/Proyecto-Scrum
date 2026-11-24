@@ -1,9 +1,10 @@
 /**
  * @file burndown.js
- * @description Dibujar la gráfica de Burndown diaria de UN sprint, en horas o en puntos.
+ * @description Dibujar la gráfica de Burndown diaria, en horas o en puntos: de UN sprint
+ * (con ?sprintId) o acumulada de todo el proyecto (sin sprintId, «Todo el proyecto»).
  * La línea real baja con el quemado registrado cada día (horas reales de registros_horas
  * o puntos aceptados en el Review) y la ideal es diaria, del total inicial a 0 el último
- * día del sprint. Debajo va el resumen por cierre de sprint de todo el proyecto.
+ * día del ámbito. Debajo va el resumen por cierre de sprint de todo el proyecto.
  *
  * @author Dana Carmona Santamaria
  */
@@ -61,7 +62,7 @@ export function dibujarBurndown(contenedor, datos, opciones = {}) {
   // --- Avisos: por qué la línea real puede no bajar, y qué no cuenta en el total ---
   const avisos = [];
   if (!esPuntos && datos.sinHorasReales) {
-    avisos.push({ clase: 'imp--media', texto: 'Aún no hay horas reales registradas en este sprint: la línea real no baja hasta que se registren horas. Marcar una tarea como Hecho, sin registrar horas, no la mueve.' });
+    avisos.push({ clase: 'imp--media', texto: `Aún no hay horas reales registradas ${sprint ? 'en este sprint' : 'en el proyecto'}: la línea real no baja hasta que se registren horas. Marcar una tarea como Hecho, sin registrar horas, no la mueve.` });
   }
   if (!esPuntos && datos.tareasSinEstimar > 0) {
     avisos.push({ clase: 'imp--baja', texto: `${datos.tareasSinEstimar} ${datos.tareasSinEstimar === 1 ? 'tarea sin horas estimadas no se cuenta' : 'tareas sin horas estimadas no se cuentan'} en el total inicial.` });
@@ -159,11 +160,12 @@ export function dibujarBurndown(contenedor, datos, opciones = {}) {
   const ejeX = `<line x1="${MARGEN.izq}" y1="${yPos(0)}" x2="${ANCHO_SVG - MARGEN.der}" y2="${yPos(0)}" stroke="#94a3b8" stroke-width="1.5"/>`;
   const centroY = MARGEN.arriba + (ALTO_GRAFICA / 2);
   const tituloEjeY = `<text x="-${centroY}" y="22" transform="rotate(-90)" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">${esPuntos ? 'Puntos restantes' : 'Horas restantes'}</text>`;
-  const tituloEjeX = `<text x="${MARGEN.izq + (ANCHO_GRAFICA / 2)}" y="${ALTO_SVG - 16}" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Día del sprint</text>`;
+  const tituloEjeX = `<text x="${MARGEN.izq + (ANCHO_GRAFICA / 2)}" y="${ALTO_SVG - 16}" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">${sprint ? 'Día del sprint' : 'Día del proyecto'}</text>`;
 
   // --- Vista general: restante por cierre de sprint, en horas y en puntos ---
   const filasPorSprint = (datos.porSprint || []).map((p) => `
     <tr>
+      <td style="padding: 6px 12px 6px 0;">${p.id ?? '—'}</td>
       <td style="padding: 6px 12px 6px 0;">${escaparHtml(p.nombre)}</td>
       <td style="padding: 6px 12px;">${escaparHtml(p.estado || '—')}</td>
       <td style="padding: 6px 12px; text-align: right;">${p.horasRestantes === null || p.horasRestantes === undefined ? '—' : `${formatearNumero(p.horasRestantes)} h`}</td>
@@ -174,6 +176,7 @@ export function dibujarBurndown(contenedor, datos, opciones = {}) {
       <h3 style="font-size: 15px; margin: 0 0 8px 0;">Resumen por sprint</h3>
       <table style="border-collapse: collapse; font-size: 13px; color: #334155;">
         <thead><tr style="text-align: left; color: #64748b;">
+          <th style="padding: 6px 12px 6px 0; font-weight: 600;">ID</th>
           <th style="padding: 6px 12px 6px 0; font-weight: 600;">Sprint</th>
           <th style="padding: 6px 12px; font-weight: 600;">Estado</th>
           <th style="padding: 6px 12px; font-weight: 600; text-align: right;">Horas restantes</th>
@@ -190,7 +193,7 @@ export function dibujarBurndown(contenedor, datos, opciones = {}) {
         <h2 class="metricas__titulo">${tituloUnidad}</h2>
         <p class="subtitulo-pagina">${sprint
           ? `${escaparHtml(sprint.nombre)} · ${formatearFecha(sprint.fechaInicio)} – ${formatearFecha(sprint.fechaFin)} · ${resumen}`
-          : resumen}</p>
+          : `Todo el proyecto · ${formatearFecha(datos.fechaInicio)} – ${formatearFecha(datos.fechaFin)} · ${resumen}`}</p>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;" role="group" aria-label="Unidad del burndown">
         <button class="boton ${esPuntos ? 'boton--secundario' : 'boton--primario'} boton--pequeno" type="button" data-unidad-burndown="horas" aria-pressed="${!esPuntos}">Horas</button>

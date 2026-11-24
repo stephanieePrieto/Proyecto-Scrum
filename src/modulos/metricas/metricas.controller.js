@@ -65,7 +65,7 @@ async function validarAcceso(req) {
 }
 
 /**
- * Responder con los KPIs del dashboard del proyecto indicado en la URL (HU-35).
+ * Responder con los KPIs del dashboard del proyecto indicado en la URL.
  * Un KPI que falle viaja como { error: true }; los demás se entregan normalmente.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/dashboard
@@ -94,7 +94,7 @@ async function resolverFiltroUsuario(req, proyectoId) {
 }
 
 /**
- * Responder con la velocity de cada sprint cerrado y su promedio móvil (HU-30).
+ * Responder con la velocity de cada sprint cerrado y su promedio móvil.
  * Puede filtrarse por un integrante específico.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/velocity
@@ -109,7 +109,7 @@ export async function velocity(req, res, next) {
 }
 
 /**
- * Responder con el avance por persona y por equipo (HU-31).
+ * Responder con el avance por persona y por equipo.
  * Aceptar ?sprintId=N para limitar el cálculo a un sprint; sin él se usa todo el proyecto.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/avance
@@ -132,9 +132,10 @@ export async function avance(req, res, next) {
 }
 
 /**
- * Responder con el Burndown diario de un sprint 
- * Acepta ?sprintId=N para graficar ese sprint (sin él: el activo, o el más reciente)
- * y ?unidad=horas|puntos (por defecto horas).
+ * Responder con el Burndown diario de un sprint.
+ * Acepta ?sprintId=N para graficar ese sprint (sin él: el burndown acumulado de
+ * todo el proyecto, y ?unidad=horas|puntos (por defecto horas). Sin ?sprintId el selector de sprint
+ * de la página no tenía efecto sobre esta gráfica; ahora sí.
  *
  * @route GET /api/metricas/proyectos/:proyectoId/burndown?sprintId=N&unidad=horas|puntos
  */
@@ -177,7 +178,7 @@ export async function misProyectos(req, res, next) {
 }
 
 /**
-* Responder con el desglose de horas registradas para la gráfica de distribución (HU-32).
+* Responder con el desglose de horas registradas para la gráfica de distribución.
 *
 * @route GET /api/metricas/proyectos/:proyectoId/distribucion
 */

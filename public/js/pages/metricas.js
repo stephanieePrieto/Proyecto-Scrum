@@ -2,7 +2,7 @@
  * @file metricas.js
  * @description Orquestador de la vista de métricas. Controla los selectores y 
  * decide si muestra la Gráfica Velocity o el Burndown.
- * Carga la velocity (HU-30), el avance (HU-31) y la distribución (HU-32).
+ * Carga la velocity, el avance y la distribución.
  * 
  * @author Dana Carmona Santamaria
  * @author Citlaly Morales Viveros
@@ -233,7 +233,7 @@ async function cargarGraficaPrincipal(proyectoId) {
     subtitulo.textContent = textoSubtitulo;
   }
 
-  // HU-26: en flujo continuo, Velocity, Burndown y Burnup no aplican; se avisa en lugar de dibujar una gráfica vacía
+  // En flujo continuo, Velocity, Burndown y Burnup no aplican; se avisa en lugar de dibujar una gráfica vacía
   if (modoFlujo === 'continuo' && METRICAS_DE_SPRINT[tipo]) {
     dibujarAvisoNoAplica(contVelocity, METRICAS_DE_SPRINT[tipo], () => {
       if (selectTipo) selectTipo.value = 'flujo';
@@ -254,8 +254,9 @@ async function cargarGraficaPrincipal(proyectoId) {
     } else if (tipo === 'velocity') {
       dibujarVelocity(contVelocity, await api(`/metricas/proyectos/${proyectoId}/velocity${query}`));
     } else if (tipo === 'burndown') {
-      // El burndown es del sprint elegido en el selector general (o del activo, si no
-      // hay ninguno elegido) y de la unidad elegida en la propia gráfica.
+      // El burndown es del sprint elegido en el selector general; con «Todo el
+      // proyecto» (sin sprintId) es el acumulado de todo el proyecto (TC-19-02).
+      // La unidad es la elegida en la propia gráfica.
       const paramsBurndown = new URLSearchParams();
       const sprintElegido = Number(selectSprint?.value) || null;
       if (sprintElegido) paramsBurndown.set('sprintId', String(sprintElegido));
@@ -295,7 +296,7 @@ function llenarSelectorSprints(sprints, elegido) {
 }
 
 /**
- * Cargar y renderizar la barra de Avance por equipo o integrante individual (HU-31).
+ * Cargar y renderizar la barra de Avance por equipo o integrante individual.
  * Esta función también lee la lista de miembros filtrada por permisos y puebla los selectores de integrantes.
  * @param {number} proyectoId - ID del proyecto activo.
  * @param {number|null} sprintId - ID opcional del sprint a filtrar.
@@ -352,7 +353,7 @@ async function cargarAvance(proyectoId, sprintId = null) {
 }
 
 /**
- * Cargar y renderizar la gráfica de dona interactiva con el tiempo invertido (HU-32).
+ * Cargar y renderizar la gráfica de dona interactiva con el tiempo invertido.
  * @param {number} proyectoId - ID del proyecto activo.
  * @returns {Promise<void>}
  */
@@ -371,11 +372,11 @@ async function cargarDistribucion(proyectoId) {
 /** Rol que puede ver la desviación de horas (el servidor lo exige igual, ROLES_PERMITIDOS en desviacion.service.js). */
 const ROL_DESVIACION = 'scrum_master';
 
-/** HU-28: componente de desviación montado, o null. */
+/** Componente de desviación montado, o null. */
 let desviacion = null;
 
 /**
- * HU-28: mostrar la desviación de horas solo al Scrum Master y montarla una sola vez.
+ * Mostrar la desviación de horas solo al Scrum Master y montarla una sola vez.
  * Se vuelve a evaluar cada vez que cambian los permisos (evento "permisos:actualizados" de permisos-ui.js).
  * @param {number} proyectoId - ID del proyecto activo.
  * @param {string|null} rol - Rol vigente de la persona en el proyecto.
@@ -431,7 +432,7 @@ async function iniciar() {
   const proyectoId = proyectoActivo();
   if (!proyectoId) return mostrarAvisoSeleccionarProyecto();
   
-  // HU-28: la desviación depende del rol; se escucha antes de pedir los permisos para no perder el aviso
+  // La desviación depende del rol; se escucha antes de pedir los permisos para no perder el aviso
   window.addEventListener('permisos:actualizados', (evento) => {
     if (evento.detail?.proyectoId === proyectoId) actualizarDesviacion(proyectoId, evento.detail.rol);
   });
@@ -450,7 +451,8 @@ async function iniciar() {
   const selectIntPrincipal = document.getElementById('filtro-integrante-principal');
   selectIntPrincipal?.addEventListener('change', () => cargarGraficaPrincipal(proyectoId));
 
-  // Al cambiar sprint, se recargan el Avance y el Burndown (las dos gráficas por sprint).
+  // Al cambiar sprint, se recargan el Avance y el Burndown (con «Todo el proyecto»,
+  // el Burndown es el acumulado de todo el proyecto).
   // Velocity, Burnup y CFD son del proyecto completo por diseño y no se recargan.
   selectSprint?.addEventListener('change', () => {
     const sprintId = Number(selectSprint.value) || null;

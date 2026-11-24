@@ -21,7 +21,7 @@ import { generarPdf } from './metricas.pdf.js';
 import { evaluarDesviacionTarea, evaluarUmbral } from '../desviacion/desviacion.alertas.js';
 
 /**
- * Cantidad de sprints que abarca el promedio móvil de la velocity (HU-30).
+ * Cantidad de sprints que abarca el promedio móvil de la velocity.
  * Cambiar este número ajusta la ventana en toda la aplicación.
  */
 export const VENTANA_PROMEDIO = 3;
@@ -52,10 +52,7 @@ async function consultar(sql, params = []) {
  */
 const aUnDecimal = (valor) => Math.round(Number(valor) * 10) / 10;
 
-// ===========================================================================
 // Acceso: solo los integrantes del proyecto pueden ver sus métricas
-// ===========================================================================
-
 /**
  * Verificar que el usuario autenticado sea un integrante activo del proyecto.
  * Lanzar 404 si no lo es (también cuando el proyecto no existe, para no revelar su existencia).
@@ -104,10 +101,7 @@ export async function listarMisProyectos(usuarioId) {
   );
 }
 
-// ===========================================================================
-// HU-35: Dashboard de KPIs
-// ===========================================================================
-
+// Dashboard de KPIs
 /**
  * Calcular el avance global: porcentaje de tareas en una columna final ("Hecho") sobre el total.
  * Devolver 0 % cuando el proyecto no tiene tareas.
@@ -202,7 +196,7 @@ async function desviacionAcumulada(proyectoId) {
   const real = aUnDecimal(fila.real);
   const valor = aUnDecimal(real - estimado);
 
-  // HU-33: Alertas por desviación (Evaluación contra el umbral)
+  // Alertas por desviación (Evaluación contra el umbral)
   const porcentajeDesviacion = estimado > 0 ? Math.abs((valor / estimado) * 100) : 0;
   const superaUmbral = porcentajeDesviacion > fila.umbral_desviacion;
   const tareasUmbral = await consultar(
@@ -280,10 +274,7 @@ export async function obtenerKpisDashboard(proyectoId, usuarioId) {
   };
 }
 
-// ===========================================================================
-// HU-30: Velocity por sprint
-// ===========================================================================
-
+// Velocity por sprint
 /**
  * Calcular el promedio móvil de una serie de valores.
  * Para cada posición promediar los últimos "ventana" valores; si todavía no hay
@@ -381,10 +372,7 @@ export async function obtenerVelocity(proyectoId, usuarioIdFiltro = null) {
   };
 }
 
-// ===========================================================================
-// HU-31: Porcentaje de avance por persona y por equipo
-// ===========================================================================
-
+// Porcentaje de avance por persona y por equipo
 /**
  * Armar el resumen de avance de una persona (o del equipo) a partir de sus horas.
  * Reglas:
@@ -527,35 +515,18 @@ export async function obtenerAvance(proyectoId, sprintId = null, usuarioId) {
   };
 }
 
-// ===========================================================================
-// HU-29: Gráfica Burndown (correcciones nov 2026)
-// ===========================================================================
-//
-// Antes el burndown era una sola serie por cierre de sprint, en horas estimadas:
-// bajaba con las horas estimadas de las tareas terminadas, la línea ideal era una
-// recta sintética entre cierres y no aceptaba ?sprintId (el selector de sprint de
-// la página no lo movía). Ahora:
-//   - Unidad 'horas': serie DIARIA del sprint (fecha_inicio..fecha_fin). La línea
-//     real baja con las horas REALES registradas por día (registros_horas.fecha) y
-//     la ideal es diaria, del total inicial a 0 el último día del sprint.
-//   - Unidad 'puntos': serie DIARIA del sprint con los puntos de las historias.
-//     Baja con los puntos ACEPTADOS en el Review cada día (reviews_historias,
-//     misma regla que la velocity: una historia en 'hecho' sin Review no descuenta
-//     hasta su aceptación, porque no hay fecha fiable de cuándo se terminó).
-//     Además se informa puntosNoTerminados = SUM(historias.puntos) de las historias
-//     del sprint en estado distinto de 'hecho'/'aceptada', para contrastar.
-//   - ?sprintId: el burndown es del sprint indicado. Sin él se usa el sprint activo
-//     y, si no hay ninguno, el más reciente por fecha de fin.
-//   - El filtro de integrante solo aplica a 'horas' (las tareas tienen responsable;
-//     las historias no). En 'puntos' se ignora y la respuesta lleva individual: false.
-//   - porSprint conserva la vista general por cierre de sprint, ahora en horas y
-//     en puntos, para el resumen bajo la gráfica.
-//
-// El quemado diario se agrupa por fecha en SQL y el cálculo de la serie lo hacen las
-// funciones puras de abajo, en este mismo archivo (antes vivían en burndown.calculo.js;
-// se juntaron aquí a petición de Dana, sin pruebas automatizadas).
-// Las consultas de horas y de puntos van separadas a propósito: unir tareas y
-// reviews en una sola consulta multiplicaría las filas y falsearía las sumas.
+// Gráfica Burndown
+//   - Unidad 'horas': serie diaria (fecha_inicio..fecha_fin). La línea real
+//     baja solo con horas reales registradas (registros_horas.fecha), no con
+//     estimadas ni al marcar tareas en 'hecho'. La ideal baja del total inicial a 0.
+//   - Unidad 'puntos': serie diaria; baja solo con puntos aceptados en Review
+//     (reviews_historias), ignorando historias en 'hecho' sin aceptar. Devuelve
+//     puntosNoTerminados = SUM(historias.puntos) en estado distinto de 'hecho'/'aceptada'.
+//   - ?sprintId: filtra el sprint indicado; sin él, devuelve el acumulado de todo
+//     el proyecto (primer a último sprint). Las horas reales de tareas sin sprint
+//     (backlog) queman en la curva del proyecto, pero no aparecen en el resumen por sprint.
+//   - Filtro de integrante: solo aplica a 'horas' (tienen responsable). En 'puntos'
+//     se ignora y devuelve individual: false.
 
 /** Día actual en UTC (YYYY-MM-DD), igual que el CFD en burnup.service.js. */
 const hoyIso = () => new Date().toISOString().slice(0, 10);
@@ -656,39 +627,15 @@ function calcularBurndownDiario({ total, fechaInicio, fechaFin, hoy, quemadoPorD
 }
 
 /**
- * Serie por cierre de sprint para la vista general del proyecto: Inicio + un punto por sprint.
- * El restante acumulado nunca es negativo. Un sprint planificado lleva restante null.
- * Función pura (no toca la base de datos).
- *
- * @param {number} total Trabajo inicial de todo el proyecto (horas estimadas o puntos).
- * @param {Array<{nombre: string, estado: string, quemado: number}>} sprints Sprints en orden
- *   cronológico; quemado es lo descontado al cerrar ese sprint.
- * @returns {Array<{nombre: string, estado: string|null, restante: number|null}>}
- */
-function calcularSeriePorSprint(total, sprints = []) {
-  let restante = aUnDecimal(total);
-  const serie = [{ nombre: 'Inicio', estado: null, restante }];
-  for (const s of sprints) {
-    if (s.estado === 'planificado') {
-      serie.push({ nombre: s.nombre, estado: s.estado, restante: null });
-      continue;
-    }
-    restante = Math.max(0, aUnDecimal(restante - (Number(s.quemado) || 0)));
-    serie.push({ nombre: s.nombre, estado: s.estado, restante });
-  }
-  return serie;
-}
-
-/**
  * Burndown diario de un sprint, en horas o en puntos.
  *
  * @param {number} proyectoId Identificador del proyecto.
  * @param {Object} [opciones]
  * @param {number} usuarioId Usuario que consulta (para comprobar que pertenece al proyecto).
  * @param {number|null} [opciones.usuarioIdFiltro] Integrante a filtrar; solo aplica a 'horas'.
- * @param {number|null} [opciones.sprintId] Sprint a graficar; null = activo, o el más reciente.
+ * @param {number|null} [opciones.sprintId] Sprint a graficar; null = burndown acumulado de todo el proyecto.
  * @param {string} [opciones.unidad] 'horas' (por defecto) o 'puntos'.
- * @returns {Promise<Object>} Serie diaria del sprint, totales y vista general por sprint.
+ * @returns {Promise<Object>} Serie diaria (del sprint o del proyecto), totales y vista general por sprint.
  * @throws {ErrorApp} 404 si el sprint indicado no pertenece al proyecto.
  */
 export async function obtenerBurndown(proyectoId, opciones = {}) {
@@ -712,44 +659,66 @@ export async function obtenerBurndown(proyectoId, opciones = {}) {
   if (sprints.length === 0) {
     return {
       vacio: true, individual: false, unidad, sprintId: null, sprint: null, sprints: [],
+      fechaInicio: null, fechaFin: null,
       dias: [], horasIniciales: 0, puntosIniciales: 0,
       horasRealesTotales: 0, puntosAceptadosTotales: 0, puntosNoTerminados: 0,
       tareasSinEstimar: 0, historiasSinPuntos: 0, sinHorasReales: true, porSprint: [],
     };
   }
 
-  // Sprint elegido, o activo, o el más reciente por fecha de fin
+  // Sin sprintId: burndown ACUMULADO de todo el proyecto (TC-19-02). Antes se
+  // devolvía la curva del sprint activo; ahora el ámbito es todo el proyecto.
+  const esProyecto = sprintId === null;
   let sprint = null;
-  if (sprintId !== null) {
+  if (!esProyecto) {
     sprint = sprints.find((s) => s.id === sprintId);
     if (!sprint) throw new ErrorApp('El sprint indicado no pertenece a este proyecto.', 404);
-  } else {
-    sprint = sprints.find((s) => s.estado === 'activo')
-      || [...sprints].sort((a, b) => b.fecha_fin.localeCompare(a.fecha_fin) || b.id - a.id)[0];
   }
 
-  // Totales del sprint: horas estimadas (y cuántas tareas no tienen estimación) y puntos.
+  // Alcance de la serie diaria: el sprint elegido, o todo el proyecto (del primer
+  // día del primer sprint al último día del último sprint).
+  const fechaInicio = esProyecto ? sprints[0].fecha_inicio : sprint.fecha_inicio;
+  const fechaFin = esProyecto
+    ? sprints.reduce((max, s) => (s.fecha_fin > max ? s.fecha_fin : max), sprints[0].fecha_fin)
+    : sprint.fecha_fin;
+
+  // Totales del ámbito: horas estimadas (y cuántas tareas no tienen estimación) y puntos.
+  const ambitoId = esProyecto ? proyectoId : sprint.id;
   const [[totHoras], [totPuntos], [noTerm]] = await Promise.all([
     consultar(
-      `SELECT COALESCE(SUM(t.horas_estimadas), 0)::float AS total,
-              COUNT(*) FILTER (WHERE t.horas_estimadas IS NULL)::int AS sin_estimar
-         FROM tareas t
-        WHERE t.sprint_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)`,
-      [sprint.id, usuarioIdFiltro],
+      esProyecto
+        ? `SELECT COALESCE(SUM(t.horas_estimadas), 0)::float AS total,
+                  COUNT(*) FILTER (WHERE t.horas_estimadas IS NULL)::int AS sin_estimar
+             FROM tareas t
+            WHERE t.proyecto_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)`
+        : `SELECT COALESCE(SUM(t.horas_estimadas), 0)::float AS total,
+                  COUNT(*) FILTER (WHERE t.horas_estimadas IS NULL)::int AS sin_estimar
+             FROM tareas t
+            WHERE t.sprint_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)`,
+      [ambitoId, usuarioIdFiltro],
     ),
     consultar(
-      `SELECT COALESCE(SUM(h.puntos), 0)::int AS total,
-              COUNT(*) FILTER (WHERE h.puntos IS NULL)::int AS sin_puntos
-         FROM historias h
-        WHERE h.sprint_id = $1`,
-      [sprint.id],
+      esProyecto
+        ? `SELECT COALESCE(SUM(h.puntos), 0)::int AS total,
+                  COUNT(*) FILTER (WHERE h.puntos IS NULL)::int AS sin_puntos
+             FROM historias h
+            WHERE h.proyecto_id = $1`
+        : `SELECT COALESCE(SUM(h.puntos), 0)::int AS total,
+                  COUNT(*) FILTER (WHERE h.puntos IS NULL)::int AS sin_puntos
+             FROM historias h
+            WHERE h.sprint_id = $1`,
+      [ambitoId],
     ),
     // Puntos de historias no terminadas hoy (estado distinto de 'hecho'/'aceptada').
     consultar(
-      `SELECT COALESCE(SUM(h.puntos), 0)::int AS restantes
-         FROM historias h
-        WHERE h.sprint_id = $1 AND h.estado NOT IN ('hecho', 'aceptada')`,
-      [sprint.id],
+      esProyecto
+        ? `SELECT COALESCE(SUM(h.puntos), 0)::int AS restantes
+             FROM historias h
+            WHERE h.proyecto_id = $1 AND h.estado NOT IN ('hecho', 'aceptada')`
+        : `SELECT COALESCE(SUM(h.puntos), 0)::int AS restantes
+             FROM historias h
+            WHERE h.sprint_id = $1 AND h.estado NOT IN ('hecho', 'aceptada')`,
+      [ambitoId],
     ),
   ]);
   const horasIniciales = aUnDecimal(totHoras.total);
@@ -759,44 +728,63 @@ export async function obtenerBurndown(proyectoId, opciones = {}) {
   let quemadoPorDia = [];
   if (unidad === 'horas') {
     quemadoPorDia = await consultar(
-      `SELECT r.fecha::text AS fecha, SUM(r.horas)::float AS cantidad
-         FROM registros_horas r
-         JOIN tareas t ON t.id = r.tarea_id
-        WHERE t.sprint_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)
-        GROUP BY r.fecha
-        ORDER BY r.fecha`,
-      [sprint.id, usuarioIdFiltro],
+      esProyecto
+        ? `SELECT r.fecha::text AS fecha, SUM(r.horas)::float AS cantidad
+             FROM registros_horas r
+             JOIN tareas t ON t.id = r.tarea_id
+            WHERE t.proyecto_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)
+            GROUP BY r.fecha
+            ORDER BY r.fecha`
+        : `SELECT r.fecha::text AS fecha, SUM(r.horas)::float AS cantidad
+             FROM registros_horas r
+             JOIN tareas t ON t.id = r.tarea_id
+            WHERE t.sprint_id = $1 AND ($2::int IS NULL OR t.responsable_id = $2)
+            GROUP BY r.fecha
+            ORDER BY r.fecha`,
+      [ambitoId, usuarioIdFiltro],
     );
   } else {
     quemadoPorDia = await consultar(
-      `SELECT to_char(r.decidido_en AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS fecha,
-              COALESCE(SUM(h.puntos), 0)::int AS cantidad
-         FROM reviews_historias r
-         JOIN historias h ON h.id = r.historia_id
-        WHERE r.sprint_id = $1 AND r.decision = 'aceptada'
-        GROUP BY 1
-        ORDER BY 1`,
-      [sprint.id],
+      esProyecto
+        ? `SELECT to_char(r.decidido_en AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS fecha,
+                  COALESCE(SUM(h.puntos), 0)::int AS cantidad
+             FROM reviews_historias r
+             JOIN historias h ON h.id = r.historia_id
+            WHERE h.proyecto_id = $1 AND r.decision = 'aceptada'
+            GROUP BY 1
+            ORDER BY 1`
+        : `SELECT to_char(r.decidido_en AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS fecha,
+                  COALESCE(SUM(h.puntos), 0)::int AS cantidad
+             FROM reviews_historias r
+             JOIN historias h ON h.id = r.historia_id
+            WHERE r.sprint_id = $1 AND r.decision = 'aceptada'
+            GROUP BY 1
+            ORDER BY 1`,
+      [ambitoId],
     );
   }
 
   const { dias, totalQuemado } = calcularBurndownDiario({
     total: unidad === 'horas' ? horasIniciales : puntosIniciales,
-    fechaInicio: sprint.fecha_inicio,
-    fechaFin: sprint.fecha_fin,
+    fechaInicio,
+    fechaFin,
     hoy: hoyIso(),
     quemadoPorDia: quemadoPorDia.map((q) => ({ fecha: q.fecha, cantidad: Number(q.cantidad) || 0 })),
   });
 
-  // Vista general por cierre de sprint (horas y puntos). Dos consultas separadas para
-  // no multiplicar filas al unir tareas con reviews.
+  // Resumen por sprint: una fila por sprint, con su propio id y nombre,
+  // sin fila «Inicio» y sin desplazamientos. El restante de cada fila es el del
+  // proyecto tras ese cierre, con la misma regla que la serie diaria: restan las
+  // HORAS REALES registradas en las tareas de ese sprint (antes restaba las horas
+  // estimadas de las tareas terminadas y no coincidía con la serie diaria).
+  // Dos consultas separadas para no multiplicar filas al unir tareas con reviews.
   const [filasHoras, filasPuntos, [totHorasProy], [totPuntosProy]] = await Promise.all([
     consultar(
       `SELECT s.id, s.nombre, s.estado,
-              COALESCE(SUM(t.horas_estimadas) FILTER (WHERE c.es_final), 0)::float AS hecho
+              COALESCE(SUM(r.horas), 0)::float AS quemado
          FROM sprints s
          LEFT JOIN tareas t ON t.sprint_id = s.id AND ($2::int IS NULL OR t.responsable_id = $2)
-         LEFT JOIN columnas_tablero c ON c.id = t.columna_id
+         LEFT JOIN registros_horas r ON r.tarea_id = t.id
         WHERE s.proyecto_id = $1
         GROUP BY s.id, s.nombre, s.estado, s.fecha_inicio
         ORDER BY s.fecha_inicio, s.id`,
@@ -823,21 +811,21 @@ export async function obtenerBurndown(proyectoId, opciones = {}) {
       [proyectoId],
     ),
   ]);
-  const serieHoras = calcularSeriePorSprint(totHorasProy.total, filasHoras.map((s) => ({
-    nombre: s.nombre, estado: s.estado, quemado: Number(s.hecho) || 0,
-  })));
-  const seriePuntos = calcularSeriePorSprint(totPuntosProy.total, filasPuntos.map((s, i) => ({
-    // El nombre y el estado vienen de la consulta de horas (mismo orden por fecha de inicio).
-    nombre: filasHoras[i]?.nombre ?? `Sprint ${s.id}`, estado: filasHoras[i]?.estado ?? null,
-    quemado: Number(s.aceptados) || 0,
-  })));
-  const porSprint = serieHoras.map((p, i) => ({
-    id: filasHoras[i]?.id ?? null,
-    nombre: p.nombre,
-    estado: p.estado,
-    horasRestantes: p.restante,
-    puntosRestantes: seriePuntos[i]?.restante ?? null,
-  }));
+  // Los puntos se cruzan por id de sprint (no por posición), para que no se desplacen.
+  const aceptadosPorSprint = new Map(filasPuntos.map((f) => [f.id, Number(f.aceptados) || 0]));
+  let restanteHoras = aUnDecimal(totHorasProy.total);
+  let restantePuntos = aUnDecimal(totPuntosProy.total);
+  const porSprint = filasHoras.map((s) => {
+    if (s.estado === 'planificado') {
+      return { id: s.id, nombre: s.nombre, estado: s.estado, horasRestantes: null, puntosRestantes: null };
+    }
+    restanteHoras = Math.max(0, aUnDecimal(restanteHoras - (Number(s.quemado) || 0)));
+    restantePuntos = Math.max(0, aUnDecimal(restantePuntos - (aceptadosPorSprint.get(s.id) || 0)));
+    return {
+      id: s.id, nombre: s.nombre, estado: s.estado,
+      horasRestantes: restanteHoras, puntosRestantes: restantePuntos,
+    };
+  });
 
   // Sin valor inicial en la unidad elegida, la gráfica muestra "sin datos" (como antes).
   const inicialUnidad = unidad === 'horas' ? horasIniciales : puntosIniciales;
@@ -845,13 +833,15 @@ export async function obtenerBurndown(proyectoId, opciones = {}) {
     vacio: inicialUnidad === 0,
     individual: unidad === 'horas' && !!usuarioIdFiltro,
     unidad,
-    sprintId: sprint.id,
-    sprint: {
+    sprintId: esProyecto ? null : sprint.id,
+    sprint: esProyecto ? null : {
       id: sprint.id, nombre: sprint.nombre, estado: sprint.estado,
       fechaInicio: sprint.fecha_inicio, fechaFin: sprint.fecha_fin,
       capacidadHoras: sprint.capacidad_horas,
     },
     sprints: sprints.map((s) => ({ id: s.id, nombre: s.nombre, estado: s.estado })),
+    fechaInicio,
+    fechaFin,
     dias,
     horasIniciales,
     puntosIniciales,
@@ -865,10 +855,7 @@ export async function obtenerBurndown(proyectoId, opciones = {}) {
   };
 }
 
-// ===========================================================================
-// HU-32: Distribución del tiempo
-// ===========================================================================
-
+// Distribución del tiempo
 /**
  * Obtener las horas reales registradas, detalladas por dimensiones para su distribución.
  * El backend extrae el detalle plano y el frontend lo agrupa dinámicamente.
@@ -907,10 +894,8 @@ export async function obtenerDistribucionTiempo(proyectoId, usuarioId) {
 
   return { esScrumMaster, datos };
 }
-// ===========================================================================
-// HU-36: Exportación Asíncrona de Reportes (CSV / PDF)
-// ===========================================================================
 
+// Exportación Asíncrona de Reportes (CSV / PDF)
 // Cola en memoria de trabajos: { jobId: { proyectoId, usuarioId, estado, progreso, archivo, error } }
 const trabajosExportacion = new Map();
 
@@ -1100,10 +1085,6 @@ async function procesarArchivo(trabajo, proyectoId, usuarioId, formato, alcance)
   trabajo.progreso = 100;
   trabajo.estado = 'completado';
 }
-
-// ===========================================================================
-// HU-33: Configuración del umbral de desviación
-// ===========================================================================
 
 /**
  * Consultar el umbral vigente y si el usuario puede editarlo (solo Scrum Master).

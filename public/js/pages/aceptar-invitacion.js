@@ -1,4 +1,4 @@
-/**
+/*
  * @file aceptar-invitacion.js
  * @description Lógica de la pantalla para aceptar una invitación, definir contraseña y aceptar el aviso de privacidad.
  * 
